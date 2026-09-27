@@ -33,7 +33,7 @@ return new class extends Migration {
             $table->timestamp('occurred_at');
             $table->text('description')->nullable();
             $table->timestamps();
-            $table->index(['company_id', 'material_id', 'warehouse_id', 'occurred_at']);
+            $table->index(['company_id', 'material_id', 'warehouse_id', 'occurred_at'], 'inventory_movements_company_material_warehouse_occurred_idx');
             $table->index(['reference_type', 'reference_id']);
         });
     }
