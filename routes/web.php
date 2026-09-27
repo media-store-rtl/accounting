@@ -1,6 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
-Route::get('/', fn () => Inertia::render('Auth/Login'))->name('login');
+Route::view('/', 'accounting')->name('home');
+Route::view('/login', 'login')->name('login');
