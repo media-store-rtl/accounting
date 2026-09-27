@@ -1,9 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
-Route::get('/', fn () => response()->json([
-    'name' => config('app.name'),
-    'status' => 'ok',
-    'service' => 'industrial-accounting',
-]));
+Route::get('/', fn () => Inertia::render('Auth/Login'))->name('login');
