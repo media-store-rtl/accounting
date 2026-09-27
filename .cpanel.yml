@@ -2,7 +2,7 @@ deployment:
   tasks:
     - export DEPLOYPATH=/home/mediast1/accounting/
     - /bin/mkdir -p $DEPLOYPATH
-    - /bin/rsync -a --exclude='.git' --exclude='.env' --exclude='storage/' --exclude='node_modules/' --exclude='vendor/' ./ $DEPLOYPATH
+    - /bin/cp -R app config database docs public resources routes bootstrap artisan composer.json package.json vite.config.js README.md .env.example .gitignore .cpanel.yml $DEPLOYPATH
     - cd $DEPLOYPATH && composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
     - cd $DEPLOYPATH && npm install
     - cd $DEPLOYPATH && npm run build
