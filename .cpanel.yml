@@ -1,6 +1,7 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/mediast1/accounting/
+    - export PATH=/home/mediast1/.nvm/versions/node/v22.14.0/bin:$PATH
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/cp -R app config database docs public resources routes bootstrap artisan composer.json package.json vite.config.js README.md .env.example .gitignore .cpanel.yml $DEPLOYPATH
     - cd $DEPLOYPATH && composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
