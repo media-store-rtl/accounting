@@ -1,0 +1,9 @@
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/mediast1/accounting/
+    - /bin/mkdir -p $DEPLOYPATH
+    - /bin/rsync -a --exclude='.git' --exclude='.env' --exclude='storage/' --exclude='node_modules/' --exclude='vendor/' ./ $DEPLOYPATH
+    - cd $DEPLOYPATH && composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+    - cd $DEPLOYPATH && npm ci
+    - cd $DEPLOYPATH && npm run build
+    - cd $DEPLOYPATH && php artisan optimize:clear
