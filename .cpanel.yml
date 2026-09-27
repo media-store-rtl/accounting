@@ -4,6 +4,9 @@ deployment:
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/rsync -a --exclude='.git' --exclude='.env' --exclude='storage/' --exclude='node_modules/' --exclude='vendor/' ./ $DEPLOYPATH
     - cd $DEPLOYPATH && composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
-    - cd $DEPLOYPATH && npm ci
+    - cd $DEPLOYPATH && npm install
     - cd $DEPLOYPATH && npm run build
+    - cd $DEPLOYPATH && mkdir -p storage/app storage/framework/cache storage/framework/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+    - cd $DEPLOYPATH && test -f .env || cp .env.example .env
+    - cd $DEPLOYPATH && php artisan key:generate --force
     - cd $DEPLOYPATH && php artisan optimize:clear
