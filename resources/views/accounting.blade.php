@@ -86,7 +86,7 @@
             </section>
             <section class="cta"><div><h2>از خرید تا بهای تمام‌شده، همه‌چیز قابل ردیابی است.</h2><p>یک زیرساخت مستقل و آماده توسعه برای عملیات واقعی تولید.</p></div><a class="btn primary" href="/login">ورود به سیستم ←</a></section>
         </main>
-        <footer class="footer"><span>حسابداری صنعتی · مدیریت تولید و بهای تمام‌شده</span><span>Industrial Accounting Platform</span></footer>
+        <footer class="footer"><span>حسابداری صنعتی · مدیریت تولید و بهای تمام‌شده</span><span>طراحی توسط سام کردستانی زاده</span></footer>
     </div>
 </div>
 </body>
