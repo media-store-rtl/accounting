@@ -60,7 +60,7 @@
             <section class="hero">
                 <div class="hero-orb"></div>
                 <div class="hero-copy-wrap">
-                    <span class="eyebrow"><i></i> INDUSTRIAL ACCOUNTING PLATFORM</span>
+                    <span class="eyebrow"><i></i> طراحی توسط سام کردستانی زاده</span>
                     <h1>هزینه را از <em>ورود کالا</em> تا محصول نهایی دنبال کنید.</h1>
                     <p class="hero-copy">حسابداری صنعتی برای کسب‌وکارهای تولیدی؛ خرید، انبار، مواد اولیه، کارگاه، دستمزد، سربار و بهای تمام‌شده در یک جریان یکپارچه و قابل ردیابی.</p>
                     <div class="actions"><a class="btn primary" href="/login">ورود به حسابداری ←</a><a class="btn secondary" href="#modules">مشاهده امکانات</a></div>
