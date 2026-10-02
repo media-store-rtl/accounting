@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Company extends Model
 {
-    protected $fillable = ['name', 'code', 'is_active', 'settings'];
+    protected $fillable = ['external_company_id', 'name', 'code', 'is_active', 'settings'];
 
     protected function casts(): array
     {
