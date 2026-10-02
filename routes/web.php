@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\StorefrontSubscriptionController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'accounting')->name('home');
@@ -17,4 +16,3 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 
-Route::post('/api/storefront/subscription/sync', [StorefrontSubscriptionController::class, 'sync']);
