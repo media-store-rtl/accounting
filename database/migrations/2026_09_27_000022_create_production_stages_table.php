@@ -12,7 +12,7 @@ return new class extends Migration {
             $table->foreignId('parent_stage_id')->nullable()->constrained('production_stages')->nullOnDelete(); $table->string('code',100); $table->string('name');
             $table->text('description')->nullable(); $table->unsignedInteger('sequence')->default(1); $table->string('status',30)->default('active');
             $table->json('attributes')->nullable(); $table->timestamps(); $table->unique(['production_route_id','code']);
-            $table->index(['production_route_id','parent_stage_id','sequence']);
+            $table->index(['production_route_id','parent_stage_id','sequence'], 'prod_stages_route_parent_seq_idx');
         });
     }
 
