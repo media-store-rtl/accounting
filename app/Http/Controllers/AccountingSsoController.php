@@ -7,7 +7,6 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
@@ -79,7 +78,7 @@ class AccountingSsoController extends Controller
 
         if (! $user) {
             $user = new User();
-            $user->password = Hash::make(Str::random(64));
+            $user->password = Str::random(64);
         }
 
         if (
