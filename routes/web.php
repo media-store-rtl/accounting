@@ -6,7 +6,7 @@ use App\Http\Controllers\AccountingSsoController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
+    return auth()->check() ? redirect()->route('dashboard') : view('accounting');
 })->name('home');
 
 Route::middleware('guest')->group(function () {
