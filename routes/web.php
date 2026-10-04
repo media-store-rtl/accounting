@@ -11,6 +11,7 @@ Route::get('/', function () {
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', fn () => redirect()->route('sso.start'))->name('login');
+    Route::get('/logout-success', fn () => view('auth.logout-success'))->name('logout.success');
 });
 
 Route::get('/sso/start', [AccountingSsoController::class, 'start'])->name('sso.start');
