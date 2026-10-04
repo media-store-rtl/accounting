@@ -6,11 +6,12 @@ use App\Http\Controllers\AccountingSsoController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return auth()->check() ? redirect()->route('dashboard') : redirect()->route('sso.start');
+    return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
 })->name('home');
 
 Route::middleware('guest')->group(function () {
-    Route::get('/login', fn () => redirect()->route('sso.start'))->name('login');
+    Route::get('/login', fn () => view('auth.login'))->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
     Route::get('/logout-success', fn () => view('auth.logout-success'))->name('logout.success');
 });
 
