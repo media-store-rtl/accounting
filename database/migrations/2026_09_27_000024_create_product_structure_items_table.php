@@ -13,7 +13,7 @@ return new class extends Migration {
             $table->foreignId('production_stage_id')->nullable()->constrained()->nullOnDelete(); $table->foreignId('production_operation_id')->nullable()->constrained()->nullOnDelete();
             $table->decimal('quantity',18,4); $table->string('unit',30); $table->decimal('scrap_percent',9,4)->default(0);
             $table->unsignedInteger('sequence')->default(1); $table->text('notes')->nullable(); $table->timestamps();
-            $table->index(['product_structure_id','sequence']); $table->index(['material_id','production_stage_id']); $table->index(['component_product_id','production_stage_id']);
+            $table->index(['product_structure_id','sequence']); $table->index(['material_id','production_stage_id']); $table->index(['component_product_id','production_stage_id'], 'prod_struct_items_component_stage_idx');
         });
     }
 
