@@ -96,6 +96,8 @@ class AccountingSsoController extends Controller
 
         Auth::login($user);
         $request->session()->regenerate();
+        $request->session()->put('auth_source', 'web2022');
+        $request->session()->put('web2022_user_id', (int) $payload['user_id']);
 
         return redirect()->intended('/dashboard');
     }
