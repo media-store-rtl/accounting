@@ -13,7 +13,7 @@ return new class extends Migration {
             $table->foreignId('production_operation_run_id')->nullable()->constrained()->nullOnDelete(); $table->string('entry_type',30);
             $table->decimal('amount',20,4); $table->decimal('quantity',18,4)->nullable(); $table->timestamp('occurred_at');
             $table->text('description')->nullable(); $table->json('metadata')->nullable(); $table->timestamps();
-            $table->index(['production_order_id','occurred_at']); $table->index(['production_stage_run_id','production_operation_run_id']);
+            $table->index(['production_order_id','occurred_at']); $table->index(['production_stage_run_id','production_operation_run_id'], 'wip_entries_stage_operation_idx');
         });
     }
 
