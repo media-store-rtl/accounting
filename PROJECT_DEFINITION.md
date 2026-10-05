@@ -1,85 +1,85 @@
-# Accounting Project Definition
+# تعریف پروژه حسابداری
 
-## 1. Project Overview
+## ۱. نمای کلی پروژه
 
-Accounting is a **production cost accounting system for finished manufactured goods**.
+Accounting یک **سیستم حسابداری بهای تمام‌شده برای کالای ساخته‌شده** است.
 
-The system is designed to calculate the **complete cost of finished goods from zero to one hundred percent**, covering the full production-cost accounting process and all of the data and calculations required to determine the final cost of manufactured products.
+این سیستم برای محاسبه **کامل بهای تمام‌شده کالای ساخته‌شده از صفر تا صد** طراحی شده و کل فرآیند حسابداری بهای تمام‌شده تولید و تمام داده‌ها و محاسبات موردنیاز برای تعیین بهای نهایی محصولات تولیدشده را پوشش می‌دهد.
 
-## 2. Business Objective
+## ۲. هدف کسب‌وکار
 
-The primary objective of the system is to **solve existing production-costing problems** and provide an integrated system for calculating the **accurate, complete, transparent, and traceable cost of finished manufactured goods**, from the beginning of the production process through determination of the final product cost.
+هدف اصلی سیستم، **برطرف کردن مشکلات موجود در هزینه‌یابی بهای تولید** و ایجاد یک سیستم یکپارچه برای محاسبه **دقیق، کامل، شفاف و قابل‌ردگیری بهای تمام‌شده کالای ساخته‌شده** از ابتدای فرآیند تولید تا تعیین بهای نهایی محصول است.
 
-## 3. Product Definition
+## ۳. تعریف محصول
 
-The project is focused specifically on production cost accounting for finished manufactured goods.
+این پروژه به‌طور مشخص بر حسابداری بهای تمام‌شده کالای ساخته‌شده تمرکز دارد.
 
-Its core purpose is to manage and calculate the cost of production through the complete business flow, starting from an order and continuing through production, finished products, and sales.
+هدف اصلی آن مدیریت و محاسبه بهای تولید در جریان کامل کسب‌وکار است؛ به‌گونه‌ای که فرآیند از سفارش شروع شده و از تولید و کالای ساخته‌شده تا فروش ادامه پیدا کند.
 
-## 4. Core Business Flow
+## ۴. جریان اصلی کسب‌وکار
 
 ```
-Order
+سفارش
   ↓
-Production
+تولید
   ↓
-Finished Product
+کالای ساخته‌شده
   ↓
-Cost of Goods / Production Cost
+بهای کالا / بهای تولید
   ↓
-Sale
+فروش
   ↓
-Financial & Management Reports
+گزارش‌های مالی و مدیریتی
 ```
 
-The system must model the relationship between these stages so that production cost is derived from the underlying operational and financial data rather than being treated as an isolated manual value.
+سیستم باید ارتباط بین این مراحل را به‌گونه‌ای مدل کند که بهای تولید از داده‌های عملیاتی و مالی زیربنایی به دست آید و به‌عنوان یک مقدار دستی و مستقل در نظر گرفته نشود.
 
-## 5. Core Scope
+## ۵. محدوده اصلی
 
-The Accounting project is centered on:
+پروژه Accounting بر موارد زیر متمرکز است:
 
-- Order management
-- Production management
-- Product and finished-product management
-- Production cost / cost-of-goods calculation
-- Sales
-- Financial and management reporting
+- مدیریت سفارش‌ها
+- مدیریت تولید
+- مدیریت محصول و کالای ساخته‌شده
+- محاسبه بهای تولید / بهای کالا
+- فروش
+- گزارش‌های مالی و مدیریتی
 
-Supporting capabilities such as users, permissions, authentication/SSO, subscriptions, database architecture, security, UI/UX, testing, and deployment exist to support this core business workflow.
+قابلیت‌های پشتیبان مانند کاربران، دسترسی‌ها، احراز هویت/SSO، اشتراک‌ها، معماری پایگاه داده، امنیت، رابط کاربری، تست و استقرار برای پشتیبانی از این جریان اصلی کسب‌وکار وجود دارند.
 
-## 6. Relationship with Web2022
+## ۶. ارتباط با Web2022
 
-Web2022 and Accounting are separate applications.
+Web2022 و Accounting دو برنامه مستقل هستند.
 
-Web2022 provides the surrounding ecosystem, including authentication/SSO integration and the subscription/purchase flow. Accounting is the application responsible for the manufacturing cost-accounting workflow.
+Web2022 اکوسیستم پیرامونی، از جمله یکپارچه‌سازی احراز هویت/SSO و فرآیند اشتراک/خرید را فراهم می‌کند. Accounting برنامه‌ای است که مسئول جریان حسابداری بهای تمام‌شده تولید است.
 
-Subscription and SSO are supporting integrations; they are not the primary business purpose of Accounting.
+اشتراک و SSO یکپارچه‌سازی‌های پشتیبان هستند و هدف اصلی کسب‌وکار Accounting محسوب نمی‌شوند.
 
-## 7. Subscription Principles
+## ۷. اصول اشتراک
 
-- Access to Accounting is subscription-aware.
-- An active subscription enables the operational functionality assigned to the user's subscription.
-- When a subscription expires, historical Accounting data must remain available.
-- Expiration must not delete historical records or make previously recorded business data disappear.
-- Expired users must be able to renew through the Web2022 purchase flow.
-- Plan switching/upgrading is not part of the current scope unless explicitly added later.
+- دسترسی به Accounting وابسته به وضعیت اشتراک است.
+- اشتراک فعال، قابلیت‌های عملیاتی مربوط به اشتراک کاربر را فعال می‌کند.
+- پس از انقضای اشتراک، اطلاعات تاریخی Accounting باید همچنان در دسترس باقی بماند.
+- انقضای اشتراک نباید باعث حذف سوابق تاریخی یا ناپدید شدن اطلاعات ثبت‌شده قبلی شود.
+- کاربران دارای اشتراک منقضی باید بتوانند از طریق فرآیند خرید Web2022 اشتراک خود را تمدید کنند.
+- تغییر یا ارتقای پلن در محدوده فعلی نیست، مگر اینکه بعداً به‌طور صریح اضافه شود.
 
-## 8. Access Control Principle
+## ۸. اصل کنترل دسترسی
 
-Operational access must be enforced server-side. Hiding or disabling UI elements alone is not considered sufficient authorization.
+کنترل دسترسی عملیاتی باید در سمت سرور اعمال شود. صرفاً مخفی کردن یا غیرفعال کردن عناصر رابط کاربری، مجوز دسترسی کافی محسوب نمی‌شود.
 
-## 9. Data Principle
+## ۹. اصل داده
 
-The production-cost chain must remain traceable from the originating business records through production and finished products to sales and reporting.
+زنجیره بهای تولید باید از سوابق اولیه کسب‌وکار تا تولید، کالای ساخته‌شده، فروش و گزارش‌ها قابل‌ردگیری باقی بماند.
 
-Historical records are retained and must remain available according to the user's authorized access.
+سوابق تاریخی نگهداری می‌شوند و باید مطابق سطح دسترسی مجاز کاربر در دسترس باقی بمانند.
 
-## 10. Project Boundary
+## ۱۰. مرز پروژه
 
-The project should be designed as a modular Laravel application so that the core manufacturing accounting modules can be developed independently while sharing well-defined data, authorization, and integration contracts.
+پروژه باید به‌صورت یک برنامه ماژولار Laravel طراحی شود تا ماژول‌های اصلی حسابداری تولید بتوانند به‌صورت مستقل توسعه پیدا کنند و در عین حال از قراردادهای مشخص داده، مجوز دسترسی و یکپارچه‌سازی استفاده کنند.
 
-New features must be evaluated against the core objective:
+قابلیت‌های جدید باید بر اساس هدف اصلی پروژه ارزیابی شوند:
 
-**Order → Production → Product → Production Cost → Sale → Reporting**
+**سفارش → تولید → محصول → بهای تولید → فروش → گزارش**
 
-Features that do not support this objective or the necessary platform/security/integration capabilities should be treated as future scope unless explicitly approved.
+قابلیت‌هایی که از این هدف یا قابلیت‌های ضروری پلتفرم، امنیت و یکپارچه‌سازی پشتیبانی نمی‌کنند، باید به‌عنوان محدوده آینده در نظر گرفته شوند؛ مگر اینکه به‌طور صریح تأیید شوند.
