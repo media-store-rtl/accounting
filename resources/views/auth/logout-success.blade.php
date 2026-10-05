@@ -15,7 +15,7 @@ a{display:inline-block;padding:12px 24px;border-radius:12px;background:#6ee7d0;c
 <main class="box">
 <h1>با موفقیت خارج شدید</h1>
 <div class="muted">از حساب کاربری حسابداری خارج شده‌اید. برای ورود دوباره، از دکمه زیر استفاده کنید.</div>
-<a href="{{ route('sso.start') }}">ورود مجدد به حسابداری</a>
+<a href="{{ route('login') }}">ورود مجدد به حسابداری</a>
 </main>
 </body>
 </html>
