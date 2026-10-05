@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class AccountingSsoController extends Controller
@@ -76,9 +77,13 @@ class AccountingSsoController extends Controller
                 ->first();
         }
 
-        if (! $user) {
+        $isNewUser = ! $user;
+        $initialPassword = null;
+
+        if ($isNewUser) {
             $user = new User();
-            $user->password = Str::random(64);
+            $initialPassword = Str::random(20);
+            $user->password = $initialPassword;
         }
 
         if (
@@ -93,6 +98,30 @@ class AccountingSsoController extends Controller
         $user->web2022_user_id = (int) $payload['user_id'];
         $user->web2022_subscription_id = (string) $payload['subscription_id'];
         $user->save();
+
+        if ($isNewUser && $initialPassword !== null) {
+            Mail::raw(
+                "سلام،
+
+حساب شما در My Medimo Accounting با موفقیت ایجاد شد.
+
+ایمیل ورود:
+{$user->email}
+
+رمز عبور اولیه:
+{$initialPassword}
+
+این رمز را نزد خود نگه دارید و در اولین فرصت آن را تغییر دهید.
+
+با احترام
+My Medimo",
+                function ($message) use ($user) {
+                    $message
+                        ->to($user->email)
+                        ->subject('اطلاعات ورود به My Medimo Accounting');
+                }
+            );
+        }
 
         Auth::login($user);
         $request->session()->regenerate();
