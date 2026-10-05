@@ -21,6 +21,11 @@ class User extends Authenticatable
         ];
     }
 
+    public function subscription()
+    {
+        return $this->hasOne(AccountingSubscription::class);
+    }
+
     public function companies()
     {
         return $this->belongsToMany(Company::class)
