@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AccountingSubscription;
 use App\Models\User;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\RedirectResponse;
@@ -98,6 +99,19 @@ class AccountingSsoController extends Controller
         $user->web2022_user_id = (int) $payload['user_id'];
         $user->web2022_subscription_id = (string) $payload['subscription_id'];
         $user->save();
+
+        AccountingSubscription::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'external_subscription_id' => (string) $payload['subscription_id'],
+                'plan_id' => isset($payload['plan_id']) ? (int) $payload['plan_id'] : null,
+                'status' => (string) ($payload['status'] ?? 'active'),
+                'max_users' => isset($payload['max_users']) ? (int) $payload['max_users'] : null,
+                'starts_at' => $payload['starts_at'] ?? now(),
+                'expires_at' => $payload['expires_at'] ?? null,
+                'last_synced_at' => now(),
+            ]
+        );
 
         if ($isNewUser && $initialPassword !== null) {
             Mail::raw(
