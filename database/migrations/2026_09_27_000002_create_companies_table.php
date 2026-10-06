@@ -8,8 +8,14 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('companies', function (Blueprint $table) {
-            $table->id(); $table->string('name'); $table->string('code',50)->unique();
-            $table->boolean('is_active')->default(true); $table->json('settings')->nullable(); $table->timestamps();
+            $table->id();
+            $table->foreignId('account_id')->constrained()->cascadeOnDelete();
+            $table->string('name');
+            $table->string('code', 50);
+            $table->boolean('is_active')->default(true);
+            $table->json('settings')->nullable();
+            $table->timestamps();
+            $table->unique(['account_id', 'code']);
         });
     }
 
