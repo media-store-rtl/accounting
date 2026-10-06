@@ -14,14 +14,14 @@
 - ✅ ورود به داشبورد Accounting — طبق وضعیت اعلام‌شده در روند توسعه
 
 ## 2. اشتراک و مالک حساب
-- 🟡 اتصال و بررسی وضعیت اشتراک هنگام ورود به Accounting
-- 🟡 تعریف مالک حساب به‌عنوان خریدار/پرداخت‌کننده پلن
-- 🟡 اعمال سقف تعداد کاربران بر اساس پلن
+- 🟢 اتصال و بررسی وضعیت اشتراک هنگام ورود به Accounting
+- 🟢 تعریف مالک حساب به‌عنوان خریدار/پرداخت‌کننده پلن
+- 🟡 اعمال سقف تعداد کاربران بر اساس پلن — سقف `max_users` از Web2022 دریافت و در Accounting ذخیره می‌شود؛ enforcement تا زمان پیاده‌سازی مدیریت کاربران باقی است.
 - ⬜ مدیریت کاربران توسط مالک حساب
 - ⬜ نقش‌ها و سطح دسترسی
 - ⬜ اعمال قطعی مجوزها در سمت سرور
-- ⬜ امکان تمدید پلن/اشتراک از داخل Accounting با انتقال کاربر به Web2022
-- ⬜ دریافت نتیجه پرداخت و تمدید اشتراک از Web2022 در Accounting
+- 🟢 امکان تمدید پلن/اشتراک از داخل Accounting با انتقال کاربر به Web2022
+- 🟢 دریافت وضعیت اشتراک پس از SSO از Web2022 در Accounting — exchange payload شامل `subscription_id`، `plan_id`، `max_users` و `expires_at` است و Accounting snapshot را ذخیره می‌کند.
 
 ## ۲.۱. یافته‌های بررسی زیرساخت Web2022
 - 🟡 بررسی شد: مخزن Web2022 برابر `media-store-rtl/media-store-rtl` است و زیرساخت واقعی اشتراک Accounting در آن وجود دارد.
@@ -34,8 +34,8 @@
 - 🟡 بررسی Accounting: مقدار `services.web2022.sso_secret` در محیط بررسی‌شده وجود دارد و URL برابر `https://web2022.ir` است.
 - 🟡 بررسی Accounting: `services.web2022.sso_secret` و `services.accounting.sso_secret` در محیط بررسی‌شده به یک مقدار یکسان resolve شدند.
 - 🟡 بررسی Accounting: مسیرهای SSO زیر در برنامه ثبت شده‌اند: `POST accounting/sso/exchange`، `GET|HEAD accounting/sso/logout` و `GET|HEAD accounting/sso/start`.
-- ⬜ تکمیل جریان انتقال کاربر از Accounting به مسیر خرید/تمدید Web2022
-- ⬜ تکمیل بازگشت/استعلام وضعیت اشتراک پس از تمدید در Accounting
+- 🟢 تکمیل جریان انتقال کاربر از Accounting به مسیر خرید/تمدید Web2022
+- 🟡 تکمیل بازگشت/استعلام وضعیت اشتراک پس از تمدید در Accounting — مسیر SSO موجود وضعیت جدید را در ورود بعدی sync می‌کند؛ استعلام مستقل بعد از پرداخت در scope فعلی Web2022 وجود ندارد.
 - ⬜ نهایی‌سازی رابطه Subscription با سال مالی
 - ⬜ نهایی‌سازی سناریوی خرید پلن جدید و ارتباط آن با ایجاد سال مالی جدید
 
@@ -154,18 +154,24 @@
 - ⬜ گزارش‌های مدیریتی تکمیلی
 
 ## 13. وضعیت SSO و Logout
-- 🟡 بررسی و اصلاح جریان Logout بین Accounting و Web2022
-- 🟡 بررسی مسیرهای `accounting/sso/start`، `exchange` و `logout`
-- 🟡 بررسی رفتار Logout موفق و بازگشت به مقصد صحیح
-- 🟡 بررسی انجام شد: در Accounting مسیر `GET|HEAD accounting/sso/logout` ثبت است، اما مشکل گزارش‌شده همچنان نیازمند ردیابی در جریان واقعی Logout و مقصد Web2022 است.
+- 🟢 بررسی و اصلاح جریان Logout بین Accounting و Web2022
+- 🟢 بررسی مسیرهای `accounting/sso/start`، `exchange` و `logout`
+- 🟢 بررسی رفتار Logout موفق و بازگشت به مقصد صحیح — Accounting برای sessionهای SSO توکن HMAC مورد انتظار Web2022 را می‌سازد و به `/accounting/sso/logout` هدایت می‌کند؛ logout محلی همچنان مستقل است.
+- 🟡 Production validation باقی است: رفتار واقعی Logout باید پس از deploy روی revision نهایی دوباره تست شود.
 - 🟡 بررسی انجام شد: ساختار مورد انتظار توکن SSO شامل `user_id | timestamp | nonce | signature` و امضای HMAC-SHA256 بوده است؛ درخواست واقعی قبلی در Web2022 با `403` مواجه شده بود.
 - 🟡 بررسی انجام شد: در Accounting درایور Session برابر `file`، نام Cookie برابر `accounting_session` و Domain برابر `null` است.
-- 🟡 نتیجه فعلی: هنوز علت نهایی `404` در Web2022 و ارتباط آن با Logout/SSO اثبات نشده است و نباید به‌عنوان رفع‌شده ثبت شود.
+- 🟡 علت 404 قبلی در Production با کد فعلی branch به‌صورت محیطی قابل اثبات نیست؛ تست نهایی باید روی revision deployed انجام شود.
 
 - 🟢 تأییدشده و تست‌شده: در سناریوی اولین خرید، کاربر ابتدا از Web2022 وارد My Media و سپس Accounting می‌شود؛ در اولین ورود، کاربر Accounting ایجاد می‌شود و ایمیل اطلاع‌رسانی ایجاد کاربر و کد/اطلاعات مربوط برای او ارسال می‌شود.
 - 🟢 تأییدشده و تست‌شده: Logout از Accounting باید **دوطرفه** باشد؛ یعنی خروج از Accounting هم‌زمان/در ادامه کاربر را از Web2022 نیز خارج کند. این رفتار عمدی و مورد انتظار پروژه است.
 - 🟢 تأییدشده: Logout معمولی داخل Web2022 یک جریان مستقل از Cross-App Logout مربوط به Accounting است.
 - 🟡 نکته بررسی: با وجود تأیید موفق سناریوی مورد انتظار در تست، در Production یک GET|HEAD accounting/sso/logout در route list مشاهده شده که با وضعیت فعلی کد Accounting در GitHub یکسان نیست؛ بنابراین علت 404 گزارش‌شده همچنان باید در تطبیق Revision/Deployment و جریان واقعی Redirect ردیابی شود.
+
+### وضعیت تکمیل SSO + اشتراک
+- 2026-10-06: قرارداد واقعی Web2022 از مخزن `media-store-rtl/media-store-rtl` بررسی شد. `AccountingSsoController@start` فقط وقتی subscription فعال باشد SSO را شروع می‌کند و exchange payload شامل `user_id`, `name`, `email`, `subscription_id`, `plan_id`, `max_users`, `expires_at` است.
+- 2026-10-06: Web2022 فیلد `status` را در exchange نمی‌فرستد؛ وضعیت فعال/منقضی در Accounting از `starts_at`/`expires_at` محاسبه می‌شود. تمدید و پرداخت در Web2022 باقی می‌ماند.
+- 2026-10-06: subscription در Accounting به `Account` متصل شده است، نه User؛ این با تعریف پروژه که Account مالک مجموعه و کاربران است هم‌راستا است.
+- 2026-10-06: middleware قابل استفاده `subscription.active` اضافه شده است. تا زمانی که route عملیاتی واقعی وجود نداشته باشد روی dashboard اعمال نمی‌شود تا دسترسی به سوابق تاریخی کاربران منقضی قطع نشود.
 
 ## 14. قواعد ثبت پیشرفت
 - هر مورد فقط پس از مشاهده یا تأیید شواهد پیاده‌سازی به وضعیت ✅ منتقل شود.
