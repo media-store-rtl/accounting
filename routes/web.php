@@ -20,5 +20,5 @@ Route::get('/sso/callback', [AccountingSsoController::class, 'callback'])->name(
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::post('/logout', [AccountingSsoController::class, 'logout'])->name('logout');
 });
