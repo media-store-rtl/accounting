@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Account;
 use App\Models\AccountingSubscription;
 use App\Models\User;
 use Carbon\Carbon;
@@ -113,6 +114,19 @@ class AccountingSsoController extends Controller
         $user->email = (string) $payload['email'];
         $user->web2022_user_id = (int) $payload['user_id'];
         $user->web2022_subscription_id = (string) $payload['subscription_id'];
+
+        if (! $user->account_id) {
+            $account = Account::query()->firstOrCreate(
+                ['code' => 'WEB2022-' . (int) $payload['user_id']],
+                [
+                    'name' => $user->name . ' - حسابداری',
+                    'is_active' => true,
+                ]
+            );
+
+            $user->account_id = $account->id;
+        }
+
         $user->save();
 
         $status = $startsAt->lte(now()) && $expiresAt->gt(now())
@@ -120,7 +134,7 @@ class AccountingSsoController extends Controller
             : ($startsAt->gt(now()) ? 'pending' : 'expired');
 
         AccountingSubscription::updateOrCreate(
-            ['user_id' => $user->id],
+            ['account_id' => $user->account_id],
             [
                 'external_subscription_id' => (string) $payload['subscription_id'],
                 'plan_id' => isset($payload['plan_id']) ? (int) $payload['plan_id'] : null,
