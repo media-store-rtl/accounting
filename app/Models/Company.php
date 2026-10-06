@@ -39,8 +39,13 @@ class Company extends Model
         return $this->hasMany(FiscalYear::class);
     }
 
+    public function subscriptionEntitlements(): HasMany
+    {
+        return $this->hasMany(SubscriptionEntitlement::class);
+    }
+
     public function subscriptionEntitlement(): HasOne
     {
-        return $this->hasOne(SubscriptionEntitlement::class);
+        return $this->hasOne(SubscriptionEntitlement::class)->latestOfMany();
     }
 }
