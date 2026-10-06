@@ -8,10 +8,16 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('fiscal_years', function (Blueprint $table) {
-            $table->id(); $table->foreignId('company_id')->constrained()->cascadeOnDelete();
-            $table->string('name'); $table->string('code',50); $table->date('starts_at'); $table->date('ends_at');
-            $table->boolean('is_closed')->default(false); $table->timestamps();
-            $table->unique(['company_id','code']); $table->index(['company_id','starts_at','ends_at']);
+            $table->id();
+            $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+            $table->string('name');
+            $table->string('code', 50);
+            $table->date('starts_at');
+            $table->date('ends_at');
+            $table->boolean('is_closed')->default(false);
+            $table->timestamps();
+            $table->unique(['company_id', 'code']);
+            $table->index(['company_id', 'starts_at', 'ends_at']);
         });
     }
 
