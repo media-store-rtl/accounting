@@ -260,3 +260,13 @@ Blockerهای اصلی:
 7. نبود E2E evidence برای زنجیره Order → Supply → Production → Costing → Finished Goods → Sales → Reports.
 
 این بخش به‌عنوان QA override ثبت شده و نباید هیچ موردی بدون implementation + evidence/test به وضعیت ✅ منتقل شود.
+
+
+## 3.2 تعاریف پایه عملیاتی — 2026-10-06
+- Migrationهای واقعی موجود در شاخه جاری بررسی شد؛ به‌خصوص schemaهای Supplier، Goods، Locations، Production Sections، Goods Units و همچنین schema جدید workflow که جدول‌های `inventory`، `inventory_movements` و `supplier_goods` را ایجاد می‌کند.
+- برای کالا، به‌جای ایجاد موجودیت فرضی Product از موجودیت واقعی repo یعنی `goods` استفاده شد.
+- برای انبار، به‌جای ایجاد جدول فرضی Warehouse از `locations` با `type=warehouse` استفاده شد.
+- برای قسمت تولید، از رابطه واقعی `production_sections.location_id` استفاده شد و ساختار route/stage/operation تولید خارج از scope این بخش باقی ماند.
+- authorization از middleware موجود `permission` و متد `User::hasPermission` استفاده می‌کند؛ company ownership در query/controllerها بررسی می‌شود.
+- عملیات موجودی داخل transaction انجام می‌شوند و خروج/انتقال/اصلاح کاهشی موجودی منفی را رد می‌کند.
+- تست Feature برای company isolation، ایجاد کالا با وابستگی‌های هم‌شرکت و جلوگیری از موجودی منفی اضافه شد؛ اجرای `php artisan test` روی سرور در این جلسه انجام نشد.
