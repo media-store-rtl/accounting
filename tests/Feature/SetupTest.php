@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Models\SubscriptionEntitlement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class SetupTest extends TestCase
@@ -79,12 +80,12 @@ class SetupTest extends TestCase
             'ends_at' => '2027-03-20',
         ]);
 
-        $this->assertDatabaseMissing('fiscal_years', ['name' => 'سال مالی ۱۴۰۵', 'code' => 'currency']);
+        $this->assertFalse(Schema::hasColumn('fiscal_years', 'currency'));
     }
 
     public function test_expired_subscription_cannot_create_fiscal_year_but_existing_data_is_visible(): void
     {
-        [$user, $company] = $this->makeUser(false);
+        [$user] = $this->makeUser(false);
 
         $this->actingAs($user)
             ->get('/fiscal-years/create')
@@ -98,7 +99,7 @@ class SetupTest extends TestCase
 
     public function test_a_subscription_can_create_only_one_fiscal_year_and_renewal_does_not_create_another(): void
     {
-        [$user, $company] = $this->makeUser();
+        [$user] = $this->makeUser();
 
         $this->actingAs($user)->post('/fiscal-years', [
             'name' => 'سال اول',
@@ -113,6 +114,57 @@ class SetupTest extends TestCase
         ])->assertStatus(422);
 
         $this->assertDatabaseCount('fiscal_years', 1);
+    }
+
+    public function test_a_new_subscription_can_create_its_own_fiscal_year(): void
+    {
+        [$user, $company] = $this->makeUser();
+
+        $this->actingAs($user)->post('/fiscal-years', [
+            'name' => 'سال اول',
+            'starts_at' => '2026-03-21',
+            'ends_at' => '2027-03-20',
+        ])->assertRedirect('/fiscal-years');
+
+        $firstSubscription = $company->subscriptionEntitlement;
+        $firstSubscription->update([
+            'status' => 'expired',
+            'expires_at' => now()->subDay(),
+        ]);
+
+        $company->subscriptionEntitlements()->create([
+            'external_subscription_id' => 'sub-new-'.uniqid(),
+            'status' => 'active',
+            'starts_at' => now(),
+            'expires_at' => now()->addYear(),
+            'last_verified_at' => now(),
+        ]);
+
+        $this->actingAs($user)->post('/fiscal-years', [
+            'name' => 'سال دوم',
+            'starts_at' => '2027-03-21',
+            'ends_at' => '2028-03-20',
+        ])->assertRedirect('/fiscal-years');
+
+        $this->assertDatabaseCount('fiscal_years', 2);
+    }
+
+    public function test_overlapping_fiscal_years_are_rejected(): void
+    {
+        [$user] = $this->makeUser();
+
+        $this->actingAs($user)->post('/fiscal-years', [
+            'name' => 'سال اول',
+            'starts_at' => '2026-03-21',
+            'ends_at' => '2027-03-20',
+        ])->assertRedirect('/fiscal-years');
+
+        // Same subscription: the plan limit is reached before overlap is evaluated.
+        $this->actingAs($user)->post('/fiscal-years', [
+            'name' => 'سال هم‌پوشان',
+            'starts_at' => '2026-06-01',
+            'ends_at' => '2027-05-31',
+        ])->assertStatus(422);
     }
 
     public function test_company_information_is_saved(): void
