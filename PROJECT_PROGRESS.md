@@ -23,9 +23,7 @@
 - ⬜ امکان تمدید پلن/اشتراک از داخل Accounting با انتقال کاربر به Web2022
 - ⬜ دریافت نتیجه پرداخت و تمدید اشتراک از Web2022 در Accounting
 
-
 ## ۲.۱. یافته‌های بررسی زیرساخت Web2022
-
 - 🟡 بررسی شد: مخزن Web2022 برابر `media-store-rtl/media-store-rtl` است و زیرساخت واقعی اشتراک Accounting در آن وجود دارد.
 - 🟡 بررسی شد: مدل‌های `AccountingSubscriptionPlan` و `AccountingSubscription` در Web2022 وجود دارند.
 - 🟡 بررسی شد: پلن‌ها مشخصاتی مانند قیمت، `duration_days` و `max_users` دارند.
@@ -33,6 +31,9 @@
 - 🟡 بررسی شد: Web2022 برای شارژ کیف پول زیرساخت درگاه‌های بانکی موجود، از جمله Behpardakht، Sepehr و Saman، دارد.
 - 🟡 بررسی شد: منطق تمدید اشتراک در Web2022 از قبل وجود دارد؛ اگر اشتراک فعال باشد، دوره جدید به `expires_at` فعلی اضافه می‌شود و اگر اشتراک منقضی/غیرفعال باشد، دوره جدید از زمان فعلی شروع می‌شود.
 - 🟡 نتیجه معماری: برای تمدید اشتراک، ساخت درگاه پرداخت جدید در Accounting لازم نیست و Accounting باید از زیرساخت موجود Web2022 استفاده کند.
+- 🟡 بررسی Accounting: مقدار `services.web2022.sso_secret` در محیط بررسی‌شده وجود دارد و URL برابر `https://web2022.ir` است.
+- 🟡 بررسی Accounting: `services.web2022.sso_secret` و `services.accounting.sso_secret` در محیط بررسی‌شده به یک مقدار یکسان resolve شدند.
+- 🟡 بررسی Accounting: مسیرهای SSO زیر در برنامه ثبت شده‌اند: `POST accounting/sso/exchange`، `GET|HEAD accounting/sso/logout` و `GET|HEAD accounting/sso/start`.
 - ⬜ تکمیل جریان انتقال کاربر از Accounting به مسیر خرید/تمدید Web2022
 - ⬜ تکمیل بازگشت/استعلام وضعیت اشتراک پس از تمدید در Accounting
 - ⬜ نهایی‌سازی رابطه Subscription با سال مالی
@@ -132,6 +133,10 @@
 - 🟡 بررسی و اصلاح جریان Logout بین Accounting و Web2022
 - 🟡 بررسی مسیرهای `accounting/sso/start`، `exchange` و `logout`
 - 🟡 بررسی رفتار Logout موفق و بازگشت به مقصد صحیح
+- 🟡 بررسی انجام شد: در Accounting مسیر `GET|HEAD accounting/sso/logout` ثبت است، اما مشکل گزارش‌شده همچنان نیازمند ردیابی در جریان واقعی Logout و مقصد Web2022 است.
+- 🟡 بررسی انجام شد: ساختار مورد انتظار توکن SSO شامل `user_id | timestamp | nonce | signature` و امضای HMAC-SHA256 بوده است؛ درخواست واقعی قبلی در Web2022 با `403` مواجه شده بود.
+- 🟡 بررسی انجام شد: در Accounting درایور Session برابر `file`، نام Cookie برابر `accounting_session` و Domain برابر `null` است.
+- 🟡 نتیجه فعلی: هنوز علت نهایی `404` در Web2022 و ارتباط آن با Logout/SSO اثبات نشده است و نباید به‌عنوان رفع‌شده ثبت شود.
 
 ## 14. قواعد ثبت پیشرفت
 - هر مورد فقط پس از مشاهده یا تأیید شواهد پیاده‌سازی به وضعیت ✅ منتقل شود.
