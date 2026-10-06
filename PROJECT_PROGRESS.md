@@ -172,3 +172,91 @@
 - وضعیت‌های 🟡 و 🔴 باید همراه با توضیح کوتاه درباره کار باقی‌مانده یا مانع ثبت شوند.
 - تصمیم‌ها و نیازمندی‌های جدید باید در همین فایل ثبت شوند تا مشخص باشد تا کجا پیش رفته‌ایم.
 - تغییرات مهم پروژه باید با commit قابل‌ردگیری باشند.
+
+
+---
+
+# 14. Final Integration / QA — 2026-10-06
+
+## قاعده QA
+این بخش فقط بر اساس evidence موجود در Repository/کد بررسی‌شده ثبت شده است. در این بررسی هیچ موردی صرفاً به دلیل وجود Migration، Model یا فایل کد به وضعیت ✅ منتقل نشده است.
+
+## وضعیت واقعی در پایان این QA
+
+| بخش | وضعیت | Evidence / Gap |
+|---|---|---|
+| Web2022 → Accounting / Login | 🟡 | AccountingSsoController و مسیرهای /sso/start و /sso/callback در GitHub وجود دارند؛ اجرای واقعی E2E در این جلسه انجام نشد. |
+| Subscription status | 🟡 | callback به Web2022 و دریافت subscription_id وجود دارد، اما کنترل عملیاتی فعال/منقضی بودن اشتراک در Accounting و تست آن اثبات نشده است. |
+| Dashboard | 🟡 | DashboardController وجود دارد و Company/FiscalYear را می‌خواند؛ تست HTTP واقعی انجام نشده است. |
+| Company setup | ⬜ | در routeهای فعلی GitHub مسیر CRUD/Setup برای Company مشاهده نشد؛ فقط Dashboard به Company موجود وابسته است. |
+| Fiscal year | ⬜ | Migration/Model dependency وجود دارد، اما route/controller/form و تست ایجاد/بستن سال مالی evidence نشده است. |
+| Personnel / Users / Access | ⬜ | ساختار User/Personnel در schema دیده می‌شود، اما CRUD، مدیریت مالک حساب، Role/Permission و enforcement سمت سرور evidence نشده است. |
+| Supplier / Warehouse / Product | 🟡 | Migrationهای مربوط به Supplier، Goods/Product، Locations و سایر schemaها وجود دارند؛ implementation عملیاتی و تست CRUD/permission evidence نشده است. |
+| Order | ⬜ | implementation عملیاتی و route/controller قابل‌اثبات برای ثبت سفارش، موجودی و اعلان تولید مشاهده نشد. |
+| Supply / Purchase | ⬜ | schemaهای مرتبط در repository وجود دارند، اما flow عملیاتی درخواست تأمین، خرید، دریافت و هزینه مستقیم تست/اثبات نشده است. |
+| Production | 🟡 | schemaهای Production/Route/Stage/Run/Input/Output/Scrap وجود دارند؛ execution workflow و تأیید روزانه evidence نشده است. |
+| Material consumption | ⬜ | schema مربوط به Operation Inputs وجود دارد، اما ثبت/کسر موجودی/ردیابی مصرف در flow واقعی اثبات نشده است. |
+| Labor / Machine / Overhead | ⬜ | در این QA implementation عملیاتی و test evidence کافی برای این اجزا مشاهده نشد. |
+| Costing | ⬜ | وجود schema به‌تنهایی برای PASS کافی نیست؛ محاسبه واقعی CostCalculation/CostComponent در سطح Order/Product تست نشده است. |
+| Finished goods | ⬜ | schema/موجودیت‌های مربوطه در طراحی پروژه وجود دارند، اما receipt، تأیید انبار و movement واقعی تست نشده است. |
+| Sales | ⬜ | flow ثبت فروش، کنترل موجودی، DeliveryRequest/Delivery و تحویل تست نشده است. |
+| Reports | ⬜ | گزارش‌های واقعی مبتنی بر داده عملیاتی و traceability در این QA اثبات نشده‌اند. |
+| Backup / Restore | ⬜ | implementation/test evidence کافی وجود ندارد. |
+| Excel Import | ⬜ | implementation/test evidence کافی وجود ندارد. |
+| Logout / Cross-App Logout | 🔴 | کد فعلی GitHub فقط local logout را در POST /logout دارد و SSO controller مسیر logout ندارد؛ در حالی که PROJECT_PROGRESS قبلاً مسیر Production accounting/sso/logout را گزارش کرده بود. این mismatch باید قبل از PASS شدن رفع و روی محیط واقعی تست شود. |
+| Audit Trail / Notifications | ⬜ | implementation و evidence عملیاتی قابل‌قبول برای flow کامل مشاهده نشد. |
+
+## Route status
+
+Evidence کد فعلی:
+- GET /
+- GET /login
+- POST /login
+- GET /logout-success
+- GET /sso/start
+- GET /sso/callback
+- GET /dashboard
+- POST /logout
+
+bootstrap/app.php فقط routes/web.php را به‌عنوان web route register می‌کند و route file دیگری برای API در آن ثبت نشده است.
+
+نکته مهم: این فهرست خروجی اجرای php artisan route:list نیست؛ به دلیل نبود دسترسی shell به /home/mediast1/accounting در این جلسه، route:list واقعی اجرا نشد. بنابراین route status محیط Production هنوز 🟡 است.
+
+## Migration status
+
+در Repository Migrationهای schema تا 000030_create_goods_units_table.php مشاهده شد و migrationهای متعدد برای Account/Company/FiscalYear، Supplier، Goods/Product/Material، Location، Production، Production Route/Stage/Run، Operation Input/Output، Scrap، Customer و Goods Units وجود دارند.
+
+با این حال:
+- php artisan migrate:status در این جلسه روی /home/mediast1/accounting اجرا نشد.
+- php artisan migrate:fresh نیز اجرا نشد.
+- بنابراین clean migration execution و وضعیت واقعی دیتابیس Production هنوز تأییدشده نیست.
+- وجود Migration به‌تنهایی به معنی PASS شدن feature نیست.
+
+## Test status
+
+- composer.json دارای script تست @php artisan test است.
+- فایل‌های استاندارد tests/Feature/ExampleTest.php، tests/Unit/ExampleTest.php و tests/TestCase.php از Repository فعلی قابل بازیابی نبودند.
+- php artisan test در این جلسه روی سرور اجرا نشد.
+- بنابراین هیچ feature به دلیل «کد موجود است» PASS اعلام نشده است.
+
+## Git / Deployment status
+
+- GitHub repository و branch main قابل بررسی است.
+- آخرین commit مشاهده‌شده در این audit: 38c2a607a9f08d22ddd36fcfe7c365714bb830a3 با پیام Add approved customer and goods unit schema.
+- وضعیت git status روی /home/mediast1/accounting در این جلسه قابل اجرا نبود؛ بنابراین clean بودن working tree سرور تأیید نشده است.
+- تعداد زیاد commitهای schema در بازه کوتاه و commitهای حذف/rebuild migrationها نشان می‌دهد Migration history اخیراً بازسازی شده و باید قبل از deploy نهایی با migrate:status و یک clean migration test تأیید شود.
+
+## نتیجه نهایی QA
+
+در این مرحله پروژه از نظر schema/design progress جلو رفته است، اما از نظر Final Integration / QA هنوز آماده اعلام PASS سراسری نیست.
+
+Blockerهای اصلی:
+1. نبود دسترسی shell برای اجرای تست واقعی روی /home/mediast1/accounting.
+2. نبود evidence از اجرای php artisan test.
+3. نبود evidence از php artisan migrate:status و clean migration run.
+4. نبود evidence از php artisan route:list واقعی Production.
+5. نبود route/controller evidence برای اکثر flowهای عملیاتی.
+6. mismatch بین Logout/SSO مستندشده Production و route/controller فعلی GitHub.
+7. نبود E2E evidence برای زنجیره Order → Supply → Production → Costing → Finished Goods → Sales → Reports.
+
+این بخش به‌عنوان QA override ثبت شده و نباید هیچ موردی بدون implementation + evidence/test به وضعیت ✅ منتقل شود.
