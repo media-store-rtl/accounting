@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AccountingSubscription extends Model
 {
     protected $fillable = [
-        'user_id',
+        'account_id',
         'external_subscription_id',
         'plan_id',
         'status',
@@ -22,7 +22,7 @@ class AccountingSubscription extends Model
     protected function casts(): array
     {
         return [
-            'user_id' => 'integer',
+            'account_id' => 'integer',
             'plan_id' => 'integer',
             'max_users' => 'integer',
             'starts_at' => 'datetime',
@@ -32,9 +32,9 @@ class AccountingSubscription extends Model
         ];
     }
 
-    public function user(): BelongsTo
+    public function account(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Account::class);
     }
 
     public function isActive(): bool
