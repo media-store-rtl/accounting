@@ -9,24 +9,22 @@ class DashboardController extends Controller
     public function __invoke(): View
     {
         $user = request()->user();
+        $account = $user->account;
+        $company = $account?->company;
 
-        $companies = $user->companies()
-            ->where('companies.is_active', true)
-            ->orderBy('companies.name')
-            ->get();
-
-        $companyId = (int) session('company_id');
-
-        if (! $companyId || ! $companies->contains('id', $companyId)) {
-            $companyId = $companies->first()?->id;
-            if ($companyId) {
-                session(['company_id' => $companyId]);
-            }
+        if ($company) {
+            session(['company_id' => $company->id]);
         }
 
-        $company = $companies->firstWhere('id', $companyId);
+        $subscription = $company?->subscriptionEntitlement;
         $fiscalYears = $company?->fiscalYears()->orderByDesc('starts_at')->get() ?? collect();
 
-        return view('dashboard', compact('user', 'companies', 'company', 'fiscalYears'));
+        return view('dashboard', compact(
+            'user',
+            'account',
+            'company',
+            'subscription',
+            'fiscalYears'
+        ));
     }
 }
