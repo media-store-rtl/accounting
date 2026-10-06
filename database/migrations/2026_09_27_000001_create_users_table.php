@@ -8,9 +8,19 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->id(); $table->string('name'); $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable(); $table->string('password');
-            $table->rememberToken(); $table->timestamps();
+            $table->id();
+            $table->foreignId('account_id')->constrained()->cascadeOnDelete();
+            $table->string('name');
+            $table->string('username', 100);
+            $table->string('email')->nullable()->unique();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('password');
+            $table->rememberToken();
+            $table->unsignedBigInteger('web2022_user_id')->nullable()->unique();
+            $table->uuid('web2022_subscription_id')->nullable()->unique();
+            $table->timestamps();
+            $table->unique(['account_id', 'username']);
+            $table->index(['account_id', 'username']);
         });
     }
 
