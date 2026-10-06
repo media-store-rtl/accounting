@@ -656,3 +656,142 @@ Accounting برنامه‌ای است که مسئول جریان حسابدار�
 قابلیت‌های پشتیبان مانند کاربران، دسترسی‌ها، احراز هویت/SSO، اشتراک‌ها، معماری پایگاه داده، امنیت، رابط کاربری، تست و استقرار برای پشتیبانی از این جریان اصلی کسب‌وکار وجود دارند.
 
 قابلیت‌هایی که از هدف اصلی پروژه یا قابلیت‌های ضروری پلتفرم، امنیت و یکپارچه‌سازی پشتیبانی نمی‌کنند، باید به‌عنوان محدوده آینده در نظر گرفته شوند؛ مگر اینکه به‌طور صریح تأیید شوند.
+
+
+---
+
+## ۲۰. طراحی موجودیت‌ها و تطبیق با ساختار فعلی دیتابیس
+
+این بخش طراحی مفهومی موجودیت‌ها و روابط اصلی سیستم را ثبت می‌کند و مبنای بررسی و تکمیل Schema دیتابیس خواهد بود.
+
+این بخش جایگزین Migrationهای موجود نیست و تا زمان تأیید تغییرات، ساختار فعلی دیتابیس حفظ می‌شود.
+
+### ۲۰.۱. موجودیت‌های اصلی
+
+موجودیت‌های اصلی موردنیاز سیستم عبارت‌اند از:
+
+- Account
+- Company
+- User
+- Personnel
+- FiscalYear
+- Customer
+- Supplier
+- Goods
+- Warehouse
+- ProductionSection
+- Location
+- ProductionRoute
+- ProductionRouteInstance
+- ProductionStage
+- Production
+- ProductionOperation
+- OperationInput
+- OperationOutput
+- Scrap
+- LaborRecord
+- Order
+- OrderItem
+- DeliveryRequest
+- Delivery
+- SupplyRequest
+- SupplyRequestItem
+- Purchase
+- PurchaseItem
+- FinishedGoodsReceipt
+- Inventory
+- InventoryMovement
+- CostCalculation
+- CostComponent
+- Notification
+- AuditTrail
+
+### ۲۰.۲. روابط کلیدی
+
+- Account → Company = 1:N
+- Account → User = 1:N
+- Account → Personnel = 1:N
+- User ↔ Personnel = 1:1
+- Company → FiscalYear = 1:N
+- هر Company در هر زمان فقط یک FiscalYear باز دارد.
+- Company → Customer = 1:N
+- Company → Supplier = 1:N
+- Supplier ↔ Goods = M:N
+- Company → Goods = 1:N
+- Company → Warehouse = 1:N
+- Company → ProductionSection = 1:N
+- Personnel ↔ ProductionSection = M:N
+- Company → ProductionRoute = 1:N
+- ProductionRoute → ProductionStage = 1:N
+- Production → ProductionRouteInstance = 1:1
+- ProductionRouteInstance → مراحل واقعی تولید = 1:N
+- Production → ProductionOperation = 1:N
+- Production ↔ Order = M:N
+- Order → OrderItem = 1:N
+- Order → DeliveryRequest = 1:N
+- DeliveryRequest → Delivery = 1:N
+- Production → SupplyRequest = 1:N
+- SupplyRequest → SupplyRequestItem = 1:N
+- Supplier → Purchase = 1:N
+- Purchase → PurchaseItem = 1:N
+- Production → FinishedGoodsReceipt = 1:N
+- Goods ↔ Location از طریق Inventory
+- Inventory → InventoryMovement = 1:N
+- ProductionOperation → OperationInput = 1:N
+- ProductionOperation → OperationOutput = 1:N
+- ProductionOperation → Scrap = 1:N
+- ProductionOperation → LaborRecord = 1:N
+- CostCalculation → CostComponent = 1:N
+
+### ۲۰.۳. اصول مهم طراحی
+
+- Production می‌تواند یک یا چند Order را پوشش دهد.
+- Production می‌تواند بدون Order و با هدف تولید برای موجودی ایجاد شود.
+- یک Order نیز می‌تواند توسط یک یا چند Production تأمین شود.
+- OrderItem می‌تواند هر Goods دارای `sellable = true` باشد و محدود به کالای ساخته‌شده نیست.
+- Warehouse و ProductionSection هر دو می‌توانند به‌عنوان Location در گردش فیزیکی کالا مورد استفاده قرار گیرند.
+- Inventory وضعیت فعلی موجودی کالا در Location را نگهداری می‌کند.
+- InventoryMovement تاریخچه کامل جابه‌جایی فیزیکی کالا را ثبت می‌کند.
+- مصرف کالا در تولید مقصد فیزیکی ندارد و به ProductionOperation مربوط می‌شود.
+- FinishedGoodsReceipt یک Entity مستقل است و پس از تأیید آن، حرکت موجودی مربوط به ورود کالای ساخته‌شده به انبار ثبت می‌شود.
+- DeliveryRequest و Delivery دو Entity مستقل هستند.
+- ProductionRoute مسیر استاندارد تولید است و ProductionRouteInstance مسیر واقعی مورد استفاده در یک Production را تثبیت می‌کند.
+- تغییر Route استاندارد نباید سوابق تولیدهای قبلی را تغییر دهد.
+- Personnel می‌تواند در چند ProductionSection و چند Stage/Operation فعالیت کند.
+- عضویت در ProductionSection با Permission یکسان نیست.
+- ارزش مالی خرید در Purchase/PurchaseItem ثبت می‌شود و عملیات فیزیکی دریافت کالا در Inventory ثبت می‌شود.
+- عملیات انبار نباید به‌عنوان مبلغ مستقل بهای تمام‌شده تلقی شود.
+- هزینه‌های انرژی به‌عنوان جزء مستقل بهای تمام‌شده در نظر گرفته می‌شوند؛ روش تخصیص آن‌ها در طراحی حسابداری نهایی خواهد شد.
+- ارزش مواد مصرف‌شده باید بر اساس مقدار واقعی مصرف و روش ارزش‌گذاری مصوب سیستم محاسبه شود.
+- CostCalculation و CostComponent باید بهای تمام‌شده را از داده‌های واقعی و قابل‌ردگیری تشکیل دهند.
+
+### ۲۰.۴. وضعیت تطبیق با دیتابیس فعلی
+
+بخشی از موجودیت‌ها و ساختارهای فوق در Migrationهای فعلی پروژه از قبل وجود دارند. بنابراین در مرحله طراحی Schema نباید Entityهای جدید بدون بررسی ساختار موجود ایجاد شوند.
+
+مواردی که نیازمند تطبیق دقیق با ساختار فعلی هستند شامل:
+
+- Account / Company
+- User / Personnel / employees
+- Goods / materials / products
+- Location / warehouses / production sections
+- Production / production_orders
+- ProductionRoute / production_routes
+- ProductionStage / production_stages
+- ProductionRouteInstance / production_stage_runs / production_operation_runs
+- ProductionOperation / production_operation_runs
+- OperationInput / production_material_consumptions
+- OperationOutput / production_outputs
+- LaborRecord / labor_entries
+- Purchase / purchase_orders
+- PurchaseItem / purchase_order_items
+- FinishedGoodsReceipt
+- Inventory / stock_items
+- InventoryMovement / inventory_movements
+- CostCalculation / CostComponent / cost_transactions / overhead_entries / wip_entries
+- Notification / notifications
+- AuditTrail
+
+ساختار فعلی دیتابیس ابتدا با این طراحی تطبیق داده می‌شود و سپس برای هر اختلاف، راهکار مناسب شامل حفظ ساختار، اصلاح، ادغام یا ایجاد Migration جدید به‌صورت جداگانه تعیین خواهد شد.
+
+**هیچ Migration یا جدول موجودی صرفاً به دلیل این طراحی حذف یا جایگزین نمی‌شود مگر اینکه تغییر آن به‌طور صریح تأیید شود.**
