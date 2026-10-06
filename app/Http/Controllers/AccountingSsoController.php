@@ -92,7 +92,7 @@ class AccountingSsoController extends Controller
                     'is_active' => true,
                 ]);
 
-                $company = Company::create([
+                Company::create([
                     'account_id' => $account->id,
                     'name' => (string) ($payload['name'] ?? 'مجموعه جدید'),
                     'code' => 'COMP-'.Str::upper(Str::random(10)),
@@ -101,7 +101,7 @@ class AccountingSsoController extends Controller
 
                 $user = new User();
                 $user->account_id = $account->id;
-                $user->username = (string) ($payload['email']);
+                $user->username = (string) $payload['email'];
                 $initialPassword = Str::random(20);
                 $user->password = $initialPassword;
             } elseif (! $user->account_id) {
@@ -137,9 +137,11 @@ class AccountingSsoController extends Controller
             }
 
             SubscriptionEntitlement::updateOrCreate(
-                ['company_id' => $company->id],
                 [
+                    'company_id' => $company->id,
                     'external_subscription_id' => (string) $payload['subscription_id'],
+                ],
+                [
                     'status' => (string) ($payload['subscription_status'] ?? 'active'),
                     'starts_at' => $payload['subscription_starts_at'] ?? null,
                     'expires_at' => $payload['subscription_expires_at'] ?? ($payload['expires_at'] ?? null),
