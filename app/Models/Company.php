@@ -6,11 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class Company extends Model
 {
-    protected $fillable = ['name', 'code', 'is_active', 'settings'];
+    protected $fillable = ['account_id', 'name', 'code', 'is_active', 'settings'];
 
     protected function casts(): array
     {
         return ['is_active' => 'boolean', 'settings' => 'array'];
+    }
+
+    public function account()
+    {
+        return $this->belongsTo(Account::class);
     }
 
     public function users()
@@ -20,8 +25,18 @@ class Company extends Model
             ->withTimestamps();
     }
 
+    public function roles()
+    {
+        return $this->hasMany(Role::class);
+    }
+
     public function fiscalYears()
     {
         return $this->hasMany(FiscalYear::class);
+    }
+
+    public function subscriptionEntitlement()
+    {
+        return $this->hasOne(SubscriptionEntitlement::class);
     }
 }

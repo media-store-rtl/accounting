@@ -2,11 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Account;
+use App\Models\Company;
+use App\Models\Permission;
+use App\Models\Personnel;
+use App\Models\Role;
+use App\Models\SubscriptionEntitlement;
 use App\Models\User;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -17,9 +24,7 @@ class AccountingSsoController extends Controller
     {
         $web2022Url = rtrim((string) config('services.web2022.url'), '/');
 
-        if ($web2022Url === '') {
-            abort(503, 'Web2022 SSO is not configured.');
-        }
+        abort_if($web2022Url === '', 503, 'Web2022 SSO is not configured.');
 
         return redirect()->away($web2022Url . '/accounting/sso/start');
     }
@@ -27,99 +32,133 @@ class AccountingSsoController extends Controller
     public function callback(Request $request): RedirectResponse
     {
         $token = (string) $request->query('token');
-
-        if ($token === '' || strlen($token) < 32) {
-            abort(401, 'Invalid SSO token.');
-        }
+        abort_if($token === '' || strlen($token) < 32, 401, 'Invalid SSO token.');
 
         $web2022Url = rtrim((string) config('services.web2022.url'), '/');
         $secret = (string) config('services.web2022.sso_secret');
-
-        if ($web2022Url === '' || $secret === '') {
-            abort(503, 'Web2022 SSO is not configured.');
-        }
+        abort_if($web2022Url === '' || $secret === '', 503, 'Web2022 SSO is not configured.');
 
         try {
             $response = Http::acceptJson()
                 ->timeout(10)
-                ->withHeaders([
-                    'X-Accounting-SSO-Secret' => $secret,
-                ])
-                ->post($web2022Url . '/accounting/sso/exchange', [
-                    'token' => $token,
-                ]);
+                ->withHeaders(['X-Accounting-SSO-Secret' => $secret])
+                ->post($web2022Url . '/accounting/sso/exchange', ['token' => $token]);
         } catch (ConnectionException) {
             abort(503, 'Unable to connect to Web2022.');
         }
 
-        if ($response->failed()) {
-            abort($response->status() === 401 ? 401 : 503, 'SSO authentication failed.');
-        }
+        abort_if($response->failed(), $response->status() === 401 ? 401 : 503, 'SSO authentication failed.');
 
         $payload = $response->json();
+        abort_unless(
+            is_array($payload) && ! empty($payload['user_id']) && ! empty($payload['email']) && ! empty($payload['subscription_id']),
+            401,
+            'Invalid SSO response.'
+        );
 
-        if (
-            ! is_array($payload)
-            || empty($payload['user_id'])
-            || empty($payload['email'])
-            || empty($payload['subscription_id'])
-        ) {
-            abort(401, 'Invalid SSO response.');
-        }
-
-        $user = User::query()
-            ->where('web2022_user_id', (int) $payload['user_id'])
-            ->first();
-
-        if (! $user) {
+        [$user, $isNewUser, $initialPassword] = DB::transaction(function () use ($payload) {
             $user = User::query()
-                ->where('email', (string) $payload['email'])
+                ->where('web2022_user_id', (int) $payload['user_id'])
                 ->first();
-        }
 
-        $isNewUser = ! $user;
-        $initialPassword = null;
+            if (! $user) {
+                $user = User::query()->where('email', (string) $payload['email'])->first();
+            }
 
-        if ($isNewUser) {
-            $user = new User();
-            $initialPassword = Str::random(20);
-            $user->password = $initialPassword;
-        }
+            $isNewUser = ! $user;
+            $initialPassword = null;
 
-        if (
-            $user->web2022_user_id !== null
-            && (int) $user->web2022_user_id !== (int) $payload['user_id']
-        ) {
-            abort(409, 'This Accounting account is linked to another Web2022 user.');
-        }
+            if (! $user) {
+                $initialPassword = Str::random(20);
 
-        $user->name = (string) ($payload['name'] ?? $payload['email']);
-        $user->email = (string) $payload['email'];
-        $user->web2022_user_id = (int) $payload['user_id'];
-        $user->web2022_subscription_id = (string) $payload['subscription_id'];
-        $user->save();
+                $account = Account::firstOrCreate(
+                    ['code' => 'WEB2022-' . (int) $payload['user_id']],
+                    [
+                        'name' => (string) ($payload['company_name'] ?? 'حساب Accounting'),
+                        'is_active' => true,
+                    ]
+                );
+
+                $company = $account->company()->firstOrCreate(
+                    ['account_id' => $account->id],
+                    [
+                        'name' => (string) ($payload['company_name'] ?? 'مجموعه'),
+                        'code' => 'MAIN',
+                        'is_active' => true,
+                    ]
+                );
+
+                $user = User::create([
+                    'account_id' => $account->id,
+                    'name' => (string) ($payload['name'] ?? $payload['email']),
+                    'username' => $this->uniqueUsername((string) ($payload['username'] ?? $payload['email']), $account->id),
+                    'email' => (string) $payload['email'],
+                    'password' => $initialPassword,
+                    'web2022_user_id' => (int) $payload['user_id'],
+                    'web2022_subscription_id' => (string) $payload['subscription_id'],
+                    'is_active' => true,
+                ]);
+
+                $account->update(['owner_user_id' => $user->id]);
+
+                Personnel::create([
+                    'account_id' => $account->id,
+                    'user_id' => $user->id,
+                    'code' => 'OWNER-' . $user->id,
+                    'name' => $user->name,
+                    'first_name' => $payload['first_name'] ?? $user->name,
+                    'last_name' => $payload['last_name'] ?? null,
+                    'email' => $user->email,
+                    'is_active' => true,
+                ]);
+
+                $role = Role::firstOrCreate(
+                    ['company_id' => $company->id, 'slug' => 'owner'],
+                    ['name' => 'مالک حساب', 'description' => 'نقش سیستمی مالک حساب', 'is_system' => true]
+                );
+
+                $permissions = Permission::pluck('id');
+                $role->permissions()->sync($permissions);
+                $company->users()->attach($user->id, ['role_id' => $role->id, 'is_active' => true]);
+            } else {
+                abort_if(
+                    $user->web2022_user_id !== null && (int) $user->web2022_user_id !== (int) $payload['user_id'],
+                    409,
+                    'This Accounting account is linked to another Web2022 user.'
+                );
+
+                $user->update([
+                    'name' => (string) ($payload['name'] ?? $user->name),
+                    'email' => (string) $payload['email'],
+                    'web2022_user_id' => (int) $payload['user_id'],
+                    'web2022_subscription_id' => (string) $payload['subscription_id'],
+                ]);
+            }
+
+            $company = $user->currentCompany();
+            if ($company) {
+                $entitlement = SubscriptionEntitlement::firstOrNew(['company_id' => $company->id]);
+                $entitlement->external_subscription_id = (string) $payload['subscription_id'];
+                $entitlement->status = (string) ($payload['subscription_status'] ?? $entitlement->status ?? 'pending');
+                $entitlement->max_users = isset($payload['max_users']) ? (int) $payload['max_users'] : $entitlement->max_users;
+                $entitlement->starts_at = $payload['subscription_starts_at'] ?? $entitlement->starts_at;
+                $entitlement->expires_at = $payload['subscription_expires_at'] ?? $entitlement->expires_at;
+                $entitlement->last_verified_at = now();
+                $metadata = is_array($entitlement->metadata) ? $entitlement->metadata : [];
+                if (isset($payload['max_users'])) {
+                    $metadata['max_users'] = (int) $payload['max_users'];
+                }
+                $entitlement->metadata = $metadata;
+                $entitlement->save();
+            }
+
+            return [$user, $isNewUser, $initialPassword];
+        });
 
         if ($isNewUser && $initialPassword !== null) {
             Mail::raw(
-                "سلام،
-
-حساب شما در My Medimo Accounting با موفقیت ایجاد شد.
-
-ایمیل ورود:
-{$user->email}
-
-رمز عبور اولیه:
-{$initialPassword}
-
-این رمز را نزد خود نگه دارید و در اولین فرصت آن را تغییر دهید.
-
-با احترام
-My Medimo",
-                function ($message) use ($user) {
-                    $message
-                        ->to($user->email)
-                        ->subject('اطلاعات ورود به My Medimo Accounting');
-                }
+                "سلام،\n\nحساب شما در My Medimo Accounting با موفقیت ایجاد شد.\n\nایمیل ورود:\n{$user->email}\n\nرمز عبور اولیه:\n{$initialPassword}\n",
+                fn ($message) => $message->to($user->email)->subject('اطلاعات ورود به My Medimo Accounting')
             );
         }
 
@@ -129,5 +168,18 @@ My Medimo",
         $request->session()->put('web2022_user_id', (int) $payload['user_id']);
 
         return redirect()->intended('/dashboard');
+    }
+
+    private function uniqueUsername(string $candidate, int $accountId): string
+    {
+        $base = Str::of($candidate)->before('@')->replaceMatches('/[^A-Za-z0-9_-]/', '-')->trim('-')->value() ?: 'user';
+        $username = $base;
+        $i = 1;
+
+        while (User::where('account_id', $accountId)->where('username', $username)->exists()) {
+            $username = $base . '-' . $i++;
+        }
+
+        return $username;
     }
 }

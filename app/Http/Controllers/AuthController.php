@@ -15,9 +15,9 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        if (! Auth::attempt(array_merge($credentials, ['is_active' => true]), $request->boolean('remember'))) {
             return back()
-                ->withErrors(['email' => 'ایمیل یا رمز عبور صحیح نیست.'])
+                ->withErrors(['email' => 'ایمیل یا رمز عبور صحیح نیست یا کاربر غیرفعال است.'])
                 ->onlyInput('email');
         }
 
@@ -31,7 +31,6 @@ class AuthController extends Controller
     public function logout(Request $request): RedirectResponse
     {
         Auth::logout();
-
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
