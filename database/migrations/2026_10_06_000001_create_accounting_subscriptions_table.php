@@ -9,8 +9,8 @@ return new class extends Migration {
     {
         Schema::create('accounting_subscriptions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->unique()->constrained()->cascadeOnDelete();
-            $table->uuid('external_subscription_id')->nullable()->index();
+            $table->foreignId('account_id')->unique()->constrained()->cascadeOnDelete();
+            $table->uuid('external_subscription_id')->nullable()->unique();
             $table->unsignedBigInteger('plan_id')->nullable()->index();
             $table->string('status', 30)->default('inactive')->index();
             $table->unsignedInteger('max_users')->nullable();
