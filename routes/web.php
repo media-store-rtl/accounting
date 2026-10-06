@@ -8,6 +8,11 @@ use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\PersonnelController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\ProductionSectionController;
+use App\Http\Controllers\GoodController;
+use App\Http\Controllers\InventoryOperationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -65,5 +70,43 @@ Route::middleware('auth')->group(function () {
             Route::put('/roles/{role}', [RoleController::class, 'update'])->middleware('company.permission:role.update')->name('roles.update');
             Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->middleware('company.permission:role.delete')->name('roles.destroy');
         });
+    });
+
+    Route::prefix('definitions')->name('definitions.')->group(function () {
+        Route::get('suppliers',[SupplierController::class,'index'])->middleware('company.permission:supplier.view')->name('suppliers.index');
+        Route::get('suppliers/create',[SupplierController::class,'create'])->middleware('company.permission:supplier.create')->name('suppliers.create');
+        Route::post('suppliers',[SupplierController::class,'store'])->middleware('company.permission:supplier.create')->name('suppliers.store');
+        Route::get('suppliers/{supplier}/edit',[SupplierController::class,'edit'])->middleware('company.permission:supplier.update')->name('suppliers.edit');
+        Route::put('suppliers/{supplier}',[SupplierController::class,'update'])->middleware('company.permission:supplier.update')->name('suppliers.update');
+        Route::patch('suppliers/{supplier}/activate',[SupplierController::class,'activate'])->middleware('company.permission:supplier.activate')->name('suppliers.activate');
+        Route::patch('suppliers/{supplier}/deactivate',[SupplierController::class,'deactivate'])->middleware('company.permission:supplier.deactivate')->name('suppliers.deactivate');
+
+        Route::get('warehouses',[WarehouseController::class,'index'])->middleware('company.permission:warehouse.view')->name('warehouses.index');
+        Route::get('warehouses/create',[WarehouseController::class,'create'])->middleware('company.permission:warehouse.create')->name('warehouses.create');
+        Route::post('warehouses',[WarehouseController::class,'store'])->middleware('company.permission:warehouse.create')->name('warehouses.store');
+        Route::get('warehouses/{warehouse}/edit',[WarehouseController::class,'edit'])->middleware('company.permission:warehouse.update')->name('warehouses.edit');
+        Route::put('warehouses/{warehouse}',[WarehouseController::class,'update'])->middleware('company.permission:warehouse.update')->name('warehouses.update');
+        Route::patch('warehouses/{warehouse}/activate',[WarehouseController::class,'activate'])->middleware('company.permission:warehouse.activate')->name('warehouses.activate');
+        Route::patch('warehouses/{warehouse}/deactivate',[WarehouseController::class,'deactivate'])->middleware('company.permission:warehouse.deactivate')->name('warehouses.deactivate');
+
+        Route::get('production-sections',[ProductionSectionController::class,'index'])->middleware('company.permission:production_section.view')->name('production-sections.index');
+        Route::get('production-sections/create',[ProductionSectionController::class,'create'])->middleware('company.permission:production_section.create')->name('production-sections.create');
+        Route::post('production-sections',[ProductionSectionController::class,'store'])->middleware('company.permission:production_section.create')->name('production-sections.store');
+        Route::get('production-sections/{section}/edit',[ProductionSectionController::class,'edit'])->middleware('company.permission:production_section.update')->name('production-sections.edit');
+        Route::put('production-sections/{section}',[ProductionSectionController::class,'update'])->middleware('company.permission:production_section.update')->name('production-sections.update');
+        Route::patch('production-sections/{section}/activate',[ProductionSectionController::class,'activate'])->middleware('company.permission:production_section.activate')->name('production-sections.activate');
+        Route::patch('production-sections/{section}/deactivate',[ProductionSectionController::class,'deactivate'])->middleware('company.permission:production_section.deactivate')->name('production-sections.deactivate');
+
+        Route::get('goods',[GoodController::class,'index'])->middleware('company.permission:goods.view')->name('goods.index');
+        Route::get('goods/create',[GoodController::class,'create'])->middleware('company.permission:goods.create')->name('goods.create');
+        Route::post('goods',[GoodController::class,'store'])->middleware('company.permission:goods.create')->name('goods.store');
+        Route::get('goods/{good}/edit',[GoodController::class,'edit'])->middleware('company.permission:goods.update')->name('goods.edit');
+        Route::put('goods/{good}',[GoodController::class,'update'])->middleware('company.permission:goods.update')->name('goods.update');
+        Route::patch('goods/{good}/activate',[GoodController::class,'activate'])->middleware('company.permission:goods.activate')->name('goods.activate');
+        Route::patch('goods/{good}/deactivate',[GoodController::class,'deactivate'])->middleware('company.permission:goods.deactivate')->name('goods.deactivate');
+
+        Route::get('goods-operations',[InventoryOperationController::class,'index'])->middleware('company.permission:goods.operation.view')->name('goods.operations.index');
+        Route::get('goods-operations/create',[InventoryOperationController::class,'create'])->middleware('company.permission:goods.operation.create')->name('goods.operations.create');
+        Route::post('goods-operations',[InventoryOperationController::class,'store'])->middleware('company.permission:goods.operation.create')->name('goods.operations.store');
     });
 });
