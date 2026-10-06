@@ -9,6 +9,10 @@ class DashboardController extends Controller
     public function __invoke(): View
     {
         $user = request()->user();
+        $subscription = $user->subscription;
+        $subscriptionActive = $subscription?->isActive() ?? false;
+        $subscriptionStatus = $subscription?->refreshStatus() ?? 'inactive';
+        $renewalUrl = rtrim((string) config('services.web2022.url'), '/') . '/accounting-plan';
 
         $companies = $user->companies()
             ->where('companies.is_active', true)
@@ -27,6 +31,15 @@ class DashboardController extends Controller
         $company = $companies->firstWhere('id', $companyId);
         $fiscalYears = $company?->fiscalYears()->orderByDesc('starts_at')->get() ?? collect();
 
-        return view('dashboard', compact('user', 'companies', 'company', 'fiscalYears'));
+        return view('dashboard', compact(
+            'user',
+            'companies',
+            'company',
+            'fiscalYears',
+            'subscription',
+            'subscriptionActive',
+            'subscriptionStatus',
+            'renewalUrl'
+        ));
     }
 }
