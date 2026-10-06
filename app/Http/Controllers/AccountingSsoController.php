@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AccountingSubscription;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -63,8 +65,22 @@ class AccountingSsoController extends Controller
             || empty($payload['user_id'])
             || empty($payload['email'])
             || empty($payload['subscription_id'])
+            || ! isset($payload['expires_at'])
         ) {
             abort(401, 'Invalid SSO response.');
+        }
+
+        try {
+            $startsAt = isset($payload['starts_at'])
+                ? Carbon::parse($payload['starts_at'])
+                : now();
+            $expiresAt = Carbon::parse($payload['expires_at']);
+        } catch (\Throwable) {
+            abort(401, 'Invalid subscription dates.');
+        }
+
+        if ($expiresAt->lte($startsAt)) {
+            abort(401, 'Invalid subscription period.');
         }
 
         $user = User::query()
@@ -99,6 +115,23 @@ class AccountingSsoController extends Controller
         $user->web2022_subscription_id = (string) $payload['subscription_id'];
         $user->save();
 
+        $status = $startsAt->lte(now()) && $expiresAt->gt(now())
+            ? 'active'
+            : ($startsAt->gt(now()) ? 'pending' : 'expired');
+
+        AccountingSubscription::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'external_subscription_id' => (string) $payload['subscription_id'],
+                'plan_id' => isset($payload['plan_id']) ? (int) $payload['plan_id'] : null,
+                'status' => $status,
+                'max_users' => isset($payload['max_users']) ? (int) $payload['max_users'] : null,
+                'starts_at' => $startsAt,
+                'expires_at' => $expiresAt,
+                'last_synced_at' => now(),
+            ]
+        );
+
         if ($isNewUser && $initialPassword !== null) {
             Mail::raw(
                 "سلام،
@@ -129,5 +162,36 @@ My Medimo",
         $request->session()->put('web2022_user_id', (int) $payload['user_id']);
 
         return redirect()->intended('/dashboard');
+    }
+
+    public function logout(Request $request): RedirectResponse
+    {
+        $authSource = (string) $request->session()->get('auth_source');
+        $web2022UserId = (int) $request->session()->get('web2022_user_id');
+
+        if ($web2022UserId === 0 && $request->user()) {
+            $web2022UserId = (int) $request->user()->web2022_user_id;
+        }
+
+        $web2022Url = rtrim((string) config('services.web2022.url'), '/');
+        $secret = (string) config('services.web2022.sso_secret');
+
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        if ($authSource === 'web2022' && $web2022UserId > 0 && $web2022Url !== '' && $secret !== '') {
+            $timestamp = now()->timestamp;
+            $nonce = Str::random(32);
+            $payload = $web2022UserId . '|' . $timestamp . '|' . $nonce;
+            $signature = hash_hmac('sha256', $payload, $secret);
+            $logoutToken = rtrim(strtr(base64_encode($payload . '|' . $signature), '+/', '-_'), '=');
+
+            return redirect()->away(
+                $web2022Url . '/accounting/sso/logout?token=' . rawurlencode($logoutToken)
+            );
+        }
+
+        return redirect()->route('logout.success');
     }
 }
