@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAccountOwner;
 use App\Http\Middleware\EnsureCompanyPermission;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -12,7 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias(['company.permission' => EnsureCompanyPermission::class]);
+        $middleware->alias([
+            'company.permission' => EnsureCompanyPermission::class,
+            'account.owner' => EnsureAccountOwner::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {})
     ->create();

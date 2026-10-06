@@ -3,14 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Company;
-use App\Models\Permission;
 use App\Models\Personnel;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class UserManagementController extends Controller
@@ -19,10 +17,8 @@ class UserManagementController extends Controller
     {
         $company = $request->user()->currentCompany();
         abort_unless($company, 409);
-
         $users = $company->users()->with(['personnel', 'roles'])->paginate(20);
         $roles = $company->roles()->with('permissions')->orderBy('name')->get();
-
         return view('users.index', compact('users', 'roles', 'company'));
     }
 
@@ -30,7 +26,6 @@ class UserManagementController extends Controller
     {
         $company = $request->user()->currentCompany();
         abort_unless($company, 409);
-
         $roles = $company->roles()->with('permissions')->orderBy('name')->get();
         return view('users.form', compact('company', 'roles'));
     }
@@ -55,18 +50,11 @@ class UserManagementController extends Controller
             'role_id' => ['nullable', 'integer'],
         ]);
 
-        $entitlement = $company->subscriptionEntitlement;
-        $maxUsers = $entitlement?->effectiveMaxUsers();
+        $this->assertUserCapacity($company);
 
-        abort_unless($maxUsers !== null, 409, 'سقف کاربران پلن در اطلاعات اشتراک مشخص نشده است.');
-
-        $activeUsers = $company->users()->wherePivot('is_active', true)->count();
-        abort_if($activeUsers >= $maxUsers, 422, 'سقف تعداد کاربران پلن تکمیل شده است.');
-
-        $role = null;
-        if (! empty($data['role_id'])) {
-            $role = $company->roles()->whereKey($data['role_id'])->firstOrFail();
-        }
+        $role = ! empty($data['role_id'])
+            ? $company->roles()->whereKey($data['role_id'])->firstOrFail()
+            : null;
 
         DB::transaction(function () use ($data, $actor, $company, $role) {
             $user = User::create([
@@ -78,7 +66,7 @@ class UserManagementController extends Controller
                 'is_active' => true,
             ]);
 
-            $personnel = Personnel::create([
+            Personnel::create([
                 'account_id' => $actor->account_id,
                 'user_id' => $user->id,
                 'code' => $data['code'],
@@ -106,14 +94,12 @@ class UserManagementController extends Controller
     {
         $company = $this->assertUserInCompany($request, $user);
         $roles = $company->roles()->with('permissions')->orderBy('name')->get();
-
         return view('users.form', compact('company', 'roles', 'user'));
     }
 
     public function update(Request $request, User $user): RedirectResponse
     {
         $company = $this->assertUserInCompany($request, $user);
-
         abort_if($user->isAccountOwner(), 403, 'مالک حساب قابل ویرایش از این مسیر نیست.');
 
         $data = $request->validate([
@@ -125,7 +111,7 @@ class UserManagementController extends Controller
             'phone' => ['nullable', 'string', 'max:50'],
             'mobile' => ['nullable', 'string', 'max:50'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'username' => ['required', 'string', 'max:100', 'alpha_dash', 'unique:users,username,'.$user->id.',id,account_id,'.$user->account_id],
+            'username' => ['required', 'string', 'max:100', 'alpha_dash'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role_id' => ['nullable', 'integer'],
         ]);
@@ -187,9 +173,12 @@ class UserManagementController extends Controller
     {
         $company = $this->assertUserInCompany($request, $user);
         abort_if($user->isAccountOwner(), 403);
+        $this->assertUserCapacity($company);
+
         $user->update(['is_active' => true]);
         $user->personnel()->update(['is_active' => true]);
         $company->users()->updateExistingPivot($user->id, ['is_active' => true]);
+
         return back()->with('success', 'کاربر فعال شد.');
     }
 
@@ -198,10 +187,24 @@ class UserManagementController extends Controller
         $company = $this->assertUserInCompany($request, $user);
         abort_if($user->isAccountOwner(), 403);
         abort_if((int) $user->id === (int) $request->user()->id, 422);
+
         $user->update(['is_active' => false]);
         $user->personnel()->update(['is_active' => false]);
         $company->users()->updateExistingPivot($user->id, ['is_active' => false]);
+
         return back()->with('success', 'کاربر غیرفعال شد.');
+    }
+
+    private function assertUserCapacity(Company $company): void
+    {
+        $maxUsers = $company->subscriptionEntitlement?->effectiveMaxUsers();
+        abort_unless($maxUsers !== null, 409, 'سقف کاربران پلن در اطلاعات اشتراک مشخص نشده است.');
+
+        abort_if(
+            $company->users()->wherePivot('is_active', true)->count() >= $maxUsers,
+            422,
+            'سقف تعداد کاربران پلن تکمیل شده است.'
+        );
     }
 
     private function assertUserInCompany(Request $request, User $user): Company

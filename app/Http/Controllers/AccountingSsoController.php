@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Account;
-use App\Models\Company;
 use App\Models\Permission;
 use App\Models\Personnel;
 use App\Models\Role;
@@ -22,11 +21,9 @@ class AccountingSsoController extends Controller
 {
     public function start(): RedirectResponse
     {
-        $web2022Url = rtrim((string) config('services.web2022.url'), '/');
-
-        abort_if($web2022Url === '', 503, 'Web2022 SSO is not configured.');
-
-        return redirect()->away($web2022Url . '/accounting/sso/start');
+        $url = rtrim((string) config('services.web2022.url'), '/');
+        abort_if($url === '', 503, 'Web2022 SSO is not configured.');
+        return redirect()->away($url . '/accounting/sso/start');
     }
 
     public function callback(Request $request): RedirectResponse
@@ -34,15 +31,14 @@ class AccountingSsoController extends Controller
         $token = (string) $request->query('token');
         abort_if($token === '' || strlen($token) < 32, 401, 'Invalid SSO token.');
 
-        $web2022Url = rtrim((string) config('services.web2022.url'), '/');
+        $url = rtrim((string) config('services.web2022.url'), '/');
         $secret = (string) config('services.web2022.sso_secret');
-        abort_if($web2022Url === '' || $secret === '', 503, 'Web2022 SSO is not configured.');
+        abort_if($url === '' || $secret === '', 503, 'Web2022 SSO is not configured.');
 
         try {
-            $response = Http::acceptJson()
-                ->timeout(10)
+            $response = Http::acceptJson()->timeout(10)
                 ->withHeaders(['X-Accounting-SSO-Secret' => $secret])
-                ->post($web2022Url . '/accounting/sso/exchange', ['token' => $token]);
+                ->post($url . '/accounting/sso/exchange', ['token' => $token]);
         } catch (ConnectionException) {
             abort(503, 'Unable to connect to Web2022.');
         }
@@ -50,42 +46,36 @@ class AccountingSsoController extends Controller
         abort_if($response->failed(), $response->status() === 401 ? 401 : 503, 'SSO authentication failed.');
 
         $payload = $response->json();
-        abort_unless(
-            is_array($payload) && ! empty($payload['user_id']) && ! empty($payload['email']) && ! empty($payload['subscription_id']),
-            401,
-            'Invalid SSO response.'
-        );
+        abort_unless(is_array($payload) && ! empty($payload['user_id']) && ! empty($payload['email']) && ! empty($payload['subscription_id']), 401, 'Invalid SSO response.');
 
         [$user, $isNewUser, $initialPassword] = DB::transaction(function () use ($payload) {
-            $user = User::query()
-                ->where('web2022_user_id', (int) $payload['user_id'])
-                ->first();
-
-            if (! $user) {
-                $user = User::query()->where('email', (string) $payload['email'])->first();
+            $catalog = [
+                ['user.view', 'مشاهده کاربران', 'users'], ['user.create', 'ایجاد کاربر', 'users'],
+                ['user.update', 'ویرایش کاربر', 'users'], ['user.activate', 'فعال‌سازی کاربر', 'users'],
+                ['user.deactivate', 'غیرفعال‌سازی کاربر', 'users'], ['user.access.manage', 'مدیریت دسترسی کاربر', 'users'],
+                ['personnel.view', 'مشاهده پرسنل', 'personnel'], ['personnel.create', 'ایجاد پرسنل', 'personnel'],
+                ['personnel.update', 'ویرایش پرسنل', 'personnel'], ['personnel.deactivate', 'غیرفعال‌سازی پرسنل', 'personnel'],
+                ['role.view', 'مشاهده نقش‌ها', 'access'], ['role.create', 'ایجاد نقش', 'access'],
+                ['role.update', 'ویرایش نقش', 'access'], ['role.delete', 'حذف نقش', 'access'],
+            ];
+            foreach ($catalog as [$slug, $name, $module]) {
+                Permission::updateOrCreate(['slug' => $slug], ['name' => $name, 'module' => $module]);
             }
 
-            $isNewUser = ! $user;
-            $initialPassword = null;
+            $user = User::where('web2022_user_id', (int) $payload['user_id'])->first()
+                ?? User::where('email', (string) $payload['email'])->first();
+            $isNew = ! $user;
+            $password = null;
 
             if (! $user) {
-                $initialPassword = Str::random(20);
-
+                $password = Str::random(20);
                 $account = Account::firstOrCreate(
                     ['code' => 'WEB2022-' . (int) $payload['user_id']],
-                    [
-                        'name' => (string) ($payload['company_name'] ?? 'حساب Accounting'),
-                        'is_active' => true,
-                    ]
+                    ['name' => (string) ($payload['company_name'] ?? 'حساب Accounting'), 'is_active' => true]
                 );
-
                 $company = $account->company()->firstOrCreate(
                     ['account_id' => $account->id],
-                    [
-                        'name' => (string) ($payload['company_name'] ?? 'مجموعه'),
-                        'code' => 'MAIN',
-                        'is_active' => true,
-                    ]
+                    ['name' => (string) ($payload['company_name'] ?? 'مجموعه'), 'code' => 'MAIN', 'is_active' => true]
                 );
 
                 $user = User::create([
@@ -93,46 +83,42 @@ class AccountingSsoController extends Controller
                     'name' => (string) ($payload['name'] ?? $payload['email']),
                     'username' => $this->uniqueUsername((string) ($payload['username'] ?? $payload['email']), $account->id),
                     'email' => (string) $payload['email'],
-                    'password' => $initialPassword,
+                    'password' => $password,
                     'web2022_user_id' => (int) $payload['user_id'],
                     'web2022_subscription_id' => (string) $payload['subscription_id'],
                     'is_active' => true,
                 ]);
-
                 $account->update(['owner_user_id' => $user->id]);
 
                 Personnel::create([
-                    'account_id' => $account->id,
-                    'user_id' => $user->id,
-                    'code' => 'OWNER-' . $user->id,
-                    'name' => $user->name,
+                    'account_id' => $account->id, 'user_id' => $user->id,
+                    'code' => 'OWNER-'.$user->id, 'name' => $user->name,
                     'first_name' => $payload['first_name'] ?? $user->name,
                     'last_name' => $payload['last_name'] ?? null,
-                    'email' => $user->email,
-                    'is_active' => true,
+                    'email' => $user->email, 'is_active' => true,
                 ]);
 
                 $role = Role::firstOrCreate(
                     ['company_id' => $company->id, 'slug' => 'owner'],
                     ['name' => 'مالک حساب', 'description' => 'نقش سیستمی مالک حساب', 'is_system' => true]
                 );
-
-                $permissions = Permission::pluck('id');
-                $role->permissions()->sync($permissions);
+                $role->permissions()->sync(Permission::pluck('id'));
                 $company->users()->attach($user->id, ['role_id' => $role->id, 'is_active' => true]);
             } else {
-                abort_if(
-                    $user->web2022_user_id !== null && (int) $user->web2022_user_id !== (int) $payload['user_id'],
-                    409,
-                    'This Accounting account is linked to another Web2022 user.'
-                );
-
+                abort_if($user->web2022_user_id !== null && (int) $user->web2022_user_id !== (int) $payload['user_id'], 409, 'This Accounting account is linked to another Web2022 user.');
                 $user->update([
                     'name' => (string) ($payload['name'] ?? $user->name),
                     'email' => (string) $payload['email'],
                     'web2022_user_id' => (int) $payload['user_id'],
                     'web2022_subscription_id' => (string) $payload['subscription_id'],
                 ]);
+                if (! $user->personnel()->exists()) {
+                    Personnel::create([
+                        'account_id' => $user->account_id, 'user_id' => $user->id,
+                        'code' => 'P-'.$user->id, 'name' => $user->name,
+                        'email' => $user->email, 'is_active' => true,
+                    ]);
+                }
             }
 
             $company = $user->currentCompany();
@@ -145,15 +131,16 @@ class AccountingSsoController extends Controller
                 $entitlement->expires_at = $payload['subscription_expires_at'] ?? $entitlement->expires_at;
                 $entitlement->last_verified_at = now();
                 $metadata = is_array($entitlement->metadata) ? $entitlement->metadata : [];
-                if (isset($payload['max_users'])) {
-                    $metadata['max_users'] = (int) $payload['max_users'];
-                }
+                if (isset($payload['max_users'])) $metadata['max_users'] = (int) $payload['max_users'];
                 $entitlement->metadata = $metadata;
                 $entitlement->save();
             }
 
-            return [$user, $isNewUser, $initialPassword];
+            return [$user, $isNew, $password];
         });
+
+        abort_unless($user->is_active, 403, 'کاربر غیرفعال است.');
+        abort_unless($user->companies()->wherePivot('is_active', true)->exists(), 403, 'عضویت کاربر غیرفعال است.');
 
         if ($isNewUser && $initialPassword !== null) {
             Mail::raw(
@@ -175,11 +162,9 @@ class AccountingSsoController extends Controller
         $base = Str::of($candidate)->before('@')->replaceMatches('/[^A-Za-z0-9_-]/', '-')->trim('-')->value() ?: 'user';
         $username = $base;
         $i = 1;
-
         while (User::where('account_id', $accountId)->where('username', $username)->exists()) {
-            $username = $base . '-' . $i++;
+            $username = $base.'-'.($i++);
         }
-
         return $username;
     }
 }
