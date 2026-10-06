@@ -4,30 +4,18 @@ namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 
 class User extends Authenticatable
 {
     use Notifiable;
 
-    protected $fillable = [
-        'account_id', 'name', 'username', 'email', 'password',
-        'web2022_user_id', 'web2022_subscription_id', 'is_active',
-    ];
-
+    protected $fillable = ['name', 'email', 'password'];
     protected $hidden = ['password', 'remember_token'];
 
     protected function casts(): array
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'is_active' => 'boolean',
-        ];
-    }
-
-    public function account()
-    {
-        return $this->belongsTo(Account::class);
+        return ['email_verified_at' => 'datetime', 'password' => 'hashed'];
     }
 
     public function companies()
@@ -37,49 +25,16 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
-    public function personnel()
+    public function hasCompanyPermission(int $companyId, string $permission): bool
     {
-        return $this->hasOne(Personnel::class);
-    }
-
-    public function roles()
-    {
-        return $this->belongsToMany(Role::class, 'company_user')
-            ->withPivot(['company_id', 'role_id', 'is_active'])
-            ->withTimestamps();
-    }
-
-    public function currentCompany(): ?Company
-    {
-        return $this->companies()->wherePivot('is_active', true)->first();
-    }
-
-    public function isAccountOwner(): bool
-    {
-        return $this->account !== null && (int) $this->account->owner_user_id === (int) $this->id;
-    }
-
-    public function hasPermission(string $permission, ?Company $company = null): bool
-    {
-        if (! $this->is_active) {
-            return false;
-        }
-
-        if ($this->isAccountOwner()) {
-            return true;
-        }
-
-        $company ??= $this->currentCompany();
-
-        if (! $company || (int) $company->account_id !== (int) $this->account_id) {
-            return false;
-        }
-
-        return $this->roles()
-            ->where('roles.company_id', $company->id)
-            ->wherePivot('company_id', $company->id)
-            ->wherePivot('is_active', true)
-            ->whereHas('permissions', fn ($q) => $q->where('permissions.slug', $permission))
+        return DB::table('company_user')
+            ->join('roles', 'roles.id', '=', 'company_user.role_id')
+            ->join('role_permissions', 'role_permissions.role_id', '=', 'roles.id')
+            ->join('permissions', 'permissions.id', '=', 'role_permissions.permission_id')
+            ->where('company_user.company_id', $companyId)
+            ->where('company_user.user_id', $this->getKey())
+            ->where('company_user.is_active', true)
+            ->where('permissions.slug', $permission)
             ->exists();
     }
 }
