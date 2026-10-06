@@ -91,15 +91,19 @@
 - ⬜ جزئیات فیلدهای هر تعریف هنگام طراحی همان فرم نهایی می‌شود.
 
 ## 4. پشتیبان‌گیری و بازیابی
-- ⬜ ایجاد Backup
-- ⬜ بارگذاری Backup
-- ⬜ Restore از Backup
-- ⬜ تفکیک شفاف عملیات ایجاد، بارگذاری و بازیابی Backup
+- 🟡 پیاده‌سازی شد: ایجاد Backup به‌صورت فایل Logical JSON با manifest، checksum و schema hash
+- 🟡 پیاده‌سازی شد: بارگذاری Backup با اعتبارسنجی format/schema metadata و محدودیت حجم
+- 🟡 پیاده‌سازی شد: Restore به‌عنوان عملیات مستقل با checksum/schema validation و تأیید صریح `RESTORE`
+- 🟡 پیاده‌سازی شد: مجوزهای جداگانه برای مشاهده، ایجاد، بارگذاری و Restore Backup
+- 🟡 تست‌های Feature برای create/upload/restore و authorization اضافه شد؛ اجرای نهایی تست‌ها روی محیط واقعی/CI هنوز باید انجام شود.
 
 ## 5. ورود اطلاعات
-- ⬜ Import اطلاعات از Excel
-- ⬜ تعریف نگاشت ستون‌های Excel به اطلاعات سیستم
-- ⬜ اعتبارسنجی اطلاعات قبل از ثبت
+- 🟡 پیاده‌سازی شد: Import Excel با PhpSpreadsheet، تشخیص ستون‌ها و نمایش نمونه
+- 🟡 پیاده‌سازی شد: Column mapping جدا از ذخیره
+- 🟡 پیاده‌سازی شد: validation سطح ردیف، required/numeric/unique-code/foreign-key checks
+- 🟡 پیاده‌سازی شد: ذخیره فقط پس از validation کامل و داخل transaction
+- 🟡 فایل نامعتبر و mapping نامعتبر reject می‌شود
+- 🟡 تست‌های Feature برای mapping و validation failure اضافه شد؛ اجرای نهایی تست‌ها روی محیط واقعی/CI هنوز باید انجام شود.
 
 ## 6. سفارش
 - 🟡 فرم/UI ثبت سفارش هنوز در محدوده این چت است؛ endpoint عملیاتی ثبت سفارش پیاده شد
