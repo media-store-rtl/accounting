@@ -153,6 +153,9 @@ class AccountingSsoController extends Controller
         $request->session()->regenerate();
         $request->session()->put('auth_source', 'web2022');
         $request->session()->put('web2022_user_id', (int) $payload['user_id']);
+        if ($company = $user->currentCompany()) {
+            $request->session()->put('company_id', $company->id);
+        }
 
         return redirect()->intended('/dashboard');
     }

@@ -16,14 +16,16 @@ class AuthController extends Controller
         ]);
 
         if (! Auth::attempt(array_merge($credentials, ['is_active' => true]), $request->boolean('remember'))) {
-            return back()
-                ->withErrors(['email' => 'ایمیل یا رمز عبور صحیح نیست یا کاربر غیرفعال است.'])
-                ->onlyInput('email');
+            return back()->withErrors(['email' => 'ایمیل یا رمز عبور صحیح نیست یا کاربر غیرفعال است.'])->onlyInput('email');
         }
 
         $request->session()->regenerate();
         $request->session()->put('auth_source', 'local');
         $request->session()->forget('web2022_user_id');
+
+        if ($company = Auth::user()->currentCompany()) {
+            $request->session()->put('company_id', $company->id);
+        }
 
         return redirect()->intended('/dashboard');
     }
