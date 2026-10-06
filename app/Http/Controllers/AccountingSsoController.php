@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Account;
+use App\Models\Company;
+use App\Models\SubscriptionEntitlement;
 use App\Models\User;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -80,24 +84,72 @@ class AccountingSsoController extends Controller
         $isNewUser = ! $user;
         $initialPassword = null;
 
-        if ($isNewUser) {
-            $user = new User();
-            $initialPassword = Str::random(20);
-            $user->password = $initialPassword;
-        }
+        $user = DB::transaction(function () use ($user, $payload, $isNewUser, &$initialPassword) {
+            if ($isNewUser) {
+                $account = Account::create([
+                    'name' => (string) ($payload['name'] ?? $payload['email']),
+                    'code' => 'ACC-'.Str::upper(Str::random(12)),
+                    'is_active' => true,
+                ]);
 
-        if (
-            $user->web2022_user_id !== null
-            && (int) $user->web2022_user_id !== (int) $payload['user_id']
-        ) {
-            abort(409, 'This Accounting account is linked to another Web2022 user.');
-        }
+                $company = Company::create([
+                    'account_id' => $account->id,
+                    'name' => (string) ($payload['name'] ?? 'مجموعه جدید'),
+                    'code' => 'COMP-'.Str::upper(Str::random(10)),
+                    'is_active' => true,
+                ]);
 
-        $user->name = (string) ($payload['name'] ?? $payload['email']);
-        $user->email = (string) $payload['email'];
-        $user->web2022_user_id = (int) $payload['user_id'];
-        $user->web2022_subscription_id = (string) $payload['subscription_id'];
-        $user->save();
+                $user = new User();
+                $user->account_id = $account->id;
+                $user->username = (string) ($payload['email']);
+                $initialPassword = Str::random(20);
+                $user->password = $initialPassword;
+            } elseif (! $user->account_id) {
+                abort(409, 'Accounting user is not linked to an account.');
+            }
+
+            if (
+                $user->web2022_user_id !== null
+                && (int) $user->web2022_user_id !== (int) $payload['user_id']
+            ) {
+                abort(409, 'This Accounting account is linked to another Web2022 user.');
+            }
+
+            if ($user->username === null || $user->username === '') {
+                $user->username = (string) $payload['email'];
+            }
+
+            $user->name = (string) ($payload['name'] ?? $payload['email']);
+            $user->email = (string) $payload['email'];
+            $user->web2022_user_id = (int) $payload['user_id'];
+            $user->web2022_subscription_id = (string) $payload['subscription_id'];
+            $user->save();
+
+            $company = $user->account->company;
+
+            if (! $company) {
+                $company = Company::create([
+                    'account_id' => $user->account_id,
+                    'name' => (string) ($payload['name'] ?? 'مجموعه جدید'),
+                    'code' => 'COMP-'.Str::upper(Str::random(10)),
+                    'is_active' => true,
+                ]);
+            }
+
+            SubscriptionEntitlement::updateOrCreate(
+                ['company_id' => $company->id],
+                [
+                    'external_subscription_id' => (string) $payload['subscription_id'],
+                    'status' => (string) ($payload['subscription_status'] ?? 'active'),
+                    'starts_at' => $payload['subscription_starts_at'] ?? null,
+                    'expires_at' => $payload['subscription_expires_at'] ?? ($payload['expires_at'] ?? null),
+                    'last_verified_at' => now(),
+                    'metadata' => $payload,
+                ]
+            );
+
+            return $user;
+        });
 
         if ($isNewUser && $initialPassword !== null) {
             Mail::raw(
