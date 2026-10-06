@@ -159,7 +159,19 @@ class SetupTest extends TestCase
             'ends_at' => '2027-03-20',
         ])->assertRedirect('/fiscal-years');
 
-        // Same subscription: the plan limit is reached before overlap is evaluated.
+        $company->subscriptionEntitlement->update([
+            'status' => 'expired',
+            'expires_at' => now()->subDay(),
+        ]);
+
+        $company->subscriptionEntitlements()->create([
+            'external_subscription_id' => 'sub-overlap-'.uniqid(),
+            'status' => 'active',
+            'starts_at' => now(),
+            'expires_at' => now()->addYear(),
+            'last_verified_at' => now(),
+        ]);
+
         $this->actingAs($user)->post('/fiscal-years', [
             'name' => 'سال هم‌پوشان',
             'starts_at' => '2026-06-01',
