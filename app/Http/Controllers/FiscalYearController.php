@@ -75,6 +75,24 @@ class FiscalYearController extends Controller
             ->with('success', "سال مالی «{$fiscalYear->name}» به‌روزرسانی شد.");
     }
 
+    public function destroy(FiscalYear $fiscalYear): RedirectResponse
+    {
+        $this->ensureBelongsToCurrentCompany($fiscalYear);
+
+        if ($fiscalYear->is_closed) {
+            abort(422, 'سال مالی بسته قابل حذف نیست.');
+        }
+
+        $fiscalYear->delete();
+
+        if ((int) session('fiscal_year_id') === (int) $fiscalYear->id) {
+            session()->forget('fiscal_year_id');
+        }
+
+        return redirect()->route('fiscal-years.index')
+            ->with('success', "سال مالی «{$fiscalYear->name}» حذف شد.");
+    }
+
     public function activate(FiscalYear $fiscalYear): RedirectResponse
     {
         $this->ensureBelongsToCurrentCompany($fiscalYear);
