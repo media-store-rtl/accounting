@@ -10,7 +10,7 @@ return new class extends Migration {
         Schema::create('personnel_labor_rates', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('personnel_id')->constrained()->restrictOnDelete();
+            $table->foreignId('personnel_id')->constrained('personnel')->restrictOnDelete();
             $table->string('rate_type', 20);
             $table->decimal('rate', 20, 6);
             $table->date('effective_from');
