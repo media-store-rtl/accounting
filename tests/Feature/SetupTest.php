@@ -61,6 +61,25 @@ class SetupTest extends TestCase
             ->assertSee('فعال');
     }
 
+    public function test_dashboard_sets_active_company_and_fiscal_year(): void
+    {
+        [$user, $company] = $this->makeUser();
+
+        $this->actingAs($user)->post('/fiscal-years', [
+            'name' => 'سال فعال',
+            'starts_at' => '2026-03-21',
+            'ends_at' => '2027-03-20',
+        ]);
+
+        $fiscalYear = $company->fiscalYears()->first();
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertSessionHas('company_id', $company->id)
+            ->assertSessionHas('fiscal_year_id', $fiscalYear->id);
+    }
+
     public function test_active_subscription_can_create_fiscal_year_and_data_is_persisted(): void
     {
         [$user, $company] = $this->makeUser();
