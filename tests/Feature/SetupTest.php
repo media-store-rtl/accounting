@@ -41,7 +41,7 @@ class SetupTest extends TestCase
     public function test_dashboard_sets_active_company_and_fiscal_year(): void
     {
         [$user, $company] = $this->makeUser();
-        $this->actingAs($user)->post('/fiscal-years', ['name'=>'سال فعال','starts_at'=>'2026-03-21','ends_at'=>'2027-03-20']);
+        $this->actingAs($user)->post('/fiscal-years', ['name'=>'سال فعال','starts_at'=>'2026-03-21 00:00:00','ends_at'=>'2027-03-20 00:00:00']);
         $fiscalYear = $company->fiscalYears()->first();
         $this->actingAs($user)->get('/dashboard')->assertOk()->assertSessionHas('company_id',$company->id)->assertSessionHas('fiscal_year_id',$fiscalYear->id);
     }
@@ -49,8 +49,8 @@ class SetupTest extends TestCase
     public function test_active_subscription_can_create_fiscal_year_and_data_is_persisted(): void
     {
         [$user,$company]=$this->makeUser();
-        $this->actingAs($user)->post('/fiscal-years',['name'=>'سال مالی ۱۴۰۵','starts_at'=>'2026-03-21','ends_at'=>'2027-03-20'])->assertRedirect('/fiscal-years');
-        $this->assertDatabaseHas('fiscal_years',['company_id'=>$company->id,'name'=>'سال مالی ۱۴۰۵','starts_at'=>'2026-03-21','ends_at'=>'2027-03-20']);
+        $this->actingAs($user)->post('/fiscal-years',['name'=>'سال مالی ۱۴۰۵','starts_at'=>'2026-03-21 00:00:00','ends_at'=>'2027-03-20 00:00:00'])->assertRedirect('/fiscal-years');
+        $this->assertDatabaseHas('fiscal_years',['company_id'=>$company->id,'name'=>'سال مالی ۱۴۰۵','starts_at'=>'2026-03-21 00:00:00','ends_at'=>'2027-03-20 00:00:00']);
         $this->assertFalse(Schema::hasColumn('fiscal_years','currency'));
     }
 
@@ -64,7 +64,7 @@ class SetupTest extends TestCase
     public function test_a_subscription_can_create_only_one_fiscal_year_and_renewal_does_not_create_another(): void
     {
         [$user,$company]=$this->makeUser();
-        $this->actingAs($user)->post('/fiscal-years',['name'=>'سال اول','starts_at'=>'2026-03-21','ends_at'=>'2027-03-20'])->assertRedirect('/fiscal-years');
+        $this->actingAs($user)->post('/fiscal-years',['name'=>'سال اول','starts_at'=>'2026-03-21 00:00:00','ends_at'=>'2027-03-20 00:00:00'])->assertRedirect('/fiscal-years');
         $this->actingAs($user)->post('/fiscal-years',['name'=>'سال دوم','starts_at'=>'2027-03-21','ends_at'=>'2028-03-20'])->assertStatus(422);
         $this->assertDatabaseCount('fiscal_years',1);
     }
@@ -72,7 +72,7 @@ class SetupTest extends TestCase
     public function test_a_new_subscription_can_create_its_own_fiscal_year(): void
     {
         [$user,$company]=$this->makeUser();
-        $this->actingAs($user)->post('/fiscal-years',['name'=>'سال اول','starts_at'=>'2026-03-21','ends_at'=>'2027-03-20'])->assertRedirect('/fiscal-years');
+        $this->actingAs($user)->post('/fiscal-years',['name'=>'سال اول','starts_at'=>'2026-03-21 00:00:00','ends_at'=>'2027-03-20 00:00:00'])->assertRedirect('/fiscal-years');
         $company->subscriptionEntitlement->update(['status'=>'expired','expires_at'=>now()->subDay()]);
         $company->subscriptionEntitlements()->create(['external_subscription_id'=>'sub-new-'.uniqid(),'status'=>'active','starts_at'=>now(),'expires_at'=>now()->addYear(),'last_verified_at'=>now()]);
         $this->actingAs($user)->post('/fiscal-years',['name'=>'سال دوم','starts_at'=>'2027-03-21','ends_at'=>'2028-03-20'])->assertRedirect('/fiscal-years');
@@ -82,7 +82,7 @@ class SetupTest extends TestCase
     public function test_overlapping_fiscal_years_are_rejected(): void
     {
         [$user,$company]=$this->makeUser();
-        $this->actingAs($user)->post('/fiscal-years',['name'=>'سال اول','starts_at'=>'2026-03-21','ends_at'=>'2027-03-20']);
+        $this->actingAs($user)->post('/fiscal-years',['name'=>'سال اول','starts_at'=>'2026-03-21 00:00:00','ends_at'=>'2027-03-20 00:00:00']);
         $company->subscriptionEntitlement->update(['status'=>'expired','expires_at'=>now()->subDay()]);
         $company->subscriptionEntitlements()->create(['external_subscription_id'=>'sub-overlap-'.uniqid(),'status'=>'active','starts_at'=>now(),'expires_at'=>now()->addYear(),'last_verified_at'=>now()]);
         $this->actingAs($user)->post('/fiscal-years',['name'=>'سال هم‌پوشان','starts_at'=>'2026-06-01','ends_at'=>'2027-05-31'])->assertStatus(422);
@@ -91,7 +91,7 @@ class SetupTest extends TestCase
     public function test_fiscal_year_can_be_updated_and_activated(): void
     {
         [$user,$company]=$this->makeUser();
-        $this->actingAs($user)->post('/fiscal-years',['name'=>'سال اول','starts_at'=>'2026-03-21','ends_at'=>'2027-03-20']);
+        $this->actingAs($user)->post('/fiscal-years',['name'=>'سال اول','starts_at'=>'2026-03-21 00:00:00','ends_at'=>'2027-03-20 00:00:00']);
         $fiscalYear=$company->fiscalYears()->first();
         $this->actingAs($user)->put("/fiscal-years/{$fiscalYear->id}",['name'=>'سال اول ویرایش‌شده','starts_at'=>'2026-04-01 00:00:00','ends_at'=>'2027-03-31 00:00:00'])->assertRedirect('/fiscal-years');
         $this->assertDatabaseHas('fiscal_years',['id'=>$fiscalYear->id,'name'=>'سال اول ویرایش‌شده','starts_at'=>'2026-04-01 00:00:00','ends_at'=>'2027-03-31 00:00:00']);
@@ -101,7 +101,7 @@ class SetupTest extends TestCase
     public function test_open_fiscal_year_can_be_deleted_and_closed_one_cannot(): void
     {
         [$user,$company]=$this->makeUser();
-        $this->actingAs($user)->post('/fiscal-years',['name'=>'سال قابل حذف','starts_at'=>'2026-03-21','ends_at'=>'2027-03-20']);
+        $this->actingAs($user)->post('/fiscal-years',['name'=>'سال قابل حذف','starts_at'=>'2026-03-21 00:00:00','ends_at'=>'2027-03-20 00:00:00']);
         $open=$company->fiscalYears()->firstOrFail();
         $this->actingAs($user)->delete("/fiscal-years/{$open->id}")->assertRedirect('/fiscal-years');
         $this->assertDatabaseMissing('fiscal_years',['id'=>$open->id]);
@@ -115,7 +115,7 @@ class SetupTest extends TestCase
     public function test_expired_subscription_cannot_activate_fiscal_year(): void
     {
         [$user,$company]=$this->makeUser();
-        $this->actingAs($user)->post('/fiscal-years',['name'=>'سال موجود','starts_at'=>'2026-03-21','ends_at'=>'2027-03-20']);
+        $this->actingAs($user)->post('/fiscal-years',['name'=>'سال موجود','starts_at'=>'2026-03-21 00:00:00','ends_at'=>'2027-03-20 00:00:00']);
         $fiscalYear=$company->fiscalYears()->firstOrFail();
         $company->subscriptionEntitlement->update(['status'=>'expired','expires_at'=>now()->subDay()]);
         $user = User::with('account.company')->findOrFail($user->id);
@@ -126,10 +126,10 @@ class SetupTest extends TestCase
     public function test_closed_fiscal_year_cannot_be_updated_or_activated(): void
     {
         [$user,$company]=$this->makeUser();
-        $this->actingAs($user)->post('/fiscal-years',['name'=>'سال بسته','starts_at'=>'2026-03-21','ends_at'=>'2027-03-20']);
+        $this->actingAs($user)->post('/fiscal-years',['name'=>'سال بسته','starts_at'=>'2026-03-21 00:00:00','ends_at'=>'2027-03-20 00:00:00']);
         $fiscalYear=$company->fiscalYears()->first();
         $fiscalYear->update(['is_closed'=>true]);
-        $this->actingAs($user)->put("/fiscal-years/{$fiscalYear->id}",['name'=>'نباید تغییر کند','starts_at'=>'2026-03-21','ends_at'=>'2027-03-20'])->assertStatus(422);
+        $this->actingAs($user)->put("/fiscal-years/{$fiscalYear->id}",['name'=>'نباید تغییر کند','starts_at'=>'2026-03-21 00:00:00','ends_at'=>'2027-03-20 00:00:00'])->assertStatus(422);
         $this->actingAs($user)->post("/fiscal-years/{$fiscalYear->id}/activate")->assertStatus(422);
     }
 
