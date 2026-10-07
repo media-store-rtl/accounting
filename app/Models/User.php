@@ -26,10 +26,7 @@ class User extends Authenticatable
         ];
     }
 
-    public function account()
-    {
-        return $this->belongsTo(Account::class);
-    }
+    public function account() { return $this->belongsTo(Account::class); }
 
     public function companies()
     {
@@ -38,10 +35,7 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
-    public function personnel()
-    {
-        return $this->hasOne(Personnel::class);
-    }
+    public function personnel() { return $this->hasOne(Personnel::class); }
 
     public function roles()
     {
@@ -75,7 +69,14 @@ class User extends Authenticatable
 
     public function hasCompanyPermission(int $companyId, string $permission): bool
     {
-        if (! $this->is_active || ! $this->companies()->whereKey($companyId)->wherePivot('is_active', true)->exists()) {
+        if (
+            ! $this->is_active
+            || ! $this->companies()
+                ->whereKey($companyId)
+                ->where('companies.is_active', true)
+                ->wherePivot('is_active', true)
+                ->exists()
+        ) {
             return false;
         }
 
