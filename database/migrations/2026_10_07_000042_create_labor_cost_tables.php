@@ -7,6 +7,18 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        Schema::create('personnel', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('account_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('code', 50);
+            $table->string('name');
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+            $table->unique(['account_id', 'code']);
+            $table->index(['account_id', 'is_active']);
+        });
+
         Schema::create('personnel_labor_rates', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
@@ -71,5 +83,6 @@ return new class extends Migration {
         Schema::dropIfExists('production_labor_costs');
         Schema::dropIfExists('production_labor_entries');
         Schema::dropIfExists('personnel_labor_rates');
+        Schema::dropIfExists('personnel');
     }
 };
