@@ -25,6 +25,7 @@
 <a href="{{ route('sales.orders.index') }}">▤ سفارش‌های فروش</a>
 <a href="{{ route('sales.deliveries.index') }}">⇢ تحویل و ارسال</a>
 <div class="nav-title">مدیریت</div>
+<a href="{{ route('fiscal-years.index') }}">▣ سال‌های مالی</a>
 <a href="{{ route('personnel.index') }}">♟ پرسنل</a>
 <a href="{{ route('users.index') }}">♙ کاربران</a>
 <a href="{{ route('roles.index') }}">⚿ نقش‌ها و دسترسی‌ها</a>
@@ -62,6 +63,7 @@
 <a href="{{ route('personnel.index') }}">پرسنل <span>←</span></a>
 <a href="{{ route('users.index') }}">کاربران <span>←</span></a>
 <a href="{{ route('roles.index') }}">نقش‌ها و دسترسی‌ها <span>←</span></a>
+<a href="{{ route('fiscal-years.index') }}">سال‌های مالی <span>←</span></a>
 <a href="{{ route('reports.costing') }}">گزارش بهای تمام‌شده <span>←</span></a>
 </div>
 </div>
