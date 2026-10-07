@@ -42,6 +42,7 @@
 @if($can['orders'])<a href="{{ route('sales.orders.index') }}">▤ سفارش‌های فروش</a>@endif
 @if($can['deliveries'])<a href="{{ route('sales.deliveries.index') }}">⇢ تحویل و ارسال</a>@endif
 <div class="nav-title">تعاریف و مدیریت</div>
+@if($can['company'])<a href="{{ route('company.edit') }}">▤ اطلاعات مجموعه</a>@endif
 @if($can['fiscal_years'])<a href="{{ route('fiscal-years.index') }}">▣ سال‌های مالی</a>@endif
 @if($can['personnel'])<a href="{{ route('personnel.index') }}">♟ پرسنل</a>@endif
 @if($can['users'])<a href="{{ route('users.index') }}">♙ کاربران</a>@endif
@@ -120,6 +121,7 @@
 @if($can['deliveries'])<a href="{{ route('sales.deliveries.index') }}">تحویل‌ها <span>←</span></a>@endif
 @if($can['costing'])<a href="{{ route('reports.costing') }}">گزارش بهای تمام‌شده <span>←</span></a>@endif
 @if($can['backups'])<a href="{{ route('backups.index') }}">پشتیبان‌گیری <span>←</span></a>@endif
+@if($can['company'])<a href="{{ route('company.edit') }}">اطلاعات مجموعه <span>←</span></a>@endif
 @if($can['fiscal_years'])<a href="{{ route('fiscal-years.index') }}">سال‌های مالی <span>←</span></a>@endif
 @if(!$can['customers'] && !$can['orders'] && !$can['deliveries'] && !$can['costing'] && !$can['backups'] && !$can['fiscal_years'])
 <div class="empty">برای کاربر جاری دسترسی عملیاتی قابل نمایش ثبت نشده است.</div>
