@@ -9,6 +9,11 @@ use Illuminate\Support\Facades\Storage;
 
 class BackupController extends Controller
 {
+    public function page()
+    {
+        return view('backups.index');
+    }
+
     public function index(Request $request)
     {
         $companyId = (int) $request->session()->get('company_id');
