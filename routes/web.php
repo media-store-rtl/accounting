@@ -28,10 +28,13 @@ Route::middleware('auth')->group(function () {
     Route::put('/company', [CompanyController::class, 'update'])->name('company.update');
 
     Route::get('/fiscal-years', [FiscalYearController::class, 'index'])->name('fiscal-years.index');
+    Route::get('/fiscal-years/{fiscalYear}/edit', [FiscalYearController::class, 'edit'])->name('fiscal-years.edit');
+    Route::post('/fiscal-years/{fiscalYear}/activate', [FiscalYearController::class, 'activate'])->name('fiscal-years.activate');
 
     Route::middleware(EnsureActiveSubscription::class)->group(function () {
         Route::get('/fiscal-years/create', [FiscalYearController::class, 'create'])->name('fiscal-years.create');
         Route::post('/fiscal-years', [FiscalYearController::class, 'store'])->name('fiscal-years.store');
+        Route::put('/fiscal-years/{fiscalYear}', [FiscalYearController::class, 'update'])->name('fiscal-years.update');
     });
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
