@@ -35,7 +35,7 @@ class SetupTest extends TestCase
     public function test_dashboard_exposes_subscription_status(): void
     {
         [$user] = $this->makeUser();
-        $this->actingAs($user)->get('/dashboard')->assertOk()->assertSee('فعال')->assertSee('href="/company"', false)->assertSee('href="/fiscal-years"', false);
+        $this->actingAs($user)->get('/dashboard')->assertOk()->assertSee('فعال')->assertSee(route('company.edit'), false)->assertSee(route('fiscal-years.index'), false);
     }
 
     public function test_dashboard_sets_active_company_and_fiscal_year(): void
