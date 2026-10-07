@@ -40,4 +40,6 @@ jobs:
       - run: |
           cp .env.example .env
           php -r '$env = file_get_contents(".env"); $key = "base64:".base64_encode(random_bytes(32)); $env = preg_replace("/^APP_KEY=.*$/m", "APP_KEY=".$key, $env, 1); file_put_contents(".env", $env);'
+          sed -i 's/name="DB_CONNECTION" value="sqlite"/name="DB_CONNECTION" value="mysql"/' phpunit.xml
+          sed -i 's/name="DB_DATABASE" value=":memory:"/name="DB_DATABASE" value="accounting_test"/' phpunit.xml
       - run: php artisan test tests/Feature/SetupTest.php --no-interaction
