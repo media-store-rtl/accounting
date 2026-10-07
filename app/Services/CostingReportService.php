@@ -16,6 +16,8 @@ final class CostingReportService
         $rows=[];
         $this->materials($rows,$companyId,$fiscalYearId,$orderId,$goodsId);
         $this->labor($rows,$companyId,$fiscalYearId,$orderId,$goodsId);
+        $this->directCosts($rows,$companyId,$fiscalYearId,$orderId,$goodsId);
+        $this->scraps($rows,$companyId,$fiscalYearId,$orderId,$goodsId);
 
         $ids=array_values(array_unique(array_filter(array_column($rows,'goods_id'))));
         $goods=$ids ? DB::table('goods')->where('company_id',$companyId)->whereIn('id',$ids)->get(['id','code','name'])->keyBy('id') : collect();
@@ -27,7 +29,9 @@ final class CostingReportService
             $row['valuation_methods']=array_keys($row['valuation_methods']);
             $row['material_cost']=round($row['material_cost'],4);
             $row['labor_cost']=round($row['labor_cost'],4);
-            $row['total_cost']=round($row['material_cost']+$row['labor_cost'],4);
+            $row['direct_cost']=round($row['direct_cost'],4);
+            $row['scrap_cost']=round($row['scrap_cost'],4);
+            $row['total_cost']=round($row['material_cost']+$row['labor_cost']+$row['direct_cost']+$row['scrap_cost'],4);
             $row['unvalued_material_quantity']=round($row['unvalued_material_quantity'],4);
         } unset($row);
 
@@ -38,6 +42,8 @@ final class CostingReportService
             'totals'=>[
                 'material_cost'=>round(array_sum(array_column($rows,'material_cost')),4),
                 'labor_cost'=>round(array_sum(array_column($rows,'labor_cost')),4),
+                'direct_cost'=>round(array_sum(array_column($rows,'direct_cost')),4),
+                'scrap_cost'=>round(array_sum(array_column($rows,'scrap_cost')),4),
                 'total_cost'=>round(array_sum(array_column($rows,'total_cost')),4),
                 'unvalued_material_quantity'=>round(array_sum(array_column($rows,'unvalued_material_quantity')),4),
             ],
@@ -103,6 +109,6 @@ final class CostingReportService
     private function key(?int $orderId,int $goodsId): string { return ($orderId??0).':'.$goodsId; }
     private function row(array &$rows,string $key,?int $orderId,int $goodsId): void {
         if(isset($rows[$key])) return;
-        $rows[$key]=['order_id'=>$orderId,'goods_id'=>$goodsId,'material_cost'=>0.0,'labor_cost'=>0.0,'total_cost'=>0.0,'unvalued_material_quantity'=>0.0,'valuation_methods'=>[]];
+        $rows[$key]=['order_id'=>$orderId,'goods_id'=>$goodsId,'material_cost'=>0.0,'labor_cost'=>0.0,'direct_cost'=>0.0,'scrap_cost'=>0.0,'total_cost'=>0.0,'unvalued_material_quantity'=>0.0,'valuation_methods'=>[]];
     }
 }
