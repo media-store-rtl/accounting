@@ -45,6 +45,17 @@
 <div class="card"><small>موجودی انبار</small><b>۰</b></div><div class="card"><small>سفارش‌های خرید</small><b>۰</b></div><div class="card"><small>تولید جاری</small><b>۰</b></div><div class="card"><small>بهای تمام‌شده</small><b>۰</b></div>
 </div>
 <div class="section">
+<div class="panel"><h2>وضعیت راه‌اندازی</h2>
+<p>اشتراک: <strong>{{ $subscription?->isActive() ? 'فعال' : 'منقضی / غیرفعال' }}</strong> — انقضا: {{ $subscription?->expires_at?->format('Y-m-d') ?? 'نامشخص' }}</p>
+<p>شرکت: <strong>{{ $company ? 'ثبت شده' : 'ثبت نشده' }}</strong> — سال‌های مالی: <strong>{{ $fiscalYears->count() }}</strong></p>
+</div>
+<div class="panel quick"><h2>تعاریف پایه</h2>
+<a href="{{ route('company.edit') }}">اطلاعات شرکت <span>←</span></a>
+<a href="{{ route('fiscal-years.index') }}">سال‌های مالی <span>←</span></a>
+@if($subscription?->isActive() && $fiscalYears->isEmpty())<a href="{{ route('fiscal-years.create') }}">ایجاد اولین سال مالی <span>←</span></a>@endif
+</div>
+</div>
+<div class="section">
 <div class="panel"><h2>مسیر عملیاتی</h2><p>ساختار اولیه سیستم آماده است. بعد از تعریف شرکت، دوره مالی و اطلاعات پایه، عملیات واقعی از همین مسیر وارد می‌شود.</p><div class="flow"><div class="step"><strong>خرید</strong><span>تأمین و سفارش</span></div><div class="step"><strong>انبار</strong><span>دریافت و گردش</span></div><div class="step"><strong>تولید</strong><span>مصرف و عملیات</span></div><div class="step"><strong>هزینه</strong><span>محاسبه نهایی</span></div></div></div>
 <div class="panel quick"><h2>دسترسی سریع</h2><a href="#">تعریف شرکت <span>←</span></a><a href="#">دوره مالی <span>←</span></a><a href="#">کاربران <span>←</span></a><a href="#">نقش‌ها و دسترسی‌ها <span>←</span></a></div>
 </div>
