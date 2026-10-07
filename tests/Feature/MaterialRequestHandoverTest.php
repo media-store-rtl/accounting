@@ -125,6 +125,18 @@ class MaterialRequestHandoverTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $requestId = DB::table('supply_requests')->latest('id')->value('id');
+        DB::table('supply_request_items')->insert([
+            'supply_request_id' => $requestId,
+            'goods_id' => $goods,
+            'requested_quantity' => 4,
+            'available_quantity' => 4,
+            'shortage_quantity' => 0,
+            'supplied_quantity' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $this->actingAs(\App\Models\User::findOrFail($user))->withSession(['company_id' => $company]);
 
         return compact('company', 'user', 'fy', 'goods', 'warehouse');
