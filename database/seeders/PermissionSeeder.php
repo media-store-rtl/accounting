@@ -58,6 +58,7 @@ class PermissionSeeder extends Seeder
             ['import.excel', 'ورود اطلاعات از Excel', 'import'],
 
             ['costing.report.view', 'مشاهده گزارش بهای تمام‌شده', 'costing'],
+            ['goods_category.view','مشاهده دسته‌بندی کالا','goods'],['goods_category.create','ایجاد دسته‌بندی کالا','goods'],['goods_category.update','ویرایش دسته‌بندی کالا','goods'],['goods_category.deactivate','غیرفعال‌سازی دسته‌بندی کالا','goods'],['unit.view','مشاهده واحدها','goods'],['unit.create','ایجاد واحد','goods'],['unit.update','ویرایش واحد','goods'],['unit.deactivate','غیرفعال‌سازی واحد','goods'],['production_section.view','مشاهده قسمت‌های تولید','production'],['production_section.create','ایجاد قسمت تولید','production'],['production_section.update','ویرایش قسمت تولید','production'],['production_section.deactivate','غیرفعال‌سازی قسمت تولید','production'],
             ['supplier.view','مشاهده تأمین‌کنندگان','suppliers'],['supplier.create','ایجاد تأمین‌کننده','suppliers'],['supplier.update','ویرایش تأمین‌کننده','suppliers'],['supplier.deactivate','غیرفعال‌سازی تأمین‌کننده','suppliers'],
             ['goods.view','مشاهده کالاها','goods'],['goods.create','ایجاد کالا','goods'],['goods.update','ویرایش کالا','goods'],['goods.deactivate','غیرفعال‌سازی کالا','goods'],
             ['location.view','مشاهده انبارها و محل‌ها','warehouse'],['location.create','ایجاد انبار یا محل','warehouse'],['location.update','ویرایش انبار یا محل','warehouse'],['location.deactivate','غیرفعال‌سازی انبار یا محل','warehouse'],
