@@ -20,4 +20,27 @@ jobs:
           cp .env.example .env
           php -r '$env = file_get_contents(".env"); $key = "base64:".base64_encode(random_bytes(32)); $env = preg_replace("/^APP_KEY=.*$/m", "APP_KEY=".$key, $env, 1); file_put_contents(".env", $env);'
       - run: touch database/database.sqlite
-      - run: php artisan test tests/Feature/SetupTest.php --no-interaction
+      - name: SetupTest 1
+        run: php artisan test tests/Feature/SetupTest.php --filter="test_dashboard_exposes_subscription_status" --no-interaction
+      - name: SetupTest 2
+        run: php artisan test tests/Feature/SetupTest.php --filter="test_dashboard_sets_active_company_and_fiscal_year" --no-interaction
+      - name: SetupTest 3
+        run: php artisan test tests/Feature/SetupTest.php --filter="test_active_subscription_can_create_fiscal_year_and_data_is_persisted" --no-interaction
+      - name: SetupTest 4
+        run: php artisan test tests/Feature/SetupTest.php --filter="test_expired_subscription_cannot_create_fiscal_year_but_existing_data_is_visible" --no-interaction
+      - name: SetupTest 5
+        run: php artisan test tests/Feature/SetupTest.php --filter="test_a_subscription_can_create_only_one_fiscal_year_and_renewal_does_not_create_another" --no-interaction
+      - name: SetupTest 6
+        run: php artisan test tests/Feature/SetupTest.php --filter="test_a_new_subscription_can_create_its_own_fiscal_year" --no-interaction
+      - name: SetupTest 7
+        run: php artisan test tests/Feature/SetupTest.php --filter="test_overlapping_fiscal_years_are_rejected" --no-interaction
+      - name: SetupTest 8
+        run: php artisan test tests/Feature/SetupTest.php --filter="test_fiscal_year_can_be_updated_and_activated" --no-interaction
+      - name: SetupTest 9
+        run: php artisan test tests/Feature/SetupTest.php --filter="test_open_fiscal_year_can_be_deleted_and_closed_one_cannot" --no-interaction
+      - name: SetupTest 10
+        run: php artisan test tests/Feature/SetupTest.php --filter="test_expired_subscription_cannot_activate_fiscal_year" --no-interaction
+      - name: SetupTest 11
+        run: php artisan test tests/Feature/SetupTest.php --filter="test_closed_fiscal_year_cannot_be_updated_or_activated" --no-interaction
+      - name: SetupTest 12
+        run: php artisan test tests/Feature/SetupTest.php --filter="test_company_information_is_saved" --no-interaction
