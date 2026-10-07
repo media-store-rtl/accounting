@@ -109,6 +109,21 @@ class BackupImportFeatureTest extends TestCase
         $this->assertSame('restored', BackupFile::findOrFail($backup->id)->status);
     }
 
+    public function test_backup_and_excel_pages_are_reachable_with_permission(): void
+    {
+        [$user, $companyId] = $this->userAndCompany();
+
+        $this->actingAs($user)->withSession(['company_id' => $companyId])
+            ->get('/backups')
+            ->assertOk()
+            ->assertSee('پشتیبان‌گیری و بازیابی');
+
+        $this->actingAs($user)->withSession(['company_id' => $companyId])
+            ->get('/imports/excel')
+            ->assertOk()
+            ->assertSee('ورود اطلاعات از Excel');
+    }
+
     public function test_backup_routes_require_permission(): void
     {
         Storage::fake('local');
