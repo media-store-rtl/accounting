@@ -24,6 +24,8 @@ class PermissionSeeder extends Seeder
             ['role.create', 'ایجاد نقش', 'access'],
             ['role.update', 'ویرایش نقش', 'access'],
             ['role.delete', 'حذف نقش', 'access'],
+            ['production.view', 'مشاهده دستورهای تولید', 'production'],
+            ['production.create', 'ایجاد دستور تولید', 'production'],
         ];
 
         foreach ($permissions as [$slug, $name, $module]) {
