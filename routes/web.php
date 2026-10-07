@@ -99,6 +99,7 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('production/outputs')->name('production.outputs.')->group(function(){
         Route::get('/',[ProductionOutputController::class,'index'])->name('index')->middleware('company.permission:production.output.view');
+        Route::get('/create',[ProductionOutputController::class,'create'])->name('create')->middleware('company.permission:production.output.create');
         Route::post('/',[ProductionOutputController::class,'store'])->name('store')->middleware('company.permission:production.output.create');
         Route::post('/{output}/confirm',[ProductionOutputController::class,'confirm'])->name('confirm')->middleware('company.permission:production.output.confirm');
         Route::post('/{output}/reject',[ProductionOutputController::class,'reject'])->name('reject')->middleware('company.permission:production.output.confirm');
