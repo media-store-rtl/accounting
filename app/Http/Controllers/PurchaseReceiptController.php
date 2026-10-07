@@ -54,6 +54,11 @@ class PurchaseReceiptController extends Controller
                     ->where('r.purchase_id',$purchase->id)->where('r.status','approved')->where('x.goods_id',$item->goods_id)->sum('x.quantity');
                 abort_unless($approved+(float)$item->quantity<=(float)$pi->quantity+0.0000001,422,'مقدار دریافت بیش از خرید است.');
                 app(InventoryService::class)->receive($companyId,$receipt->warehouse_location_id,$item->goods_id,(float)$item->quantity,'purchase_receipts',(int)$receipt->id,['purchase_id'=>$purchase->id,'purchase_item_id'=>$pi->id]);
+                $receiptItemId=DB::table('purchase_receipt_items')->where('purchase_receipt_id',$receipt->id)->where('goods_id',$item->goods_id)->value('id');
+                app(\App\Services\InventoryValuationService::class)->registerPurchaseReceipt(
+                    $companyId,(int)$purchase->id,(int)$pi->id,(int)$receipt->id,(int)$receiptItemId,
+                    (int)$receipt->warehouse_location_id,(int)$item->goods_id,(int)$purchase->fiscal_year_id,(float)$item->quantity,(string)$receipt->received_at
+                );
             }
             DB::table('purchase_receipts')->where('id',$receipt->id)->update(['status'=>'approved','approved_at'=>now(),'approved_by_user_id'=>$request->user()->id,'updated_at'=>now()]);
             $complete=true;
