@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\View\View;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -35,7 +36,6 @@ class DashboardController extends Controller
         $fiscalYearId = (int) session('fiscal_year_id');
         $fiscalYear = $fiscalYears->firstWhere('id', $fiscalYearId);
 
-        // If the selected year is missing/invalid/closed, automatically use the newest open year.
         if (! $fiscalYear || $fiscalYear->is_closed) {
             $fiscalYear = $fiscalYears->first(fn ($year) => ! $year->is_closed);
 
@@ -46,6 +46,73 @@ class DashboardController extends Controller
             }
         }
 
-        return view('dashboard', compact('user', 'companies', 'company', 'fiscalYears', 'fiscalYear'));
+        $stats = [
+            'inventory_quantity' => 0,
+            'open_orders' => 0,
+            'shortage_requests' => 0,
+            'active_productions' => 0,
+            'pending_finished_goods' => 0,
+            'material_cost' => 0,
+            'labor_cost' => 0,
+        ];
+
+        if ($company) {
+            $stats['inventory_quantity'] = (float) DB::table('inventory')
+                ->where('company_id', $company->id)
+                ->sum('quantity');
+
+            $stats['open_orders'] = DB::table('orders')
+                ->where('company_id', $company->id)
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->when($fiscalYear, fn ($q) => $q->where('fiscal_year_id', $fiscalYear->id))
+                ->count();
+
+            $stats['shortage_requests'] = DB::table('supply_requests')
+                ->where('company_id', $company->id)
+                ->whereIn('status', ['shortage_pending', 'partially_supplied'])
+                ->when($fiscalYear, fn ($q) => $q->where('fiscal_year_id', $fiscalYear->id))
+                ->count();
+
+            $stats['active_productions'] = DB::table('productions')
+                ->where('company_id', $company->id)
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->when($fiscalYear, fn ($q) => $q->where('fiscal_year_id', $fiscalYear->id))
+                ->count();
+
+            $stats['pending_finished_goods'] = DB::table('finished_goods_receipts')
+                ->where('company_id', $company->id)
+                ->where('status', 'pending')
+                ->count();
+
+            if ($fiscalYear) {
+                $stats['material_cost'] = (float) DB::table('inventory_consumption_costs')
+                    ->where('company_id', $company->id)
+                    ->where('fiscal_year_id', $fiscalYear->id)
+                    ->sum('total_cost');
+
+                $stats['labor_cost'] = (float) DB::table('production_labor_costs')
+                    ->where('company_id', $company->id)
+                    ->where('fiscal_year_id', $fiscalYear->id)
+                    ->sum('total_cost');
+            }
+        }
+
+        $subscription = $company?->subscriptionEntitlement;
+        $subscriptionActive = $subscription?->isActive() ?? false;
+        $subscriptionStatus = $subscriptionActive
+            ? 'فعال'
+            : ($subscription ? 'منقضی یا غیرفعال' : 'ثبت نشده');
+
+        return view('dashboard', compact(
+            'user',
+            'companies',
+            'company',
+            'fiscalYears',
+            'fiscalYear',
+            'stats',
+            'subscription',
+            'subscriptionActive',
+            'subscriptionStatus'
+        ));
     }
 }
