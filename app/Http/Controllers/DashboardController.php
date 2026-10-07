@@ -52,6 +52,7 @@ class DashboardController extends Controller
             'open_orders' => 0,
             'shortage_requests' => 0,
             'active_productions' => 0,
+            'pending_deliveries' => 0,
             'pending_finished_goods' => 0,
             'material_cost' => 0,
             'labor_cost' => 0,
@@ -79,6 +80,14 @@ class DashboardController extends Controller
                 ->whereNotIn('status', ['completed', 'cancelled'])
                 ->when($fiscalYear, fn ($q) => $q->where('fiscal_year_id', $fiscalYear->id))
                 ->count();
+
+            if (Schema::hasTable('delivery_requests')) {
+                $stats['pending_deliveries'] = DB::table('delivery_requests')
+                    ->where('company_id', $company->id)
+                    ->whereIn('status', ['pending', 'requested'])
+                    ->when($fiscalYear && Schema::hasColumn('delivery_requests', 'fiscal_year_id'), fn ($q) => $q->where('fiscal_year_id', $fiscalYear->id))
+                    ->count();
+            }
 
             if (Schema::hasTable('finished_goods_receipts')) {
                 $stats['pending_finished_goods'] = DB::table('finished_goods_receipts')
