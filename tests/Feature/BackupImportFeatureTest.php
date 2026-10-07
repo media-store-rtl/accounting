@@ -100,12 +100,17 @@ class BackupImportFeatureTest extends TestCase
     {
         Storage::fake('local');
         [$user, $companyId] = $this->userAndCompany();
+        DB::table('units')->insert([
+            'company_id' => $companyId, 'name' => 'Original Unit', 'code' => 'RESTORE-1',
+            'symbol' => 'u', 'unit_type' => 'weight', 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
         $backup = app(BackupService::class)->create($companyId, $user->id);
 
-        DB::table('companies')->where('id', $companyId)->update(['name' => 'Changed']);
+        DB::table('units')->where('company_id', $companyId)->update(['name' => 'Changed']);
         app(BackupService::class)->restore($backup, 'RESTORE', $companyId);
 
-        $this->assertSame('Test Company', DB::table('companies')->where('id', $companyId)->value('name'));
+        $this->assertSame('Original Unit', DB::table('units')->where('company_id', $companyId)->where('code', 'RESTORE-1')->value('name'));
         $this->assertSame('restored', BackupFile::findOrFail($backup->id)->status);
     }
 
@@ -128,11 +133,16 @@ class BackupImportFeatureTest extends TestCase
             'backup' => UploadedFile::fake()->createWithContent('roundtrip.json', $json),
         ])->assertCreated()->json('backup');
 
-        DB::table('companies')->where('id', $companyId)->update(['name' => 'Changed']);
+        DB::table('units')->insert([
+            'company_id' => $companyId, 'name' => 'HTTP Original', 'code' => 'HTTP-RESTORE',
+            'symbol' => 'u', 'unit_type' => 'weight', 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('units')->where('company_id', $companyId)->where('code', 'HTTP-RESTORE')->update(['name' => 'Changed']);
         $this->postJson('/backups/'.$uploaded['id'].'/restore', ['confirmation' => 'RESTORE'])
             ->assertOk();
 
-        $this->assertSame('Test Company', DB::table('companies')->where('id', $companyId)->value('name'));
+        $this->assertSame('HTTP Original', DB::table('units')->where('company_id', $companyId)->where('code', 'HTTP-RESTORE')->value('name'));
     }
 
     public function test_backup_restore_isolated_to_the_active_company(): void
