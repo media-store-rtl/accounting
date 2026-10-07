@@ -111,11 +111,45 @@ class BackupImportFeatureTest extends TestCase
 
     public function test_backup_routes_require_permission(): void
     {
+        Storage::fake('local');
         [$user, $companyId] = $this->userAndCompany();
         DB::table('role_permissions')->delete();
 
         $this->actingAs($user)->withSession(['company_id' => $companyId])
+            ->get('/backups')
+            ->assertForbidden();
+
+        $this->actingAs($user)->withSession(['company_id' => $companyId])
             ->post('/backups/create')
+            ->assertForbidden();
+
+        $this->actingAs($user)->withSession(['company_id' => $companyId])
+            ->post('/backups/upload')
+            ->assertForbidden();
+
+        $backup = BackupFile::create([
+            'company_id' => $companyId, 'user_id' => $user->id, 'type' => 'created',
+            'original_name' => 'test.json', 'disk_path' => 'backups/test.json',
+            'size' => 1, 'sha256' => str_repeat('a', 64), 'schema_hash' => str_repeat('b', 64),
+            'status' => 'ready',
+        ]);
+
+        $this->actingAs($user)->withSession(['company_id' => $companyId])
+            ->post('/backups/'.$backup->id.'/restore', ['confirmation' => 'RESTORE'])
+            ->assertForbidden();
+    }
+
+    public function test_excel_route_requires_permission(): void
+    {
+        [$user, $companyId] = $this->userAndCompany();
+        DB::table('role_permissions')->delete();
+
+        $this->actingAs($user)->withSession(['company_id' => $companyId])
+            ->get('/imports/excel')
+            ->assertForbidden();
+
+        $this->actingAs($user)->withSession(['company_id' => $companyId])
+            ->post('/imports/excel/inspect')
             ->assertForbidden();
     }
 
