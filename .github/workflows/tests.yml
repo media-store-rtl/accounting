@@ -22,4 +22,16 @@ jobs:
       - run: cp .env.example .env
       - run: php artisan key:generate --force --no-interaction
       - run: touch database/database.sqlite
-      - run: php artisan test tests/Feature/SetupTest.php --no-interaction
+      - name: Run SetupTest
+        run: |
+          set +e
+          php artisan test tests/Feature/SetupTest.php --no-interaction > test-output.txt 2>&1
+          status=$?
+          cat test-output.txt
+          exit $status
+      - name: Upload test output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: setup-test-output
+          path: test-output.txt
