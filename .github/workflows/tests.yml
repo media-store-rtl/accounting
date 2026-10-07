@@ -15,8 +15,26 @@ jobs:
           php-version: "8.2"
           extensions: mbstring, sqlite3, pdo_sqlite
           coverage: none
+
       - run: composer install --no-interaction --prefer-dist
-      - run: cp .env.example .env
-      - run: php artisan key:generate
-      - run: touch database/database.sqlite
-      - run: php artisan test
+
+      - name: Prepare clean Laravel test environment
+        run: |
+          mkdir -p bootstrap/cache
+          mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views
+          mkdir -p database
+          cp .env.example .env
+          php artisan key:generate --force
+          touch database/database.sqlite
+
+      - name: Run migrations against clean SQLite database
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+        run: php artisan migrate --force
+
+      - name: Check formatting
+        run: git diff --check
+
+      - name: Run PHPUnit
+        run: php artisan test
