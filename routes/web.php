@@ -58,7 +58,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/backups', [BackupController::class, 'page'])->middleware('company.permission:backup.view')->name('backups.page');
     Route::prefix('backups')->name('backups.')->group(function () {
-        Route::get('/', [BackupController::class, 'index'])->middleware('company.permission:backup.view')->name('index');
+        Route::get('/list', [BackupController::class, 'index'])->middleware('company.permission:backup.view')->name('index');
         Route::post('/create', [BackupController::class, 'create'])->middleware('company.permission:backup.create')->name('create');
         Route::get('/{backup}/download', [BackupController::class, 'download'])->middleware('company.permission:backup.view')->name('download');
         Route::post('/upload', [BackupController::class, 'upload'])->middleware('company.permission:backup.upload')->name('upload');
