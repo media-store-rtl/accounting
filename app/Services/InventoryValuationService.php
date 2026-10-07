@@ -22,6 +22,11 @@ final class InventoryValuationService
             throw new RuntimeException('روش ارزش‌گذاری باید FIFO یا Weighted Average باشد.');
         }
 
+        $current = $this->methodForCompany($companyId);
+        if ($current !== $method && DB::table('inventory_consumption_costs')->where('company_id', $companyId)->exists()) {
+            throw new RuntimeException('تغییر روش ارزش‌گذاری پس از ثبت مصرف ارزش‌گذاری‌شده نیازمند فرآیند تغییر سیاست حسابداری و بازمحاسبه است.');
+        }
+
         DB::table('companies')->where('id', $companyId)->update([
             'inventory_valuation_method' => $method,
             'updated_at' => now(),
