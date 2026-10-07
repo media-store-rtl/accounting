@@ -151,9 +151,30 @@ class BackupService
             throw new RuntimeException('Invalid backup: unsupported format or missing manifest.');
         }
 
+        $expectedTables = array_values(array_diff($this->tableNames(), ['migrations', 'backup_files']));
+        $actualTables = array_keys($payload['tables']);
+        sort($expectedTables);
+        sort($actualTables);
+
+        if ($expectedTables !== $actualTables) {
+            throw new RuntimeException('Invalid backup: table manifest does not match the current database.');
+        }
+
         foreach ($payload['tables'] as $table => $data) {
             if (! preg_match('/^[A-Za-z0-9_]+$/', (string) $table) || ! is_array($data) || ! is_array($data['columns'] ?? null) || ! is_array($data['rows'] ?? null)) {
                 throw new RuntimeException('Invalid backup: malformed table data.');
+            }
+
+            $expectedColumns = $this->columns($table);
+            if ($expectedColumns !== $data['columns']) {
+                throw new RuntimeException("Invalid backup: schema definition for {$table} does not match the current database.");
+            }
+
+            $columnNames = collect($expectedColumns)->pluck('name')->filter()->all();
+            foreach ($data['rows'] as $row) {
+                if (! is_array($row) || array_diff(array_keys($row), $columnNames) !== []) {
+                    throw new RuntimeException("Invalid backup: row data for {$table} contains unknown columns.");
+                }
             }
         }
 
