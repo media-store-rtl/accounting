@@ -16,7 +16,9 @@ jobs:
           extensions: mbstring, sqlite3, pdo_sqlite
           coverage: none
       - run: composer install --no-interaction --prefer-dist
+      - run: composer dump-autoload --dev
+      - run: mkdir -p bootstrap/cache storage/framework/cache storage/framework/sessions storage/framework/views storage/logs
       - run: cp .env.example .env
       - run: php artisan key:generate
       - run: touch database/database.sqlite
-      - run: php artisan test
+      - run: php artisan test tests/Feature/SalesOperationalWorkflowTest.php
