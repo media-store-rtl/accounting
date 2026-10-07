@@ -22,13 +22,14 @@ return new class extends Migration {
             $table->foreignId('purchase_receipt_id')->constrained('purchase_receipts')->restrictOnDelete();
             $table->foreignId('purchase_receipt_item_id')->constrained('purchase_receipt_items')->restrictOnDelete();
             $table->decimal('quantity_received', 18, 4);
-            $table->decimal('quantity_remaining', 18, 4);
+            $table->decimal('fifo_quantity_remaining', 18, 4);
+            $table->decimal('weighted_average_quantity_remaining', 18, 4);
             $table->decimal('unit_cost', 20, 6);
             $table->decimal('total_cost', 20, 4);
             $table->dateTime('received_at');
             $table->timestamps();
             $table->index(['company_id', 'goods_id', 'location_id', 'received_at']);
-            $table->index(['goods_id', 'location_id', 'quantity_remaining']);
+            $table->index(['goods_id', 'location_id', 'fifo_quantity_remaining']);
             $table->unique('purchase_receipt_item_id');
         });
 
@@ -66,7 +67,6 @@ return new class extends Migration {
         Schema::dropIfExists('inventory_consumption_cost_items');
         Schema::dropIfExists('inventory_consumption_costs');
         Schema::dropIfExists('inventory_cost_layers');
-
         Schema::table('companies', function (Blueprint $table) {
             $table->dropColumn('inventory_valuation_method');
         });
