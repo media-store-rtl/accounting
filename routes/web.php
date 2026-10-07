@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExcelImportController;
+use App\Http\Controllers\MaterialHandoverController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PersonnelController;
 use App\Http\Controllers\PurchaseController;
@@ -31,9 +32,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    // Session-authenticated JSON endpoints used by the Accounting application.
-    // These stay in web.php because CompanyAuthorization and the authenticated
-    // Accounting workflow rely on the active company stored in the session.
     Route::prefix('api')->name('api.')->group(function () {
         Route::post('/orders', [OrderController::class, 'store'])
             ->middleware('company.permission:order.create')->name('orders.store');
@@ -44,6 +42,11 @@ Route::middleware('auth')->group(function () {
             ->middleware('company.permission:supply_request.create')->name('supply-requests.store');
         Route::get('/supply-requests/{supplyRequest}', [SupplyRequestController::class, 'show'])
             ->middleware('company.permission:supply_request.view')->name('supply-requests.show');
+
+        Route::post('/material-handovers', [MaterialHandoverController::class, 'store'])
+            ->middleware('company.permission:supply_request.handover.create')->name('material-handovers.store');
+        Route::get('/material-handovers/{materialHandover}', [MaterialHandoverController::class, 'show'])
+            ->middleware('company.permission:supply_request.handover.view')->name('material-handovers.show');
 
         Route::post('/purchases', [PurchaseController::class, 'store'])
             ->middleware('company.permission:purchase.create')->name('purchases.store');
