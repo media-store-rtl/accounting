@@ -151,7 +151,7 @@ class SetupTest extends TestCase
 
     public function test_overlapping_fiscal_years_are_rejected(): void
     {
-        [$user] = $this->makeUser();
+        [$user, $company] = $this->makeUser();
 
         $this->actingAs($user)->post('/fiscal-years', [
             'name' => 'سال اول',
@@ -210,6 +210,25 @@ class SetupTest extends TestCase
             ->post("/fiscal-years/{$fiscalYear->id}/activate")
             ->assertRedirect('/dashboard')
             ->assertSessionHas('fiscal_year_id', $fiscalYear->id);
+    }
+
+    public function test_open_fiscal_year_can_be_deleted_but_closed_one_cannot(): void
+    {
+        [$user, $company] = $this->makeUser();
+
+        $this->actingAs($user)->post('/fiscal-years', [
+            'name' => 'سال قابل حذف',
+            'starts_at' => '2026-03-21',
+            'ends_at' => '2027-03-20',
+        ]);
+
+        $fiscalYear = $company->fiscalYears()->first();
+
+        $this->actingAs($user)
+            ->delete("/fiscal-years/{$fiscalYear->id}")
+            ->assertRedirect('/fiscal-years');
+
+        $this->assertDatabaseMissing('fiscal_years', ['id' => $fiscalYear->id]);
     }
 
     public function test_fiscal_year_validation_rejects_missing_name_and_invalid_date_range(): void
