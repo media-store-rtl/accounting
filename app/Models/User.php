@@ -68,6 +68,26 @@ class User extends Authenticatable
             ->first();
     }
 
+    public function currentFiscalYear(): ?FiscalYear
+    {
+        $company = $this->currentCompany();
+
+        if (! $company) {
+            return null;
+        }
+
+        $id = (int) session('fiscal_year_id');
+
+        return $company->fiscalYears()
+            ->where('is_closed', false)
+            ->when($id > 0, fn ($query) => $query->whereKey($id))
+            ->first()
+            ?? $company->fiscalYears()
+                ->where('is_closed', false)
+                ->orderByDesc('starts_at')
+                ->first();
+    }
+
     public function isAccountOwner(): bool
     {
         return $this->account !== null && (int) $this->account->owner_user_id === (int) $this->id;
