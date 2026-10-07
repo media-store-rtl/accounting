@@ -19,6 +19,7 @@ use App\Http\Controllers\PurchaseReceiptController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SupplyRequestController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\MasterDataController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -35,6 +36,15 @@ Route::get('/sso/start', [AccountingSsoController::class, 'start'])->name('sso.s
 Route::get('/sso/callback', [AccountingSsoController::class, 'callback'])->name('sso.callback');
 
 Route::middleware('auth')->group(function () {
+    Route::prefix('master')->name('master.')->group(function () {
+        Route::get('/{module}', [MasterDataController::class,'index'])->name('index');
+        Route::get('/{module}/create', [MasterDataController::class,'create'])->name('create');
+        Route::post('/{module}', [MasterDataController::class,'store'])->name('store');
+        Route::get('/{module}/{id}/edit', [MasterDataController::class,'edit'])->name('edit');
+        Route::put('/{module}/{id}', [MasterDataController::class,'update'])->name('update');
+        Route::post('/{module}/{id}/deactivate', [MasterDataController::class,'deactivate'])->name('deactivate');
+    });
+
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('/company', [CompanyController::class, 'edit'])
