@@ -99,8 +99,11 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get('/supply', [WorkflowPagesController::class,'supply'])->middleware('company.permission:supply_request.view')->name('workflows.supply');
+    Route::post('/supply', [WorkflowPagesController::class,'storeSupply'])->middleware('company.permission:supply_request.create')->name('workflows.supply.store');
     Route::get('/purchasing', [WorkflowPagesController::class,'purchasing'])->middleware('company.permission:purchase.view')->name('workflows.purchasing');
+    Route::post('/purchasing', [WorkflowPagesController::class,'storePurchase'])->middleware('company.permission:purchase.create')->name('workflows.purchasing.store');
     Route::get('/production/labor', [WorkflowPagesController::class,'labor'])->middleware('company.permission:production.labor.create')->name('workflows.labor');
+    Route::post('/production/labor', [WorkflowPagesController::class,'storeLabor'])->middleware('company.permission:production.labor.create')->name('workflows.labor.store');
     Route::get('/inventory', [WorkflowPagesController::class,'inventory'])->middleware('company.permission:inventory.view')->name('inventory.index');
 
     Route::prefix('production/outputs')->name('production.outputs.')->group(function(){
