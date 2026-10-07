@@ -9,6 +9,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\LaborCostController;
 use App\Http\Controllers\MaterialHandoverController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CostingReportController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\PersonnelController;
 use App\Http\Controllers\PurchaseController;
@@ -33,6 +34,8 @@ Route::get('/sso/callback', [AccountingSsoController::class, 'callback'])->name(
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/reports/costing', [CostingReportController::class, 'index'])
+        ->middleware('company.permission:costing.report.view')->name('reports.costing');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/sales/customers', [CustomerController::class, 'index'])->middleware('company.permission:customer.view')->name('sales.customers.index');
