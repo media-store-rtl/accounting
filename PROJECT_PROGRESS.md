@@ -331,3 +331,151 @@ Blockerهای اصلی:
 - 🟡 تست واقعی `php artisan test`, `migrate:status` و E2E روی سرور Production در این محیط قابل اجرا نیست و نباید PASS اعلام شود.
 
 این بخش وضعیت implementation را ثبت می‌کند و هیچ موردی صرفاً به دلیل وجود Migration یا فایل کد، به وضعیت «تکمیل‌شده» منتقل نشده است.
+
+
+# 17. Full Definition / Frontend + Backend Implementation Audit — 2026-10-07
+
+## هدف این مرحله
+
+از این مرحله به بعد، وضعیت پروژه فقط بر اساس وجود یک Migration، Model، Controller یا فایل UI تعیین نمی‌شود. هر Requirement از `PROJECT_DEFINITION.md` باید در کل زنجیره زیر قابل‌ردگیری باشد:
+
+`Definition → UI/Frontend → Route → Authorization → Controller/Service → Model/Database → Notification/Audit → نتیجه در UI`
+
+بنابراین Frontend، UI/UX و اتصال واقعی آن به Backend جزو معیار تکمیل پروژه هستند.
+
+## Frontend Audit
+
+### وضعیت کلی
+
+- 🟡 ساختار UI موجود است و Dashboard فعلی به داده‌های واقعی متصل شده است، اما پوشش کامل Frontend مطابق تمام حوزه‌های Definition هنوز اثبات نشده است.
+- 🟡 UI مستقل و کامل برای همه ماژول‌های تعاریف پایه، سفارش، تأمین، انبار، تولید، کالای ساخته‌شده، فروش/تحویل، بهای تمام‌شده، گزارش‌ها، Backup/Restore و Import هنوز باید به‌صورت End-to-End تطبیق و تکمیل شود.
+- 🟡 وجود Route یا Backend به‌تنهایی به معنی وجود Frontend کامل نیست.
+- 🟡 وجود صفحه به‌تنهایی نیز PASS محسوب نمی‌شود؛ صفحه باید به عملیات واقعی، داده واقعی، Permission و Validation متصل باشد.
+- 🟡 Responsive، RTL، Empty State، Error State، Success Feedback و UX عملیات اصلی باید برای صفحات نهایی به‌صورت مستقل بررسی شوند.
+- 🟡 هیچ UI یا Mock ساختگی نباید برای سبز کردن وضعیت یک Requirement به‌عنوان implementation کامل ثبت شود.
+
+## Frontend معیارهای PASS
+
+برای هر صفحه/ماژول، موارد زیر باید قابل‌اثبات باشند:
+
+- ⬜ Route واقعی
+- ⬜ Permission مناسب
+- ⬜ نمایش داده واقعی Database
+- ⬜ فرم واقعی و متصل به Backend
+- ⬜ Server-side validation
+- ⬜ نمایش خطاهای Validation در UI
+- ⬜ Success/Error feedback
+- ⬜ Empty state
+- ⬜ Loading/disabled state در عملیات لازم
+- ⬜ Pagination در صورت نیاز
+- ⬜ Search/Filter فقط در صورت تعریف یا نیاز واقعی
+- ⬜ Responsive در Desktop/Mobile
+- ⬜ RTL و فارسی
+- ⬜ عدم وجود داده مهم hard-coded
+- ⬜ عدم وجود Mock/Placeholder غیرضروری
+- ⬜ اتصال صحیح دکمه‌ها و Actionها به عملیات واقعی
+- ⬜ رعایت Permission در UI علاوه بر Enforcement سمت Server
+- ⬜ حفظ وضعیت‌ها و نتایج واقعی فرآیند در UI
+
+## تطبیق Frontend با حوزه‌های Definition
+
+| حوزه | Backend | Frontend | End-to-End | وضعیت |
+|---|---|---|---|---|
+| Company | 🟡 | 🟡 | ⬜ | 🟡 |
+| Fiscal Year | 🟡 | 🟡 | ⬜ | 🟡 |
+| Users / Personnel | 🟡 | ⬜ | ⬜ | 🟡 |
+| Roles / Permissions | 🟡 | ⬜ | ⬜ | 🟡 |
+| Customers | 🟡 | ⬜ | ⬜ | 🟡 |
+| Suppliers | 🟡 | ⬜ | ⬜ | 🟡 |
+| Goods / Units | 🟡 | ⬜ | ⬜ | 🟡 |
+| Warehouses / Locations | 🟡 | ⬜ | ⬜ | 🟡 |
+| Production Sections | 🟡 | ⬜ | ⬜ | 🟡 |
+| Orders / Sales | 🟡 | 🟡 | ⬜ | 🟡 |
+| Supply Requests | 🟡 | ⬜ | ⬜ | 🟡 |
+| Purchases / Receipts | 🟡 | ⬜ | ⬜ | 🟡 |
+| Material Handovers | 🟡 | ⬜ | ⬜ | 🟡 |
+| Production | 🟡 | ⬜ | ⬜ | 🟡 |
+| Finished Goods | 🟡 | ⬜ | ⬜ | 🟡 |
+| Delivery Requests / Deliveries | 🟡 | 🟡 | ⬜ | 🟡 |
+| Inventory / Movements | 🟡 | ⬜ | ⬜ | 🟡 |
+| Labor | 🟡 | ⬜ | ⬜ | 🟡 |
+| Costing | 🟡 | 🟡 | ⬜ | 🟡 |
+| Reports | 🟡 | ⬜ | ⬜ | 🟡 |
+| Notifications / Approval | 🟡 | 🟡 | ⬜ | 🟡 |
+| Audit Trail | 🟡 | ⬜ | ⬜ | 🟡 |
+| Backup / Restore | 🟡 | ⬜ | ⬜ | 🟡 |
+| Excel Import | 🟡 | ⬜ | ⬜ | 🟡 |
+| SSO / Subscription | 🟡 | 🟡 | ⬜ | 🟡 |
+
+> این جدول وضعیت فعلی Audit است، نه اعلام تکمیل. موارد 🟡 باید تا رسیدن به implementation + integration + test evidence بررسی و اصلاح شوند.
+
+## Backend / Database وضعیت فعلی
+
+- 🟡 Migrationهای متعددی برای بخش‌های جدید پروژه اضافه شده‌اند، از جمله Production Output، Sales/Delivery، Material Handover، Inventory Valuation، Labor Cost و Company Profile.
+- 🟡 Migration هزینه دستمزد که در `down()` به‌اشتباه `personnel` را حذف می‌کرد اصلاح شده است.
+- 🟡 Permissionهای جدید برای بخش‌های عملیاتی و Costing اضافه شده‌اند.
+- 🟡 Dashboard و برخی Controller/Serviceها برای جلوگیری از خطای Runtime در صورت نبود جدول‌های جدید Guard دارند؛ این Guards راه‌حل نهایی Migration Drift محسوب نمی‌شوند.
+- 🔴 وضعیت واقعی Migrationهای Production هنوز باید با `php artisan migrate:status` و اجرای واقعی Migrationها تأیید شود.
+- 🔴 تست واقعی Production/CI هنوز برای کل زنجیره اجرا نشده است.
+- 🟡 `.cpanel.yml` برای اجرای `php artisan migrate --force` به‌روزرسانی شده، ولی اجرای موفق آن روی Production هنوز اثبات نشده است.
+
+## Business Flow Audit
+
+زنجیره‌ای که باید تا PASS شدن کامل بررسی شود:
+
+`سفارش → بررسی موجودی → تأمین/تولید → مصرف مواد → تولید → کالای ساخته‌شده → انبار → درخواست تحویل → فروش/تحویل → گزارش بهای تمام‌شده`
+
+و زنجیره هزینه:
+
+`خرید واقعی + هزینه‌های مستقیم + مصرف واقعی مواد + دستمزد + ضایعات + سایر اجزای تعریف‌شده → Costing → گزارش سفارش/محصول`
+
+- 🟡 بخش‌هایی از این زنجیره در Repository پیاده‌سازی شده‌اند.
+- 🔴 اجرای کامل End-to-End با داده واقعی هنوز evidence نشده است.
+- ⬜ تا زمانی که تمام روابط بین Entityها، موجودی، هزینه‌ها، تولید، فروش و گزارش‌ها تست نشوند، زنجیره کامل PASS نیست.
+
+## قواعد جدید ثبت پیشرفت
+
+1. Frontend بخشی از Requirement است و نباید جدا از Backend ارزیابی شود.
+2. وجود Blade/JS/CSS به‌تنهایی implementation محسوب نمی‌شود.
+3. وجود API/Controller به‌تنهایی implementation Frontend محسوب نمی‌شود.
+4. هر Feature باید از UI تا Database و برگشت نتیجه به UI قابل‌ردگیری باشد.
+5. Permission باید هم در UI برای UX و هم در Server برای امنیت اعمال شود.
+6. داده‌های مهم نباید hard-coded باشند.
+7. Guardهای موقت برای جداول/قابلیت‌های missing نباید جایگزین Migration و Root Cause Fix شوند.
+8. هیچ Requirement صرفاً به دلیل وجود schema به وضعیت ✅ منتقل نمی‌شود.
+9. برای وضعیت ✅ باید implementation، integration و در حد امکان test evidence وجود داشته باشد.
+10. پس از هر سری اصلاحات، Audit مجدد Definition باید انجام شود.
+
+## اولویت فعلی تکمیل
+
+1. 🔴 تطبیق کامل Migrationها با Production و رفع Migration Drift بدون آسیب به داده‌های موجود.
+2. 🔴 تکمیل Backend و Frontend تعاریف پایه.
+3. 🔴 تکمیل End-to-End سفارش → تأمین/تولید → کالای ساخته‌شده → فروش/تحویل.
+4. 🔴 تکمیل Costing واقعی و traceable.
+5. 🔴 تکمیل Reports بر اساس Costing واقعی.
+6. 🟡 تکمیل Notifications، Approval و Audit Trail.
+7. 🟡 تکمیل Backup/Restore و Excel Import در UI و E2E.
+8. 🟡 تکمیل SSO/Subscription و تست Cross-App Logout.
+9. 🟡 اجرای Test Suite، Migration Status و E2E verification روی محیط قابل‌اجرا.
+10. 🟡 Audit نهایی کل `PROJECT_DEFINITION.md` و انتقال فقط موارد دارای evidence به وضعیت ✅.
+
+## معیار نهایی Done
+
+پروژه زمانی «کامل» اعلام می‌شود که هر Requirement صریح `PROJECT_DEFINITION.md` حداقل یکی از این وضعیت‌ها را داشته باشد:
+
+- ✅ implementation کامل + integration/test evidence
+- ⏳ نیازمند تصمیم صریح کسب‌وکاری از کاربر
+
+و نباید Requirement پیاده‌نشده با یکی از موارد زیر پنهان شود:
+
+- Guard موقت
+- Mock UI
+- عدد hard-coded
+- route بدون implementation
+- controller بدون UI
+- migration بدون feature
+- UI بدون backend
+- permission فقط در Frontend
+- گزارش بدون داده واقعی
+
+**این فایل باید همراه با هر تغییر مهم به‌روزرسانی شود و وضعیت واقعی پروژه را ثبت کند، نه صرفاً خوش‌بینانه‌ترین وضعیت ممکن را.**
