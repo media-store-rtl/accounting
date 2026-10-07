@@ -99,9 +99,10 @@ class BackupService
         ));
 
         try {
-            Schema::withoutForeignKeyConstraints(function () use ($connection, $payload, $tables, $companyId): void {
+            $schema = $connection->getSchemaBuilder();
+            $schema->withoutForeignKeyConstraints(function () use ($connection, $payload, $tables, $companyId): void {
                 $connection->transaction(function () use ($connection, $payload, $tables, $companyId): void {
-                    foreach ($tables as $table) {
+                    foreach (array_reverse($tables) as $table) {
                         $this->scopedQuery($table, $connection->table($table), $companyId)->delete();
                     }
 
