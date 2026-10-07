@@ -6,6 +6,7 @@ use App\Http\Controllers\BackupController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ProductionOrderController;
 use App\Http\Controllers\PersonnelController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PurchaseReceiptController;
@@ -39,6 +40,11 @@ Route::middleware('auth')->group(function () {
             ->middleware('company.permission:order.create')->name('orders.store');
         Route::get('/orders/{order}', [OrderController::class, 'show'])
             ->middleware('company.permission:order.view')->name('orders.show');
+
+        Route::post('/production-orders', [ProductionOrderController::class, 'store'])
+            ->middleware('company.permission:production.create')->name('production-orders.store');
+        Route::get('/production-orders/{production}', [ProductionOrderController::class, 'show'])
+            ->middleware('company.permission:production.view')->name('production-orders.show');
 
         Route::post('/supply-requests', [SupplyRequestController::class, 'store'])
             ->middleware('company.permission:supply_request.create')->name('supply-requests.store');
