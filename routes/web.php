@@ -21,6 +21,7 @@ use App\Http\Controllers\SupplyRequestController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\MasterDataController;
 use App\Http\Controllers\ProductionOutputController;
+use App\Http\Controllers\WorkflowPagesController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -96,6 +97,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/production/labor/{laborEntry}/review', [LaborCostController::class, 'review'])->middleware('company.permission:production.labor.review')->name('production.labor.review');
         Route::post('/production/labor/rates', [LaborCostController::class, 'setRate'])->middleware('company.permission:production.labor.rate.manage')->name('production.labor.rates.store');
     });
+
+    Route::get('/supply', [WorkflowPagesController::class,'supply'])->middleware('company.permission:supply_request.view')->name('workflows.supply');
+    Route::get('/purchasing', [WorkflowPagesController::class,'purchasing'])->middleware('company.permission:purchase.view')->name('workflows.purchasing');
+    Route::get('/production/labor', [WorkflowPagesController::class,'labor'])->middleware('company.permission:production.labor.create')->name('workflows.labor');
+    Route::get('/inventory', [WorkflowPagesController::class,'inventory'])->middleware('company.permission:inventory.view')->name('inventory.index');
 
     Route::prefix('production/outputs')->name('production.outputs.')->group(function(){
         Route::get('/',[ProductionOutputController::class,'index'])->name('index')->middleware('company.permission:production.output.view');
