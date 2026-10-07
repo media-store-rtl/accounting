@@ -63,6 +63,11 @@ final class InventoryValuationService
         ]);
     }
 
+    public function consume(int $companyId, int $locationId, int $goodsId, int $fiscalYearId, float $quantity, int $movementId, string $consumedAt): array
+    {
+        return $this->valueInventoryMovement($movementId, $fiscalYearId);
+    }
+
     public function valueInventoryMovement(int $movementId, ?int $fiscalYearId = null): array
     {
         $movement = DB::table('inventory_movements')->where('id', $movementId)->lockForUpdate()->first();
