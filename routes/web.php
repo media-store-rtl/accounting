@@ -9,6 +9,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PersonnelController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PurchaseReceiptController;
+use App\Http\Controllers\ProductionOutputController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SupplyRequestController;
 use App\Http\Controllers\UserManagementController;
@@ -54,7 +55,16 @@ Route::middleware('auth')->group(function () {
             ->middleware('company.permission:purchase.receipt.create')->name('purchase-receipts.store');
         Route::post('/purchase-receipts/{purchaseReceipt}/approve', [PurchaseReceiptController::class, 'approve'])
             ->middleware('company.permission:purchase.receipt.approve')->name('purchase-receipts.approve');
+        Route::post('/production/outputs', [ProductionOutputController::class, 'store'])
+            ->middleware('company.permission:production.output.create')->name('production-outputs.store');
+        Route::post('/production/outputs/{productionOutput}/confirm', [ProductionOutputController::class, 'confirm'])
+            ->middleware('company.permission:production.output.confirm')->name('production-outputs.confirm');
+        Route::post('/production/outputs/{productionOutput}/reject', [ProductionOutputController::class, 'reject'])
+            ->middleware('company.permission:production.output.reject')->name('production-outputs.reject');
     });
+
+    Route::get('/production/outputs', [ProductionOutputController::class, 'index'])
+        ->middleware('company.permission:production.output.view')->name('production-outputs.index');
 
     Route::prefix('backups')->name('backups.')->group(function () {
         Route::get('/', [BackupController::class, 'index'])->middleware('company.permission:backup.view')->name('index');

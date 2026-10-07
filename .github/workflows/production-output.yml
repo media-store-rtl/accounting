@@ -1,0 +1,28 @@
+name: production-output-scope
+
+on:
+  push:
+    branches:
+      - feature/finished-goods-production-output
+  pull_request:
+    branches:
+      - "**"
+
+jobs:
+  production-output:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: mbstring, sqlite3, pdo_sqlite
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env
+      - run: mkdir -p bootstrap/cache storage/framework/views storage/framework/cache storage/framework/sessions
+      - run: php artisan key:generate
+      - run: touch database/database.sqlite
+      - run: git fetch origin main --depth=1
+      - run: git diff --check origin/main..HEAD
+      - run: php artisan test tests/Feature/ProductionOutputWorkflowTest.php
