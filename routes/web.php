@@ -35,6 +35,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/fiscal-years/create', [FiscalYearController::class, 'create'])->name('fiscal-years.create');
         Route::post('/fiscal-years', [FiscalYearController::class, 'store'])->name('fiscal-years.store');
         Route::put('/fiscal-years/{fiscalYear}', [FiscalYearController::class, 'update'])->name('fiscal-years.update');
+        Route::delete('/fiscal-years/{fiscalYear}', [FiscalYearController::class, 'destroy'])->name('fiscal-years.destroy');
     });
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
