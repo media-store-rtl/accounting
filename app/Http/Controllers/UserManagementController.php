@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class UserManagementController extends Controller
@@ -37,7 +38,10 @@ class UserManagementController extends Controller
         abort_unless($company, 409);
 
         $data = $request->validate([
-            'code' => ['required', 'string', 'max:50'],
+            'code' => [
+                'required', 'string', 'max:50',
+                Rule::unique('personnel', 'code')->where(fn ($query) => $query->where('account_id', $actor->account_id)),
+            ],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
             'national_id' => ['nullable', 'string', 'max:50'],
@@ -45,7 +49,10 @@ class UserManagementController extends Controller
             'phone' => ['nullable', 'string', 'max:50'],
             'mobile' => ['nullable', 'string', 'max:50'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'username' => ['required', 'string', 'max:100', 'alpha_dash'],
+            'username' => [
+                'required', 'string', 'max:100', 'alpha_dash',
+                Rule::unique('users', 'username')->where(fn ($query) => $query->where('account_id', $actor->account_id)),
+            ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role_id' => ['nullable', 'integer'],
         ]);
@@ -103,15 +110,25 @@ class UserManagementController extends Controller
         abort_if($user->isAccountOwner(), 403, 'مالک حساب قابل ویرایش از این مسیر نیست.');
 
         $data = $request->validate([
-            'code' => ['required', 'string', 'max:50'],
+            'code' => [
+                'required', 'string', 'max:50',
+                Rule::unique('personnel', 'code')
+                    ->where(fn ($query) => $query->where('account_id', $user->account_id))
+                    ->ignore($user->personnel?->id),
+            ],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
             'national_id' => ['nullable', 'string', 'max:50'],
             'job_title' => ['nullable', 'string', 'max:100'],
             'phone' => ['nullable', 'string', 'max:50'],
             'mobile' => ['nullable', 'string', 'max:50'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'username' => ['required', 'string', 'max:100', 'alpha_dash'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user)],
+            'username' => [
+                'required', 'string', 'max:100', 'alpha_dash',
+                Rule::unique('users', 'username')
+                    ->where(fn ($query) => $query->where('account_id', $user->account_id))
+                    ->ignore($user),
+            ],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role_id' => ['nullable', 'integer'],
         ]);
@@ -211,7 +228,7 @@ class UserManagementController extends Controller
     {
         $company = $request->user()->currentCompany();
         abort_unless($company && (int) $user->account_id === (int) $request->user()->account_id, 404);
-        abort_unless($company->users()->whereKey($user->id)->wherePivot('is_active', true)->exists(), 404);
+        abort_unless($company->users()->whereKey($user->id)->exists(), 404);
         return $company;
     }
 }
