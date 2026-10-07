@@ -6,6 +6,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class RoleController extends Controller
@@ -27,7 +28,10 @@ class RoleController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
-            'slug' => ['required', 'string', 'max:100', 'alpha_dash'],
+            'slug' => [
+                'required', 'string', 'max:100', 'alpha_dash',
+                Rule::unique('roles', 'slug')->where(fn ($query) => $query->where('company_id', $company->id)),
+            ],
             'description' => ['nullable', 'string', 'max:255'],
             'permissions' => ['array'],
             'permissions.*' => ['integer', 'exists:permissions,id'],
@@ -52,7 +56,12 @@ class RoleController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
-            'slug' => ['required', 'string', 'max:100', 'alpha_dash'],
+            'slug' => [
+                'required', 'string', 'max:100', 'alpha_dash',
+                Rule::unique('roles', 'slug')
+                    ->where(fn ($query) => $query->where('company_id', $company->id))
+                    ->ignore($role),
+            ],
             'description' => ['nullable', 'string', 'max:255'],
             'permissions' => ['array'],
             'permissions.*' => ['integer', 'exists:permissions,id'],
