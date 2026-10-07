@@ -9,11 +9,22 @@ class DashboardController extends Controller
     public function __invoke(): View
     {
         $user = request()->user();
-        $account = $user->account;
-        $company = $account?->company;
 
-        if ($company) session(['company_id' => $company->id]);
+        $companies = $user->companies()
+            ->where('companies.is_active', true)
+            ->orderBy('companies.name')
+            ->get();
 
+        $companyId = (int) session('company_id');
+
+        if (! $companyId || ! $companies->contains('id', $companyId)) {
+            $companyId = $companies->first()?->id;
+            if ($companyId) {
+                session(['company_id' => $companyId]);
+            }
+        }
+
+        $company = $companies->firstWhere('id', $companyId);
         $subscription = $company?->subscriptionEntitlement;
         $fiscalYears = $company?->fiscalYears()->orderByDesc('starts_at')->get() ?? collect();
         $activeFiscalYear = null;
@@ -25,12 +36,19 @@ class DashboardController extends Controller
                 ->first();
 
             if (! $activeFiscalYear) {
-                $activeFiscalYear = $company->fiscalYears()->where('is_closed', false)->orderByDesc('starts_at')->first();
-                if ($activeFiscalYear) session(['fiscal_year_id' => $activeFiscalYear->id]);
-                else session()->forget('fiscal_year_id');
+                $activeFiscalYear = $company->fiscalYears()
+                    ->where('is_closed', false)
+                    ->orderByDesc('starts_at')
+                    ->first();
+
+                if ($activeFiscalYear) {
+                    session(['fiscal_year_id' => $activeFiscalYear->id]);
+                } else {
+                    session()->forget('fiscal_year_id');
+                }
             }
         }
 
-        return view('dashboard', compact('user','account','company','subscription','fiscalYears','activeFiscalYear'));
+        return view('dashboard', compact('user', 'companies', 'company', 'subscription', 'fiscalYears', 'activeFiscalYear'));
     }
 }
