@@ -1,12 +1,12 @@
 <?php
 
-namespace App\\Services;
+namespace App\Services;
 
-use App\\Models\\Production;
-use App\\Support\\CompanyAuthorization;
-use Illuminate\\Database\\DatabaseManager;
-use Illuminate\\Http\\Request;
-use Illuminate\\Validation\\ValidationException;
+use App\Models\Production;
+use App\Support\CompanyAuthorization;
+use Illuminate\Database\DatabaseManager;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class ProductionOrderService
 {
