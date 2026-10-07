@@ -43,7 +43,16 @@
 @else
 <span style="color:#71879d;font-size:10px">هنوز شرکتی تعریف نشده</span>
 @endif
-@if($fiscalYears->isNotEmpty())<span style="color:#71879d;font-size:10px">{{ $fiscalYears->first()->name }}</span>@endif
+@if($fiscalYears->isNotEmpty())
+<form method="POST" action="{{ route('fiscal-years.select', $fiscalYear ?? $fiscalYears->first()) }}" style="margin:0">
+@csrf
+<select aria-label="انتخاب سال مالی" onchange="this.form.action='{{ url('/fiscal-years') }}/'+this.value+'/select';this.form.submit()" style="background:#0d2133;color:#dcebf5;border:1px solid #29465e;border-radius:10px;padding:9px 13px;font-family:inherit;font-size:11px;max-width:220px">
+@foreach($fiscalYears as $year)<option value="{{ $year->id }}" @selected($fiscalYear?->id === $year->id) @disabled($year->is_closed)>{{ $year->name }}{{ $year->is_closed ? ' (بسته)' : '' }}</option>@endforeach
+</select>
+</form>
+@else
+<a href="{{ route('fiscal-years.create') }}" style="color:#6ee7d0;font-size:10px;text-decoration:none">+ تعریف سال مالی</a>
+@endif
 </div>
 <div class="user"><div><strong>{{ $user->name }}</strong><small>مدیر سیستم</small></div><div class="avatar">{{ mb_substr($user->name,0,1) }}</div><form method="POST" action="{{ route('logout') }}">@csrf<button class="logout">خروج</button></form></div>
 </header>
@@ -67,7 +76,13 @@
 <a href="{{ route('reports.costing') }}">گزارش بهای تمام‌شده <span>←</span></a>
 </div>
 </div>
-@if(!$company)<div class="panel" style="margin-top:18px"><div class="empty">برای شروع، مدیر سیستم باید شرکت و دوره مالی را تعریف کند.</div></div>@endif
+@if(!$company)
+<div class="panel" style="margin-top:18px"><div class="empty">برای شروع، مدیر سیستم باید شرکت و دوره مالی را تعریف کند.</div></div>
+@elseif($fiscalYears->isEmpty())
+<div class="panel" style="margin-top:18px"><div class="empty">برای این شرکت هنوز سال مالی تعریف نشده است. <a href="{{ route('fiscal-years.create') }}" style="color:#6ee7d0">تعریف سال مالی</a></div></div>
+@elseif(!$fiscalYear)
+<div class="panel" style="margin-top:18px"><div class="empty">هیچ سال مالی باز و قابل استفاده‌ای وجود ندارد.</div></div>
+@endif
 </section>
 </main>
 </div>
