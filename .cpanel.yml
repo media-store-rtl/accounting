@@ -3,9 +3,9 @@ deployment:
     - export DEPLOYPATH=/home/mediast1/accounting/
     - export PATH=/home/mediast1/.nvm/versions/node/v22.14.0/bin:$PATH
     - /bin/mkdir -p $DEPLOYPATH
-    - /bin/cp -R app config database docs public resources routes bootstrap artisan composer.json composer.lock package.json vite.config.js README.md .env.example .gitignore .cpanel.yml $DEPLOYPATH
+    - cd $DEPLOYPATH && /bin/tar -cf - --exclude='./.git' --exclude='./.env' --exclude='./storage' --exclude='./public/storage' . | /bin/tar -xf - -C $DEPLOYPATH
     - cd $DEPLOYPATH && composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
-    - cd $DEPLOYPATH && npm install
+    - cd $DEPLOYPATH && npm ci
     - cd $DEPLOYPATH && npm run build
     - cd $DEPLOYPATH && mkdir -p storage/app storage/framework/cache storage/framework/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
     - cd $DEPLOYPATH && test -f .env || cp .env.example .env
