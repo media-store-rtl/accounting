@@ -12,7 +12,7 @@
 </div>
 @if($subscription?->isActive())<a class="btn" href="{{ route('fiscal-years.create') }}">+ ایجاد سال مالی</a>@endif</div>
 @if($fiscalYears->isEmpty())<p class="note">هنوز سال مالی ثبت نشده است.</p>@else
-<table><thead><tr><th>نام</th><th>شروع</th><th>پایان</th><th>وضعیت</th></tr></thead><tbody>
-@foreach($fiscalYears as $year)<tr><td>{{ $year->name }}</td><td>{{ $year->starts_at->format('Y-m-d') }}</td><td>{{ $year->ends_at->format('Y-m-d') }}</td><td><span class="status {{ $year->is_closed ? 'closed' : '' }}">{{ $year->is_closed ? 'بسته' : 'باز' }}</span></td></tr>@endforeach
+<table><thead><tr><th>نام</th><th>شروع</th><th>پایان</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
+@foreach($fiscalYears as $year)<tr><td>{{ $year->name }}</td><td>{{ $year->starts_at->format('Y-m-d') }}</td><td>{{ $year->ends_at->format('Y-m-d') }}</td><td><span class="status {{ $year->is_closed ? 'closed' : '' }}">{{ $year->is_closed ? 'بسته' : 'باز' }}</span></td><td>@if(!$year->is_closed)<a class="btn" href="{{ route('fiscal-years.edit',$year) }}">ویرایش</a> <form method="POST" action="{{ route('fiscal-years.activate',$year) }}" style="display:inline">@csrf<button class="btn" type="submit">فعال‌سازی</button></form>@endif</td></tr>@endforeach
 </tbody></table>@endif
 </div></div></body></html>
