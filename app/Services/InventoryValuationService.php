@@ -120,6 +120,7 @@ final class InventoryValuationService
                 ->where('location_id', $locationId)
                 ->where('goods_id', $goodsId)
                 ->where($column, '>', 0)
+                ->when($method === self::FIFO, fn ($query) => $query->orderBy('received_at')->orderBy('id'))
                 ->lockForUpdate()
                 ->get();
 
@@ -133,7 +134,7 @@ final class InventoryValuationService
 
             if ($method === self::FIFO) {
                 $remaining = $quantity;
-                foreach ($layers->sortBy(fn ($layer) => [$layer->received_at, $layer->id]) as $layer) {
+                foreach ($layers as $layer) {
                     if ($remaining <= 0) break;
                     $take = min($remaining, (float) $layer->{$column});
                     $unitCost = (float) $layer->unit_cost;
