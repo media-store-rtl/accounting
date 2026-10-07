@@ -5,8 +5,12 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExcelImportController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PersonnelController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\PurchaseReceiptController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SupplyRequestController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +30,31 @@ Route::get('/sso/callback', [AccountingSsoController::class, 'callback'])->name(
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    // Session-authenticated JSON endpoints used by the Accounting application.
+    // These stay in web.php because CompanyAuthorization and the authenticated
+    // Accounting workflow rely on the active company stored in the session.
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::post('/orders', [OrderController::class, 'store'])
+            ->middleware('company.permission:order.create')->name('orders.store');
+        Route::get('/orders/{order}', [OrderController::class, 'show'])
+            ->middleware('company.permission:order.view')->name('orders.show');
+
+        Route::post('/supply-requests', [SupplyRequestController::class, 'store'])
+            ->middleware('company.permission:supply_request.create')->name('supply-requests.store');
+        Route::get('/supply-requests/{supplyRequest}', [SupplyRequestController::class, 'show'])
+            ->middleware('company.permission:supply_request.view')->name('supply-requests.show');
+
+        Route::post('/purchases', [PurchaseController::class, 'store'])
+            ->middleware('company.permission:purchase.create')->name('purchases.store');
+        Route::get('/purchases/{purchase}', [PurchaseController::class, 'show'])
+            ->middleware('company.permission:purchase.view')->name('purchases.show');
+
+        Route::post('/purchase-receipts', [PurchaseReceiptController::class, 'store'])
+            ->middleware('company.permission:purchase.receipt.create')->name('purchase-receipts.store');
+        Route::post('/purchase-receipts/{purchaseReceipt}/approve', [PurchaseReceiptController::class, 'approve'])
+            ->middleware('company.permission:purchase.receipt.approve')->name('purchase-receipts.approve');
+    });
 
     Route::prefix('backups')->name('backups.')->group(function () {
         Route::get('/', [BackupController::class, 'index'])->middleware('company.permission:backup.view')->name('index');
