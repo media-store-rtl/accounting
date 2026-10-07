@@ -26,10 +26,20 @@
     }
   },
   "scripts": {
-    "setup": ["composer install", "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"", "@php artisan key:generate", "@php artisan migrate --force"],
+    "setup": [
+      "composer install",
+      "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
+      "@php artisan key:generate",
+      "@php artisan migrate --force"
+    ],
     "dev": "php artisan serve",
     "test": "@php artisan test"
   },
   "minimum-stability": "stable",
-  "prefer-stable": true
+  "prefer-stable": true,
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\\\": "tests/"
+    }
+  }
 }
