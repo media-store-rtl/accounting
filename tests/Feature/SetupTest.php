@@ -93,7 +93,7 @@ class SetupTest extends TestCase
         [$user,$company]=$this->makeUser();
         $this->actingAs($user)->post('/fiscal-years',['name'=>'سال اول','starts_at'=>'2026-03-21','ends_at'=>'2027-03-20']);
         $fiscalYear=$company->fiscalYears()->first();
-        $this->actingAs($user)->put("/fiscal-years/{$fiscalYear->id}",['name'=>'سال اول ویرایش‌شده','starts_at'=>'2026-04-01','ends_at'=>'2027-03-31'])->assertRedirect('/fiscal-years');
+        $this->actingAs($user)->put("/fiscal-years/{$fiscalYear->id}",['name'=>'سال اول ویرایش‌شده','starts_at'=>'2026-04-01 00:00:00','ends_at'=>'2027-03-31 00:00:00'])->assertRedirect('/fiscal-years');
         $this->assertDatabaseHas('fiscal_years',['id'=>$fiscalYear->id,'name'=>'سال اول ویرایش‌شده','starts_at'=>'2026-04-01','ends_at'=>'2027-03-31']);
         $this->actingAs($user)->post("/fiscal-years/{$fiscalYear->id}/activate")->assertRedirect('/dashboard')->assertSessionHas('fiscal_year_id',$fiscalYear->id);
     }
@@ -118,6 +118,7 @@ class SetupTest extends TestCase
         $this->actingAs($user)->post('/fiscal-years',['name'=>'سال موجود','starts_at'=>'2026-03-21','ends_at'=>'2027-03-20']);
         $fiscalYear=$company->fiscalYears()->firstOrFail();
         $company->subscriptionEntitlement->update(['status'=>'expired','expires_at'=>now()->subDay()]);
+        $user = User::with('account.company')->findOrFail($user->id);
         $this->actingAs($user)->post("/fiscal-years/{$fiscalYear->id}/activate")->assertRedirect('/dashboard')->assertSessionHas('subscription_error');
         $this->assertFalse(session()->has('fiscal_year_id'));
     }
