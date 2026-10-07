@@ -233,7 +233,7 @@ class SetupTest extends TestCase
             ->assertSessionHas('fiscal_year_id', $fiscalYear->id);
     }
 
-    public function test_open_fiscal_year_can_be_deleted_but_closed_one_cannot(): void
+    public function test_open_fiscal_year_can_be_deleted_and_closed_one_cannot(): void
     {
         [$user, $company] = $this->makeUser();
 
@@ -243,13 +243,31 @@ class SetupTest extends TestCase
             'ends_at' => '2027-03-20',
         ]);
 
-        $fiscalYear = $company->fiscalYears()->first();
+        $openFiscalYear = $company->fiscalYears()->firstOrFail();
 
         $this->actingAs($user)
-            ->delete("/fiscal-years/{$fiscalYear->id}")
+            ->delete("/fiscal-years/{$openFiscalYear->id}")
             ->assertRedirect('/fiscal-years');
 
-        $this->assertDatabaseMissing('fiscal_years', ['id' => $fiscalYear->id]);
+        $this->assertDatabaseMissing('fiscal_years', ['id' => $openFiscalYear->id]);
+
+        $this->actingAs($user)->post('/fiscal-years', [
+            'name' => 'سال بسته',
+            'starts_at' => '2027-03-21',
+            'ends_at' => '2028-03-20',
+        ])->assertRedirect('/fiscal-years');
+
+        $closedFiscalYear = $company->fiscalYears()->firstOrFail();
+        $closedFiscalYear->update(['is_closed' => true]);
+
+        $this->actingAs($user)
+            ->delete("/fiscal-years/{$closedFiscalYear->id}")
+            ->assertStatus(422);
+
+        $this->assertDatabaseHas('fiscal_years', [
+            'id' => $closedFiscalYear->id,
+            'is_closed' => true,
+        ]);
     }
 
     public function test_fiscal_year_validation_rejects_missing_name_and_invalid_date_range(): void
@@ -262,6 +280,30 @@ class SetupTest extends TestCase
                 'ends_at' => '2026-03-20',
             ])
             ->assertSessionHasErrors(['name', 'ends_at']);
+    }
+
+    public function test_expired_subscription_cannot_activate_fiscal_year(): void
+    {
+        [$user, $company] = $this->makeUser();
+
+        $this->actingAs($user)->post('/fiscal-years', [
+            'name' => 'سال موجود',
+            'starts_at' => '2026-03-21',
+            'ends_at' => '2027-03-20',
+        ])->assertRedirect('/fiscal-years');
+
+        $fiscalYear = $company->fiscalYears()->firstOrFail();
+        $company->subscriptionEntitlement->update([
+            'status' => 'expired',
+            'expires_at' => now()->subDay(),
+        ]);
+
+        $this->actingAs($user)
+            ->post("/fiscal-years/{$fiscalYear->id}/activate")
+            ->assertRedirect('/dashboard')
+            ->assertSessionHas('subscription_error');
+
+        $this->assertFalse(session()->has('fiscal_year_id'));
     }
 
     public function test_closed_fiscal_year_cannot_be_updated_or_activated(): void
