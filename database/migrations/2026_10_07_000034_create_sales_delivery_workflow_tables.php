@@ -7,12 +7,6 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('order_production',function(Blueprint $t){
-            $t->foreignId('order_id')->constrained()->cascadeOnDelete();
-            $t->foreignId('production_id')->constrained()->cascadeOnDelete();
-            $t->timestamps();
-            $t->primary(['order_id','production_id']);
-        });
         Schema::create('delivery_requests',function(Blueprint $t){
             $t->id();$t->foreignId('company_id')->constrained()->cascadeOnDelete();$t->foreignId('order_id')->constrained()->cascadeOnDelete();
             $t->foreignId('customer_id')->constrained()->restrictOnDelete();$t->foreignId('requested_by_user_id')->constrained('users')->restrictOnDelete();
@@ -33,6 +27,6 @@ return new class extends Migration {
 
     public function down(): void
     {
-        Schema::dropIfExists('deliveries');Schema::dropIfExists('delivery_request_items');Schema::dropIfExists('delivery_requests');Schema::dropIfExists('order_production');
+        Schema::dropIfExists('deliveries');Schema::dropIfExists('delivery_request_items');Schema::dropIfExists('delivery_requests');
     }
 };
