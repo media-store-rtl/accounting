@@ -83,6 +83,52 @@ class BackupImportFeatureTest extends TestCase
         Storage::disk('local')->assertExists($uploaded->disk_path);
     }
 
+    public function test_invalid_backup_file_is_rejected(): void
+    {
+        Storage::fake('local');
+        [$user, $companyId] = $this->userAndCompany();
+
+        $this->expectException(RuntimeException::class);
+        app(BackupService::class)->upload(
+            $companyId,
+            $user->id,
+            UploadedFile::fake()->createWithContent('bad.json', '{"not":"a backup"}')
+        );
+    }
+
+    public function test_backup_from_another_company_is_rejected(): void
+    {
+        Storage::fake('local');
+        [$user, $companyId] = $this->userAndCompany();
+        [, $otherCompanyId] = $this->userAndCompany();
+
+        $otherBackup = app(BackupService::class)->create($otherCompanyId, $user->id);
+        $json = Storage::disk('local')->get($otherBackup->disk_path);
+
+        $this->expectException(RuntimeException::class);
+        app(BackupService::class)->upload(
+            $companyId,
+            $user->id,
+            UploadedFile::fake()->createWithContent('other-company.json', $json)
+        );
+    }
+
+    public function test_restore_does_not_delete_another_company(): void
+    {
+        Storage::fake('local');
+        [$user, $companyId] = $this->userAndCompany();
+        [, $otherCompanyId] = $this->userAndCompany();
+
+        DB::table('companies')->where('id', $otherCompanyId)->update(['name' => 'Other Company']);
+        $backup = app(BackupService::class)->create($companyId, $user->id);
+
+        DB::table('companies')->where('id', $companyId)->update(['name' => 'Changed']);
+        app(BackupService::class)->restore($backup, 'RESTORE');
+
+        $this->assertSame('Test Company', DB::table('companies')->where('id', $companyId)->value('name'));
+        $this->assertSame('Other Company', DB::table('companies')->where('id', $otherCompanyId)->value('name'));
+    }
+
     public function test_restore_requires_explicit_confirmation_and_restores_data(): void
     {
         Storage::fake('local');
@@ -102,8 +148,63 @@ class BackupImportFeatureTest extends TestCase
         DB::table('role_permissions')->delete();
 
         $this->actingAs($user)->withSession(['company_id' => $companyId])
+            ->get('/backups/page')
+            ->assertForbidden();
+
+        $this->actingAs($user)->withSession(['company_id' => $companyId])
             ->post('/backups/create')
             ->assertForbidden();
+
+        $this->actingAs($user)->withSession(['company_id' => $companyId])
+            ->post('/backups/upload')
+            ->assertForbidden();
+
+        $this->actingAs($user)->withSession(['company_id' => $companyId])
+            ->post('/backups/1/restore', ['confirmation' => 'RESTORE'])
+            ->assertForbidden();
+    }
+
+    public function test_excel_route_requires_permission(): void
+    {
+        [$user, $companyId] = $this->userAndCompany();
+        DB::table('role_permissions')->delete();
+
+        $this->actingAs($user)->withSession(['company_id' => $companyId])
+            ->get('/imports/excel/page')
+            ->assertForbidden();
+    }
+
+    public function test_excel_invalid_file_is_rejected(): void
+    {
+        Storage::fake('local');
+        [, $companyId] = $this->userAndCompany();
+
+        $this->expectException(RuntimeException::class);
+        app(ExcelImportService::class)->inspect(
+            UploadedFile::fake()->createWithContent('bad.xlsx', 'not an xlsx file'),
+            $companyId
+        );
+    }
+
+    public function test_excel_duplicate_target_mapping_is_rejected(): void
+    {
+        Storage::fake('local');
+        [, $companyId] = $this->userAndCompany();
+        $file = $this->excelFile([
+            ['Name', 'Code', 'Symbol', 'Unit Type'],
+            ['Kilogram', 'KG-1', 'kg', 'weight'],
+        ]);
+
+        $service = app(ExcelImportService::class);
+        $inspection = $service->inspect($file, $companyId);
+
+        $this->expectException(RuntimeException::class);
+        $service->validate($inspection['token'], 'units', [
+            'Name' => 'name',
+            'Code' => 'name',
+            'Symbol' => 'symbol',
+            'Unit Type' => 'unit_type',
+        ], $companyId);
     }
 
     public function test_excel_mapping_and_validation_succeed_before_import(): void

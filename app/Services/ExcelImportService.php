@@ -14,7 +14,7 @@ use Throwable;
 
 class ExcelImportService
 {
-    private const TARGETS = ['suppliers', 'personnel', 'goods_categories', 'units', 'goods', 'locations', 'customers'];
+    private const TARGETS = ['suppliers', 'goods_categories', 'units', 'goods', 'locations', 'customers'];
 
     public function inspect(UploadedFile $file, int $companyId): array
     {
@@ -119,7 +119,7 @@ class ExcelImportService
         foreach ($this->targets()[$target] as $column) {
             $meta = $columns->firstWhere('name', $column);
             $value = $row[$column] ?? null;
-            if (! (bool) ($meta['nullable'] ?? false) && ($value === null || trim((string) $value) === '')) {
+            if (! (bool) ($meta['nullable'] ?? false) && ($meta['default'] ?? null) === null && ($value === null || trim((string) $value) === '')) {
                 $errors[] = "$column is required";
                 continue;
             }
@@ -142,8 +142,17 @@ class ExcelImportService
             $column = $foreignKey['columns'][0] ?? null;
             $foreignTable = $foreignKey['foreign_table'] ?? null;
             $foreignColumn = $foreignKey['foreign_columns'][0] ?? 'id';
+
             if ($column && $foreignTable && array_key_exists($column, $row) && $row[$column] !== null && $row[$column] !== '') {
-                if (! DB::table($foreignTable)->where($foreignColumn, $row[$column])->exists()) $errors[] = $column.' references a missing record';
+                $query = DB::table($foreignTable)->where($foreignColumn, $row[$column]);
+
+                if (Schema::hasColumn($foreignTable, 'company_id')) {
+                    $query->where('company_id', $companyId);
+                }
+
+                if (! $query->exists()) {
+                    $errors[] = $column.' references a missing record in this company';
+                }
             }
         }
 
@@ -156,10 +165,23 @@ class ExcelImportService
         $unknown = array_diff(array_values(array_filter($mapping, fn ($value) => $value !== null && $value !== '')), $allowed);
         if ($unknown !== []) throw new RuntimeException('Mapping contains unknown target columns: '.implode(', ', $unknown));
 
+        $mappedTargets = [];
+
         foreach ($mapping as $source => $targetColumn) {
-            if (! in_array($source, $headers, true)) throw new RuntimeException("Mapping references unknown Excel column: {$source}");
-            if ($targetColumn !== null && $targetColumn !== '' && ! in_array($targetColumn, $allowed, true)) {
-                throw new RuntimeException("Target column {$targetColumn} is not allowed.");
+            if (! in_array($source, $headers, true)) {
+                throw new RuntimeException("Mapping references unknown Excel column: {$source}");
+            }
+
+            if ($targetColumn !== null && $targetColumn !== '') {
+                if (! in_array($targetColumn, $allowed, true)) {
+                    throw new RuntimeException("Target column {$targetColumn} is not allowed.");
+                }
+
+                if (isset($mappedTargets[$targetColumn])) {
+                    throw new RuntimeException("Target column {$targetColumn} is mapped more than once.");
+                }
+
+                $mappedTargets[$targetColumn] = $source;
             }
         }
     }
@@ -171,11 +193,16 @@ class ExcelImportService
 
     private function storeTemporary(UploadedFile $file, int $companyId): string
     {
-        if (! $file->isValid() || $file->getSize() > 25 * 1024 * 1024) throw new RuntimeException('Excel file is invalid or exceeds the 25 MB limit.');
+        if (! $file->isValid() || $file->getSize() > 25 * 1024 * 1024) {
+            throw new RuntimeException('Excel file is invalid or exceeds the 25 MB limit.');
+        }
 
         try {
             $type = IOFactory::identify($file->getRealPath());
-            if (! in_array(strtolower($type), ['xlsx', 'xls', 'ods', 'csv'], true)) throw new RuntimeException('Unsupported spreadsheet format.');
+
+            if (! in_array(strtolower($type), ['xlsx', 'xls', 'ods', 'csv'], true)) {
+                throw new RuntimeException('Unsupported spreadsheet format.');
+            }
         } catch (Throwable $e) {
             throw new RuntimeException('The uploaded file is not a valid spreadsheet.', previous: $e);
         }

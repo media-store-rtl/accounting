@@ -57,6 +57,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::prefix('backups')->name('backups.')->group(function () {
+        Route::get('/page', [BackupController::class, 'page'])->middleware('company.permission:backup.view')->name('page');
         Route::get('/', [BackupController::class, 'index'])->middleware('company.permission:backup.view')->name('index');
         Route::post('/create', [BackupController::class, 'create'])->middleware('company.permission:backup.create')->name('create');
         Route::get('/{backup}/download', [BackupController::class, 'download'])->middleware('company.permission:backup.view')->name('download');
@@ -65,6 +66,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::prefix('imports/excel')->name('imports.excel.')->middleware('company.permission:import.excel')->group(function () {
+        Route::get('/page', [ExcelImportController::class, 'page'])->name('page');
         Route::post('/inspect', [ExcelImportController::class, 'inspect'])->name('inspect');
         Route::post('/validate', [ExcelImportController::class, 'validateMapping'])->name('validate');
         Route::post('/import', [ExcelImportController::class, 'import'])->name('import');
