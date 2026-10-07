@@ -7,6 +7,7 @@ use App\\Services\\ProductionOrderService;
 use App\\Support\\CompanyAuthorization;
 use Illuminate\\Http\\JsonResponse;
 use Illuminate\\Http\\Request;
+use App\\Models\\Production;
 
 class ProductionOrderController extends Controller
 {
@@ -25,10 +26,7 @@ class ProductionOrderController extends Controller
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.view');
 
-        $row = ProductionOrderService::class;
-        unset($row);
-
-        $model = \\App\\Models\\Production::query()
+        $model = Production::query()
             ->where('company_id', $companyId)
             ->with(['order', 'orderItem', 'goods', 'productionRoute'])
             ->findOrFail($production);
