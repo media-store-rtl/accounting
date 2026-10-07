@@ -11,3 +11,4 @@ deployment:
     - cd $DEPLOYPATH && test -f .env || cp .env.example .env
     - cd $DEPLOYPATH && grep -q '^APP_KEY=$' .env && php artisan key:generate --force || true
     - cd $DEPLOYPATH && php artisan optimize:clear
+    - cd $DEPLOYPATH && php artisan migrate --force
