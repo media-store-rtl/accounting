@@ -16,13 +16,23 @@ class InventoryService
 
     public function receive(int $companyId,int $locationId,int $goodsId,float $quantity,string $referenceType,int $referenceId,array $metadata=[]): void
     {
+        $this->receiveIntoInventory($companyId,$locationId,$goodsId,$quantity,'purchase_receipt',$referenceType,$referenceId,$metadata);
+    }
+
+    public function receiveFinishedGoods(int $companyId,int $locationId,int $goodsId,float $quantity,string $referenceType,int $referenceId,array $metadata=[]): void
+    {
+        $this->receiveIntoInventory($companyId,$locationId,$goodsId,$quantity,'finished_goods_receipt',$referenceType,$referenceId,$metadata);
+    }
+
+    private function receiveIntoInventory(int $companyId,int $locationId,int $goodsId,float $quantity,string $movementType,string $referenceType,int $referenceId,array $metadata=[]): void
+    {
         if($quantity<=0) throw new RuntimeException('مقدار ورود کالا باید بیشتر از صفر باشد.');
         abort_unless(DB::table('locations')->where('id',$locationId)->where('company_id',$companyId)->where('type','warehouse')->where('is_active',true)->exists(),422,'انبار معتبر نیست.');
         $row=DB::table('inventory')->where('location_id',$locationId)->where('goods_id',$goodsId)->lockForUpdate()->first();
         if($row) DB::table('inventory')->where('id',$row->id)->update(['quantity'=>DB::raw('quantity + '.(float)$quantity),'updated_at'=>now()]);
         else DB::table('inventory')->insert(['company_id'=>$companyId,'location_id'=>$locationId,'goods_id'=>$goodsId,'quantity'=>$quantity,'created_at'=>now(),'updated_at'=>now()]);
         DB::table('inventory_movements')->insert([
-            'company_id'=>$companyId,'goods_id'=>$goodsId,'location_id'=>$locationId,'quantity'=>$quantity,'movement_type'=>'purchase_receipt',
+            'company_id'=>$companyId,'goods_id'=>$goodsId,'location_id'=>$locationId,'quantity'=>$quantity,'movement_type'=>$movementType,
             'reference_type'=>$referenceType,'reference_id'=>$referenceId,'occurred_at'=>now(),'metadata'=>json_encode($metadata),'created_at'=>now(),'updated_at'=>now()
         ]);
     }
