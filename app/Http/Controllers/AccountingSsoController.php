@@ -57,6 +57,8 @@ class AccountingSsoController extends Controller
                 ['personnel.update', 'ویرایش پرسنل', 'personnel'], ['personnel.deactivate', 'غیرفعال‌سازی پرسنل', 'personnel'],
                 ['role.view', 'مشاهده نقش‌ها', 'access'], ['role.create', 'ایجاد نقش', 'access'],
                 ['role.update', 'ویرایش نقش', 'access'], ['role.delete', 'حذف نقش', 'access'],
+                ['fiscal_year.view', 'مشاهده سال‌های مالی', 'fiscal_year'], ['fiscal_year.create', 'تعریف سال مالی', 'fiscal_year'],
+                ['fiscal_year.update', 'ویرایش سال مالی', 'fiscal_year'], ['fiscal_year.close', 'بستن سال مالی', 'fiscal_year'],
             ];
             foreach ($catalog as [$slug, $name, $module]) {
                 Permission::updateOrCreate(['slug' => $slug], ['name' => $name, 'module' => $module]);
