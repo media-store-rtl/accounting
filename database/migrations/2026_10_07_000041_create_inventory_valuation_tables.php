@@ -60,4 +60,15 @@ return new class extends Migration {
             $table->index('inventory_cost_layer_id');
         });
     }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('inventory_consumption_cost_items');
+        Schema::dropIfExists('inventory_consumption_costs');
+        Schema::dropIfExists('inventory_cost_layers');
+
+        Schema::table('companies', function (Blueprint $table) {
+            $table->dropColumn('inventory_valuation_method');
+        });
+    }
 };
