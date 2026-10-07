@@ -98,6 +98,7 @@ class DashboardController extends Controller
         }
 
         $permissions = [
+            'company' => 'company.view',
             'customers' => 'customer.view',
             'orders' => 'order.view',
             'deliveries' => 'delivery_request.view',
