@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountingSsoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FiscalYearController;
 use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\LaborCostController;
@@ -34,6 +35,13 @@ Route::get('/sso/callback', [AccountingSsoController::class, 'callback'])->name(
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/fiscal-years', [FiscalYearController::class, 'index'])->middleware('company.permission:fiscal_year.view')->name('fiscal-years.index');
+    Route::get('/fiscal-years/create', [FiscalYearController::class, 'create'])->middleware('company.permission:fiscal_year.create')->name('fiscal-years.create');
+    Route::post('/fiscal-years', [FiscalYearController::class, 'store'])->middleware('company.permission:fiscal_year.create')->name('fiscal-years.store');
+    Route::get('/fiscal-years/{fiscalYear}/edit', [FiscalYearController::class, 'edit'])->middleware('company.permission:fiscal_year.update')->name('fiscal-years.edit');
+    Route::put('/fiscal-years/{fiscalYear}', [FiscalYearController::class, 'update'])->middleware('company.permission:fiscal_year.update')->name('fiscal-years.update');
+    Route::post('/fiscal-years/{fiscalYear}/close', [FiscalYearController::class, 'close'])->middleware('company.permission:fiscal_year.close')->name('fiscal-years.close');
+
     Route::get('/reports/costing', [CostingReportController::class, 'index'])
         ->middleware('company.permission:costing.report.view')->name('reports.costing');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
