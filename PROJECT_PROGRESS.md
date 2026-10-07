@@ -479,3 +479,38 @@ Blockerهای اصلی:
 - گزارش بدون داده واقعی
 
 **این فایل باید همراه با هر تغییر مهم به‌روزرسانی شود و وضعیت واقعی پروژه را ثبت کند، نه صرفاً خوش‌بینانه‌ترین وضعیت ممکن را.**
+
+
+# 18. Full Definition Implementation Pass — 2026-10-07
+
+## Implemented in branch `feature/full-definition-implementation`
+
+- 🟡 Added missing domain Models for Order, OrderItem, Production, Goods, Customer, ProductionRoute, ProductionStage, ProductionOperation and FinishedGoodsReceipt.
+- 🟡 Added Audit Trail schema, model, service and middleware. Mutation requests are recorded with company/user/route/IP/status context.
+- 🟡 Removed temporary schema-existence guards from Delivery and Dashboard; required schema is now treated as a deployment/database requirement rather than silently hidden.
+- 🟡 Added real master-data frontend/backend for goods categories, units, suppliers, goods, locations, production sections, production routes, production stages, production operations and production orders.
+- 🟡 Added server-side company ownership validation for master-data foreign references.
+- 🟡 Added edit/deactivate flows and confirmation for destructive master-data UI actions.
+- 🟡 Added production start flow that creates a route snapshot plus stage/operation runs transactionally.
+- 🟡 Added finished-goods output registration, approval/rejection and warehouse receipt flow with inventory movement.
+- 🟡 Added frontend pages for Supply Requests, Purchases, Purchase Receipts, Material Handovers, Inventory and Labor.
+- 🟡 Added Excel Import entry UI.
+- 🟡 Added Backup/Restore web UI while retaining the existing JSON/API behavior for JSON clients.
+- 🟡 Updated cPanel deployment to archive/extract repository files while explicitly preserving `.env`, `storage` and `public/storage`; switched npm installation to lockfile-based `npm ci`.
+- 🟡 Added module permissions for the new master-data, inventory and finished-goods capabilities.
+- 🟡 Added responsive RTL shared layout for newly introduced operational pages.
+
+## Verification status
+
+- 🔴 Full PHPUnit/Feature suite could not be executed through the available GitHub-only environment.
+- 🔴 `php artisan migrate:status` on the real cPanel database could not be executed here.
+- 🔴 Browser/mobile E2E could not be executed here.
+- 🔴 Cross-App SSO/Subscription lifecycle still requires real Web2022 integration verification.
+- 🔴 Production operation input/output transformation, scrap registration and daily supervisor approval still need the complete transactional UI/service flow before those requirements can be marked complete.
+- 🔴 Costing has material/labor foundations, but direct-cost allocation and scrap treatment still require final integration evidence.
+- 🔴 Reports remain dependent on the final costing contract.
+- 🔴 No destructive database command, storage deletion or `migrate:fresh` was executed by this implementation pass.
+
+## Important deployment rule
+
+The deployment script must never delete or replace production `storage` or `public/storage`. The repository deployment now excludes those paths from the archive transfer and keeps the existing server-side files intact.
