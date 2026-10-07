@@ -51,7 +51,7 @@ class InventoryValuationTest extends TestCase
         $this->assertSame(1300.0,round($result['total_cost'],4));
         $this->assertSame(10.833333,round($result['unit_cost'],6));
         $this->assertSame(0.0,(float)DB::table('inventory_cost_layers')->orderBy('id')->first()->fifo_quantity_remaining);
-        $this->assertSame(80.0,(float)DB::table('inventory_cost_layers')->orderBy('id')->latest('id')->first()->fifo_quantity_remaining);
+        $this->assertSame(80.0,(float)DB::table('inventory_cost_layers')->orderByDesc('id')->first()->fifo_quantity_remaining);
     }
 
     public function test_weighted_average_uses_one_average_rate_and_preserves_layer_balance(): void
