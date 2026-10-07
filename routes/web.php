@@ -115,6 +115,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::prefix('imports/excel')->name('imports.excel.')->middleware('company.permission:import.excel')->group(function () {
+        Route::get('/', [ExcelImportController::class,'index'])->name('index');
         Route::post('/inspect', [ExcelImportController::class, 'inspect'])->name('inspect');
         Route::post('/validate', [ExcelImportController::class, 'validateMapping'])->name('validate');
         Route::post('/import', [ExcelImportController::class, 'import'])->name('import');
