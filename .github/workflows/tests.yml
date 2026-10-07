@@ -24,3 +24,4 @@ jobs:
       - run: php artisan test tests/Feature/SalesOperationalWorkflowTest.php
       - run: php artisan test tests/Feature/MaterialRequestHandoverTest.php
       - run: php artisan test tests/Feature/InventoryValuationTest.php
+      - run: php artisan test tests/Feature/LaborCostTest.php
