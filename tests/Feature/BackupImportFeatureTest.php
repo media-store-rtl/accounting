@@ -66,6 +66,19 @@ class BackupImportFeatureTest extends TestCase
         $this->assertSame(64, strlen($backup->sha256));
     }
 
+    public function test_invalid_backup_is_rejected(): void
+    {
+        Storage::fake('local');
+        [$user, $companyId] = $this->userAndCompany();
+
+        $this->expectException(\RuntimeException::class);
+        app(BackupService::class)->upload(
+            $companyId,
+            $user->id,
+            UploadedFile::fake()->createWithContent('invalid.json', '{"format":"not-a-backup"}')
+        );
+    }
+
     public function test_upload_backup(): void
     {
         Storage::fake('local');
@@ -124,6 +137,50 @@ class BackupImportFeatureTest extends TestCase
 
         $this->assertTrue($result['valid']);
         $this->assertSame(1, $result['rows']);
+    }
+
+    public function test_excel_mapping_rejects_duplicate_target_columns(): void
+    {
+        Storage::fake('local');
+        [, $companyId] = $this->userAndCompany();
+        $file = $this->excelFile([
+            ['Name', 'Name 2', 'Code', 'Symbol', 'Unit Type'],
+            ['Kilogram', 'KG duplicate', 'KG-2', 'kg', 'weight'],
+        ]);
+
+        $service = app(ExcelImportService::class);
+        $inspection = $service->inspect($file, $companyId);
+
+        $this->expectException(\RuntimeException::class);
+        $service->validate($inspection['token'], 'units', [
+            'Name' => 'name', 'Name 2' => 'name', 'Code' => 'code',
+            'Symbol' => 'symbol', 'Unit Type' => 'unit_type',
+        ], $companyId);
+    }
+
+    public function test_excel_import_rolls_back_when_database_constraint_fails(): void
+    {
+        Storage::fake('local');
+        [$user, $companyId] = $this->userAndCompany();
+
+        $file = $this->excelFile([
+            ['Code', 'Name', 'user_id'],
+            ['P-1', 'Person One', $user->id],
+            ['P-2', 'Person Two', $user->id],
+        ]);
+
+        $service = app(ExcelImportService::class);
+        $inspection = $service->inspect($file, $companyId);
+        $mapping = ['Code' => 'code', 'Name' => 'name', 'user_id' => 'user_id'];
+
+        try {
+            $service->import($inspection['token'], 'personnel', $mapping, $companyId);
+            $this->fail('Import should fail on the second personnel row.');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('rolled back', $e->getMessage());
+        }
+
+        $this->assertDatabaseCount('personnel', 0);
     }
 
     public function test_excel_validation_failure_writes_nothing(): void
