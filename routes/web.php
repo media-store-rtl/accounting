@@ -6,6 +6,7 @@ use App\Http\Controllers\BackupController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\LaborCostController;
 use App\Http\Controllers\MaterialHandoverController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DeliveryController;
@@ -76,6 +77,13 @@ Route::middleware('auth')->group(function () {
             ->middleware('company.permission:purchase.receipt.create')->name('purchase-receipts.store');
         Route::post('/purchase-receipts/{purchaseReceipt}/approve', [PurchaseReceiptController::class, 'approve'])
             ->middleware('company.permission:purchase.receipt.approve')->name('purchase-receipts.approve');
+
+        Route::post('/production/labor', [LaborCostController::class, 'store'])
+            ->middleware('company.permission:production.labor.create')->name('production.labor.store');
+        Route::post('/production/labor/{laborEntry}/review', [LaborCostController::class, 'review'])
+            ->middleware('company.permission:production.labor.review')->name('production.labor.review');
+        Route::post('/production/labor/rates', [LaborCostController::class, 'setRate'])
+            ->middleware('company.permission:production.labor.rate.manage')->name('production.labor.rates.store');
     });
 
     Route::prefix('backups')->name('backups.')->group(function () {
