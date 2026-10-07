@@ -58,6 +58,13 @@ class PermissionSeeder extends Seeder
             ['import.excel', 'ورود اطلاعات از Excel', 'import'],
 
             ['costing.report.view', 'مشاهده گزارش بهای تمام‌شده', 'costing'],
+            ['supplier.view','مشاهده تأمین‌کنندگان','suppliers'],['supplier.create','ایجاد تأمین‌کننده','suppliers'],['supplier.update','ویرایش تأمین‌کننده','suppliers'],['supplier.deactivate','غیرفعال‌سازی تأمین‌کننده','suppliers'],
+            ['goods.view','مشاهده کالاها','goods'],['goods.create','ایجاد کالا','goods'],['goods.update','ویرایش کالا','goods'],['goods.deactivate','غیرفعال‌سازی کالا','goods'],
+            ['location.view','مشاهده انبارها و محل‌ها','warehouse'],['location.create','ایجاد انبار یا محل','warehouse'],['location.update','ویرایش انبار یا محل','warehouse'],['location.deactivate','غیرفعال‌سازی انبار یا محل','warehouse'],
+            ['production_route.view','مشاهده مسیرهای تولید','production'],['production_route.create','ایجاد مسیر تولید','production'],['production_route.update','ویرایش مسیر تولید','production'],['production_route.deactivate','غیرفعال‌سازی مسیر تولید','production'],
+            ['production_stage.view','مشاهده مراحل تولید','production'],['production_stage.create','ایجاد مرحله تولید','production'],['production_stage.update','ویرایش مرحله تولید','production'],['production_stage.deactivate','غیرفعال‌سازی مرحله تولید','production'],
+            ['production_operation.view','مشاهده عملیات تولید','production'],['production_operation.create','ایجاد عملیات تولید','production'],['production_operation.update','ویرایش عملیات تولید','production'],['production_operation.deactivate','غیرفعال‌سازی عملیات تولید','production'],
+            ['production.view','مشاهده تولید','production'],['production.create','ایجاد دستور تولید','production'],['production.update','ویرایش دستور تولید','production'],['production.deactivate','غیرفعال‌سازی دستور تولید','production'],
         ];
 
         foreach ($permissions as [$slug, $name, $module]) {
