@@ -56,6 +56,7 @@ Route::middleware('auth')->group(function () {
             ->middleware('company.permission:purchase.receipt.approve')->name('purchase-receipts.approve');
     });
 
+    Route::get('/backups', [BackupController::class, 'page'])->middleware('company.permission:backup.view')->name('backups.page');
     Route::prefix('backups')->name('backups.')->group(function () {
         Route::get('/', [BackupController::class, 'index'])->middleware('company.permission:backup.view')->name('index');
         Route::post('/create', [BackupController::class, 'create'])->middleware('company.permission:backup.create')->name('create');
@@ -64,6 +65,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/{backup}/restore', [BackupController::class, 'restore'])->middleware('company.permission:backup.restore')->name('restore');
     });
 
+    Route::get('/imports/excel', [ExcelImportController::class, 'page'])->middleware('company.permission:import.excel')->name('imports.excel.page');
     Route::prefix('imports/excel')->name('imports.excel.')->middleware('company.permission:import.excel')->group(function () {
         Route::post('/inspect', [ExcelImportController::class, 'inspect'])->name('inspect');
         Route::post('/validate', [ExcelImportController::class, 'validateMapping'])->name('validate');
