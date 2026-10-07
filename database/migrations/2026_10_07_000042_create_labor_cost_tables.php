@@ -71,6 +71,5 @@ return new class extends Migration {
         Schema::dropIfExists('production_labor_costs');
         Schema::dropIfExists('production_labor_entries');
         Schema::dropIfExists('personnel_labor_rates');
-        Schema::dropIfExists('personnel');
     }
 };
