@@ -58,7 +58,9 @@ class SetupTest extends TestCase
         $this->actingAs($user)
             ->get('/dashboard')
             ->assertOk()
-            ->assertSee('فعال');
+            ->assertSee('فعال')
+            ->assertSee('href="/company"')
+            ->assertSee('href="/fiscal-years"');
     }
 
     public function test_dashboard_sets_active_company_and_fiscal_year(): void
