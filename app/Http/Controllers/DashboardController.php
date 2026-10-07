@@ -97,6 +97,23 @@ class DashboardController extends Controller
             }
         }
 
+        $permissions = [
+            'customers' => 'customer.view',
+            'orders' => 'order.view',
+            'deliveries' => 'delivery_request.view',
+            'personnel' => 'personnel.view',
+            'users' => 'user.view',
+            'roles' => 'role.view',
+            'fiscal_years' => 'fiscal_year.view',
+            'costing' => 'costing.report.view',
+            'backups' => 'backup.view',
+        ];
+
+        $can = [];
+        foreach ($permissions as $key => $permission) {
+            $can[$key] = (bool) ($company && $user->hasCompanyPermission((int) $company->id, $permission));
+        }
+
         $subscription = $company?->subscriptionEntitlement;
         $subscriptionActive = $subscription?->isActive() ?? false;
         $subscriptionStatus = $subscriptionActive
@@ -112,7 +129,8 @@ class DashboardController extends Controller
             'stats',
             'subscription',
             'subscriptionActive',
-            'subscriptionStatus'
+            'subscriptionStatus',
+            'can'
         ));
     }
 }
