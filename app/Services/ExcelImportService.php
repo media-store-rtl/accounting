@@ -47,7 +47,7 @@ class ExcelImportService
         for ($rowNumber = 2; $rowNumber <= $highest; $rowNumber++) {
             $source = [];
             foreach ($headers as $index => $header) {
-                $source[$header] = $sheet->getCellByColumnAndRow($index + 1, $rowNumber)->getValue();
+                $source[$header] = $sheet->getCell([$index + 1, $rowNumber])->getValue();
             }
             if (count(array_filter($source, fn ($value) => $value !== null && trim((string) $value) !== '')) === 0) continue;
 
@@ -244,7 +244,7 @@ class ExcelImportService
         $highestColumnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
         $headers = [];
         for ($i = 1; $i <= $highestColumnIndex; $i++) {
-            $value = trim((string) $sheet->getCellByColumnAndRow($i, 1)->getValue());
+            $value = trim((string) $sheet->getCell([$i, 1])->getValue());
             if ($value === '') continue;
             if (in_array($value, $headers, true)) throw new RuntimeException("Duplicate Excel column: {$value}");
             $headers[] = $value;
@@ -258,7 +258,7 @@ class ExcelImportService
         $sample = [];
         for ($row = 2; $row <= min(6, $sheet->getHighestDataRow()); $row++) {
             $item = [];
-            foreach ($headers as $index => $header) $item[$header] = $sheet->getCellByColumnAndRow($index + 1, $row)->getValue();
+            foreach ($headers as $index => $header) $item[$header] = $sheet->getCell([$index + 1, $row])->getValue();
             $sample[] = $item;
         }
         return $sample;
