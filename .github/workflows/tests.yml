@@ -23,3 +23,4 @@ jobs:
       - run: touch database/database.sqlite
       - run: php artisan test tests/Feature/SalesOperationalWorkflowTest.php
       - run: php artisan test tests/Feature/MaterialRequestHandoverTest.php
+      - run: php artisan test tests/Feature/InventoryValuationTest.php
