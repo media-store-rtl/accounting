@@ -25,8 +25,30 @@ class DashboardController extends Controller
         }
 
         $company = $companies->firstWhere('id', $companyId);
+        $subscription = $company?->subscriptionEntitlement;
         $fiscalYears = $company?->fiscalYears()->orderByDesc('starts_at')->get() ?? collect();
+        $activeFiscalYear = null;
 
-        return view('dashboard', compact('user', 'companies', 'company', 'fiscalYears'));
+        if ($company) {
+            $activeFiscalYear = $company->fiscalYears()
+                ->whereKey(session('fiscal_year_id'))
+                ->where('is_closed', false)
+                ->first();
+
+            if (! $activeFiscalYear) {
+                $activeFiscalYear = $company->fiscalYears()
+                    ->where('is_closed', false)
+                    ->orderByDesc('starts_at')
+                    ->first();
+
+                if ($activeFiscalYear) {
+                    session(['fiscal_year_id' => $activeFiscalYear->id]);
+                } else {
+                    session()->forget('fiscal_year_id');
+                }
+            }
+        }
+
+        return view('dashboard', compact('user', 'companies', 'company', 'subscription', 'fiscalYears', 'activeFiscalYear'));
     }
 }
