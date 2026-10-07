@@ -1,13 +1,13 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Http\\Requests\\StoreProductionOrderRequest;
-use App\\Services\\ProductionOrderService;
-use App\\Support\\CompanyAuthorization;
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\Request;
-use App\\Models\\Production;
+use App\Http\Requests\StoreProductionOrderRequest;
+use App\Services\ProductionOrderService;
+use App\Support\CompanyAuthorization;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use App\Models\Production;
 
 class ProductionOrderController extends Controller
 {
