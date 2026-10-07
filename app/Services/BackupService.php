@@ -97,6 +97,7 @@ class BackupService
             array_diff(array_keys($payload['tables']), ['migrations', 'backup_files']),
             fn (string $table): bool => $this->isRestorableTable($table, $companyId)
         ));
+        $tables = $this->dependencyOrder($tables);
 
         try {
             $driver = $connection->getDriverName();
@@ -219,7 +220,7 @@ class BackupService
 
     private function isRestorableTable(string $table, int $companyId): bool
     {
-        return ! in_array($table, ['accounts', 'users', 'personnel', 'permissions', 'notifications', 'company_user'], true)
+        return ! in_array($table, ['accounts', 'users', 'personnel', 'permissions', 'notifications'], true)
             && $this->scopedQuery($table, $this->database->table($table), $companyId) !== null;
     }
 
@@ -253,6 +254,37 @@ class BackupService
         }
 
         return null;
+    }
+
+    private function dependencyOrder(array $tables): array
+    {
+        $set = array_fill_keys($tables, true);
+        $ordered = [];
+        $visiting = [];
+        $visited = [];
+
+        $visit = function (string $table) use (&$visit, &$ordered, &$visiting, &$visited, $set): void {
+            if (isset($visited[$table]) || isset($visiting[$table])) {
+                return;
+            }
+
+            $visiting[$table] = true;
+            foreach (Schema::getForeignKeys($table) as $foreignKey) {
+                $parent = $foreignKey['foreign_table'] ?? null;
+                if (is_string($parent) && isset($set[$parent]) && $parent !== $table) {
+                    $visit($parent);
+                }
+            }
+            unset($visiting[$table]);
+            $visited[$table] = true;
+            $ordered[] = $table;
+        };
+
+        foreach ($tables as $table) {
+            $visit($table);
+        }
+
+        return $ordered;
     }
 
     private function tableNames(): array
