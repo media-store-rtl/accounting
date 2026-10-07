@@ -8,50 +8,18 @@ on:
 jobs:
   phpunit:
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: accounting_test
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
-    env:
-      APP_ENV: testing
-      DB_CONNECTION: mysql
-      DB_HOST: 127.0.0.1
-      DB_PORT: 3306
-      DB_DATABASE: accounting_test
-      DB_USERNAME: root
-      DB_PASSWORD: root
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.2"
-          extensions: mbstring, pdo_mysql
+          extensions: mbstring, sqlite3, pdo_sqlite
           coverage: none
       - run: composer install --no-interaction --prefer-dist
       - run: |
-          cp .env.example .env
-          php -r '$env = file_get_contents(".env"); $key = "base64:".base64_encode(random_bytes(32)); $env = preg_replace("/^APP_KEY=.*$/m", "APP_KEY=".$key, $env, 1); file_put_contents(".env", $env);'
-          sed -i 's/name="DB_CONNECTION" value="sqlite"/name="DB_CONNECTION" value="mysql"/' phpunit.xml
-          sed -i 's/name="DB_DATABASE" value=":memory:"/name="DB_DATABASE" value="accounting_test"/' phpunit.xml
-      - name: Run SetupTest
-        run: |
-          set +e
-          php artisan test tests/Feature/SetupTest.php --no-interaction > test-output.txt 2>&1
-          status=$?
-          cat test-output.txt
-          exit $status
-      - name: Upload test output
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: setup-test-output
-          path: test-output.txt
+          mkdir -p bootstrap/cache
+          chmod 775 bootstrap/cache
+      - run: cp .env.example .env
+      - run: php artisan key:generate --force --no-interaction
+      - run: touch database/database.sqlite
+      - run: php artisan test tests/Feature/SetupTest.php --no-interaction
