@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ورود اطلاعات Excel | حسابداری صنعتی</title>
+<style>
+body{font-family:Tahoma,sans-serif;background:#07111f;color:#e9f3fb;margin:0;padding:28px}.wrap{max-width:1100px;margin:auto}.card{background:#0a1b2b;border:1px solid #1b354b;border-radius:16px;padding:20px;margin-bottom:18px}h1,h2{margin-top:0}.muted{color:#8aa0b3;font-size:13px}button{background:#173b54;color:#e9f3fb;border:1px solid #2b5873;border-radius:9px;padding:9px 14px;cursor:pointer}input,select{padding:9px;background:#071725;color:#fff;border:1px solid #29465e;border-radius:8px;width:100%;margin:7px 0}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border-bottom:1px solid #173047;padding:8px;text-align:right;font-size:12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.msg{margin-top:12px;padding:10px;border-radius:8px;background:#10283c;white-space:pre-wrap}.error{background:#4a252d}.success{background:#173b35}.mapping{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}@media(max-width:760px){.grid{grid-template-columns:1fr}.mapping{grid-template-columns:1fr}}
+</style>
+</head>
+<body><div class="wrap">
+<div class="card"><h1>ورود اطلاعات از Excel</h1><p class="muted">ابتدا فایل خوانده و ستون‌ها تشخیص داده می‌شوند؛ سپس نگاشت ستون‌ها، اعتبارسنجی ردیف‌ها و در پایان ذخیره تراکنشی انجام می‌شود.</p></div>
+<div class="grid">
+<div class="card"><h2>۱. انتخاب فایل</h2><form id="inspect"><input type="file" name="file" accept=".xlsx,.xls,.ods,.csv" required><button>خواندن فایل</button></form><div id="inspect-msg" class="msg" hidden></div></div>
+<div class="card"><h2>۲. انتخاب موجودیت</h2><select id="target" disabled><option value="">ابتدا فایل را بخوانید</option></select><div id="columns" class="muted"></div></div>
+</div>
+<div class="card" id="mapping-card" hidden><h2>۳. نگاشت ستون‌ها</h2><div id="mapping"></div><button id="validate" style="margin-top:14px">اعتبارسنجی</button><div id="validate-msg" class="msg" hidden></div></div>
+<div class="card" id="result-card" hidden><h2>۴. نتیجه اعتبارسنجی</h2><div id="result"></div><button id="do-import" hidden>ذخیره اطلاعات معتبر</button><div id="import-msg" class="msg" hidden></div></div>
+</div>
+<script>
+const csrf='{{ csrf_token() }}';let state={token:null,targets:{},headers:[],target:null,mapping:{}};
+async function call(url,opts={}){const headers={'Accept':'application/json','X-CSRF-TOKEN':csrf,...(opts.headers||{})};const r=await fetch(url,{...opts,headers});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.message||d.error||'عملیات ناموفق بود.');return d}
+function msg(id,text,error=false){const e=document.getElementById(id);e.hidden=false;e.textContent=text;e.className='msg'+(error?' error':'')}
+document.getElementById('inspect').onsubmit=async e=>{e.preventDefault();try{const d=await call('{{ route('imports.excel.inspect') }}',{method:'POST',body:new FormData(e.target)});state.token=d.token;state.targets=d.targets;state.headers=d.columns;const t=document.getElementById('target');t.disabled=false;t.innerHTML='<option value="">انتخاب کنید</option>'+Object.keys(d.targets).map(x=>'<option value="'+x+'">'+x+'</option>').join('');document.getElementById('columns').textContent='ستون‌های فایل: '+d.columns.join('، ');msg('inspect-msg','فایل معتبر است؛ '+d.columns.length+' ستون تشخیص داده شد.');document.getElementById('mapping-card').hidden=true;document.getElementById('result-card').hidden=true}catch(e){msg('inspect-msg',e.message,true)}}
+document.getElementById('target').onchange=()=>{state.target=document.getElementById('target').value;if(!state.target){document.getElementById('mapping-card').hidden=true;return}const allowed=state.targets[state.target]||[];document.getElementById('mapping').innerHTML=state.headers.map(h=>'<div class="mapping"><label>'+escapeHtml(h)+'</label><select data-source="'+escapeHtml(h)+'"><option value="">نادیده بگیر</option>'+allowed.map(c=>'<option value="'+c+'">'+c+'</option>').join('')+'</select></div>').join('');document.getElementById('mapping-card').hidden=false}
+document.getElementById('validate').onclick=async()=>{try{const mapping={};document.querySelectorAll('#mapping select').forEach(s=>mapping[s.dataset.source]=s.value);state.mapping=mapping;const d=await call('{{ route('imports.excel.validate') }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:state.token,target:state.target,mapping})});document.getElementById('result-card').hidden=false;document.getElementById('result').innerHTML='<p>ردیف‌های معتبر: '+d.rows+'</p>'+(d.valid?'<p class="success">اعتبارسنجی کامل است و هنوز چیزی ذخیره نشده.</p>':'<p class="error">خطا در ردیف‌ها: '+escapeHtml(JSON.stringify(d.errors))+'</p>');document.getElementById('do-import').hidden=!d.valid;document.getElementById('do-import').disabled=!d.valid}catch(e){msg('validate-msg',e.message,true)}}
+document.getElementById('do-import').onclick=async()=>{if(!confirm('پس از ذخیره، تغییرات در پایگاه داده ثبت می‌شوند. ادامه می‌دهید؟'))return;try{const d=await call('{{ route('imports.excel.import') }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:state.token,target:state.target,mapping:state.mapping})});msg('import-msg','تعداد '+d.rows+' ردیف با موفقیت ذخیره شد.');document.getElementById('do-import').hidden=true}catch(e){msg('import-msg',e.message,true)}}
+function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+</script></body></html>
