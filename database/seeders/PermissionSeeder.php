@@ -65,6 +65,7 @@ class PermissionSeeder extends Seeder
             ['production_stage.view','مشاهده مراحل تولید','production'],['production_stage.create','ایجاد مرحله تولید','production'],['production_stage.update','ویرایش مرحله تولید','production'],['production_stage.deactivate','غیرفعال‌سازی مرحله تولید','production'],
             ['production_operation.view','مشاهده عملیات تولید','production'],['production_operation.create','ایجاد عملیات تولید','production'],['production_operation.update','ویرایش عملیات تولید','production'],['production_operation.deactivate','غیرفعال‌سازی عملیات تولید','production'],
             ['production.view','مشاهده تولید','production'],['production.create','ایجاد دستور تولید','production'],['production.update','ویرایش دستور تولید','production'],['production.deactivate','غیرفعال‌سازی دستور تولید','production'],
+            ['production.output.view','مشاهده خروجی تولید','production'],['production.output.create','ثبت خروجی تولید','production'],['production.output.confirm','تأیید/رد خروجی تولید','production'],['production.output.receive','دریافت کالای ساخته‌شده','warehouse'],
         ];
 
         foreach ($permissions as [$slug, $name, $module]) {
