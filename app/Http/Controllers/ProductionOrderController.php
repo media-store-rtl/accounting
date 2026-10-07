@@ -28,7 +28,7 @@ class ProductionOrderController extends Controller
 
         $model = Production::query()
             ->where('company_id', $companyId)
-            ->with(['order', 'orderItem', 'goods', 'productionRoute'])
+            ->with(['order', 'orderItem', 'productionRoute'])
             ->findOrFail($production);
 
         return response()->json(['data' => $model]);
