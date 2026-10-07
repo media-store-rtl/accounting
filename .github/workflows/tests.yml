@@ -16,9 +16,7 @@ jobs:
           extensions: mbstring, sqlite3, pdo_sqlite
           coverage: none
       - run: composer install --no-interaction --prefer-dist
-      - run: |
-          cp .env.example .env
-          chmod 664 .env
-          php artisan key:generate --force --no-interaction
+      - run: cp .env.example .env
+      - run: php artisan key:generate --force --no-interaction
       - run: touch database/database.sqlite
       - run: php artisan test --no-interaction
