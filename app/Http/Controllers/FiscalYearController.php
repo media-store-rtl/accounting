@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 class FiscalYearController extends Controller
 {
@@ -45,9 +46,19 @@ class FiscalYearController extends Controller
             'ends_at' => ['required', 'date', 'after_or_equal:starts_at'],
         ]);
 
-        $this->assertNoOverlap($company->id, $data['starts_at'], $data['ends_at']);
+        $fiscalYear = DB::transaction(function () use ($company, $data) {
+            $company->newQuery()->whereKey($company->id)->lockForUpdate()->firstOrFail();
 
-        $fiscalYear = $company->fiscalYears()->create([...$data, 'is_closed' => false]);
+            abort_if(
+                $company->fiscalYears()->where('is_closed', false)->exists(),
+                422,
+                'این مجموعه در حال حاضر یک سال مالی باز دارد.'
+            );
+
+            $this->assertNoOverlap($company->id, $data['starts_at'], $data['ends_at']);
+
+            return $company->fiscalYears()->create([...$data, 'is_closed' => false]);
+        });
 
         // A newly created fiscal year becomes the active period immediately.
         $request->session()->put('fiscal_year_id', $fiscalYear->id);
@@ -119,7 +130,7 @@ class FiscalYearController extends Controller
             ->where('ends_at', '>=', $startsAt);
 
         if ($ignoreId) {
-            $q->whereKeyNot($ignoreId);
+            $q->where('id', '!=', $ignoreId);
         }
 
         abort_if($q->exists(), 422, 'بازه زمانی این سال مالی با یک سال مالی دیگر هم‌پوشانی دارد.');
