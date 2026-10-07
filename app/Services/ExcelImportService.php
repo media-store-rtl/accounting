@@ -150,7 +150,15 @@ class ExcelImportService
             if (isset($seenCodes[(string) $row['code']])) $errors[] = 'code is duplicated in the import file';
             else $seenCodes[(string) $row['code']] = $rowNumber;
 
-            if (DB::table($target)->where('company_id', $companyId)->where('code', $row['code'])->exists()) {
+            $existing = DB::table($target)->where('code', $row['code']);
+            $tenantColumns = collect(Schema::getColumns($target))->pluck('name')->all();
+            if (in_array('company_id', $tenantColumns, true)) {
+                $existing->where('company_id', $companyId);
+            } elseif (in_array('account_id', $tenantColumns, true)) {
+                $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
+                $existing->where('account_id', $accountId);
+            }
+            if ($existing->exists()) {
                 $errors[] = 'code already exists';
             }
         }
