@@ -25,6 +25,11 @@
       "Database\\Seeders\\": "database/seeders/"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\\\": "tests/"
+    }
+  },
   "scripts": {
     "setup": ["composer install", "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"", "@php artisan key:generate", "@php artisan migrate --force"],
     "dev": "php artisan serve",
