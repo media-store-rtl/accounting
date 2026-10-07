@@ -18,7 +18,7 @@ class ProductionOrderController extends Controller
         $production = $service->createFromOrder($request, $request->validated(), $companyId);
 
         return response()->json([
-            'data' => $production->load(['order', 'orderItem', 'goods', 'productionRoute']),
+            'data' => $production->load(['order', 'orderItem', 'productionRoute']),
         ], 201);
     }
 
