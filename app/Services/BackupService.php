@@ -92,16 +92,17 @@ class BackupService
         }
 
         $connection = $this->database->connection();
+        $companyId = (int) $payload['tenant']['company_id'];
         $tables = array_values(array_filter(
             array_diff(array_keys($payload['tables']), ['migrations', 'backup_files']),
-            fn (string $table): bool => $this->isRestorableTable($table)
+            fn (string $table): bool => $this->isRestorableTable($table, $companyId)
         ));
 
         try {
-            Schema::withoutForeignKeyConstraints(function () use ($connection, $payload, $tables): void {
-                $connection->transaction(function () use ($connection, $payload, $tables): void {
+            Schema::withoutForeignKeyConstraints(function () use ($connection, $payload, $tables, $companyId): void {
+                $connection->transaction(function () use ($connection, $payload, $tables, $companyId): void {
                     foreach ($tables as $table) {
-                        $this->scopedQuery($table, $connection->table($table), $companyId = (int) $payload['tenant']['company_id'])->delete();
+                        $this->scopedQuery($table, $connection->table($table), $companyId)->delete();
                     }
 
                     foreach ($tables as $table) {
@@ -199,10 +200,10 @@ class BackupService
         return $payload;
     }
 
-    private function isRestorableTable(string $table): bool
+    private function isRestorableTable(string $table, int $companyId): bool
     {
         return ! in_array($table, ['accounts', 'users', 'personnel', 'permissions', 'notifications'], true)
-            && $this->scopedQuery($table, $this->database->table($table), (int) request()->session()->get('company_id', 0)) !== null;
+            && $this->scopedQuery($table, $this->database->table($table), $companyId) !== null;
     }
 
     private function scopedQuery(string $table, $query, int $companyId, array $visited = [])
