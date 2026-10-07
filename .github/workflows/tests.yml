@@ -17,7 +17,7 @@ jobs:
           coverage: none
       - run: composer install --no-interaction --prefer-dist
       - run: cp .env.example .env
-      - run: mkdir -p bootstrap/cache
+      - run: mkdir -p bootstrap/cache storage/framework/views storage/framework/sessions storage/framework/testing storage/logs
       - run: php artisan key:generate
       - run: touch database/database.sqlite
       - run: php artisan test tests/Feature/UserAccessTest.php
