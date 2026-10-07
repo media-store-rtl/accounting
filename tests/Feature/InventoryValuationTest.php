@@ -15,11 +15,12 @@ class InventoryValuationTest extends TestCase
     {
         $account=DB::table('accounts')->insertGetId(['name'=>'Valuation Account','code'=>'VA'.uniqid(),'created_at'=>now(),'updated_at'=>now()]);
         $company=DB::table('companies')->insertGetId(['account_id'=>$account,'name'=>'Valuation Company','code'=>'VC'.uniqid(),'is_active'=>true,'settings'=>json_encode([]),'inventory_valuation_method'=>$method,'created_at'=>now(),'updated_at'=>now()]);
+        $user=DB::table('users')->insertGetId(['account_id'=>$account,'name'=>'Valuation User','username'=>'vu'.uniqid(),'email'=>uniqid().'@test.local','password'=>bcrypt('secret'),'created_at'=>now(),'updated_at'=>now()]);
         $fy=DB::table('fiscal_years')->insertGetId(['company_id'=>$company,'name'=>'1405','code'=>'FY'.uniqid(),'starts_at'=>'2026-03-21','ends_at'=>'2027-03-20','is_closed'=>false,'created_at'=>now(),'updated_at'=>now()]);
         $category=DB::table('goods_categories')->insertGetId(['company_id'=>$company,'name'=>'Raw','code'=>'RAW'.uniqid(),'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $goods=DB::table('goods')->insertGetId(['company_id'=>$company,'category_id'=>$category,'code'=>'RM1','name'=>'Raw Material','purchasable'=>true,'producible'=>false,'sellable'=>false,'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $warehouse=DB::table('locations')->insertGetId(['company_id'=>$company,'code'=>'W1','name'=>'Warehouse','type'=>'warehouse','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
-        return compact('company','fy','goods','warehouse');
+        return compact('company','fy','goods','warehouse','user');
     }
 
     private function layer(array $c,float $qty,float $cost,string $receivedAt): void
@@ -27,7 +28,7 @@ class InventoryValuationTest extends TestCase
         $supplier=DB::table('suppliers')->insertGetId(['company_id'=>$c['company'],'name'=>'Supplier','code'=>'SUP'.uniqid(),'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $purchase=DB::table('purchases')->insertGetId(['company_id'=>$c['company'],'fiscal_year_id'=>$c['fy'],'supplier_id'=>$supplier,'purchased_at'=>'2026-10-07','subtotal'=>$qty*$cost,'direct_cost_total'=>0,'total_amount'=>$qty*$cost,'status'=>'received','created_at'=>now(),'updated_at'=>now()]);
         $item=DB::table('purchase_items')->insertGetId(['purchase_id'=>$purchase,'goods_id'=>$c['goods'],'quantity'=>$qty,'unit_price'=>$cost,'line_total'=>$qty*$cost,'created_at'=>now(),'updated_at'=>now()]);
-        $receipt=DB::table('purchase_receipts')->insertGetId(['company_id'=>$c['company'],'purchase_id'=>$purchase,'warehouse_location_id'=>$c['warehouse'],'received_by_user_id'=>1,'received_at'=>$receivedAt,'status'=>'approved','approved_at'=>$receivedAt,'created_at'=>now(),'updated_at'=>now()]);
+        $receipt=DB::table('purchase_receipts')->insertGetId(['company_id'=>$c['company'],'purchase_id'=>$purchase,'warehouse_location_id'=>$c['warehouse'],'received_by_user_id'=>$c['user'],'received_at'=>$receivedAt,'status'=>'approved','approved_at'=>$receivedAt,'created_at'=>now(),'updated_at'=>now()]);
         $receiptItem=DB::table('purchase_receipt_items')->insertGetId(['purchase_receipt_id'=>$receipt,'goods_id'=>$c['goods'],'quantity'=>$qty,'created_at'=>now(),'updated_at'=>now()]);
         app(InventoryValuationService::class)->registerPurchaseReceipt($c['company'],$purchase,$item,$receipt,$receiptItem,$c['warehouse'],$c['goods'],$c['fy'],$qty,$receivedAt);
     }
