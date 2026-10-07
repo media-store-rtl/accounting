@@ -4,12 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SubscriptionEntitlement extends Model
 {
     protected $fillable = [
-        'company_id', 'external_subscription_id', 'status', 'max_users',
-        'starts_at', 'expires_at', 'last_verified_at', 'metadata',
+        'company_id', 'external_subscription_id', 'status',
+        'max_users', 'starts_at', 'expires_at', 'last_verified_at', 'metadata',
     ];
 
     protected function casts(): array
@@ -23,19 +24,13 @@ class SubscriptionEntitlement extends Model
         ];
     }
 
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
+    public function company(): BelongsTo { return $this->belongsTo(Company::class); }
+
+    public function fiscalYears(): HasMany { return $this->hasMany(FiscalYear::class); }
 
     public function isActive(): bool
     {
         return $this->status === 'active'
             && ($this->expires_at === null || $this->expires_at->isFuture());
-    }
-
-    public function effectiveMaxUsers(): ?int
-    {
-        return $this->max_users ?? data_get($this->metadata, 'max_users');
     }
 }
