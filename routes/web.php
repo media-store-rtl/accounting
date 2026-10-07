@@ -6,6 +6,8 @@ use App\Http\Controllers\BackupController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\PersonnelController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PurchaseReceiptController;
@@ -30,6 +32,20 @@ Route::get('/sso/callback', [AccountingSsoController::class, 'callback'])->name(
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    Route::get('/sales/customers', [CustomerController::class, 'index'])->middleware('company.permission:customer.view')->name('sales.customers.index');
+    Route::get('/sales/customers/create', [CustomerController::class, 'create'])->middleware('company.permission:customer.create')->name('sales.customers.create');
+    Route::post('/sales/customers', [CustomerController::class, 'store'])->middleware('company.permission:customer.create')->name('sales.customers.store');
+    Route::get('/sales/orders', [OrderController::class, 'index'])->middleware('company.permission:order.view')->name('sales.orders.index');
+    Route::get('/sales/orders/create', [OrderController::class, 'create'])->middleware('company.permission:order.create')->name('sales.orders.create');
+    Route::post('/sales/orders', [OrderController::class, 'store'])->middleware('company.permission:order.create')->name('sales.orders.store');
+    Route::get('/sales/orders/{order}', [OrderController::class, 'show'])->middleware('company.permission:order.view')->name('sales.orders.show');
+    Route::get('/sales/deliveries', [DeliveryController::class, 'index'])->middleware('company.permission:delivery_request.view')->name('sales.deliveries.index');
+    Route::post('/api/orders/{order}/refresh', [OrderController::class, 'refreshFulfillment'])->middleware('company.permission:order.refresh')->name('sales.orders.refresh');
+    Route::post('/api/orders/{order}/production-due', [OrderController::class, 'setProductionDue'])->middleware('company.permission:production.supervise')->name('sales.orders.production-due');
+    Route::post('/api/orders/{order}/delivery-request', [OrderController::class, 'deliveryRequest'])->middleware('company.permission:delivery_request.create')->name('sales.orders.delivery-request');
+    Route::post('/api/delivery-requests/{delivery}/issue', [DeliveryController::class, 'issue'])->middleware('company.permission:delivery_request.issue')->name('sales.delivery.issue');
+    Route::post('/api/delivery-requests/{delivery}/handover', [DeliveryController::class, 'handover'])->middleware('company.permission:delivery_request.handover')->name('sales.delivery.handover');
 
     // Session-authenticated JSON endpoints used by the Accounting application.
     // These stay in web.php because CompanyAuthorization and the authenticated
