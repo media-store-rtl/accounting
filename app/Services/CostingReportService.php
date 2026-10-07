@@ -52,7 +52,7 @@ final class CostingReportService
             ->get(['c.goods_id','c.total_cost','c.valuation_method','m.metadata']);
 
         $ids=$costs->map(fn($c)=>(int)(json_decode((string)$c->metadata,true)['supply_request_id']??0))->filter()->unique()->values();
-        $supplies=$ids->isEmpty()?collect():DB::table('supply_requests')->where('company_id',$companyId)->whereIn('id',$ids)->get(['id','order_id','production_id'])->keyBy('id');
+        $supplies=$ids->isEmpty()?collect():DB::table('supply_requests')->where('company_id',$companyId)->whereIn('id',$ids)->get(['id','order_id','production_id','fiscal_year_id'])->keyBy('id');
         $prodIds=$supplies->pluck('production_id')->filter()->unique()->values();
         $links=$prodIds->isEmpty()?collect():DB::table('production_order')->whereIn('production_id',$prodIds)->get(['production_id','order_id'])->groupBy('production_id');
 
@@ -68,6 +68,9 @@ final class CostingReportService
         }
 
         $movements=DB::table('inventory_movements as m')->where('m.company_id',$companyId)->where('m.quantity','<',0)->where('m.movement_type','material_handover')
+            ->whereNotExists(function ($q) {
+                $q->selectRaw('1')->from('inventory_consumption_costs as vc')->whereColumn('vc.inventory_movement_id','m.id');
+            })
             ->when($goodsId,fn($q)=>$q->where('m.goods_id',$goodsId))->get(['m.goods_id','m.quantity','m.metadata']);
         foreach($movements as $m){
             $meta=json_decode((string)$m->metadata,true)?:[]; $sid=(int)($meta['supply_request_id']??0); if(!$sid) continue;
