@@ -264,3 +264,43 @@ Blockerهای اصلی:
 7. نبود E2E evidence برای زنجیره Order → Supply → Production → Costing → Finished Goods → Sales → Reports.
 
 این بخش به‌عنوان QA override ثبت شده و نباید هیچ موردی بدون implementation + evidence/test به وضعیت ✅ منتقل شود.
+
+
+# 15. Reports / Reporting Scope Audit — 2026-10-07
+
+## Requirement boundary
+
+بررسی مستقیم `PROJECT_DEFINITION.md` نشان می‌دهد فقط این خروجی‌های گزارش‌دهی در محدوده فعلی تعریف شده‌اند:
+
+1. **گزارش بهای تمام‌شده در سطح سفارش**
+2. **گزارش بهای تمام‌شده در سطح محصول**
+3. نمایش/ردگیری اجزای تشکیل‌دهنده بهای تمام‌شده در ارتباط با سفارش و محصول
+
+گزارش‌های مدیریتی تکمیلی، نمودارها و جزئیات بصری در تعریف پروژه اختیاری/آتی هستند و در این Scope پیاده‌سازی نمی‌شوند.
+
+## Audit result
+
+- **Route:** هیچ route عملیاتی Reports در `routes/web.php` فعلی مشاهده نشد.
+- **Controller:** هیچ `ReportController` یا controller گزارش‌دهی قابل‌اثبات در tree فعلی مشاهده نشد.
+- **Authorization:** permission اختصاصی Reports در routeهای فعلی evidence نشد.
+- **Filters / company / fiscal year / date range:** implementation واقعی گزارش و قرارداد دقیق فیلترها وجود ندارد؛ بنابراین هیچ فیلتر ساختگی به‌عنوان requirement فرض نشد.
+- **Data source:** گزارش باید از CostCalculation/CostComponent و داده‌های واقعی زنجیره عملیاتی مصرف کند. در وضعیت فعلی، implementation عملیاتی CostCalculation/CostComponent که بتواند data contract گزارش را تأمین کند evidence نشد.
+- **Totals / subtotals:** به دلیل نبود data contract واقعی costing، محاسبه aggregate قابل‌اتکا برای گزارش قابل پیاده‌سازی نیست.
+- **Pagination / export:** در `PROJECT_DEFINITION.md` برای این دو گزارش الزام صریحی به pagination یا export تعریف نشده است؛ در نتیجه در این Scope اضافه نمی‌شود.
+- **Empty state / validation / performance:** به علت نبود route/controller و منبع داده نهایی، رفتار واقعی این موارد هنوز قابل تست و تأیید نیست.
+- **UI:** UI واقعی Reports در repository فعلی evidence نشد.
+- **Feature tests:** تست Feature اختصاصی Reports با داده واقعی وجود/اجرا evidence نشد. اجرای `php artisan test` روی محیط محلی/Production این جلسه نیز به علت نبود shell access انجام نشد.
+
+## Decision
+
+این Scope فعلاً **🟡 / blocked by upstream contracts** است و **PASS نیست**. ایجاد یک صفحه نمایشی، query حدسی، داده hard-coded یا ساختن یک Costing engine جدید برای سبز کردن Reports برخلاف requirement است و انجام نشد.
+
+برای PASS شدن Reports ابتدا باید interface/data contract خروجی Costing شامل حداقل شناسه سفارش/محصول، اجزای هزینه، مبالغ، ارتباط traceable با منابع و تاریخ/بازه گزارش نهایی و در upstream Costing فراهم شود؛ سپس همین Scope باید route + authorization + filters + company/fiscal-year context + date handling + aggregation + empty state + validation + performance + Feature tests + UI واقعی را پیاده‌سازی و با داده واقعی تست کند.
+
+## QA evidence limitation
+
+- branch/repository قابل مشاهده از GitHub: `main`
+- آخرین commit مشاهده‌شده: `45a5c28d23433583ba6ecc2101f06e014508c3ce` — `fix: deploy composer lock file`
+- `git status` واقعی روی `/home/mediast1/accounting` در این محیط قابل اجرا نیست؛ بنابراین clean بودن working tree محلی ادعا نمی‌شود.
+- CI Run ID/Result برای این commit از connector موجود قابل بازیابی نبود؛ بنابراین Run ID یا PASS ساختگی ثبت نمی‌شود.
+- هیچ Merge یا Deploy انجام نشد.
