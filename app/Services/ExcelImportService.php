@@ -47,11 +47,11 @@ class ExcelImportService
         for ($rowNumber = 2; $rowNumber <= $highest; $rowNumber++) {
             $source = [];
             foreach ($headers as $index => $header) {
-                $source[$header] = $sheet->getCellByColumnAndRow($index + 1, $rowNumber)->getValue();
+                $source[$header] = $sheet->getCell([$index + 1, $rowNumber])->getValue();
             }
             if (count(array_filter($source, fn ($value) => $value !== null && trim((string) $value) !== '')) === 0) continue;
 
-            $mapped = ['company_id' => $companyId];
+            $mapped = $this->tenantData($target, $companyId);
             foreach ($mapping as $sourceHeader => $targetColumn) {
                 if ($targetColumn !== null && $targetColumn !== '') $mapped[$targetColumn] = $source[$sourceHeader] ?? null;
             }
@@ -80,10 +80,10 @@ class ExcelImportService
             DB::transaction(function () use (&$count, $sheet, $headers, $highest, $mapping, $companyId, $target): void {
                 for ($rowNumber = 2; $rowNumber <= $highest; $rowNumber++) {
                     $source = [];
-                    foreach ($headers as $index => $header) $source[$header] = $sheet->getCellByColumnAndRow($index + 1, $rowNumber)->getValue();
+                    foreach ($headers as $index => $header) $source[$header] = $sheet->getCell([$index + 1, $rowNumber])->getValue();
                     if (count(array_filter($source, fn ($value) => $value !== null && trim((string) $value) !== '')) === 0) continue;
 
-                    $mapped = ['company_id' => $companyId];
+                    $mapped = $this->tenantData($target, $companyId);
                     foreach ($mapping as $sourceHeader => $targetColumn) {
                         if ($targetColumn !== null && $targetColumn !== '') $mapped[$targetColumn] = $source[$sourceHeader] ?? null;
                     }
@@ -105,10 +105,26 @@ class ExcelImportService
         foreach (self::TARGETS as $target) {
             $result[$target] = collect(Schema::getColumns($target))
                 ->pluck('name')
-                ->reject(fn ($column) => in_array($column, ['id', 'company_id', 'created_at', 'updated_at'], true))
+                ->reject(fn ($column) => in_array($column, ['id', 'company_id', 'account_id', 'created_at', 'updated_at'], true))
                 ->values()->all();
         }
         return $result;
+    }
+
+    private function tenantData(string $target, int $companyId): array
+    {
+        $columns = collect(Schema::getColumns($target))->pluck('name')->all();
+        if (in_array('company_id', $columns, true)) {
+            return ['company_id' => $companyId];
+        }
+        if (in_array('account_id', $columns, true)) {
+            $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
+            if (! $accountId) {
+                throw new RuntimeException('Import rejected: the active company does not belong to an account.');
+            }
+            return ['account_id' => (int) $accountId];
+        }
+        return [];
     }
 
     private function validateRow(string $target, array $row, int $companyId, int $rowNumber, array &$seenCodes): array
@@ -119,7 +135,8 @@ class ExcelImportService
         foreach ($this->targets()[$target] as $column) {
             $meta = $columns->firstWhere('name', $column);
             $value = $row[$column] ?? null;
-            if (! (bool) ($meta['nullable'] ?? false) && ($value === null || trim((string) $value) === '')) {
+            $required = ! (bool) ($meta['nullable'] ?? false) && ($meta['default'] ?? null) === null;
+            if ($required && ($value === null || trim((string) $value) === '')) {
                 $errors[] = "$column is required";
                 continue;
             }
@@ -133,7 +150,15 @@ class ExcelImportService
             if (isset($seenCodes[(string) $row['code']])) $errors[] = 'code is duplicated in the import file';
             else $seenCodes[(string) $row['code']] = $rowNumber;
 
-            if (DB::table($target)->where('company_id', $companyId)->where('code', $row['code'])->exists()) {
+            $existing = DB::table($target)->where('code', $row['code']);
+            $tenantColumns = collect(Schema::getColumns($target))->pluck('name')->all();
+            if (in_array('company_id', $tenantColumns, true)) {
+                $existing->where('company_id', $companyId);
+            } elseif (in_array('account_id', $tenantColumns, true)) {
+                $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
+                $existing->where('account_id', $accountId);
+            }
+            if ($existing->exists()) {
                 $errors[] = 'code already exists';
             }
         }
@@ -143,7 +168,15 @@ class ExcelImportService
             $foreignTable = $foreignKey['foreign_table'] ?? null;
             $foreignColumn = $foreignKey['foreign_columns'][0] ?? 'id';
             if ($column && $foreignTable && array_key_exists($column, $row) && $row[$column] !== null && $row[$column] !== '') {
-                if (! DB::table($foreignTable)->where($foreignColumn, $row[$column])->exists()) $errors[] = $column.' references a missing record';
+                $query = DB::table($foreignTable)->where($foreignColumn, $row[$column]);
+                $foreignColumns = collect(Schema::getColumns($foreignTable))->pluck('name')->all();
+                if (in_array('company_id', $foreignColumns, true)) {
+                    $query->where('company_id', $companyId);
+                } elseif (in_array('account_id', $foreignColumns, true)) {
+                    $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
+                    $query->where('account_id', $accountId);
+                }
+                if (! $query->exists()) $errors[] = $column.' references a missing record';
             }
         }
 
@@ -153,7 +186,11 @@ class ExcelImportService
     private function assertMapping(array $headers, array $mapping, string $target): void
     {
         $allowed = $this->targets()[$target];
-        $unknown = array_diff(array_values(array_filter($mapping, fn ($value) => $value !== null && $value !== '')), $allowed);
+        $mappedTargets = array_values(array_filter($mapping, fn ($value) => $value !== null && $value !== ''));
+        $unknown = array_diff($mappedTargets, $allowed);
+        if (count($mappedTargets) !== count(array_unique($mappedTargets))) {
+            throw new RuntimeException('Mapping assigns more than one Excel column to the same target column.');
+        }
         if ($unknown !== []) throw new RuntimeException('Mapping contains unknown target columns: '.implode(', ', $unknown));
 
         foreach ($mapping as $source => $targetColumn) {
@@ -207,7 +244,7 @@ class ExcelImportService
         $highestColumnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
         $headers = [];
         for ($i = 1; $i <= $highestColumnIndex; $i++) {
-            $value = trim((string) $sheet->getCellByColumnAndRow($i, 1)->getValue());
+            $value = trim((string) $sheet->getCell([$i, 1])->getValue());
             if ($value === '') continue;
             if (in_array($value, $headers, true)) throw new RuntimeException("Duplicate Excel column: {$value}");
             $headers[] = $value;
@@ -221,7 +258,7 @@ class ExcelImportService
         $sample = [];
         for ($row = 2; $row <= min(6, $sheet->getHighestDataRow()); $row++) {
             $item = [];
-            foreach ($headers as $index => $header) $item[$header] = $sheet->getCellByColumnAndRow($index + 1, $row)->getValue();
+            foreach ($headers as $index => $header) $item[$header] = $sheet->getCell([$index + 1, $row])->getValue();
             $sample[] = $item;
         }
         return $sample;
