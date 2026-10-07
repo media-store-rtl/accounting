@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreFiscalYearRequest;
+use App\Http\Requests\UpdateFiscalYearRequest;
 use App\Models\FiscalYear;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +28,71 @@ class FiscalYearController extends Controller
         return view('fiscal-years.create', [
             'startsAt' => now()->toDateString(),
         ]);
+    }
+
+    public function edit(FiscalYear $fiscalYear): View
+    {
+        $this->ensureBelongsToCurrentCompany($fiscalYear);
+
+        return view('fiscal-years.edit', compact('fiscalYear'));
+    }
+
+    public function update(UpdateFiscalYearRequest $request, FiscalYear $fiscalYear): RedirectResponse
+    {
+        $this->ensureBelongsToCurrentCompany($fiscalYear);
+
+        if ($fiscalYear->is_closed) {
+            abort(422, 'سال مالی بسته قابل ویرایش نیست.');
+        }
+
+        $data = $request->validated();
+        $company = $request->user()->account->company;
+
+        DB::transaction(function () use ($company, $fiscalYear, $data) {
+            $company = $company->newQuery()->lockForUpdate()->findOrFail($company->id);
+            $fiscalYear = $company->fiscalYears()->lockForUpdate()->findOrFail($fiscalYear->id);
+
+            if ($fiscalYear->is_closed) {
+                abort(422, 'سال مالی بسته قابل ویرایش نیست.');
+            }
+
+            if ($company->fiscalYears()
+                ->whereKeyNot($fiscalYear->id)
+                ->whereDate('starts_at', '<=', $data['ends_at'])
+                ->whereDate('ends_at', '>=', $data['starts_at'])
+                ->exists()) {
+                abort(422, 'بازه سال مالی جدید با یک سال مالی موجود هم‌پوشانی دارد.');
+            }
+
+            $fiscalYear->update([
+                'name' => $data['name'],
+                'starts_at' => $data['starts_at'],
+                'ends_at' => $data['ends_at'],
+            ]);
+        });
+
+        return redirect()->route('fiscal-years.index')
+            ->with('success', "سال مالی «{$fiscalYear->name}» به‌روزرسانی شد.");
+    }
+
+    public function activate(FiscalYear $fiscalYear): RedirectResponse
+    {
+        $this->ensureBelongsToCurrentCompany($fiscalYear);
+
+        if ($fiscalYear->is_closed) {
+            abort(422, 'سال مالی بسته را نمی‌توان فعال کرد.');
+        }
+
+        session(['fiscal_year_id' => $fiscalYear->id]);
+
+        return redirect()->route('dashboard');
+    }
+
+    private function ensureBelongsToCurrentCompany(FiscalYear $fiscalYear): void
+    {
+        $company = request()->user()->account->company;
+
+        abort_unless($company && $fiscalYear->company_id === $company->id, 404);
     }
 
     public function store(StoreFiscalYearRequest $request): RedirectResponse
