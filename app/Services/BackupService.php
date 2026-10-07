@@ -99,8 +99,16 @@ class BackupService
         ));
 
         try {
-            $schema = $connection->getSchemaBuilder();
-            $schema->withoutForeignKeyConstraints(function () use ($connection, $payload, $tables, $companyId): void {
+            $driver = $connection->getDriverName();
+            if ($driver === 'sqlite') {
+                $connection->statement('PRAGMA foreign_keys = OFF');
+            } elseif (in_array($driver, ['mysql', 'mariadb'], true)) {
+                $connection->statement('SET FOREIGN_KEY_CHECKS=0');
+            } else {
+                $connection->getSchemaBuilder()->disableForeignKeyConstraints();
+            }
+
+            try {
                 $connection->transaction(function () use ($connection, $payload, $tables, $companyId): void {
                     foreach (array_reverse($tables) as $table) {
                         $this->scopedQuery($table, $connection->table($table), $companyId)->delete();
@@ -114,7 +122,15 @@ class BackupService
                         }
                     }
                 });
-            });
+            } finally {
+                if ($driver === 'sqlite') {
+                    $connection->statement('PRAGMA foreign_keys = ON');
+                } elseif (in_array($driver, ['mysql', 'mariadb'], true)) {
+                    $connection->statement('SET FOREIGN_KEY_CHECKS=1');
+                } else {
+                    $connection->getSchemaBuilder()->enableForeignKeyConstraints();
+                }
+            }
 
             $backup->update(['status' => 'restored']);
         } catch (Throwable $e) {
