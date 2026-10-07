@@ -25,6 +25,7 @@
 <a href="{{ route('sales.orders.index') }}">▤ سفارش‌های فروش</a>
 <a href="{{ route('sales.deliveries.index') }}">⇢ تحویل و ارسال</a>
 <div class="nav-title">مدیریت</div>
+<a href="{{ route('company.edit') }}">▤ اطلاعات مجموعه</a>
 <a href="{{ route('fiscal-years.index') }}">▣ سال‌های مالی</a>
 <a href="{{ route('personnel.index') }}">♟ پرسنل</a>
 <a href="{{ route('users.index') }}">♙ کاربران</a>
