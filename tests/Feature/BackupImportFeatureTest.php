@@ -121,6 +121,12 @@ class BackupImportFeatureTest extends TestCase
 
         $this->actingAs($user)->withSession(['company_id' => $companyId]);
 
+        DB::table('units')->insert([
+            'company_id' => $companyId, 'name' => 'HTTP Original', 'code' => 'HTTP-RESTORE',
+            'symbol' => 'u', 'unit_type' => 'weight', 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
         $created = $this->postJson('/backups/create')->assertCreated()->json('backup');
         $backup = BackupFile::findOrFail($created['id']);
 
@@ -133,11 +139,6 @@ class BackupImportFeatureTest extends TestCase
             'backup' => UploadedFile::fake()->createWithContent('roundtrip.json', $json),
         ])->assertCreated()->json('backup');
 
-        DB::table('units')->insert([
-            'company_id' => $companyId, 'name' => 'HTTP Original', 'code' => 'HTTP-RESTORE',
-            'symbol' => 'u', 'unit_type' => 'weight', 'is_active' => true,
-            'created_at' => now(), 'updated_at' => now(),
-        ]);
         DB::table('units')->where('company_id', $companyId)->where('code', 'HTTP-RESTORE')->update(['name' => 'Changed']);
         $this->postJson('/backups/'.$uploaded['id'].'/restore', ['confirmation' => 'RESTORE'])
             ->assertOk();
