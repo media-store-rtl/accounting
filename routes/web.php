@@ -44,6 +44,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/{module}', [MasterDataController::class,'store'])->name('store');
         Route::get('/{module}/{id}/edit', [MasterDataController::class,'edit'])->name('edit');
         Route::put('/{module}/{id}', [MasterDataController::class,'update'])->name('update');
+        Route::post('/productions/{id}/start', [MasterDataController::class,'startProduction'])->middleware('company.permission:production.supervise')->name('production.start');
         Route::post('/{module}/{id}/deactivate', [MasterDataController::class,'deactivate'])->name('deactivate');
     });
 
