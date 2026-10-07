@@ -1,1 +1,106 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>سال‌های مالی</title><style>body{font-family:Tahoma,sans-serif;background:#07111f;color:#e9f3fb;margin:0}.wrap{max-width:1050px;margin:35px auto;padding:0 18px}.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.head a{color:#6ee7d0;text-decoration:none}.panel{background:#0a1b2b;border:1px solid #1b354b;border-radius:18px;padding:22px}.btn{background:#6ee7d0;color:#06202a;padding:10px 16px;border-radius:9px;text-decoration:none;font-weight:700;font-size:12px;border:0}.success{color:#6ee7d0;margin-bottom:15px;font-size:12px}.note{color:#8da3b6;font-size:11px;line-height:1.9}.status{display:inline-block;padding:5px 9px;border-radius:8px;background:#173a38;color:#6ee7d0;font-size:10px}.status.closed{background:#332d2d;color:#f3a5a5}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{text-align:right;padding:12px 8px;border-bottom:1px solid #183047;font-size:11px}th{color:#7890a5}@media(max-width:650px){table{display:block;overflow:auto;white-space:nowrap}}</style></head><body><div class="wrap"><div class="head"><div><h1>سال‌های مالی</h1><div class="note">{{ $company->name }}</div></div><a href="{{ route('dashboard') }}">← داشبورد</a></div><div class="panel">@if(session('success'))<div class="success">{{ session('success') }}</div>@endif@if($errors->any())<div class="success" style="color:#ff9b9b">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif<div style="display:flex;justify-content:space-between;align-items:center;gap:15px"><div class="note">وضعیت اشتراک: <strong>{{ $subscription?->isActive() ? 'فعال' : 'منقضی / غیرفعال' }}</strong></div>@if($subscription?->isActive())<a class="btn" href="{{ route('fiscal-years.create') }}">+ ایجاد سال مالی</a>@endif</div>@if($fiscalYears->isEmpty())<p class="note">هنوز سال مالی ثبت نشده است.</p>@else<table><thead><tr><th>نام</th><th>شروع</th><th>پایان</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>@foreach($fiscalYears as $year)<tr><td>{{ $year->name }}</td><td>{{ $year->starts_at->format('Y-m-d') }}</td><td>{{ $year->ends_at->format('Y-m-d') }}</td><td><span class="status {{ $year->is_closed ? 'closed' : '' }}">{{ $year->is_closed ? 'بسته' : 'باز' }}</span></td><td>@if(!$year->is_closed)<a class="btn" href="{{ route('fiscal-years.edit',$year) }}">ویرایش</a> <form method="POST" action="{{ route('fiscal-years.activate',$year) }}" style="display:inline">@csrf<button class="btn" type="submit">فعال‌سازی</button></form> <form method="POST" action="{{ route('fiscal-years.destroy',$year) }}" style="display:inline" onsubmit="return confirm('حذف این سال مالی؟')">@csrf @method('DELETE')<button class="btn" type="submit">حذف</button></form>@endif</td></tr>@endforeach</tbody></table>@endif</div></div></body></html>
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>سال‌های مالی</title>
+    <style>
+        body{font-family:Tahoma,sans-serif;background:#07111f;color:#e9f3fb;margin:0}
+        .wrap{max-width:1050px;margin:35px auto;padding:0 18px}
+        .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+        .head a{color:#6ee7d0;text-decoration:none}
+        .panel{background:#0a1b2b;border:1px solid #1b354b;border-radius:18px;padding:22px}
+        .btn{background:#6ee7d0;color:#06202a;padding:10px 16px;border-radius:9px;text-decoration:none;font-weight:700;font-size:12px;border:0}
+        .success{color:#6ee7d0;margin-bottom:15px;font-size:12px}
+        .note{color:#8da3b6;font-size:11px;line-height:1.9}
+        .status{display:inline-block;padding:5px 9px;border-radius:8px;background:#173a38;color:#6ee7d0;font-size:10px}
+        .status.closed{background:#332d2d;color:#f3a5a5}
+        table{width:100%;border-collapse:collapse;margin-top:18px}
+        th,td{text-align:right;padding:12px 8px;border-bottom:1px solid #183047;font-size:11px}
+        th{color:#7890a5}
+        @media(max-width:650px){table{display:block;overflow:auto;white-space:nowrap}}
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="head">
+        <div>
+            <h1>سال‌های مالی</h1>
+            <div class="note">{{ $company->name }}</div>
+        </div>
+        <a href="{{ route('dashboard') }}">← داشبورد</a>
+    </div>
+
+    <div class="panel">
+        @if(session('success'))
+            <div class="success">{{ session('success') }}</div>
+        @endif
+
+        @if($errors->any())
+            <div class="success" style="color:#ff9b9b">
+                @foreach($errors->all() as $error)
+                    <div>{{ $error }}</div>
+                @endforeach
+            </div>
+        @endif
+
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:15px">
+            <div class="note">
+                وضعیت اشتراک:
+                <strong>{{ $subscription?->isActive() ? 'فعال' : 'منقضی / غیرفعال' }}</strong>
+            </div>
+
+            @if($subscription?->isActive())
+                <a class="btn" href="{{ route('fiscal-years.create') }}">+ ایجاد سال مالی</a>
+            @endif
+        </div>
+
+        @if($fiscalYears->isEmpty())
+            <p class="note">هنوز سال مالی ثبت نشده است.</p>
+        @else
+            <table>
+                <thead>
+                <tr>
+                    <th>نام</th>
+                    <th>شروع</th>
+                    <th>پایان</th>
+                    <th>وضعیت</th>
+                    <th>عملیات</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach($fiscalYears as $year)
+                    <tr>
+                        <td>{{ $year->name }}</td>
+                        <td>{{ $year->starts_at->format('Y-m-d') }}</td>
+                        <td>{{ $year->ends_at->format('Y-m-d') }}</td>
+                        <td>
+                            <span class="status {{ $year->is_closed ? 'closed' : '' }}">
+                                {{ $year->is_closed ? 'بسته' : 'باز' }}
+                            </span>
+                        </td>
+                        <td>
+                            @if(!$year->is_closed)
+                                <a class="btn" href="{{ route('fiscal-years.edit', $year) }}">ویرایش</a>
+
+                                <form method="POST" action="{{ route('fiscal-years.activate', $year) }}" style="display:inline">
+                                    @csrf
+                                    <button class="btn" type="submit">فعال‌سازی</button>
+                                </form>
+
+                                <form method="POST" action="{{ route('fiscal-years.destroy', $year) }}" style="display:inline" onsubmit="return confirm('حذف این سال مالی؟')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="btn" type="submit">حذف</button>
+                                </form>
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+        @endif
+    </div>
+</div>
+</body>
+</html>
