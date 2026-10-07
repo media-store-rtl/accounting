@@ -57,7 +57,7 @@ class FiscalYearController extends Controller
             }
 
             if ($company->fiscalYears()
-                ->whereKeyNot($fiscalYear->id)
+                ->where($fiscalYear->getKeyName(), '<>', $fiscalYear->getKey())
                 ->whereDate('starts_at', '<=', $data['ends_at'])
                 ->whereDate('ends_at', '>=', $data['starts_at'])
                 ->exists()) {
