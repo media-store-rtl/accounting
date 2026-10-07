@@ -8,7 +8,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('personnel_production_sections', function (Blueprint $table) {
-            $table->foreignId('personnel_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('personnel_id')->constrained('personnel')->cascadeOnDelete();
             $table->foreignId('production_section_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
             $table->primary(['personnel_id', 'production_section_id']);
