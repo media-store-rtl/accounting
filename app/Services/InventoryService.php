@@ -30,7 +30,21 @@ class InventoryService
             'company_id'=>$companyId,'goods_id'=>$goodsId,'location_id'=>$locationId,'quantity'=>-$quantity,'movement_type'=>'material_handover',
             'reference_type'=>$referenceType,'reference_id'=>$referenceId,'occurred_at'=>now(),'metadata'=>json_encode($metadata),'created_at'=>now(),'updated_at'=>now()
         ]);
-        app(InventoryValuationService::class)->valueInventoryMovement($movementId);
+
+        if ($referenceType === 'material_handovers') {
+            $fiscalYearId = DB::table('material_handovers')->where('id',$referenceId)->where('company_id',$companyId)->value('fiscal_year_id');
+            if ($fiscalYearId) {
+                app(InventoryValuationService::class)->consume(
+                    $companyId,
+                    $locationId,
+                    $goodsId,
+                    (int) $fiscalYearId,
+                    $quantity,
+                    $movementId,
+                    now()->toDateTimeString()
+                );
+            }
+        }
     }
 
     public function receiveFinishedGoods(int $companyId,int $locationId,int $goodsId,float $quantity,string $referenceType,int $referenceId,array $metadata=[]): void
