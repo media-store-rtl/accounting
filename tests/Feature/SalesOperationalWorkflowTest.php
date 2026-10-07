@@ -21,7 +21,10 @@ class SalesOperationalWorkflowTest extends TestCase
         $role=DB::table('roles')->insertGetId(['company_id'=>$company,'name'=>'Sales Operations','slug'=>'sales-ops','is_system'=>false,'created_at'=>now(),'updated_at'=>now()]);
         $slugs=['customer.view','customer.create','order.view','order.create','order.refresh','production.supervise','delivery_request.view','delivery_request.create','delivery_request.issue','delivery_request.handover','warehouse.delivery.manage'];
         foreach($slugs as $slug){
-            $permission=DB::table('permissions')->insertGetId(['name'=>$slug,'slug'=>$slug,'module'=>'sales','created_at'=>now(),'updated_at'=>now()]);
+            $permission=DB::table('permissions')->where('slug',$slug)->value('id');
+            if (!$permission) {
+                $permission=DB::table('permissions')->insertGetId(['name'=>$slug,'slug'=>$slug,'module'=>'sales','created_at'=>now(),'updated_at'=>now()]);
+            }
             DB::table('role_permissions')->insert(['role_id'=>$role,'permission_id'=>$permission]);
         }
         DB::table('company_user')->insert(['company_id'=>$company,'user_id'=>$user,'role_id'=>$role,'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
