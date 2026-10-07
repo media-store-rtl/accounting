@@ -15,13 +15,16 @@ class DashboardController extends Controller
             ->orderBy('companies.name')
             ->get();
 
-        $companyId = (int) session('company_id');
+        $requestedCompanyId = (int) request()->query('company');
+        $sessionCompanyId = (int) session('company_id');
+        $companyId = $requestedCompanyId ?: $sessionCompanyId;
 
         if (! $companyId || ! $companies->contains('id', $companyId)) {
             $companyId = $companies->first()?->id;
-            if ($companyId) {
-                session(['company_id' => $companyId]);
-            }
+        }
+
+        if ($companyId) {
+            session(['company_id' => $companyId]);
         }
 
         $company = $companies->firstWhere('id', $companyId);
