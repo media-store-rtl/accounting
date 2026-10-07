@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\ProductionOutputService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -45,6 +46,50 @@ class SalesOperationalWorkflowTest extends TestCase
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertOk();
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>6]);
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'delivery_issue','quantity'=>-4]);
+        $this->postJson('/api/delivery-requests/'.$delivery->id.'/handover',['received_by'=>'Customer Receiver'])->assertOk();
+        $this->assertDatabaseHas('delivery_requests',['id'=>$delivery->id,'status'=>'completed']);
+        $this->assertDatabaseHas('orders',['id'=>$order,'status'=>'completed']);
+    }
+
+    public function test_production_output_confirmation_feeds_finished_inventory_then_sales_and_delivery(): void
+    {
+        Notification::fake(); $c=$this->context(0);
+        $response=$this->postJson('/api/orders',['fiscal_year_id'=>$c['fy'],'customer_id'=>$c['customer'],'number'=>'SO-FG-1','ordered_at'=>'2026-10-07','requested_delivery_at'=>'2026-10-20','items'=>[['goods_id'=>$c['goods'],'quantity'=>4]]]);
+        $response->assertCreated()->assertJsonPath('data.status','production_required');
+        $order=$response->json('data.id');
+
+        $route=DB::table('production_routes')->insertGetId([
+            'company_id'=>$c['company'],'goods_id'=>$c['goods'],'code'=>'ROUTE-FG-1','name'=>'Finished Goods Route',
+            'status'=>'active','created_at'=>now(),'updated_at'=>now()
+        ]);
+        $production=DB::table('productions')->insertGetId([
+            'company_id'=>$c['company'],'fiscal_year_id'=>$c['fy'],'goods_id'=>$c['goods'],'production_route_id'=>$route,
+            'number'=>'PR-FG-1','planned_quantity'=>4,'produced_quantity'=>0,'rejected_quantity'=>0,'status'=>'completed',
+            'completed_at'=>now(),'created_at'=>now(),'updated_at'=>now()
+        ]);
+        DB::table('production_order')->insert(['production_id'=>$production,'order_id'=>$order,'created_at'=>now(),'updated_at'=>now()]);
+
+        $service=app(ProductionOutputService::class);
+        $output=$service->create($c['company'],$production,$order,$c['warehouse'],4,$c['user']);
+        $this->assertSame('pending',$output->status);
+        $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>0]);
+
+        $service->confirm($c['company'],$output->id,$c['user']);
+
+        $this->assertDatabaseHas('production_outputs',['id'=>$output->id,'status'=>'confirmed','order_id'=>$order]);
+        $this->assertDatabaseHas('finished_goods_receipts',['production_output_id'=>$output->id,'status'=>'approved']);
+        $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>4]);
+        $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'finished_goods_receipt','reference_type'=>'production_outputs','reference_id'=>$output->id,'quantity'=>4]);
+
+        $this->postJson('/api/orders/'.$order.'/refresh')->assertOk()->assertJsonPath('data.status','ready_for_delivery');
+        $this->assertDatabaseHas('order_items',['order_id'=>$order,'shortage_quantity'=>0,'fulfillment_status'=>'ready_for_delivery']);
+
+        $this->postJson('/api/orders/'.$order.'/delivery-request',['scheduled_at'=>'2026-10-08 10:00:00','recipient_name'=>'Receiver','vehicle'=>'Truck FG'])->assertCreated();
+        $delivery=DB::table('delivery_requests')->where('order_id',$order)->first();
+        $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertOk();
+        $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>0]);
+        $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'delivery_issue','reference_type'=>'delivery_request','reference_id'=>$delivery->id,'quantity'=>-4]);
+
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/handover',['received_by'=>'Customer Receiver'])->assertOk();
         $this->assertDatabaseHas('delivery_requests',['id'=>$delivery->id,'status'=>'completed']);
         $this->assertDatabaseHas('orders',['id'=>$order,'status'=>'completed']);
