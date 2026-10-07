@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 final class CostingReportService
 {
@@ -48,10 +47,6 @@ final class CostingReportService
 
     private function materials(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId): void
     {
-        if (! Schema::hasTable('inventory_consumption_costs')) {
-            return;
-        }
-
         $costs=DB::table('inventory_consumption_costs as c')->join('inventory_movements as m','m.id','=','c.inventory_movement_id')
             ->where('c.company_id',$companyId)->when($fy,fn($q)=>$q->where('c.fiscal_year_id',$fy))->when($goodsId,fn($q)=>$q->where('c.goods_id',$goodsId))
             ->get(['c.goods_id','c.total_cost','c.valuation_method','m.metadata']);
@@ -91,10 +86,6 @@ final class CostingReportService
 
     private function labor(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId): void
     {
-        if (! Schema::hasTable('production_labor_costs')) {
-            return;
-        }
-
         $costs=DB::table('production_labor_costs')->where('company_id',$companyId)->when($fy,fn($q)=>$q->where('fiscal_year_id',$fy))->get(['production_id','total_cost']);
         $pids=$costs->pluck('production_id')->unique()->values(); if($pids->isEmpty()) return;
         $goods=DB::table('productions')->whereIn('id',$pids)->get(['id','goods_id'])->keyBy('id');
