@@ -220,7 +220,7 @@ class BackupService
 
     private function isRestorableTable(string $table, int $companyId): bool
     {
-        return ! in_array($table, ['accounts', 'users', 'personnel', 'permissions', 'notifications'], true)
+        return ! in_array($table, ['accounts', 'users', 'personnel', 'permissions', 'notifications', 'companies'], true)
             && $this->scopedQuery($table, $this->database->table($table), $companyId) !== null;
     }
 
