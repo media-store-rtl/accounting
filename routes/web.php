@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountingSsoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BackupController;
+use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FiscalYearController;
 use App\Http\Controllers\ExcelImportController;
@@ -35,6 +36,14 @@ Route::get('/sso/callback', [AccountingSsoController::class, 'callback'])->name(
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    Route::get('/company', [CompanyController::class, 'edit'])
+        ->middleware(['company.permission:company.view', 'account.owner'])
+        ->name('company.edit');
+    Route::put('/company', [CompanyController::class, 'update'])
+        ->middleware(['company.permission:company.update', 'account.owner'])
+        ->name('company.update');
+
     Route::get('/fiscal-years', [FiscalYearController::class, 'index'])->middleware('company.permission:fiscal_year.view')->name('fiscal-years.index');
     Route::get('/fiscal-years/create', [FiscalYearController::class, 'create'])->middleware('company.permission:fiscal_year.create')->name('fiscal-years.create');
     Route::post('/fiscal-years', [FiscalYearController::class, 'store'])->middleware('company.permission:fiscal_year.create')->name('fiscal-years.store');
@@ -61,41 +70,20 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/delivery-requests/{delivery}/issue', [DeliveryController::class, 'issue'])->middleware('company.permission:delivery_request.issue')->name('sales.delivery.issue');
     Route::post('/api/delivery-requests/{delivery}/handover', [DeliveryController::class, 'handover'])->middleware('company.permission:delivery_request.handover')->name('sales.delivery.handover');
 
-    // Session-authenticated JSON endpoints used by the Accounting application.
-    // These stay in web.php because CompanyAuthorization and the authenticated
-    // Accounting workflow rely on the active company stored in the session.
     Route::prefix('api')->name('api.')->group(function () {
-        Route::post('/orders', [OrderController::class, 'store'])
-            ->middleware('company.permission:order.create')->name('orders.store');
-        Route::get('/orders/{order}', [OrderController::class, 'show'])
-            ->middleware('company.permission:order.view')->name('orders.show');
-
-        Route::post('/supply-requests', [SupplyRequestController::class, 'store'])
-            ->middleware('company.permission:supply_request.create')->name('supply-requests.store');
-        Route::get('/supply-requests/{supplyRequest}', [SupplyRequestController::class, 'show'])
-            ->middleware('company.permission:supply_request.view')->name('supply-requests.show');
-
-        Route::post('/material-handovers', [MaterialHandoverController::class, 'store'])
-            ->middleware('company.permission:supply_request.handover.create')->name('material-handovers.store');
-        Route::get('/material-handovers/{materialHandover}', [MaterialHandoverController::class, 'show'])
-            ->middleware('company.permission:supply_request.handover.view')->name('material-handovers.show');
-
-        Route::post('/purchases', [PurchaseController::class, 'store'])
-            ->middleware('company.permission:purchase.create')->name('purchases.store');
-        Route::get('/purchases/{purchase}', [PurchaseController::class, 'show'])
-            ->middleware('company.permission:purchase.view')->name('purchases.show');
-
-        Route::post('/purchase-receipts', [PurchaseReceiptController::class, 'store'])
-            ->middleware('company.permission:purchase.receipt.create')->name('purchase-receipts.store');
-        Route::post('/purchase-receipts/{purchaseReceipt}/approve', [PurchaseReceiptController::class, 'approve'])
-            ->middleware('company.permission:purchase.receipt.approve')->name('purchase-receipts.approve');
-
-        Route::post('/production/labor', [LaborCostController::class, 'store'])
-            ->middleware('company.permission:production.labor.create')->name('production.labor.store');
-        Route::post('/production/labor/{laborEntry}/review', [LaborCostController::class, 'review'])
-            ->middleware('company.permission:production.labor.review')->name('production.labor.review');
-        Route::post('/production/labor/rates', [LaborCostController::class, 'setRate'])
-            ->middleware('company.permission:production.labor.rate.manage')->name('production.labor.rates.store');
+        Route::post('/orders', [OrderController::class, 'store'])->middleware('company.permission:order.create')->name('orders.store');
+        Route::get('/orders/{order}', [OrderController::class, 'show'])->middleware('company.permission:order.view')->name('orders.show');
+        Route::post('/supply-requests', [SupplyRequestController::class, 'store'])->middleware('company.permission:supply_request.create')->name('supply-requests.store');
+        Route::get('/supply-requests/{supplyRequest}', [SupplyRequestController::class, 'show'])->middleware('company.permission:supply_request.view')->name('supply-requests.show');
+        Route::post('/material-handovers', [MaterialHandoverController::class, 'store'])->middleware('company.permission:supply_request.handover.create')->name('material-handovers.store');
+        Route::get('/material-handovers/{materialHandover}', [MaterialHandoverController::class, 'show'])->middleware('company.permission:supply_request.handover.view')->name('material-handovers.show');
+        Route::post('/purchases', [PurchaseController::class, 'store'])->middleware('company.permission:purchase.create')->name('purchases.store');
+        Route::get('/purchases/{purchase}', [PurchaseController::class, 'show'])->middleware('company.permission:purchase.view')->name('purchases.show');
+        Route::post('/purchase-receipts', [PurchaseReceiptController::class, 'store'])->middleware('company.permission:purchase.receipt.create')->name('purchase-receipts.store');
+        Route::post('/purchase-receipts/{purchaseReceipt}/approve', [PurchaseReceiptController::class, 'approve'])->middleware('company.permission:purchase.receipt.approve')->name('purchase-receipts.approve');
+        Route::post('/production/labor', [LaborCostController::class, 'store'])->middleware('company.permission:production.labor.create')->name('production.labor.store');
+        Route::post('/production/labor/{laborEntry}/review', [LaborCostController::class, 'review'])->middleware('company.permission:production.labor.review')->name('production.labor.review');
+        Route::post('/production/labor/rates', [LaborCostController::class, 'setRate'])->middleware('company.permission:production.labor.rate.manage')->name('production.labor.rates.store');
     });
 
     Route::prefix('backups')->name('backups.')->group(function () {
@@ -130,7 +118,6 @@ Route::middleware('auth')->group(function () {
             Route::put('/users/{user}/access', [UserManagementController::class, 'updateAccess'])->middleware('company.permission:user.access.manage')->name('users.access.update');
             Route::post('/users/{user}/activate', [UserManagementController::class, 'activate'])->middleware('company.permission:user.activate')->name('users.activate');
             Route::post('/users/{user}/deactivate', [UserManagementController::class, 'deactivate'])->middleware('company.permission:user.deactivate')->name('users.deactivate');
-
             Route::get('/roles', [RoleController::class, 'index'])->middleware('company.permission:role.view')->name('roles.index');
             Route::post('/roles', [RoleController::class, 'store'])->middleware('company.permission:role.create')->name('roles.store');
             Route::put('/roles/{role}', [RoleController::class, 'update'])->middleware('company.permission:role.update')->name('roles.update');
