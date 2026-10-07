@@ -29,11 +29,9 @@ final class LaborCostService
                 ->where('company_id', $companyId)
                 ->where('personnel_id', $personnelId)
                 ->where('rate_type', $rateType)
-                ->where(function ($q) use ($effectiveFrom, $effectiveTo) {
-                    $q->whereNull('effective_to')->orWhere('effective_to', '>=', $effectiveFrom);
-                })
+                ->where('effective_from', '<=', $effectiveTo ?? '9999-12-31')
                 ->where(function ($q) use ($effectiveFrom) {
-                    $q->where('effective_from', '<=', $effectiveFrom);
+                    $q->whereNull('effective_to')->orWhere('effective_to', '>=', $effectiveFrom);
                 })
                 ->exists();
             if ($overlap) throw ValidationException::withMessages(['effective_from' => 'بازه نرخ دستمزد با نرخ موجود هم‌پوشانی دارد.']);
