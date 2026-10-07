@@ -38,6 +38,7 @@ class FiscalYearController extends Controller
     {
         $company = $request->user()->currentCompany();
         abort_unless($company, 409);
+        abort_unless($company->subscriptionEntitlement?->isActive(), 403, 'برای ایجاد سال مالی، اشتراک فعال لازم است.');
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
