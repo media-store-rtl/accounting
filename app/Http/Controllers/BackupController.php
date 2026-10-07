@@ -44,7 +44,7 @@ class BackupController extends Controller
     {
         abort_unless($backup->company_id === (int) $request->session()->get('company_id'), 404);
         $data = $request->validate(['confirmation' => ['required', 'in:RESTORE']]);
-        $service->restore($backup, $data['confirmation']);
+        $service->restore($backup, $data['confirmation'], (int) $request->session()->get('company_id'));
         return response()->json(['status' => 'restored']);
     }
 }
