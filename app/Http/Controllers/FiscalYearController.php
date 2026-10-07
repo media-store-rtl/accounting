@@ -6,7 +6,6 @@ use App\Models\FiscalYear;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 
 class FiscalYearController extends Controller
@@ -42,7 +41,6 @@ class FiscalYearController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
-            'code' => ['required', 'string', 'max:50', Rule::unique('fiscal_years', 'code')->where(fn ($q) => $q->where('company_id', $company->id))],
             'starts_at' => ['required', 'date'],
             'ends_at' => ['required', 'date', 'after_or_equal:starts_at'],
         ]);
@@ -58,7 +56,13 @@ class FiscalYearController extends Controller
 
             $this->assertNoOverlap($company->id, $data['starts_at'], $data['ends_at']);
 
-            return $company->fiscalYears()->create([...$data, 'is_closed' => false]);
+            $yearCode = 'FY-' . substr($data['starts_at'], 0, 4);
+            $suffix = 1;
+            while ($company->fiscalYears()->where('code', $yearCode)->exists()) {
+                $yearCode = 'FY-' . substr($data['starts_at'], 0, 4) . '-' . (++$suffix);
+            }
+
+            return $company->fiscalYears()->create([...$data, 'code' => $yearCode, 'is_closed' => false]);
         });
 
         // A newly created fiscal year becomes the active period immediately.
@@ -91,7 +95,6 @@ class FiscalYearController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
-            'code' => ['required', 'string', 'max:50', Rule::unique('fiscal_years', 'code')->ignore($fiscalYear->id)->where(fn ($q) => $q->where('company_id', $company->id))],
             'starts_at' => ['required', 'date'],
             'ends_at' => ['required', 'date', 'after_or_equal:starts_at'],
         ]);
