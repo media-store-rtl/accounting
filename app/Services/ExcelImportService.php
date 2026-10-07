@@ -119,7 +119,8 @@ class ExcelImportService
         foreach ($this->targets()[$target] as $column) {
             $meta = $columns->firstWhere('name', $column);
             $value = $row[$column] ?? null;
-            if (! (bool) ($meta['nullable'] ?? false) && ($value === null || trim((string) $value) === '')) {
+            $required = ! (bool) ($meta['nullable'] ?? false) && ($meta['default'] ?? null) === null;
+            if ($required && ($value === null || trim((string) $value) === '')) {
                 $errors[] = "$column is required";
                 continue;
             }
@@ -143,7 +144,15 @@ class ExcelImportService
             $foreignTable = $foreignKey['foreign_table'] ?? null;
             $foreignColumn = $foreignKey['foreign_columns'][0] ?? 'id';
             if ($column && $foreignTable && array_key_exists($column, $row) && $row[$column] !== null && $row[$column] !== '') {
-                if (! DB::table($foreignTable)->where($foreignColumn, $row[$column])->exists()) $errors[] = $column.' references a missing record';
+                $query = DB::table($foreignTable)->where($foreignColumn, $row[$column]);
+                $foreignColumns = collect(Schema::getColumns($foreignTable))->pluck('name')->all();
+                if (in_array('company_id', $foreignColumns, true)) {
+                    $query->where('company_id', $companyId);
+                } elseif (in_array('account_id', $foreignColumns, true)) {
+                    $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
+                    $query->where('account_id', $accountId);
+                }
+                if (! $query->exists()) $errors[] = $column.' references a missing record';
             }
         }
 
@@ -153,7 +162,11 @@ class ExcelImportService
     private function assertMapping(array $headers, array $mapping, string $target): void
     {
         $allowed = $this->targets()[$target];
-        $unknown = array_diff(array_values(array_filter($mapping, fn ($value) => $value !== null && $value !== '')), $allowed);
+        $mappedTargets = array_values(array_filter($mapping, fn ($value) => $value !== null && $value !== ''));
+        $unknown = array_diff($mappedTargets, $allowed);
+        if (count($mappedTargets) !== count(array_unique($mappedTargets))) {
+            throw new RuntimeException('Mapping assigns more than one Excel column to the same target column.');
+        }
         if ($unknown !== []) throw new RuntimeException('Mapping contains unknown target columns: '.implode(', ', $unknown));
 
         foreach ($mapping as $source => $targetColumn) {
