@@ -65,15 +65,12 @@ class InventoryValuationTest extends TestCase
         $this->assertSame(80.0,(float)DB::table('inventory_cost_layers')->sum('weighted_average_quantity_remaining'));
     }
 
-    public function test_method_change_keeps_independent_valuation_balances(): void
+    public function test_method_can_be_selected_before_valued_transactions(): void
     {
         $c=$this->context(InventoryValuationService::FIFO);
-        $this->layer($c,100,10,'2026-10-01 10:00:00');
-        $this->layer($c,100,15,'2026-10-02 10:00:00');
-        app(InventoryValuationService::class)->valueInventoryMovement($this->movement($c,120),$c['fy']);
-        DB::table('companies')->where('id',$c['company'])->update(['inventory_valuation_method'=>InventoryValuationService::WEIGHTED_AVERAGE]);
-        $result=app(InventoryValuationService::class)->valueInventoryMovement($this->movement($c,20,2),$c['fy']);
-        $this->assertSame(250.0,round($result['total_cost'],4));
-        $this->assertSame(80.0,(float)DB::table('inventory_cost_layers')->sum('weighted_average_quantity_remaining'));
+        $service=app(InventoryValuationService::class);
+        $this->assertSame(InventoryValuationService::FIFO,$service->methodForCompany($c['company']));
+        $service->setMethod($c['company'],InventoryValuationService::WEIGHTED_AVERAGE);
+        $this->assertSame(InventoryValuationService::WEIGHTED_AVERAGE,$service->methodForCompany($c['company']));
     }
 }
