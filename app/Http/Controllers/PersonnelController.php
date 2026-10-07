@@ -70,16 +70,20 @@ class PersonnelController extends Controller
 
     public function deactivate(Request $request, Personnel $personnel): RedirectResponse
     {
-        $this->assertSameAccount($request, $personnel);
-        abort_if($personnel->user_id && (int) $personnel->user_id === (int) $request->user()->id, 422, 'کاربر جاری را نمی‌توان غیرفعال کرد.');
+        $company = $this->assertSameAccount($request, $personnel);
+        abort_if(
+            $personnel->user_id && (int) $personnel->user_id === (int) $request->user()->id,
+            422,
+            'کاربر جاری را نمی‌توان غیرفعال کرد.'
+        );
 
-        DB::transaction(function () use ($personnel) {
+        DB::transaction(function () use ($personnel, $company) {
             $personnel->update(['is_active' => false]);
 
             if ($personnel->user) {
                 $personnel->user->update(['is_active' => false]);
                 $personnel->user->companies()->updateExistingPivot(
-                    $personnel->user->companies()->pluck('companies.id')->all(),
+                    $company->id,
                     ['is_active' => false]
                 );
             }
@@ -88,8 +92,14 @@ class PersonnelController extends Controller
         return back()->with('success', 'پرسنل غیرفعال شد.');
     }
 
-    private function assertSameAccount(Request $request, Personnel $personnel): void
+    private function assertSameAccount(Request $request, Personnel $personnel): Company
     {
-        abort_unless((int) $personnel->account_id === (int) $request->user()->account_id, 404);
+        $company = $request->user()->currentCompany();
+        abort_unless(
+            $company && (int) $personnel->account_id === (int) $request->user()->account_id,
+            404
+        );
+
+        return $company;
     }
 }
