@@ -51,7 +51,7 @@ class ExcelImportService
             }
             if (count(array_filter($source, fn ($value) => $value !== null && trim((string) $value) !== '')) === 0) continue;
 
-            $mapped = ['company_id' => $companyId];
+            $mapped = $this->tenantData($target, $companyId);
             foreach ($mapping as $sourceHeader => $targetColumn) {
                 if ($targetColumn !== null && $targetColumn !== '') $mapped[$targetColumn] = $source[$sourceHeader] ?? null;
             }
@@ -83,7 +83,7 @@ class ExcelImportService
                     foreach ($headers as $index => $header) $source[$header] = $sheet->getCellByColumnAndRow($index + 1, $rowNumber)->getValue();
                     if (count(array_filter($source, fn ($value) => $value !== null && trim((string) $value) !== '')) === 0) continue;
 
-                    $mapped = ['company_id' => $companyId];
+                    $mapped = $this->tenantData($target, $companyId);
                     foreach ($mapping as $sourceHeader => $targetColumn) {
                         if ($targetColumn !== null && $targetColumn !== '') $mapped[$targetColumn] = $source[$sourceHeader] ?? null;
                     }
@@ -105,10 +105,26 @@ class ExcelImportService
         foreach (self::TARGETS as $target) {
             $result[$target] = collect(Schema::getColumns($target))
                 ->pluck('name')
-                ->reject(fn ($column) => in_array($column, ['id', 'company_id', 'created_at', 'updated_at'], true))
+                ->reject(fn ($column) => in_array($column, ['id', 'company_id', 'account_id', 'created_at', 'updated_at'], true))
                 ->values()->all();
         }
         return $result;
+    }
+
+    private function tenantData(string $target, int $companyId): array
+    {
+        $columns = collect(Schema::getColumns($target))->pluck('name')->all();
+        if (in_array('company_id', $columns, true)) {
+            return ['company_id' => $companyId];
+        }
+        if (in_array('account_id', $columns, true)) {
+            $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
+            if (! $accountId) {
+                throw new RuntimeException('Import rejected: the active company does not belong to an account.');
+            }
+            return ['account_id' => (int) $accountId];
+        }
+        return [];
     }
 
     private function validateRow(string $target, array $row, int $companyId, int $rowNumber, array &$seenCodes): array
