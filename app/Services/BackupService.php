@@ -185,7 +185,8 @@ class BackupService
     {
         return collect(Schema::getTableListing(schemaQualified: false))
             ->map(fn ($name) => is_string($name) ? $name : ($name['name'] ?? null))
-            ->filter()->values()->all();
+            ->filter(fn ($name) => is_string($name) && ! str_starts_with($name, 'sqlite_'))
+            ->values()->all();
     }
 
     private function columns(string $table): array
