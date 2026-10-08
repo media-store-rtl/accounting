@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 
 class ExcelImportController extends Controller
 {
+    public function index(Request $request){return view('imports.excel.index',['targets'=>['suppliers','personnel','goods_categories','units','goods','locations','customers']]);}
+
     public function inspect(Request $request, ExcelImportService $service)
     {
         $request->validate(['file' => ['required', 'file', 'max:25600']]);
