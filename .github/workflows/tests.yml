@@ -21,8 +21,6 @@ jobs:
       - run: cp .env.example .env
       - run: php artisan key:generate
       - run: touch database/database.sqlite
-      - run: php artisan test tests/Feature/SalesOperationalWorkflowTest.php
-      - run: php artisan test tests/Feature/MaterialRequestHandoverTest.php
-      - run: php artisan test tests/Feature/InventoryValuationTest.php
-      - run: php artisan test tests/Feature/LaborCostTest.php
-      - run: php artisan test tests/Feature/CostingReportTest.php
+      - run: php artisan migrate:status
+      - run: php artisan route:list --json > /tmp/routes.json
+      - run: php artisan test
