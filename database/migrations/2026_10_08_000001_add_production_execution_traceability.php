@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        if (Schema::hasTable('production_sections') && !Schema::hasColumn('production_sections','is_active')) {
+            Schema::table('production_sections', function (Blueprint $table) { $table->boolean('is_active')->default(true)->index(); });
+        }
+
         if (Schema::hasTable('production_stages') && !Schema::hasColumn('production_stages','production_section_id')) {
             Schema::table('production_stages', function (Blueprint $table) {
                 $table->foreignId('production_section_id')->nullable()->after('production_route_id')->constrained('production_sections')->restrictOnDelete();
@@ -49,6 +53,9 @@ return new class extends Migration {
     {
         Schema::dropIfExists('production_operation_outputs');
         Schema::dropIfExists('production_operation_inputs');
+        if (Schema::hasTable('production_sections') && Schema::hasColumn('production_sections','is_active')) {
+            Schema::table('production_sections', function (Blueprint $table) { $table->dropColumn('is_active'); });
+        }
         if (Schema::hasTable('production_stages') && Schema::hasColumn('production_stages','production_section_id')) {
             Schema::table('production_stages', function (Blueprint $table) {
                 $table->dropForeign(['production_section_id']);
