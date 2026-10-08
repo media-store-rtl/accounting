@@ -69,6 +69,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/reports/costing', [CostingReportController::class, 'index'])
         ->middleware('company.permission:costing.report.view')->name('reports.costing');
+    Route::post('/reports/costing/calculate', [CostingReportController::class, 'calculate'])
+        ->middleware('company.permission:costing.report.view')->name('reports.costing.calculate');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/sso/logout', [AccountingSsoController::class, 'logout'])->name('sso.logout');
 
@@ -109,6 +111,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/production/labor', [WorkflowPagesController::class,'labor'])->middleware('company.permission:production.labor.create')->name('workflows.labor');
     Route::post('/production/labor', [WorkflowPagesController::class,'storeLabor'])->middleware('company.permission:production.labor.create')->name('workflows.labor.store');
     Route::get('/inventory', [WorkflowPagesController::class,'inventory'])->middleware('company.permission:inventory.view')->name('inventory.index');
+    Route::post('/inventory/{inventory}/adjust', [WorkflowPagesController::class,'adjustInventory'])->middleware('company.permission:inventory.adjust')->name('inventory.adjust');
+    Route::post('/inventory/{inventory}/reorder-point', [WorkflowPagesController::class,'setReorderPoint'])->middleware('company.permission:inventory.reorder_point.manage')->name('inventory.reorder-point');
     Route::get('/handovers', [WorkflowPagesController::class,'handovers'])->middleware('company.permission:supply_request.handover.view')->name('workflows.handovers');
     Route::post('/handovers', [WorkflowPagesController::class,'storeHandover'])->middleware('company.permission:supply_request.handover.create')->name('workflows.handovers.store');
     Route::get('/receipts', [WorkflowPagesController::class,'receipts'])->middleware('company.permission:purchase.receipt.create')->name('workflows.receipts');
@@ -152,7 +156,8 @@ Route::middleware('auth')->group(function () {
         Route::put('/personnel/{personnel}', [PersonnelController::class, 'update'])->middleware('company.permission:personnel.update')->name('personnel.update');
         Route::post('/personnel/{personnel}/deactivate', [PersonnelController::class, 'deactivate'])->middleware('company.permission:personnel.deactivate')->name('personnel.deactivate');
 
-                    Route::get('/users', [UserManagementController::class, 'index'])->middleware('company.permission:user.view')->name('users.index');
+        Route::middleware('account.owner')->group(function () {
+            Route::get('/users', [UserManagementController::class, 'index'])->middleware('company.permission:user.view')->name('users.index');
             Route::get('/users/create', [UserManagementController::class, 'create'])->middleware('company.permission:user.create')->name('users.create');
             Route::post('/users', [UserManagementController::class, 'store'])->middleware('company.permission:user.create')->name('users.store');
             Route::get('/users/{user}/edit', [UserManagementController::class, 'edit'])->middleware('company.permission:user.update')->name('users.edit');
@@ -165,5 +170,6 @@ Route::middleware('auth')->group(function () {
             Route::post('/roles', [RoleController::class, 'store'])->middleware('company.permission:role.create')->name('roles.store');
             Route::put('/roles/{role}', [RoleController::class, 'update'])->middleware('company.permission:role.update')->name('roles.update');
             Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->middleware('company.permission:role.delete')->name('roles.destroy');
+        });
     });
 });
