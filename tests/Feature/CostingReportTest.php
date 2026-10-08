@@ -11,6 +11,44 @@ class CostingReportTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_empty_costing_report_returns_empty_valuation_methods(): void
+    {
+        $account = DB::table('accounts')->insertGetId([
+            'name' => 'Empty Report Account',
+            'code' => 'ERA'.uniqid(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $company = DB::table('companies')->insertGetId([
+            'account_id' => $account,
+            'name' => 'Empty Report Company',
+            'code' => 'ERC'.uniqid(),
+            'is_active' => true,
+            'settings' => json_encode([]),
+            'inventory_valuation_method' => 'fifo',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $fy = DB::table('fiscal_years')->insertGetId([
+            'company_id' => $company,
+            'name' => '1405',
+            'code' => 'FY'.uniqid(),
+            'starts_at' => '2026-03-21',
+            'ends_at' => '2027-03-20',
+            'is_closed' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $report = app(CostingReportService::class)->generate($company, $fy);
+
+        $this->assertSame([], $report['rows']);
+        $this->assertSame([], $report['valuation_methods']);
+        $this->assertSame(0.0, $report['totals']['material_cost']);
+        $this->assertSame(0.0, $report['totals']['labor_cost']);
+        $this->assertSame(0.0, $report['totals']['total_cost']);
+    }
+
     public function test_costing_report_aggregates_material_and_approved_labor_by_order_and_product(): void
     {
         $account=DB::table('accounts')->insertGetId(['name'=>'Report Account','code'=>'RA'.uniqid(),'created_at'=>now(),'updated_at'=>now()]);
