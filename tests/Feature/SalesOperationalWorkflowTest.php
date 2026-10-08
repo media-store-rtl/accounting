@@ -77,9 +77,12 @@ class SalesOperationalWorkflowTest extends TestCase
         $this->assertSame('pending',$output->status);
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>0]);
 
-        $service->confirm($c['company'],$output->id,$c['user']);
+        $service->approve($c['company'],$output->id,$c['user']);
 
         $this->assertDatabaseHas('production_outputs',['id'=>$output->id,'status'=>'confirmed','order_id'=>$order]);
+        $this->assertDatabaseHas('finished_goods_receipts',['production_output_id'=>$output->id,'status'=>'pending']);
+
+        $service->receive($c['company'],$output->id,$c['user']);
         $this->assertDatabaseHas('finished_goods_receipts',['production_output_id'=>$output->id,'status'=>'approved']);
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>4]);
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'finished_goods_receipt','reference_type'=>'production_outputs','reference_id'=>$output->id,'quantity'=>4]);
