@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use RuntimeException;
 use Throwable;
 
@@ -120,7 +120,7 @@ class ExcelImportService
         foreach ($this->targets()[$target] as $column) {
             $meta = $columns->firstWhere('name', $column);
             $value = $row[$column] ?? null;
-            if (! (bool) ($meta['nullable'] ?? false) && ($value === null || trim((string) $value) === '')) {
+            if (! (bool) ($meta['nullable'] ?? false) && ($meta['default'] ?? null) === null && ($value === null || trim((string) $value) === '')) {
                 $errors[] = "$column is required";
                 continue;
             }
@@ -208,7 +208,7 @@ class ExcelImportService
         $highestColumnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
         $headers = [];
         for ($i = 1; $i <= $highestColumnIndex; $i++) {
-            $value = trim((string) $sheet->getCell(Coordinate::stringFromColumnIndex($i). '1')->getValue());
+            $value = trim((string) $sheet->getCell(Coordinate::stringFromColumnIndex($i).'1')->getValue());
             if ($value === '') continue;
             if (in_array($value, $headers, true)) throw new RuntimeException("Duplicate Excel column: {$value}");
             $headers[] = $value;
