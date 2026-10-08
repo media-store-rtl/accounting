@@ -106,11 +106,17 @@ final class ProductionExecutionService
             }
 
             if(!$approve){
+                $before=(array)$context;
                 DB::table('production_operation_runs')->where('id',$operationRunId)->update(['status'=>'rejected','notes'=>trim(($context->notes??'')."\nرد: ".($reason??'')),'updated_at'=>now()]);
+                $after=(array)DB::table('production_operation_runs')->where('id',$operationRunId)->first();
+                $this->audit($companyId,$reviewerId,'operation.reject',$operationRunId,$before,$after);
                 return;
             }
 
+            $before=(array)$context;
             DB::table('production_operation_runs')->where('id',$operationRunId)->update(['status'=>'completed','updated_at'=>now()]);
+            $after=(array)DB::table('production_operation_runs')->where('id',$operationRunId)->first();
+            $this->audit($companyId,$reviewerId,'operation.approve',$operationRunId,$before,$after);
             $stageRun=DB::table('production_stage_runs')->where('id',$context->production_stage_run_id)->lockForUpdate()->first();
             $pending=DB::table('production_operation_runs')->where('production_stage_run_id',$stageRun->id)->whereIn('status',['pending','in_progress','pending_review'])->exists();
             $rejected=DB::table('production_operation_runs')->where('production_stage_run_id',$stageRun->id)->where('status','rejected')->exists();
