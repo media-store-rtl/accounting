@@ -17,7 +17,7 @@ class UserAccessTest extends TestCase
 
     public function test_user_without_permission_cannot_reach_protected_user_url(): void
     {
-        [$user] = $this->makeUserWithCompany(false);
+        [$user, $company] = $this->makeUserWithCompany(false);
 
         $this->actingAs($user)->withSession(['company_id' => $company->id])->get('/settings/users')->assertForbidden();
     }
