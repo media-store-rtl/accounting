@@ -48,7 +48,7 @@ final class ProductionOutputController extends Controller
     public function confirm(Request $request, int $output, ProductionOutputService $service)
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.output.confirm');
-        $service->confirm($companyId,$output,(int)$request->user()->id);
+        $service->approve($companyId,$output,(int)$request->user()->id);
         return back()->with('success','خروجی تولید تأیید شد و وارد موجودی شد.');
     }
 
@@ -63,7 +63,7 @@ final class ProductionOutputController extends Controller
     public function receive(Request $request, int $output, ProductionOutputService $service)
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.output.receive');
-        $service->confirm($companyId,$output,(int)$request->user()->id);
+        $service->receive($companyId,$output,(int)$request->user()->id);
         return back()->with('success','دریافت کالای ساخته‌شده ثبت شد.');
     }
 }
