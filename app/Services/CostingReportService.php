@@ -16,6 +16,7 @@ final class CostingReportService
         $rows=[];
         $this->materials($rows,$companyId,$fiscalYearId,$orderId,$goodsId);
         $this->labor($rows,$companyId,$fiscalYearId,$orderId,$goodsId);
+        $this->directPurchaseCosts($rows,$companyId,$fiscalYearId,$orderId,$goodsId);
         $this->scraps($rows,$companyId,$fiscalYearId,$orderId,$goodsId);
 
         $ids=array_values(array_unique(array_filter(array_column($rows,'goods_id'))));
@@ -29,7 +30,8 @@ final class CostingReportService
             $row['material_cost']=round($row['material_cost'],4);
             $row['labor_cost']=round($row['labor_cost'],4);
             $row['scrap_cost']=round($row['scrap_cost'],4);
-            $row['total_cost']=round($row['material_cost']+$row['labor_cost']+$row['scrap_cost'],4);
+            $row['direct_cost']=round($row['direct_cost'],4);
+            $row['total_cost']=round($row['material_cost']+$row['labor_cost']+$row['scrap_cost']+$row['direct_cost'],4);
             $row['unvalued_material_quantity']=round($row['unvalued_material_quantity'],4);
         } unset($row);
 
@@ -48,6 +50,7 @@ final class CostingReportService
                 'material_cost'=>round(array_sum(array_column($rows,'material_cost')),4),
                 'labor_cost'=>round(array_sum(array_column($rows,'labor_cost')),4),
                 'scrap_cost'=>round(array_sum(array_column($rows,'scrap_cost')),4),
+                'direct_cost'=>round(array_sum(array_column($rows,'direct_cost')),4),
                 'total_cost'=>round(array_sum(array_column($rows,'total_cost')),4),
                 'unvalued_material_quantity'=>round(array_sum(array_column($rows,'unvalued_material_quantity')),4),
             ],
@@ -89,6 +92,35 @@ final class CostingReportService
             $p=$goods->get((int)$c->production_id);if(!$p||($goodsId!==null&&(int)$p->goods_id!==$goodsId))continue;
             foreach($links->get((int)$c->production_id,collect()) as $link){
                 if($orderId!==null&&(int)$link->order_id!==$orderId)continue;$key=$this->key((int)$link->order_id,(int)$p->goods_id);$this->row($rows,$key,(int)$link->order_id,(int)$p->goods_id);$rows[$key]['labor_cost']+=(float)$c->total_cost;
+            }
+        }
+    }
+
+    private function directPurchaseCosts(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId): void
+    {
+        $purchases=DB::table('purchases as p')
+            ->join('supply_requests as sr','sr.id','=','p.supply_request_id')
+            ->join('purchase_items as pi','pi.purchase_id','=','p.id')
+            ->join('purchase_direct_costs as dc','dc.purchase_id','=','p.id')
+            ->where('p.company_id',$companyId)
+            ->when($fy,fn($q)=>$q->where('p.fiscal_year_id',$fy))
+            ->when($goodsId,fn($q)=>$q->where('pi.goods_id',$goodsId))
+            ->select('p.id as purchase_id','sr.order_id','sr.production_id','pi.goods_id','pi.line_total','p.subtotal','dc.amount')
+            ->get();
+        $prodIds=$purchases->pluck('production_id')->filter()->unique()->values();
+        $links=$prodIds->isEmpty()?collect():DB::table('production_order')->whereIn('production_id',$prodIds)->get(['production_id','order_id'])->groupBy('production_id');
+        foreach($purchases->groupBy('purchase_id') as $purchaseRows){
+            $subtotal=(float)$purchaseRows->first()->subtotal;
+            if($subtotal<=0) continue;
+            $directTotal=(float)$purchaseRows->sum('amount');
+            foreach($purchaseRows->unique('goods_id') as $line){
+                $oid=$line->order_id;
+                if($oid===null && $line->production_id) $oid=$links->get((int)$line->production_id)?->first()?->order_id;
+                if($orderId!==null && (int)$oid!==$orderId) continue;
+                $lineShare=max(0.0,(float)$line->line_total)/$subtotal;
+                $key=$this->key($oid,(int)$line->goods_id);
+                $this->row($rows,$key,$oid,(int)$line->goods_id);
+                $rows[$key]['direct_cost'] += $directTotal*$lineShare;
             }
         }
     }
