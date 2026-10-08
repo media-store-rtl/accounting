@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AuditTrail;
 use App\Models\ProductionOutput;
 use App\Models\User;
 use App\Notifications\WorkflowNotification;
@@ -84,6 +85,16 @@ class ProductionOutputService
             if($salesUsers->isNotEmpty()) Notification::send(User::whereIn('id',$salesUsers)->get(),new WorkflowNotification('finished_goods_received',['production_output_id'=>(int)$outputId,'production_id'=>(int)$output->production_id,'goods_id'=>(int)$output->goods_id,'quantity'=>(float)$output->quantity]));
             return ProductionOutput::query()->findOrFail($outputId);
         });
+    }
+
+    private function audit(int $companyId,int $userId,string $action,int $auditableId,object $before): void
+    {
+        AuditTrail::create([
+            'company_id'=>$companyId,'user_id'=>$userId,'module'=>'production',
+            'action'=>$action,'auditable_type'=>'production_outputs','auditable_id'=>$auditableId,
+            'before'=>['status'=>$before->status ?? null],
+            'after'=>['status'=>DB::table('production_outputs')->where('id',$auditableId)->value('status')],
+        ]);
     }
 
     public function reject(int $companyId,int $outputId,int $userId,?string $reason=null): ProductionOutput
