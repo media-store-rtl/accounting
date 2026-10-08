@@ -479,3 +479,26 @@ Blockerهای اصلی:
 - گزارش بدون داده واقعی
 
 **این فایل باید همراه با هر تغییر مهم به‌روزرسانی شود و وضعیت واقعی پروژه را ثبت کند، نه صرفاً خوش‌بینانه‌ترین وضعیت ممکن را.**
+
+
+# 18. Current implementation audit — 2026-10-08
+
+این بخش وضعیت را بر اساس کد موجود در main ثبت می‌کند و فقط مواردی را PASS می‌داند که implementation واقعی در Repository دارند.
+
+- ✅ Company profile و fiscal-year management در مسیر واقعی Accounting پیاده شده‌اند.
+- ✅ Users / Personnel / Roles / server-side company permissions در مسیرهای فعلی پیاده شده‌اند.
+- ✅ Suppliers / Goods / Units / Locations / Production Sections / Routes / Stages / Operations / Productions دارای UI و عملیات CRUD مبتنی بر دیتابیس هستند.
+- ✅ Order → stock check → shortage → supply → purchase → receipt و Material Handover دارای Backend و صفحات عملیاتی هستند.
+- ✅ Inventory valuation با FIFO و Weighted Average و snapshot هزینه مصرف مواد پیاده شده است.
+- ✅ Labor costing با نرخ مؤثر، ثبت کارکرد، تأیید/رد و snapshot هزینه پیاده شده است.
+- ✅ Production Output و Finished Goods Receipt با تفکیک تأیید تولید و دریافت انبار پیاده شده‌اند.
+- ✅ Production Operation Execution با ورودی/خروجی قابل ردیابی، ضایعات، تأیید سرپرست، تغییر وضعیت تولید و Audit ثبت‌شده پیاده شده است.
+- ✅ Costing Report در سطح سفارش/محصول، شامل مواد، دستمزد، ضایعات و روش ارزش‌گذاری، پیاده شده است.
+- ✅ Notification Center و Cross-App SSO Logout به مسیر امن Web2022 متصل شده‌اند.
+- ✅ Backup/Restore و Excel Import دارای Backend و UI هستند.
+- 🟡 اجرای واقعی Production/cPanel هنوز در این محیط انجام نشده و قبل از deploy نهایی باید migrate:status، route:list، full PHPUnit و browser E2E روی محیط قابل اجرا تأیید شوند.
+- 🟡 هزینه‌های سربار عمومی که در Definition به‌صورت جزئیات آینده/طراحی حسابداری نهایی تعریف شده‌اند، تا زمانی که قاعده تخصیص کسب‌وکاری نهایی نشود به‌صورت حدسی اضافه نمی‌شوند.
+- 🟡 SSO subscription entitlement از Web2022 دریافت می‌شود؛ فرآیند پرداخت در Accounting ایجاد نشده و مطابق Definition باید در Web2022 باقی بماند.
+
+## QA rule
+تا زمان دریافت evidence اجرای full suite و migration/route verification، این سند ادعای PASS نهایی Production نمی‌کند. هیچ storage یا فایل محیطی نباید در deployment overwrite شود؛ .cpanel.yml فعلی این موارد را exclude می‌کند.
