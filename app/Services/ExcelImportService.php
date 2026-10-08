@@ -81,7 +81,7 @@ class ExcelImportService
             DB::transaction(function () use (&$count, $sheet, $headers, $highest, $mapping, $companyId, $target): void {
                 for ($rowNumber = 2; $rowNumber <= $highest; $rowNumber++) {
                     $source = [];
-                    foreach ($headers as $index => $header) $source[$header] = $sheet->getCellByColumnAndRow($index + 1, $rowNumber)->getValue();
+                    foreach ($headers as $index => $header) $source[$header] = $sheet->getCell(Coordinate::stringFromColumnIndex($index + 1).$rowNumber)->getValue();
                     if (count(array_filter($source, fn ($value) => $value !== null && trim((string) $value) !== '')) === 0) continue;
 
                     $mapped = ['company_id' => $companyId];
