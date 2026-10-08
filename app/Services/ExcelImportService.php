@@ -120,7 +120,7 @@ class ExcelImportService
         foreach ($this->targets()[$target] as $column) {
             $meta = $columns->firstWhere('name', $column);
             $value = $row[$column] ?? null;
-            if (! (bool) ($meta['nullable'] ?? false) && ($value === null || trim((string) $value) === '')) {
+            if (! (bool) ($meta['nullable'] ?? false) && ($meta['default'] ?? null) === null && ($value === null || trim((string) $value) === '')) {
                 $errors[] = "$column is required";
                 continue;
             }
