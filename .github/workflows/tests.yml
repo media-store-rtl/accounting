@@ -21,6 +21,8 @@ jobs:
       - run: cp .env.example .env
       - run: php artisan key:generate
       - run: touch database/database.sqlite
+      - run: sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env
+      - run: sed -i 's#^DB_DATABASE=.*#DB_DATABASE=database/database.sqlite#' .env
       - run: php artisan migrate:status
       - run: php artisan route:list --json > /tmp/routes.json
       - run: php artisan test
