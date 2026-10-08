@@ -89,22 +89,16 @@ class BackupService
 
         $connection = $this->database->connection();
         $tables = array_values(array_diff(array_keys($payload['tables']), ['migrations', 'backup_files']));
+        $insertOrder = $this->dependencyOrder($tables);
+        $deleteOrder = array_reverse($insertOrder);
 
         try {
-            // SQLite cannot toggle foreign_keys while a transaction is active, so
-            // constraints are disabled before opening the transaction and restored
-            // in finally. MySQL/MariaDB are also safe with this ordering.
-            Schema::disableForeignKeyConstraints();
-            if ($connection->getDriverName() === 'sqlite') {
-                $connection->statement('PRAGMA foreign_keys = OFF');
-            }
-
-            $connection->transaction(function () use ($connection, $payload, $tables): void {
-                foreach ($tables as $table) {
+            $connection->transaction(function () use ($connection, $payload, $deleteOrder, $insertOrder): void {
+                foreach ($deleteOrder as $table) {
                     $connection->table($table)->delete();
                 }
 
-                foreach ($tables as $table) {
+                foreach ($insertOrder as $table) {
                     foreach (array_chunk($payload['tables'][$table]['rows'] ?? [], 500) as $chunk) {
                         if ($chunk !== []) {
                             $connection->table($table)->insert($chunk);
@@ -117,13 +111,38 @@ class BackupService
         } catch (Throwable $e) {
             throw new RuntimeException('Restore failed: '.$e->getMessage(), previous: $e);
         } finally {
-            try {
-                if ($connection->getDriverName() === 'sqlite') {
-                    $connection->statement('PRAGMA foreign_keys = ON');
-                }
-                Schema::enableForeignKeyConstraints();
-            } catch (Throwable) {}
+            try { Schema::enableForeignKeyConstraints(); } catch (Throwable) {}
         }
+    }
+
+    private function dependencyOrder(array $tables): array
+    {
+        $set=array_fill_keys($tables,true);
+        $dependencies=[];
+        $dependents=array_fill_keys($tables,[]);
+        $indegree=array_fill_keys($tables,0);
+        foreach($tables as $table){
+            $dependencies[$table]=[];
+            foreach(Schema::getForeignKeys($table) as $fk){
+                $parent=$fk['foreign_table']??null;
+                if($parent && $parent!==$table && isset($set[$parent]) && !isset($dependencies[$table][$parent])){
+                    $dependencies[$table][$parent]=true;
+                    $dependents[$parent][]=$table;
+                    $indegree[$table]++;
+                }
+            }
+        }
+        $queue=array_values(array_filter($tables,fn($t)=>$indegree[$t]===0));
+        $result=[];
+        while($queue){
+            $table=array_shift($queue); $result[]=$table;
+            foreach($dependents[$table] as $child){
+                $indegree[$child]--;
+                if($indegree[$child]===0)$queue[]=$child;
+            }
+        }
+        foreach($tables as $table) if(!in_array($table,$result,true)) $result[]=$table;
+        return $result;
     }
 
     private function buildPayload(): array
