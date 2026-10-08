@@ -87,5 +87,12 @@ class CostingReportTest extends TestCase
         $this->assertSame(5.0,$report['totals']['scrap_cost']);
         $this->assertSame(55.0,$report['totals']['total_cost']);
         $this->assertSame(0.0,$report['totals']['unvalued_material_quantity']);
+
+        $calculation=app(\App\Services\CostCalculationService::class)->calculate($company,$user,$fy,$order,$goods);
+        $this->assertSame(1,$calculation['count']);
+        $this->assertDatabaseHas('cost_calculations',['id'=>$calculation['ids'][0],'company_id'=>$company,'order_id'=>$order,'goods_id'=>$goods,'total_cost'=>55]);
+        $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'material','amount'=>20]);
+        $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'labor','amount'=>30]);
+        $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'scrap','amount'=>5]);
     }
 }
