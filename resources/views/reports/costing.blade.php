@@ -25,8 +25,8 @@
 @if($report['totals']['unvalued_material_quantity']>0)<div class="warn">بخشی از خروج مواد هنوز ارزش‌گذاری نشده است؛ این مقدار عمداً در مبلغ بهای تمام‌شده وارد نشده است.</div>@endif
 <div class="panel"><div class="table-wrap">
 @if(empty($report['rows']))<div class="empty">برای فیلتر انتخاب‌شده داده هزینه‌ای ثبت نشده است.</div>@else
-<table class="table"><thead><tr><th>سفارش</th><th>محصول</th><th>مواد</th><th>دستمزد</th><th>جمع</th><th>روش</th><th>مصرف بدون ارزش‌گذاری</th></tr></thead><tbody>
-@foreach($report['rows'] as $row)<tr><td>{{ $row['order_id'] ?? 'بدون سفارش' }}</td><td>{{ $row['goods_code'] }} — {{ $row['goods_name'] }}</td><td>{{ number_format($row['material_cost'],4) }}</td><td>{{ number_format($row['labor_cost'],4) }}</td><td><strong>{{ number_format($row['total_cost'],4) }}</strong></td><td>{{ implode('، ',$row['valuation_methods']) ?: '—' }}</td><td>{{ number_format($row['unvalued_material_quantity'],4) }}</td></tr>@endforeach
+<table class="table"><thead><tr><th>سفارش</th><th>محصول</th><th>مواد</th><th>دستمزد</th><th>ضایعات</th><th>جمع</th><th>روش</th><th>مصرف بدون ارزش‌گذاری</th></tr></thead><tbody>
+@foreach($report['rows'] as $row)<tr><td>{{ $row['order_id'] ?? 'بدون سفارش' }}</td><td>{{ $row['goods_code'] }} — {{ $row['goods_name'] }}</td><td>{{ number_format($row['material_cost'],4) }}</td><td>{{ number_format($row['labor_cost'],4) }}</td><td>{{ number_format($row['scrap_cost'],4) }}</td><td><strong>{{ number_format($row['total_cost'],4) }}</strong></td><td>{{ implode('، ',$row['valuation_methods']) ?: '—' }}</td><td>{{ number_format($row['unvalued_material_quantity'],4) }}</td></tr>@endforeach
 </tbody></table>@endif
 </div></div>
 </div></body></html>
