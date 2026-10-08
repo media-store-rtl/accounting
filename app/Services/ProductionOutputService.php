@@ -35,23 +35,40 @@ class ProductionOutputService
         });
     }
 
-    public function confirm(int $companyId,int $outputId,int $userId,?string $receivedAt=null): ProductionOutput
+    public function approve(int $companyId, int $outputId, int $userId): ProductionOutput
     {
-        return DB::transaction(function()use($companyId,$outputId,$userId,$receivedAt){
+        return DB::transaction(function () use ($companyId,$outputId,$userId) {
             $output=DB::table('production_outputs')->where('id',$outputId)->where('company_id',$companyId)->lockForUpdate()->first();
-            if(!$output||$output->status!=='pending') throw ValidationException::withMessages(['output'=>'این خروجی در وضعیت قابل تأیید نیست.']);
+            if(!$output || $output->status!=='pending') throw ValidationException::withMessages(['output'=>'این خروجی در وضعیت قابل تأیید نیست.']);
+            $production=DB::table('productions')->where('id',$output->production_id)->where('company_id',$companyId)->first();
+            if(!$production || $production->status!=='completed') throw ValidationException::withMessages(['production'=>'تولید باید قبل از تأیید خروجی تکمیل شده باشد.']);
+            DB::table('production_outputs')->where('id',$outputId)->update([
+                'status'=>'confirmed','confirmed_at'=>now(),'confirmed_by_user_id'=>$userId,'updated_at'=>now()
+            ]);
+            return ProductionOutput::query()->findOrFail($outputId);
+        });
+    }
+
+    public function receive(int $companyId, int $outputId, int $userId, ?string $receivedAt=null): ProductionOutput
+    {
+        return DB::transaction(function() use ($companyId,$outputId,$userId,$receivedAt) {
+            $output=DB::table('production_outputs')->where('id',$outputId)->where('company_id',$companyId)->lockForUpdate()->first();
+            if(!$output || $output->status!=='confirmed') throw ValidationException::withMessages(['output'=>'خروجی باید ابتدا توسط سرپرست تولید تأیید شود.']);
             $receipt=DB::table('finished_goods_receipts')->where('production_output_id',$output->id)->where('company_id',$companyId)->lockForUpdate()->first();
-            if(!$receipt||$receipt->status!=='pending') throw ValidationException::withMessages(['receipt'=>'رسید کالای ساخته‌شده قابل تأیید نیست.']);
-            $production=DB::table('productions')->where('id',$output->production_id)->where('company_id',$companyId)->lockForUpdate()->firstOrFail();
-            if($production->status!=='completed') throw ValidationException::withMessages(['production'=>'تولید باید قبل از دریافت کالای ساخته‌شده تکمیل شده باشد.']);
+            if(!$receipt || $receipt->status!=='pending') throw ValidationException::withMessages(['receipt'=>'رسید کالای ساخته‌شده قابل دریافت نیست.']);
+            $production=DB::table('productions')->where('id',$output->production_id)->where('company_id',$companyId)->lockForUpdate()->first();
+            if(!$production || $production->status!=='completed') throw ValidationException::withMessages(['production'=>'تولید باید تکمیل شده باشد.']);
             $remaining=(float)$production->planned_quantity-(float)$production->produced_quantity;
-            if((float)$output->quantity>$remaining+0.0000001) throw ValidationException::withMessages(['quantity'=>'مقدار تأییدشده بیش از مقدار باقی‌مانده تولید است.']);
+            if((float)$output->quantity>$remaining+0.0000001) throw ValidationException::withMessages(['quantity'=>'مقدار دریافت‌شده بیش از مقدار باقی‌مانده تولید است.']);
 
             app(InventoryService::class)->receiveFinishedGoods($companyId,(int)$output->warehouse_location_id,(int)$output->goods_id,(float)$output->quantity,'production_outputs',(int)$output->id,['production_id'=>(int)$output->production_id,'order_id'=>$output->order_id]);
-            DB::table('production_outputs')->where('id',$output->id)->update(['status'=>'confirmed','confirmed_at'=>now(),'confirmed_by_user_id'=>$userId,'updated_at'=>now()]);
-            DB::table('finished_goods_receipts')->where('id',$receipt->id)->update(['status'=>'approved','received_by_user_id'=>$userId,'received_at'=>$receivedAt??now(),'approved_at'=>now(),'approved_by_user_id'=>$userId,'updated_at'=>now()]);
-            DB::table('productions')->where('id',$production->id)->update(['produced_quantity'=>DB::raw('produced_quantity + '.(float)$output->quantity),'updated_at'=>now()]);
-            return ProductionOutput::query()->findOrFail($output->id);
+            DB::table('finished_goods_receipts')->where('id',$receipt->id)->update([
+                'status'=>'approved','received_by_user_id'=>$userId,'received_at'=>$receivedAt??now(),'approved_at'=>now(),'approved_by_user_id'=>$userId,'updated_at'=>now()
+            ]);
+            DB::table('productions')->where('id',$production->id)->update([
+                'produced_quantity'=>DB::raw('produced_quantity + '.(float)$output->quantity),'updated_at'=>now()
+            ]);
+            return ProductionOutput::query()->findOrFail($outputId);
         });
     }
 
