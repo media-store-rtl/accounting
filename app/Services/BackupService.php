@@ -99,7 +99,7 @@ class BackupService
             Schema::disableForeignKeyConstraints();
             $constraintsDisabled = true;
 
-            $connection->transaction(function () use ($connection, $payload, $tables): void {
+            $connection->transaction(function () use ($connection, $payload, $restoreOrder): void {
                 foreach (array_reverse($restoreOrder) as $table) {
                     $connection->table($table)->delete();
                 }
