@@ -35,6 +35,13 @@ class ProductionOutputService
         });
     }
 
+    /** Backward-compatible service operation: confirm production output and immediately receive it. */
+    public function confirm(int $companyId,int $outputId,int $userId,?string $receivedAt=null): ProductionOutput
+    {
+        $this->approve($companyId,$outputId,$userId);
+        return $this->receive($companyId,$outputId,$userId,$receivedAt);
+    }
+
     public function approve(int $companyId, int $outputId, int $userId): ProductionOutput
     {
         return DB::transaction(function () use ($companyId,$outputId,$userId) {
