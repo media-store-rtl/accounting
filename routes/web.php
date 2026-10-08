@@ -19,6 +19,9 @@ use App\Http\Controllers\PurchaseReceiptController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SupplyRequestController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\MasterDataController;
+use App\Http\Controllers\ProductionOutputController;
+use App\Http\Controllers\WorkflowPagesController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -35,7 +38,19 @@ Route::get('/sso/start', [AccountingSsoController::class, 'start'])->name('sso.s
 Route::get('/sso/callback', [AccountingSsoController::class, 'callback'])->name('sso.callback');
 
 Route::middleware('auth')->group(function () {
+    Route::prefix('master')->name('master.')->group(function () {
+        Route::get('/{module}', [MasterDataController::class,'index'])->name('index');
+        Route::get('/{module}/create', [MasterDataController::class,'create'])->name('create');
+        Route::post('/{module}', [MasterDataController::class,'store'])->name('store');
+        Route::get('/{module}/{id}/edit', [MasterDataController::class,'edit'])->name('edit');
+        Route::put('/{module}/{id}', [MasterDataController::class,'update'])->name('update');
+        Route::post('/productions/{id}/start', [MasterDataController::class,'startProduction'])->middleware('company.permission:production.supervise')->name('production.start');
+        Route::post('/{module}/{id}/deactivate', [MasterDataController::class,'deactivate'])->name('deactivate');
+    });
+
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/notifications', [\App\Http\Controllers\NotificationCenterController::class,'index'])->middleware('company.permission:notification.view')->name('notifications.index');
+    Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationCenterController::class,'read'])->middleware('company.permission:notification.view')->name('notifications.read');
 
     Route::get('/company', [CompanyController::class, 'edit'])
         ->middleware(['company.permission:company.view', 'account.owner'])
@@ -55,6 +70,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/costing', [CostingReportController::class, 'index'])
         ->middleware('company.permission:costing.report.view')->name('reports.costing');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::get('/sso/logout', [AccountingSsoController::class, 'logout'])->name('sso.logout');
 
     Route::get('/sales/customers', [CustomerController::class, 'index'])->middleware('company.permission:customer.view')->name('sales.customers.index');
     Route::get('/sales/customers/create', [CustomerController::class, 'create'])->middleware('company.permission:customer.create')->name('sales.customers.create');
@@ -86,6 +102,33 @@ Route::middleware('auth')->group(function () {
         Route::post('/production/labor/rates', [LaborCostController::class, 'setRate'])->middleware('company.permission:production.labor.rate.manage')->name('production.labor.rates.store');
     });
 
+    Route::get('/supply', [WorkflowPagesController::class,'supply'])->middleware('company.permission:supply_request.view')->name('workflows.supply');
+    Route::post('/supply', [WorkflowPagesController::class,'storeSupply'])->middleware('company.permission:supply_request.create')->name('workflows.supply.store');
+    Route::get('/purchasing', [WorkflowPagesController::class,'purchasing'])->middleware('company.permission:purchase.view')->name('workflows.purchasing');
+    Route::post('/purchasing', [WorkflowPagesController::class,'storePurchase'])->middleware('company.permission:purchase.create')->name('workflows.purchasing.store');
+    Route::get('/production/labor', [WorkflowPagesController::class,'labor'])->middleware('company.permission:production.labor.create')->name('workflows.labor');
+    Route::post('/production/labor', [WorkflowPagesController::class,'storeLabor'])->middleware('company.permission:production.labor.create')->name('workflows.labor.store');
+    Route::get('/inventory', [WorkflowPagesController::class,'inventory'])->middleware('company.permission:inventory.view')->name('inventory.index');
+    Route::get('/handovers', [WorkflowPagesController::class,'handovers'])->middleware('company.permission:supply_request.handover.view')->name('workflows.handovers');
+    Route::post('/handovers', [WorkflowPagesController::class,'storeHandover'])->middleware('company.permission:supply_request.handover.create')->name('workflows.handovers.store');
+    Route::get('/receipts', [WorkflowPagesController::class,'receipts'])->middleware('company.permission:purchase.receipt.create')->name('workflows.receipts');
+    Route::post('/receipts', [WorkflowPagesController::class,'storeReceipt'])->middleware('company.permission:purchase.receipt.create')->name('workflows.receipts.store');
+    Route::post('/receipts/{id}/approve', [WorkflowPagesController::class,'approveReceipt'])->middleware('company.permission:purchase.receipt.approve')->name('workflows.receipts.approve');
+
+    Route::get('/production/execution', [\App\Http\Controllers\ProductionExecutionController::class,'index'])->middleware('company.permission:production.operation.view')->name('production.execution.index');
+    Route::get('/production/execution/create', [\App\Http\Controllers\ProductionExecutionController::class,'create'])->middleware('company.permission:production.operation.create')->name('production.execution.create');
+    Route::post('/production/execution', [\App\Http\Controllers\ProductionExecutionController::class,'store'])->middleware('company.permission:production.operation.create')->name('production.execution.store');
+    Route::post('/production/execution/{run}/review', [\App\Http\Controllers\ProductionExecutionController::class,'review'])->middleware('company.permission:production.operation.review')->name('production.execution.review');
+
+    Route::prefix('production/outputs')->name('production.outputs.')->group(function(){
+        Route::get('/',[ProductionOutputController::class,'index'])->name('index')->middleware('company.permission:production.output.view');
+        Route::get('/create',[ProductionOutputController::class,'create'])->name('create')->middleware('company.permission:production.output.create');
+        Route::post('/',[ProductionOutputController::class,'store'])->name('store')->middleware('company.permission:production.output.create');
+        Route::post('/{output}/confirm',[ProductionOutputController::class,'confirm'])->name('confirm')->middleware('company.permission:production.output.confirm');
+        Route::post('/{output}/reject',[ProductionOutputController::class,'reject'])->name('reject')->middleware('company.permission:production.output.confirm');
+        Route::post('/{output}/receive',[ProductionOutputController::class,'receive'])->name('receive')->middleware('company.permission:production.output.receive');
+    });
+
     Route::prefix('backups')->name('backups.')->group(function () {
         Route::get('/', [BackupController::class, 'index'])->middleware('company.permission:backup.view')->name('index');
         Route::post('/create', [BackupController::class, 'create'])->middleware('company.permission:backup.create')->name('create');
@@ -95,6 +138,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::prefix('imports/excel')->name('imports.excel.')->middleware('company.permission:import.excel')->group(function () {
+        Route::get('/', [ExcelImportController::class,'index'])->name('index');
         Route::post('/inspect', [ExcelImportController::class, 'inspect'])->name('inspect');
         Route::post('/validate', [ExcelImportController::class, 'validateMapping'])->name('validate');
         Route::post('/import', [ExcelImportController::class, 'import'])->name('import');

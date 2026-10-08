@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class DashboardController extends Controller
 {
@@ -81,29 +80,28 @@ class DashboardController extends Controller
                 ->when($fiscalYear, fn ($q) => $q->where('fiscal_year_id', $fiscalYear->id))
                 ->count();
 
-            if (Schema::hasTable('delivery_requests')) {
+            {
                 $stats['pending_deliveries'] = DB::table('delivery_requests')
                     ->where('company_id', $company->id)
                     ->whereIn('status', ['pending', 'requested'])
-                    ->when($fiscalYear && Schema::hasColumn('delivery_requests', 'fiscal_year_id'), fn ($q) => $q->where('fiscal_year_id', $fiscalYear->id))
                     ->count();
             }
 
-            if (Schema::hasTable('finished_goods_receipts')) {
+            {
                 $stats['pending_finished_goods'] = DB::table('finished_goods_receipts')
                     ->where('company_id', $company->id)
                     ->where('status', 'pending')
                     ->count();
             }
 
-            if ($fiscalYear && Schema::hasTable('inventory_consumption_costs')) {
+            if ($fiscalYear) {
                 $stats['material_cost'] = (float) DB::table('inventory_consumption_costs')
                     ->where('company_id', $company->id)
                     ->where('fiscal_year_id', $fiscalYear->id)
                     ->sum('total_cost');
             }
 
-            if ($fiscalYear && Schema::hasTable('production_labor_costs')) {
+            if ($fiscalYear) {
                 $stats['labor_cost'] = (float) DB::table('production_labor_costs')
                     ->where('company_id', $company->id)
                     ->where('fiscal_year_id', $fiscalYear->id)

@@ -1,0 +1,4 @@
+<?php
+namespace App\Services;
+use App\Models\AuditTrail; use Illuminate\Http\Request;
+class AuditTrailService { public function record(Request $request,string $module,string $action,?string $type=null,?int $id=null,?array $before=null,?array $after=null,?int $status=null):void { AuditTrail::create(['company_id'=>$request->session()->get('company_id'),'user_id'=>$request->user()?->id,'module'=>$module,'action'=>$action,'auditable_type'=>$type,'auditable_id'=>$id,'before'=>$before,'after'=>$after,'method'=>$request->method(),'route'=>$request->route()?->getName(),'ip_address'=>$request->ip(),'user_agent'=>substr((string)$request->userAgent(),0,65535),'status_code'=>$status]); } }

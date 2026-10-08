@@ -8,26 +8,14 @@ use App\Support\CompanyAuthorization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Pagination\LengthAwarePaginator;
 
 class DeliveryController extends Controller
 {
     public function index(Request $request)
     {
         $companyId=CompanyAuthorization::authorize($request,'delivery_request.view');
-        if (! Schema::hasTable('delivery_requests')) {
-            $deliveries = new LengthAwarePaginator(
-                collect(),
-                0,
-                20,
-                1,
-                ['path' => $request->url(), 'query' => $request->query()]
-            );
-        } else {
-            $deliveries=DB::table('delivery_requests as d')->join('orders as o','o.id','=','d.order_id')->join('customers as c','c.id','=','d.customer_id')
-                ->where('d.company_id',$companyId)->select('d.*','o.number as order_number','c.name as customer_name')->latest('d.id')->paginate(20);
-        }
+        $deliveries=DB::table('delivery_requests as d')->join('orders as o','o.id','=','d.order_id')->join('customers as c','c.id','=','d.customer_id')
+            ->where('d.company_id',$companyId)->select('d.*','o.number as order_number','c.name as customer_name')->latest('d.id')->paginate(20);
         return view('sales.deliveries.index',compact('deliveries'));
     }
 

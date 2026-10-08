@@ -53,11 +53,21 @@ class PermissionSeeder extends Seeder
             ['production.labor.review', 'تأیید یا رد کارکرد تولید', 'production'],
             ['production.labor.rate.manage', 'مدیریت نرخ دستمزد', 'production'],
 
+            ['notification.view', 'مشاهده اعلان‌ها', 'notifications'],
             ['backup.view', 'مشاهده پشتیبان‌ها', 'backup'], ['backup.create', 'ایجاد پشتیبان', 'backup'],
             ['backup.upload', 'بارگذاری پشتیبان', 'backup'], ['backup.restore', 'بازیابی پشتیبان', 'backup'],
             ['import.excel', 'ورود اطلاعات از Excel', 'import'],
 
             ['costing.report.view', 'مشاهده گزارش بهای تمام‌شده', 'costing'],
+            ['goods_category.view','مشاهده دسته‌بندی کالا','goods'],['goods_category.create','ایجاد دسته‌بندی کالا','goods'],['goods_category.update','ویرایش دسته‌بندی کالا','goods'],['goods_category.deactivate','غیرفعال‌سازی دسته‌بندی کالا','goods'],['unit.view','مشاهده واحدها','goods'],['unit.create','ایجاد واحد','goods'],['unit.update','ویرایش واحد','goods'],['unit.deactivate','غیرفعال‌سازی واحد','goods'],['production_section.view','مشاهده قسمت‌های تولید','production'],['production_section.create','ایجاد قسمت تولید','production'],['production_section.update','ویرایش قسمت تولید','production'],['production_section.deactivate','غیرفعال‌سازی قسمت تولید','production'],
+            ['supplier.view','مشاهده تأمین‌کنندگان','suppliers'],['supplier.create','ایجاد تأمین‌کننده','suppliers'],['supplier.update','ویرایش تأمین‌کننده','suppliers'],['supplier.deactivate','غیرفعال‌سازی تأمین‌کننده','suppliers'],
+            ['goods.view','مشاهده کالاها','goods'],['goods.create','ایجاد کالا','goods'],['goods.update','ویرایش کالا','goods'],['goods.deactivate','غیرفعال‌سازی کالا','goods'],
+            ['location.view','مشاهده انبارها و محل‌ها','warehouse'],['location.create','ایجاد انبار یا محل','warehouse'],['location.update','ویرایش انبار یا محل','warehouse'],['location.deactivate','غیرفعال‌سازی انبار یا محل','warehouse'],
+            ['production_route.view','مشاهده مسیرهای تولید','production'],['production_route.create','ایجاد مسیر تولید','production'],['production_route.update','ویرایش مسیر تولید','production'],['production_route.deactivate','غیرفعال‌سازی مسیر تولید','production'],
+            ['production_stage.view','مشاهده مراحل تولید','production'],['production_stage.create','ایجاد مرحله تولید','production'],['production_stage.update','ویرایش مرحله تولید','production'],['production_stage.deactivate','غیرفعال‌سازی مرحله تولید','production'],
+            ['production_operation.view','مشاهده عملیات تولید','production'],['production_operation.create','ایجاد عملیات تولید','production'],['production_operation.update','ویرایش عملیات تولید','production'],['production_operation.deactivate','غیرفعال‌سازی عملیات تولید','production'],
+            ['production.view','مشاهده تولید','production'],['production.create','ایجاد دستور تولید','production'],['production.update','ویرایش دستور تولید','production'],['production.deactivate','غیرفعال‌سازی دستور تولید','production'],
+            ['production.output.view','مشاهده خروجی تولید','production'],['production.operation.view','مشاهده اجرای عملیات تولید','production'],['production.operation.create','ثبت اجرای عملیات تولید','production'],['production.operation.review','تأیید یا رد اجرای عملیات تولید','production'],['production.output.create','ثبت خروجی تولید','production'],['production.output.confirm','تأیید/رد خروجی تولید','production'],['production.output.receive','دریافت کالای ساخته‌شده','warehouse'],['inventory.view','مشاهده موجودی','warehouse'],
         ];
 
         foreach ($permissions as [$slug, $name, $module]) {
