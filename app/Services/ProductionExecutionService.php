@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AuditTrail;
 use App\Notifications\WorkflowNotification;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -29,16 +30,7 @@ final class ProductionExecutionService
                 throw ValidationException::withMessages(['operation'=>'حداقل یک ورودی، خروجی یا ضایعات ثبت کنید.']);
             }
 
-            $before=(array)$context;
             $this->validateLines($companyId,$inputs,'ورودی');
-            foreach($inputs as $line){
-                if(!empty($line['source_inventory_movement_id'])){
-                    $movement=DB::table('inventory_movements')->where('id',(int)$line['source_inventory_movement_id'])->where('company_id',$companyId)->first();
-                    if(!$movement || (int)$movement->goods_id!==(int)$line['goods_id'] || (float)$movement->quantity>=0){
-                        throw ValidationException::withMessages(['inputs'=>'مرجع خروج موجودی برای ورودی عملیات نامعتبر است.']);
-                    }
-                }
-            }
             $this->validateLines($companyId,$outputs,'خروجی');
             foreach($scraps as $line){
                 if((float)($line['quantity']??0)<=0) throw ValidationException::withMessages(['scraps'=>'مقدار ضایعات باید بیشتر از صفر باشد.']);
@@ -75,14 +67,17 @@ final class ProductionExecutionService
                 ]);
             }
 
-            $after=(array)DB::table('production_operation_runs')->where('id',$operationRunId)->first();
-            $this->audit($companyId,$userId,'operation.submit',$operationRunId,$before,$after);
-
             $supervisor=DB::table('production_stages as s')
                 ->join('production_sections as ps','ps.id','=','s.production_section_id')
                 ->join('personnel as pe','pe.id','=','ps.supervisor_personnel_id')
                 ->join('users as u','u.id','=','pe.user_id')
                 ->where('s.id',$context->production_stage_id)->where('u.is_active',true)->first(['u.id']);
+            AuditTrail::create([
+                'company_id'=>$companyId,'user_id'=>$userId,'module'=>'production','action'=>'operation.submit',
+                'auditable_type'=>'production_operation_runs','auditable_id'=>$operationRunId,
+                'before'=>['status'=>$context->status],'after'=>['status'=>'pending_review'],
+            ]);
+
             if($supervisor && (int)$supervisor->id!==$userId){
                 Notification::send([User::query()->find((int)$supervisor->id)],new WorkflowNotification('production_operation_review_required',[
                     'operation_run_id'=>$operationRunId,'production_id'=>(int)$context->production_id
@@ -106,17 +101,21 @@ final class ProductionExecutionService
             }
 
             if(!$approve){
-                $before=(array)$context;
                 DB::table('production_operation_runs')->where('id',$operationRunId)->update(['status'=>'rejected','notes'=>trim(($context->notes??'')."\nرد: ".($reason??'')),'updated_at'=>now()]);
-                $after=(array)DB::table('production_operation_runs')->where('id',$operationRunId)->first();
-                $this->audit($companyId,$reviewerId,'operation.reject',$operationRunId,$before,$after);
+                AuditTrail::create([
+                    'company_id'=>$companyId,'user_id'=>$reviewerId,'module'=>'production','action'=>'operation.reject',
+                    'auditable_type'=>'production_operation_runs','auditable_id'=>$operationRunId,
+                    'before'=>['status'=>'pending_review'],'after'=>['status'=>'rejected','reason'=>$reason],
+                ]);
                 return;
             }
 
-            $before=(array)$context;
             DB::table('production_operation_runs')->where('id',$operationRunId)->update(['status'=>'completed','updated_at'=>now()]);
-            $after=(array)DB::table('production_operation_runs')->where('id',$operationRunId)->first();
-            $this->audit($companyId,$reviewerId,'operation.approve',$operationRunId,$before,$after);
+            AuditTrail::create([
+                'company_id'=>$companyId,'user_id'=>$reviewerId,'module'=>'production','action'=>'operation.approve',
+                'auditable_type'=>'production_operation_runs','auditable_id'=>$operationRunId,
+                'before'=>['status'=>'pending_review'],'after'=>['status'=>'completed'],
+            ]);
             $stageRun=DB::table('production_stage_runs')->where('id',$context->production_stage_run_id)->lockForUpdate()->first();
             $pending=DB::table('production_operation_runs')->where('production_stage_run_id',$stageRun->id)->whereIn('status',['pending','in_progress','pending_review'])->exists();
             $rejected=DB::table('production_operation_runs')->where('production_stage_run_id',$stageRun->id)->where('status','rejected')->exists();
@@ -132,11 +131,6 @@ final class ProductionExecutionService
                 DB::table('productions')->where('id',$productionId)->update(['status'=>'completed','completed_at'=>now(),'updated_at'=>now()]);
             }
         });
-    }
-
-    private function audit(int $companyId,int $userId,string $action,int $id,array $before,array $after): void
-    {
-        DB::table('audit_trails')->insert(['company_id'=>$companyId,'user_id'=>$userId,'module'=>'production','action'=>$action,'auditable_type'=>'production_operation_runs','auditable_id'=>$id,'before'=>json_encode($before),'after'=>json_encode($after),'method'=>'SERVICE','status_code'=>200,'created_at'=>now(),'updated_at'=>now()]);
     }
 
     private function context(int $companyId,int $operationRunId,bool $lock=false): object
