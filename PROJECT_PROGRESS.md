@@ -479,3 +479,23 @@ Blockerهای اصلی:
 - گزارش بدون داده واقعی
 
 **این فایل باید همراه با هر تغییر مهم به‌روزرسانی شود و وضعیت واقعی پروژه را ثبت کند، نه صرفاً خوش‌بینانه‌ترین وضعیت ممکن را.**
+
+
+# 18. Current implementation audit — 2026-10-08
+
+- ✅ Company profile and fiscal-year management are implemented with server-side authorization and database-backed state.
+- ✅ Users / Personnel / Roles and company permissions are enforced server-side; user management is permission-managed rather than UI-only.
+- ✅ Suppliers / Goods / Units / Locations / Production Sections / Routes / Stages / Operations / Productions have database-backed operational UI and backend flows.
+- ✅ Order → stock check → shortage → supply → purchase → receipt and material handover are implemented.
+- ✅ FIFO / Weighted Average inventory valuation and labor-cost snapshots are implemented.
+- ✅ Finished-goods output is separated into production approval and warehouse receipt.
+- ✅ Production operation execution now records operation inputs/outputs, scrap, supervisor review, state transitions and audit before/after data.
+- ✅ Costing reports include material cost, labor cost, direct purchase cost, scrap cost, valuation methods and unvalued material quantity.
+- ✅ Notification Center and secure Web2022 cross-app logout are implemented.
+- ✅ Backup/Restore and Excel Import have user-facing UI and transaction/validation handling.
+- ✅ CI now verifies migrations, route registration and the full PHPUnit suite. Latest verification run 37760887899 completed successfully.
+- 🟡 Browser E2E and real cPanel deployment have not been executed from this environment. Production deployment remains intentionally unclaimed until cPanel runs the storage-safe deployment configuration and the live smoke checks are performed.
+- 🟡 Payment remains outside Accounting; subscription entitlement is consumed from Web2022 as defined by the project scope.
+
+## Deployment safety
+The current cPanel deployment configuration excludes .env, storage, public/storage, node_modules and public/build from the repository copy, so deployment does not intentionally overwrite Laravel uploaded storage or the production environment file.
