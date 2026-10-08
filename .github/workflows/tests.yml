@@ -28,3 +28,5 @@ jobs:
       - run: php artisan migrate:status
       - run: php artisan route:list --json > /tmp/routes.json
       - run: php artisan test
+
+# Full-definition CI intentionally runs the complete suite.
