@@ -154,7 +154,7 @@ class BackupImportFeatureTest extends TestCase
         $sheet = $spreadsheet->getActiveSheet();
         foreach ($rows as $row => $values) {
             foreach ($values as $column => $value) {
-                $sheet->setCellValueByColumnAndRow($column + 1, $row + 1, $value);
+                $sheet->setCellValue(Coordinate::stringFromColumnIndex($column + 1).($row + 1), $value);
             }
         }
 
