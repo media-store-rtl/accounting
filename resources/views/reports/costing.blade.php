@@ -15,9 +15,10 @@
 <div><label>محصول / کالا</label><select name="goods_id"><option value="">همه</option>@foreach($goods as $good)<option value="{{ $good->id }}" @selected((int)request('goods_id')===(int)$good->id)>{{ $good->code }} — {{ $good->name }}</option>@endforeach</select></div>
 <div style="display:flex;align-items:end"><button type="submit">نمایش گزارش</button></div>
 </form></div>
-<div class="cards">
+<div class="cards" style="grid-template-columns:repeat(5,1fr)">
 <div class="card"><small>مواد مصرف‌شده</small><b>{{ number_format($report['totals']['material_cost'],4) }}</b></div>
 <div class="card"><small>دستمزد تأییدشده</small><b>{{ number_format($report['totals']['labor_cost'],4) }}</b></div>
+<div class="card"><small>هزینه مستقیم خرید</small><b>{{ number_format($report['totals']['direct_cost'] ?? 0,4) }}</b></div>
 <div class="card"><small>بهای تمام‌شده</small><b>{{ number_format($report['totals']['total_cost'],4) }}</b></div>
 <div class="card"><small>مصرف بدون ارزش‌گذاری</small><b>{{ number_format($report['totals']['unvalued_material_quantity'],4) }}</b></div>
 </div>
@@ -25,8 +26,8 @@
 @if($report['totals']['unvalued_material_quantity']>0)<div class="warn">بخشی از خروج مواد هنوز ارزش‌گذاری نشده است؛ این مقدار عمداً در مبلغ بهای تمام‌شده وارد نشده است.</div>@endif
 <div class="panel"><div class="table-wrap">
 @if(empty($report['rows']))<div class="empty">برای فیلتر انتخاب‌شده داده هزینه‌ای ثبت نشده است.</div>@else
-<table class="table"><thead><tr><th>سفارش</th><th>محصول</th><th>مواد</th><th>دستمزد</th><th>جمع</th><th>روش</th><th>مصرف بدون ارزش‌گذاری</th></tr></thead><tbody>
-@foreach($report['rows'] as $row)<tr><td>{{ $row['order_id'] ?? 'بدون سفارش' }}</td><td>{{ $row['goods_code'] }} — {{ $row['goods_name'] }}</td><td>{{ number_format($row['material_cost'],4) }}</td><td>{{ number_format($row['labor_cost'],4) }}</td><td><strong>{{ number_format($row['total_cost'],4) }}</strong></td><td>{{ implode('، ',$row['valuation_methods']) ?: '—' }}</td><td>{{ number_format($row['unvalued_material_quantity'],4) }}</td></tr>@endforeach
+<table class="table"><thead><tr><th>سفارش</th><th>محصول</th><th>مواد</th><th>دستمزد</th><th>هزینه مستقیم</th><th>ضایعات</th><th>جمع</th><th>روش</th><th>مصرف بدون ارزش‌گذاری</th></tr></thead><tbody>
+@foreach($report['rows'] as $row)<tr><td>{{ $row['order_id'] ?? 'بدون سفارش' }}</td><td>{{ $row['goods_code'] }} — {{ $row['goods_name'] }}</td><td>{{ number_format($row['material_cost'],4) }}</td><td>{{ number_format($row['labor_cost'],4) }}</td><td>{{ number_format($row['direct_cost'] ?? 0,4) }}</td><td>{{ number_format($row['scrap_cost'] ?? 0,4) }}</td><td><strong>{{ number_format($row['total_cost'],4) }}</strong></td><td>{{ implode('، ',$row['valuation_methods']) ?: '—' }}</td><td>{{ number_format($row['unvalued_material_quantity'],4) }}</td></tr>@endforeach
 </tbody></table>@endif
 </div></div>
 </div></body></html>
