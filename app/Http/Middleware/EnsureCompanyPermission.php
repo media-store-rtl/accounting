@@ -12,6 +12,9 @@ class EnsureCompanyPermission
     {
         $user = $request->user();
         $companyId = (int) $request->session()->get('company_id');
+        if ($user && $companyId <= 0) {
+            $companyId = (int) ($user->currentCompany()?->id ?? 0);
+        }
 
         if (! $user || ! $companyId || ! $user->hasCompanyPermission($companyId, $permission)) {
             abort(403, 'You are not authorized to perform this operation.');
