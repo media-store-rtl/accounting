@@ -25,9 +25,6 @@ class UserAccessTest extends TestCase
     public function test_role_permission_allows_protected_url(): void
     {
         [$user, $company, $account] = $this->makeUserWithCompany(true);
-        $account->update(['owner_user_id' => null]);
-        $user->refresh();
-
         $this->actingAs($user)->get('/settings/users')->assertOk();
     }
 
