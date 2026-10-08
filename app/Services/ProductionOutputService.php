@@ -45,6 +45,7 @@ class ProductionOutputService
             DB::table('production_outputs')->where('id',$outputId)->update([
                 'status'=>'confirmed','confirmed_at'=>now(),'confirmed_by_user_id'=>$userId,'updated_at'=>now()
             ]);
+            $this->audit($companyId,$userId,'finished_goods_output.approve',(int)$outputId,$output);
             return ProductionOutput::query()->findOrFail($outputId);
         });
     }
@@ -68,6 +69,9 @@ class ProductionOutputService
             DB::table('productions')->where('id',$production->id)->update([
                 'produced_quantity'=>DB::raw('produced_quantity + '.(float)$output->quantity),'updated_at'=>now()
             ]);
+            $this->audit($companyId,$userId,'finished_goods.receive',(int)$outputId,$output);
+            $salesUsers=DB::table('company_user as cu')->join('role_permissions as rp','rp.role_id','=','cu.role_id')->join('permissions as p','p.id','=','rp.permission_id')->where('cu.company_id',$companyId)->where('cu.is_active',true)->where('p.slug','order.view')->pluck('cu.user_id');
+            if($salesUsers->isNotEmpty()) Notification::send(User::whereIn('id',$salesUsers)->get(),new WorkflowNotification('finished_goods_received',['production_output_id'=>(int)$outputId,'production_id'=>(int)$output->production_id,'goods_id'=>(int)$output->goods_id,'quantity'=>(float)$output->quantity]));
             return ProductionOutput::query()->findOrFail($outputId);
         });
     }
@@ -79,6 +83,7 @@ class ProductionOutputService
             if(!$output||$output->status!=='pending') throw ValidationException::withMessages(['output'=>'این خروجی در وضعیت قابل رد نیست.']);
             DB::table('production_outputs')->where('id',$output->id)->update(['status'=>'rejected','rejected_at'=>now(),'rejected_by_user_id'=>$userId,'rejection_reason'=>$reason,'updated_at'=>now()]);
             DB::table('finished_goods_receipts')->where('production_output_id',$output->id)->update(['status'=>'rejected','updated_at'=>now()]);
+            $this->audit($companyId,$userId,'finished_goods_output.reject',(int)$outputId,$output);
             return ProductionOutput::query()->findOrFail($output->id);
         });
     }
