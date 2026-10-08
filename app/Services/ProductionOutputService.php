@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AuditTrail;
 use App\Models\ProductionOutput;
 use App\Models\User;
 use App\Notifications\WorkflowNotification;
@@ -86,13 +87,13 @@ class ProductionOutputService
         });
     }
 
-    private function audit(int $companyId,int $userId,string $action,int $outputId,object $before): void
+    private function audit(int $companyId,int $userId,string $action,int $auditableId,object $before): void
     {
-        DB::table('audit_trails')->insert([
-            'company_id'=>$companyId,'user_id'=>$userId,'module'=>'production','action'=>$action,
-            'auditable_type'=>'production_outputs','auditable_id'=>$outputId,
-            'before'=>json_encode((array)$before),'after'=>json_encode((array)DB::table('production_outputs')->where('id',$outputId)->first()),
-            'method'=>'SERVICE','status_code'=>200,'created_at'=>now(),'updated_at'=>now()
+        AuditTrail::create([
+            'company_id'=>$companyId,'user_id'=>$userId,'module'=>'production',
+            'action'=>$action,'auditable_type'=>'production_outputs','auditable_id'=>$auditableId,
+            'before'=>['status'=>$before->status ?? null],
+            'after'=>['status'=>DB::table('production_outputs')->where('id',$auditableId)->value('status')],
         ]);
     }
 
