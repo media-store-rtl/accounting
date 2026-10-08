@@ -68,9 +68,6 @@ class CostingReportTest extends TestCase
         $location=DB::table('locations')->insertGetId(['company_id'=>$company,'code'=>'W'.uniqid(),'name'=>'Warehouse','type'=>'warehouse','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $movement=DB::table('inventory_movements')->insertGetId(['company_id'=>$company,'goods_id'=>$goods,'location_id'=>$location,'quantity'=>-2,'movement_type'=>'material_handover','reference_type'=>'material_handovers','reference_id'=>1,'occurred_at'=>now(),'metadata'=>json_encode(['supply_request_id'=>$supply]),'created_at'=>now(),'updated_at'=>now()]);
         DB::table('inventory_consumption_costs')->insert(['company_id'=>$company,'fiscal_year_id'=>$fy,'goods_id'=>$goods,'location_id'=>$location,'inventory_movement_id'=>$movement,'valuation_method'=>'fifo','quantity'=>2,'unit_cost'=>10,'total_cost'=>20,'consumed_at'=>now(),'created_at'=>now(),'updated_at'=>now()]);
-        $purchase=DB::table('purchases')->insertGetId(['company_id'=>$company,'fiscal_year_id'=>$fy,'supplier_id'=>DB::table('suppliers')->insertGetId(['company_id'=>$company,'code'=>'SUP'.uniqid(),'name'=>'Supplier','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]),'supply_request_id'=>$supply,'invoice_number'=>'INV-1','invoice_date'=>'2026-10-07','purchased_at'=>'2026-10-07','subtotal'=>20,'direct_cost_total'=>10,'total_amount'=>30,'status'=>'received','created_at'=>now(),'updated_at'=>now()]);
-        $pi=DB::table('purchase_items')->insertGetId(['purchase_id'=>$purchase,'goods_id'=>$goods,'quantity'=>2,'unit_price'=>10,'line_total'=>20,'created_at'=>now(),'updated_at'=>now()]);
-        DB::table('purchase_direct_costs')->insert(['purchase_id'=>$purchase,'type'=>'freight','description'=>'حمل','amount'=>10,'created_at'=>now(),'updated_at'=>now()]);
 
         $stageRun=DB::table('production_stage_runs')->insertGetId(['production_id'=>$production,'production_stage_id'=>$stage,'sequence'=>1,'status'=>'completed','planned_quantity'=>10,'input_quantity'=>10,'output_quantity'=>10,'rejected_quantity'=>0,'created_at'=>now(),'updated_at'=>now()]);
         $operation=DB::table('production_operations')->insertGetId(['production_stage_id'=>$stage,'code'=>'OP'.uniqid(),'name'=>'Operation','sequence'=>1,'status'=>'active','created_at'=>now(),'updated_at'=>now()]);
@@ -78,14 +75,24 @@ class CostingReportTest extends TestCase
         $personnel=DB::table('personnel')->insertGetId(['account_id'=>$account,'user_id'=>$user,'code'=>'P'.uniqid(),'name'=>'Worker','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $entry=DB::table('production_labor_entries')->insertGetId(['company_id'=>$company,'fiscal_year_id'=>$fy,'production_id'=>$production,'production_stage_id'=>$stage,'production_operation_run_id'=>$run,'personnel_id'=>$personnel,'measure_type'=>'hours','measure_quantity'=>2,'unit_rate'=>15,'total_cost'=>30,'worked_at'=>now(),'status'=>'approved','created_by_user_id'=>$user,'reviewed_by_user_id'=>$user,'reviewed_at'=>now(),'created_at'=>now(),'updated_at'=>now()]);
         DB::table('production_labor_costs')->insert(['labor_entry_id'=>$entry,'company_id'=>$company,'fiscal_year_id'=>$fy,'production_id'=>$production,'production_stage_id'=>$stage,'production_operation_run_id'=>$run,'personnel_id'=>$personnel,'measure_type'=>'hours','measure_quantity'=>2,'unit_rate'=>15,'total_cost'=>30,'worked_at'=>now(),'approved_at'=>now(),'approved_by_user_id'=>$user,'created_at'=>now(),'updated_at'=>now()]);
+        DB::table('scraps')->insert(['production_operation_run_id'=>$run,'goods_id'=>$goods,'quantity'=>0.5,'unit_cost'=>10,'total_cost'=>5,'reason'=>'تست','scrapped_at'=>now(),'created_at'=>now(),'updated_at'=>now()]);
 
         $report=app(CostingReportService::class)->generate($company,$fy,$order,$goods);
         $this->assertCount(1,$report['rows']);
         $this->assertSame(20.0,$report['rows'][0]['material_cost']);
         $this->assertSame(30.0,$report['rows'][0]['labor_cost']);
-        $this->assertSame(10.0,$report['rows'][0]['direct_cost']);
-        $this->assertSame(60.0,$report['rows'][0]['total_cost']);
+        $this->assertSame(5.0,$report['rows'][0]['scrap_cost']);
+        $this->assertSame(55.0,$report['rows'][0]['total_cost']);
         $this->assertSame(['fifo'],$report['rows'][0]['valuation_methods']);
+        $this->assertSame(5.0,$report['totals']['scrap_cost']);
+        $this->assertSame(55.0,$report['totals']['total_cost']);
         $this->assertSame(0.0,$report['totals']['unvalued_material_quantity']);
+
+        $calculation=app(\App\Services\CostCalculationService::class)->calculate($company,$user,$fy,$order,$goods);
+        $this->assertSame(1,$calculation['count']);
+        $this->assertDatabaseHas('cost_calculations',['id'=>$calculation['ids'][0],'company_id'=>$company,'order_id'=>$order,'goods_id'=>$goods,'total_cost'=>55]);
+        $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'material','amount'=>20]);
+        $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'labor','amount'=>30]);
+        $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'scrap','amount'=>5]);
     }
 }
