@@ -49,6 +49,8 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/notifications', [\App\Http\Controllers\NotificationCenterController::class,'index'])->middleware('company.permission:notification.view')->name('notifications.index');
+    Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationCenterController::class,'read'])->middleware('company.permission:notification.view')->name('notifications.read');
 
     Route::get('/company', [CompanyController::class, 'edit'])
         ->middleware(['company.permission:company.view', 'account.owner'])
