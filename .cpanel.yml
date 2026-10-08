@@ -3,12 +3,12 @@ deployment:
     - export DEPLOYPATH=/home/mediast1/accounting/
     - export PATH=/home/mediast1/.nvm/versions/node/v22.14.0/bin:$PATH
     - /bin/mkdir -p $DEPLOYPATH
-    - /bin/cp -R app config database docs public resources routes bootstrap artisan composer.json composer.lock package.json vite.config.js README.md .env.example .gitignore .cpanel.yml $DEPLOYPATH
+    - cd /home/mediast1/repositories/accounting && /bin/tar --exclude='./.git' --exclude='./.env' --exclude='./storage' --exclude='./public/storage' --exclude='./node_modules' --exclude='./public/build' -cf - . | /bin/tar -C $DEPLOYPATH -xf -
     - cd $DEPLOYPATH && composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
-    - cd $DEPLOYPATH && npm install
-    - cd $DEPLOYPATH && npm run build
+    - cd $DEPLOYPATH && if [ -f package-lock.json ]; then npm ci; else npm install; fi
+    - cd $DEPLOYPATH && rm -rf public/build && npm run build
     - cd $DEPLOYPATH && mkdir -p storage/app storage/framework/cache storage/framework/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
-    - cd $DEPLOYPATH && test -f .env || cp .env.example .env
-    - cd $DEPLOYPATH && grep -q '^APP_KEY=$' .env && php artisan key:generate --force || true
+    - cd $DEPLOYPATH && if [ ! -f .env ]; then cp .env.example .env; fi
+    - cd $DEPLOYPATH && if ! grep -q '^APP_KEY=.' .env; then php artisan key:generate --force; fi
     - cd $DEPLOYPATH && php artisan optimize:clear
     - cd $DEPLOYPATH && php artisan migrate --force
