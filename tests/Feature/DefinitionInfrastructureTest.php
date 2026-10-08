@@ -10,7 +10,7 @@ class DefinitionInfrastructureTest extends TestCase
     public function test_final_definition_routes_are_registered(): void
     {
         foreach ([
-            'reports.costing',
+            'reports.costing.calculate','inventory.adjust','reports.costing',
             'reports.costing.calculate',
             'inventory.index',
             'inventory.adjust',
