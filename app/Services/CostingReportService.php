@@ -153,6 +153,6 @@ final class CostingReportService
     private function key(?int $orderId,int $goodsId): string{return ($orderId??0).':'.$goodsId;}
     private function row(array &$rows,string $key,?int $orderId,int $goodsId): void{
         if(isset($rows[$key]))return;
-        $rows[$key]=['order_id'=>$orderId,'goods_id'=>$goodsId,'material_cost'=>0.0,'labor_cost'=>0.0,'total_cost'=>0.0,'unvalued_material_quantity'=>0.0,'scrap_cost'=>0.0,'valuation_methods'=>[]];
+        $rows[$key]=['order_id'=>$orderId,'goods_id'=>$goodsId,'material_cost'=>0.0,'labor_cost'=>0.0,'total_cost'=>0.0,'unvalued_material_quantity'=>0.0,'scrap_cost'=>0.0,'direct_cost'=>0.0,'valuation_methods'=>[]];
     }
 }
