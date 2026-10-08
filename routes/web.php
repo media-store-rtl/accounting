@@ -70,6 +70,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/costing', [CostingReportController::class, 'index'])
         ->middleware('company.permission:costing.report.view')->name('reports.costing');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::get('/sso/logout', [AccountingSsoController::class, 'logout'])->name('sso.logout');
 
     Route::get('/sales/customers', [CustomerController::class, 'index'])->middleware('company.permission:customer.view')->name('sales.customers.index');
     Route::get('/sales/customers/create', [CustomerController::class, 'create'])->middleware('company.permission:customer.create')->name('sales.customers.create');
