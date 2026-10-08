@@ -75,13 +75,17 @@ class CostingReportTest extends TestCase
         $personnel=DB::table('personnel')->insertGetId(['account_id'=>$account,'user_id'=>$user,'code'=>'P'.uniqid(),'name'=>'Worker','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $entry=DB::table('production_labor_entries')->insertGetId(['company_id'=>$company,'fiscal_year_id'=>$fy,'production_id'=>$production,'production_stage_id'=>$stage,'production_operation_run_id'=>$run,'personnel_id'=>$personnel,'measure_type'=>'hours','measure_quantity'=>2,'unit_rate'=>15,'total_cost'=>30,'worked_at'=>now(),'status'=>'approved','created_by_user_id'=>$user,'reviewed_by_user_id'=>$user,'reviewed_at'=>now(),'created_at'=>now(),'updated_at'=>now()]);
         DB::table('production_labor_costs')->insert(['labor_entry_id'=>$entry,'company_id'=>$company,'fiscal_year_id'=>$fy,'production_id'=>$production,'production_stage_id'=>$stage,'production_operation_run_id'=>$run,'personnel_id'=>$personnel,'measure_type'=>'hours','measure_quantity'=>2,'unit_rate'=>15,'total_cost'=>30,'worked_at'=>now(),'approved_at'=>now(),'approved_by_user_id'=>$user,'created_at'=>now(),'updated_at'=>now()]);
+        DB::table('scraps')->insert(['production_operation_run_id'=>$run,'goods_id'=>$goods,'quantity'=>0.5,'unit_cost'=>10,'total_cost'=>5,'reason'=>'تست','scrapped_at'=>now(),'created_at'=>now(),'updated_at'=>now()]);
 
         $report=app(CostingReportService::class)->generate($company,$fy,$order,$goods);
         $this->assertCount(1,$report['rows']);
         $this->assertSame(20.0,$report['rows'][0]['material_cost']);
         $this->assertSame(30.0,$report['rows'][0]['labor_cost']);
-        $this->assertSame(50.0,$report['rows'][0]['total_cost']);
+        $this->assertSame(5.0,$report['rows'][0]['scrap_cost']);
+        $this->assertSame(55.0,$report['rows'][0]['total_cost']);
         $this->assertSame(['fifo'],$report['rows'][0]['valuation_methods']);
+        $this->assertSame(5.0,$report['totals']['scrap_cost']);
+        $this->assertSame(55.0,$report['totals']['total_cost']);
         $this->assertSame(0.0,$report['totals']['unvalued_material_quantity']);
     }
 }
