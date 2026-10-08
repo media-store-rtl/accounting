@@ -89,19 +89,22 @@ class BackupService
 
         $connection = $this->database->connection();
         $tables = array_values(array_diff(array_keys($payload['tables']), ['migrations', 'backup_files']));
+        $restoreOrder = $this->dependencyOrder($tables);
+
+        $constraintsDisabled = false;
 
         try {
-            // SQLite cannot toggle foreign_keys while a transaction is active, so
-            // constraints are disabled before opening the transaction and restored
-            // in finally. MySQL/MariaDB are also safe with this ordering.
+            // SQLite does not allow PRAGMA foreign_keys changes inside an open
+            // transaction, so constraints must be disabled before starting it.
             Schema::disableForeignKeyConstraints();
+            $constraintsDisabled = true;
 
-            $connection->transaction(function () use ($connection, $payload, $tables): void {
-                foreach ($tables as $table) {
+            $connection->transaction(function () use ($connection, $payload, $restoreOrder): void {
+                foreach (array_reverse($restoreOrder) as $table) {
                     $connection->table($table)->delete();
                 }
 
-                foreach ($tables as $table) {
+                foreach ($restoreOrder as $table) {
                     foreach (array_chunk($payload['tables'][$table]['rows'] ?? [], 500) as $chunk) {
                         if ($chunk !== []) {
                             $connection->table($table)->insert($chunk);
@@ -114,7 +117,9 @@ class BackupService
         } catch (Throwable $e) {
             throw new RuntimeException('Restore failed: '.$e->getMessage(), previous: $e);
         } finally {
-            try { Schema::enableForeignKeyConstraints(); } catch (Throwable) {}
+            if ($constraintsDisabled) {
+                try { Schema::enableForeignKeyConstraints(); } catch (Throwable) {}
+            }
         }
     }
 
@@ -167,6 +172,56 @@ class BackupService
         return collect(Schema::getTableListing(schemaQualified: false))
             ->map(fn ($name) => is_string($name) ? $name : ($name['name'] ?? null))
             ->filter()->values()->all();
+    }
+
+    /**
+     * Return parent tables before child tables so a restore can run with
+     * foreign-key enforcement enabled. This avoids relying on driver-specific
+     * PRAGMA/FOREIGN_KEY_CHECKS behavior.
+     */
+    private function dependencyOrder(array $tables): array
+    {
+        $set = array_fill_keys($tables, true);
+        $dependencies = [];
+
+        foreach ($tables as $table) {
+            $dependencies[$table] = [];
+            foreach (Schema::getForeignKeys($table) as $foreignKey) {
+                $parent = $foreignKey['foreign_table'] ?? null;
+                if (is_string($parent) && isset($set[$parent]) && $parent !== $table) {
+                    $dependencies[$table][$parent] = true;
+                }
+            }
+        }
+
+        $ordered = [];
+        $visiting = [];
+        $visited = [];
+
+        $visit = function (string $table) use (&$visit, &$ordered, &$visiting, &$visited, $dependencies): void {
+            if (isset($visited[$table])) {
+                return;
+            }
+            if (isset($visiting[$table])) {
+                // A cyclic relationship cannot be topologically sorted; the
+                // table is still emitted once and its FK remains validated.
+                return;
+            }
+
+            $visiting[$table] = true;
+            foreach (array_keys($dependencies[$table] ?? []) as $parent) {
+                $visit($parent);
+            }
+            unset($visiting[$table]);
+            $visited[$table] = true;
+            $ordered[] = $table;
+        };
+
+        foreach ($tables as $table) {
+            $visit($table);
+        }
+
+        return $ordered;
     }
 
     private function columns(string $table): array
