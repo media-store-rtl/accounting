@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AuditTrail;
 use App\Notifications\WorkflowNotification;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -71,6 +72,12 @@ final class ProductionExecutionService
                 ->join('personnel as pe','pe.id','=','ps.supervisor_personnel_id')
                 ->join('users as u','u.id','=','pe.user_id')
                 ->where('s.id',$context->production_stage_id)->where('u.is_active',true)->first(['u.id']);
+            AuditTrail::create([
+                'company_id'=>$companyId,'user_id'=>$userId,'module'=>'production','action'=>'operation.submit',
+                'auditable_type'=>'production_operation_runs','auditable_id'=>$operationRunId,
+                'before'=>['status'=>$context->status],'after'=>['status'=>'pending_review'],
+            ]);
+
             if($supervisor && (int)$supervisor->id!==$userId){
                 Notification::send([User::query()->find((int)$supervisor->id)],new WorkflowNotification('production_operation_review_required',[
                     'operation_run_id'=>$operationRunId,'production_id'=>(int)$context->production_id
@@ -95,10 +102,20 @@ final class ProductionExecutionService
 
             if(!$approve){
                 DB::table('production_operation_runs')->where('id',$operationRunId)->update(['status'=>'rejected','notes'=>trim(($context->notes??'')."\nرد: ".($reason??'')),'updated_at'=>now()]);
+                AuditTrail::create([
+                    'company_id'=>$companyId,'user_id'=>$reviewerId,'module'=>'production','action'=>'operation.reject',
+                    'auditable_type'=>'production_operation_runs','auditable_id'=>$operationRunId,
+                    'before'=>['status'=>'pending_review'],'after'=>['status'=>'rejected','reason'=>$reason],
+                ]);
                 return;
             }
 
             DB::table('production_operation_runs')->where('id',$operationRunId)->update(['status'=>'completed','updated_at'=>now()]);
+            AuditTrail::create([
+                'company_id'=>$companyId,'user_id'=>$reviewerId,'module'=>'production','action'=>'operation.approve',
+                'auditable_type'=>'production_operation_runs','auditable_id'=>$operationRunId,
+                'before'=>['status'=>'pending_review'],'after'=>['status'=>'completed'],
+            ]);
             $stageRun=DB::table('production_stage_runs')->where('id',$context->production_stage_run_id)->lockForUpdate()->first();
             $pending=DB::table('production_operation_runs')->where('production_stage_run_id',$stageRun->id)->whereIn('status',['pending','in_progress','pending_review'])->exists();
             $rejected=DB::table('production_operation_runs')->where('production_stage_run_id',$stageRun->id)->where('status','rejected')->exists();
