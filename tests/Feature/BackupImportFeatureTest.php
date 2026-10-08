@@ -11,6 +11,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
 
@@ -154,7 +155,7 @@ class BackupImportFeatureTest extends TestCase
         $sheet = $spreadsheet->getActiveSheet();
         foreach ($rows as $row => $values) {
             foreach ($values as $column => $value) {
-                $sheet->setCellValueByColumnAndRow($column + 1, $row + 1, $value);
+                $sheet->setCellValue(Coordinate::stringFromColumnIndex($column + 1).($row + 1), $value);
             }
         }
 
