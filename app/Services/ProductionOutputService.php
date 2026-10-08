@@ -3,7 +3,11 @@
 namespace App\Services;
 
 use App\Models\ProductionOutput;
+use App\Models\User;
+use App\Notifications\WorkflowNotification;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\DB;
+use App\Services\InventoryService;
 use Illuminate\Validation\ValidationException;
 
 class ProductionOutputService
@@ -33,6 +37,12 @@ class ProductionOutputService
             ]);
             return ProductionOutput::query()->findOrFail($id);
         });
+    }
+
+    public function confirm(int $companyId,int $outputId,int $userId,?string $receivedAt=null): ProductionOutput
+    {
+        $this->approve($companyId,$outputId,$userId);
+        return $this->receive($companyId,$outputId,$userId,$receivedAt);
     }
 
     public function approve(int $companyId, int $outputId, int $userId): ProductionOutput
