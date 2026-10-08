@@ -91,9 +91,12 @@ class BackupService
         $tables = array_values(array_diff(array_keys($payload['tables']), ['migrations', 'backup_files']));
 
         try {
-            $connection->transaction(function () use ($connection, $payload, $tables): void {
-                Schema::disableForeignKeyConstraints();
+            // SQLite cannot toggle foreign_keys while a transaction is active, so
+            // constraints are disabled before opening the transaction and restored
+            // in finally. MySQL/MariaDB are also safe with this ordering.
+            Schema::disableForeignKeyConstraints();
 
+            $connection->transaction(function () use ($connection, $payload, $tables): void {
                 foreach ($tables as $table) {
                     $connection->table($table)->delete();
                 }
@@ -105,14 +108,13 @@ class BackupService
                         }
                     }
                 }
-
-                Schema::enableForeignKeyConstraints();
             });
 
             $backup->update(['status' => 'restored']);
         } catch (Throwable $e) {
-            try { Schema::enableForeignKeyConstraints(); } catch (Throwable) {}
             throw new RuntimeException('Restore failed: '.$e->getMessage(), previous: $e);
+        } finally {
+            try { Schema::enableForeignKeyConstraints(); } catch (Throwable) {}
         }
     }
 
