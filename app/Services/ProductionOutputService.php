@@ -86,6 +86,16 @@ class ProductionOutputService
         });
     }
 
+    private function audit(int $companyId,int $userId,string $action,int $outputId,object $before): void
+    {
+        DB::table('audit_trails')->insert([
+            'company_id'=>$companyId,'user_id'=>$userId,'module'=>'production','action'=>$action,
+            'auditable_type'=>'production_outputs','auditable_id'=>$outputId,
+            'before'=>json_encode((array)$before),'after'=>json_encode((array)DB::table('production_outputs')->where('id',$outputId)->first()),
+            'method'=>'SERVICE','status_code'=>200,'created_at'=>now(),'updated_at'=>now()
+        ]);
+    }
+
     public function reject(int $companyId,int $outputId,int $userId,?string $reason=null): ProductionOutput
     {
         return DB::transaction(function()use($companyId,$outputId,$userId,$reason){
