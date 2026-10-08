@@ -53,6 +53,7 @@ class PermissionSeeder extends Seeder
             ['production.labor.review', 'تأیید یا رد کارکرد تولید', 'production'],
             ['production.labor.rate.manage', 'مدیریت نرخ دستمزد', 'production'],
 
+            ['notification.view', 'مشاهده اعلان‌ها', 'notifications'],
             ['backup.view', 'مشاهده پشتیبان‌ها', 'backup'], ['backup.create', 'ایجاد پشتیبان', 'backup'],
             ['backup.upload', 'بارگذاری پشتیبان', 'backup'], ['backup.restore', 'بازیابی پشتیبان', 'backup'],
             ['import.excel', 'ورود اطلاعات از Excel', 'import'],
