@@ -95,6 +95,9 @@ class BackupService
             // constraints are disabled before opening the transaction and restored
             // in finally. MySQL/MariaDB are also safe with this ordering.
             Schema::disableForeignKeyConstraints();
+            if ($connection->getDriverName() === 'sqlite') {
+                $connection->statement('PRAGMA foreign_keys = OFF');
+            }
 
             $connection->transaction(function () use ($connection, $payload, $tables): void {
                 foreach ($tables as $table) {
@@ -114,7 +117,12 @@ class BackupService
         } catch (Throwable $e) {
             throw new RuntimeException('Restore failed: '.$e->getMessage(), previous: $e);
         } finally {
-            try { Schema::enableForeignKeyConstraints(); } catch (Throwable) {}
+            try {
+                if ($connection->getDriverName() === 'sqlite') {
+                    $connection->statement('PRAGMA foreign_keys = ON');
+                }
+                Schema::enableForeignKeyConstraints();
+            } catch (Throwable) {}
         }
     }
 
