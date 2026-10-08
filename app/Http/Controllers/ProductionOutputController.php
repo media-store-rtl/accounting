@@ -1,11 +1,69 @@
 <?php
+
 namespace App\Http\Controllers;
-use App\Support\CompanyAuthorization; use Illuminate\Http\Request; use Illuminate\Support\Facades\DB;
-class ProductionOutputController extends Controller {
- public function index(Request $request){$cid=CompanyAuthorization::authorize($request,'production.output.view');$rows=DB::table('production_outputs as po')->join('productions as p','p.id','=','po.production_id')->join('goods as g','g.id','=','po.goods_id')->join('locations as l','l.id','=','po.warehouse_location_id')->where('po.company_id',$cid)->select('po.*','p.number as production_number','g.name as goods_name','l.name as location_name')->latest('po.id')->paginate(20);return view('production.outputs.index',compact('rows'));}
- public function create(Request $request){$cid=CompanyAuthorization::authorize($request,'production.output.create');$productions=DB::table('productions')->where('company_id',$cid)->whereIn('status',['in_progress','completed','started'])->orderByDesc('id')->get();$goods=DB::table('goods')->where('company_id',$cid)->where('is_active',true)->where('producible',true)->orderBy('name')->get();$locations=DB::table('locations')->where('company_id',$cid)->where('type','warehouse')->where('is_active',true)->orderBy('name')->get();return view('production.outputs.create',compact('productions','goods','locations'));}
- public function store(Request $request){$cid=CompanyAuthorization::authorize($request,'production.output.create');$d=$request->validate(['production_id'=>'required|integer','order_id'=>'nullable|integer','goods_id'=>'required|integer','warehouse_location_id'=>'required|integer','quantity'=>'required|numeric|gt:0','produced_at'=>'required|date','notes'=>'nullable|string']);$id=DB::transaction(function()use($cid,$d,$request){$p=DB::table('productions')->where('id',$d['production_id'])->where('company_id',$cid)->lockForUpdate()->first();abort_unless($p,404);abort_unless(DB::table('goods')->where('id',$d['goods_id'])->where('company_id',$cid)->where('is_active',true)->exists(),422,'کالا نامعتبر است.');abort_unless(DB::table('locations')->where('id',$d['warehouse_location_id'])->where('company_id',$cid)->where('type','warehouse')->where('is_active',true)->exists(),422,'انبار نامعتبر است.');return DB::table('production_outputs')->insertGetId(['company_id'=>$cid,'production_id'=>$p->id,'order_id'=>$d['order_id']??null,'goods_id'=>$d['goods_id'],'warehouse_location_id'=>$d['warehouse_location_id'],'quantity'=>$d['quantity'],'status'=>'pending','created_by_user_id'=>$request->user()->id,'produced_at'=>$d['produced_at'],'notes'=>$d['notes']??null,'created_at'=>now(),'updated_at'=>now()]);});return redirect()->route('production.outputs.index')->with('success','خروجی تولید ثبت و برای تأیید ارسال شد.');}
- public function confirm(Request $request,int $output){$cid=CompanyAuthorization::authorize($request,'production.output.confirm');DB::transaction(function()use($cid,$output,$request){$o=DB::table('production_outputs')->where('id',$output)->where('company_id',$cid)->lockForUpdate()->first();abort_unless($o&&$o->status==='pending',422,'خروجی قابل تأیید نیست.');DB::table('production_outputs')->where('id',$output)->update(['status'=>'confirmed','confirmed_at'=>now(),'confirmed_by_user_id'=>$request->user()->id,'updated_at'=>now()]);DB::table('finished_goods_receipts')->updateOrInsert(['production_output_id'=>$output],['company_id'=>$cid,'warehouse_location_id'=>$o->warehouse_location_id,'received_by_user_id'=>$request->user()->id,'status'=>'pending','created_at'=>now(),'updated_at'=>now()]);});return back()->with('success','خروجی تولید تأیید شد.');}
- public function reject(Request $request,int $output){$cid=CompanyAuthorization::authorize($request,'production.output.confirm');$d=$request->validate(['rejection_reason'=>'required|string']);$ok=DB::table('production_outputs')->where('id',$output)->where('company_id',$cid)->where('status','pending')->update(['status'=>'rejected','rejected_at'=>now(),'rejected_by_user_id'=>$request->user()->id,'rejection_reason'=>$d['rejection_reason'],'updated_at'=>now()]);abort_unless($ok,422,'خروجی قابل رد نیست.');return back()->with('success','خروجی تولید رد شد.');}
- public function receive(Request $request,int $output){$cid=CompanyAuthorization::authorize($request,'production.output.receive');$o=DB::table('production_outputs')->where('id',$output)->where('company_id',$cid)->where('status','confirmed')->first();abort_unless($o,422,'خروجی تأییدشده یافت نشد.');DB::transaction(function()use($cid,$o,$request){$r=DB::table('finished_goods_receipts')->where('production_output_id',$o->id)->lockForUpdate()->first();abort_unless($r&&$r->status==='pending',422,'رسید قبلاً تعیین تکلیف شده است.');$inv=DB::table('inventory')->where('company_id',$cid)->where('location_id',$o->warehouse_location_id)->where('goods_id',$o->goods_id)->lockForUpdate()->first(); if($inv){DB::table('inventory')->where('id',$inv->id)->update(['quantity'=>DB::raw('quantity + '.(float)$o->quantity),'updated_at'=>now()]);}else{DB::table('inventory')->insert(['company_id'=>$cid,'location_id'=>$o->warehouse_location_id,'goods_id'=>$o->goods_id,'quantity'=>$o->quantity,'created_at'=>now(),'updated_at'=>now()]);}DB::table('inventory_movements')->insert(['company_id'=>$cid,'goods_id'=>$o->goods_id,'location_id'=>$o->warehouse_location_id,'quantity'=>$o->quantity,'movement_type'=>'production_output','reference_type'=>'production_output','reference_id'=>$o->id,'occurred_at'=>now(),'created_at'=>now(),'updated_at'=>now()]);DB::table('finished_goods_receipts')->where('id',$r->id)->update(['status'=>'approved','received_at'=>now(),'approved_at'=>now(),'approved_by_user_id'=>$request->user()->id,'received_by_user_id'=>$request->user()->id,'updated_at'=>now()]);});return back()->with('success','کالای ساخته‌شده وارد موجودی شد.');}
+
+use App\Services\ProductionOutputService;
+use App\Support\CompanyAuthorization;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+final class ProductionOutputController extends Controller
+{
+    public function index(Request $request)
+    {
+        $companyId = CompanyAuthorization::authorize($request, 'production.output.view');
+        $rows = DB::table('production_outputs as po')
+            ->join('productions as p','p.id','=','po.production_id')
+            ->join('goods as g','g.id','=','po.goods_id')
+            ->join('locations as l','l.id','=','po.warehouse_location_id')
+            ->where('po.company_id',$companyId)
+            ->select('po.*','p.number as production_number','g.name as goods_name','l.name as location_name')
+            ->latest('po.id')->paginate(20);
+        return view('production.outputs.index', compact('rows'));
+    }
+
+    public function create(Request $request)
+    {
+        $companyId = CompanyAuthorization::authorize($request, 'production.output.create');
+        $productions = DB::table('productions')->where('company_id',$companyId)->where('status','completed')->orderByDesc('id')->get();
+        $locations = DB::table('locations')->where('company_id',$companyId)->where('type','warehouse')->where('is_active',true)->orderBy('name')->get();
+        return view('production.outputs.create', compact('productions','locations'));
+    }
+
+    public function store(Request $request, ProductionOutputService $service)
+    {
+        $companyId = CompanyAuthorization::authorize($request, 'production.output.create');
+        $data = $request->validate([
+            'production_id'=>['required','integer'],
+            'order_id'=>['nullable','integer'],
+            'warehouse_location_id'=>['required','integer'],
+            'quantity'=>['required','numeric','gt:0'],
+            'produced_at'=>['required','date'],
+            'notes'=>['nullable','string'],
+        ]);
+        $service->create($companyId,(int)$data['production_id'],$data['order_id']??null,(int)$data['warehouse_location_id'],(float)$data['quantity'],(int)$request->user()->id,$data['produced_at'],$data['notes']??null);
+        return redirect()->route('production.outputs.index')->with('success','خروجی تولید ثبت شد و برای تأیید انبار ارسال شد.');
+    }
+
+    public function confirm(Request $request, int $output, ProductionOutputService $service)
+    {
+        $companyId = CompanyAuthorization::authorize($request, 'production.output.confirm');
+        $service->confirm($companyId,$output,(int)$request->user()->id);
+        return back()->with('success','خروجی تولید تأیید شد و وارد موجودی شد.');
+    }
+
+    public function reject(Request $request, int $output, ProductionOutputService $service)
+    {
+        $companyId = CompanyAuthorization::authorize($request, 'production.output.confirm');
+        $data = $request->validate(['rejection_reason'=>['required','string','max:1000']]);
+        $service->reject($companyId,$output,(int)$request->user()->id,$data['rejection_reason']);
+        return back()->with('success','خروجی تولید رد شد.');
+    }
+
+    public function receive(Request $request, int $output, ProductionOutputService $service)
+    {
+        $companyId = CompanyAuthorization::authorize($request, 'production.output.receive');
+        $service->confirm($companyId,$output,(int)$request->user()->id);
+        return back()->with('success','دریافت کالای ساخته‌شده ثبت شد.');
+    }
 }
