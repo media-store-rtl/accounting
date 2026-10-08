@@ -31,6 +31,14 @@ final class ProductionExecutionService
 
             $before=(array)$context;
             $this->validateLines($companyId,$inputs,'ورودی');
+            foreach($inputs as $line){
+                if(!empty($line['source_inventory_movement_id'])){
+                    $movement=DB::table('inventory_movements')->where('id',(int)$line['source_inventory_movement_id'])->where('company_id',$companyId)->first();
+                    if(!$movement || (int)$movement->goods_id!==(int)$line['goods_id'] || (float)$movement->quantity>=0){
+                        throw ValidationException::withMessages(['inputs'=>'مرجع خروج موجودی برای ورودی عملیات نامعتبر است.']);
+                    }
+                }
+            }
             $this->validateLines($companyId,$outputs,'خروجی');
             foreach($scraps as $line){
                 if((float)($line['quantity']??0)<=0) throw ValidationException::withMessages(['scraps'=>'مقدار ضایعات باید بیشتر از صفر باشد.']);
@@ -122,7 +130,6 @@ final class ProductionExecutionService
 
     private function audit(int $companyId,int $userId,string $action,int $id,array $before,array $after): void
     {
-        if(!DB::getSchemaBuilder()->hasTable('audit_trails')) return;
         DB::table('audit_trails')->insert(['company_id'=>$companyId,'user_id'=>$userId,'module'=>'production','action'=>$action,'auditable_type'=>'production_operation_runs','auditable_id'=>$id,'before'=>json_encode($before),'after'=>json_encode($after),'method'=>'SERVICE','status_code'=>200,'created_at'=>now(),'updated_at'=>now()]);
     }
 
