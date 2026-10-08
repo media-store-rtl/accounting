@@ -88,6 +88,7 @@ class BackupService
         }
 
         $connection = $this->database->connection();
+        $backupSnapshot = $backup->getAttributes();
         $tables = array_values(array_diff(array_keys($payload['tables']), ['migrations', 'backup_files']));
         $insertOrder = $this->dependencyOrder($tables);
         $deleteOrder = array_reverse($insertOrder);
@@ -110,7 +111,8 @@ class BackupService
                 }
             });
 
-            $backup->update(['status' => 'restored']);
+            $backupSnapshot['status'] = 'restored';
+            DB::table('backup_files')->updateOrInsert(['id'=>$backupSnapshot['id']],$backupSnapshot);
         } catch (Throwable $e) {
             throw new RuntimeException('Restore failed: '.$e->getMessage(), previous: $e);
         } finally {
