@@ -29,6 +29,7 @@ final class ProductionExecutionService
                 throw ValidationException::withMessages(['operation'=>'حداقل یک ورودی، خروجی یا ضایعات ثبت کنید.']);
             }
 
+            $before=(array)$context;
             $this->validateLines($companyId,$inputs,'ورودی');
             $this->validateLines($companyId,$outputs,'خروجی');
             foreach($scraps as $line){
@@ -65,6 +66,9 @@ final class ProductionExecutionService
                     'scrapped_at'=>$line['scrapped_at']??now(),'notes'=>$line['notes']??null,'created_at'=>now(),'updated_at'=>now()
                 ]);
             }
+
+            $after=(array)DB::table('production_operation_runs')->where('id',$operationRunId)->first();
+            $this->audit($companyId,$userId,'operation.submit',$operationRunId,$before,$after);
 
             $supervisor=DB::table('production_stages as s')
                 ->join('production_sections as ps','ps.id','=','s.production_section_id')
@@ -114,6 +118,12 @@ final class ProductionExecutionService
                 DB::table('productions')->where('id',$productionId)->update(['status'=>'completed','completed_at'=>now(),'updated_at'=>now()]);
             }
         });
+    }
+
+    private function audit(int $companyId,int $userId,string $action,int $id,array $before,array $after): void
+    {
+        if(!DB::getSchemaBuilder()->hasTable('audit_trails')) return;
+        DB::table('audit_trails')->insert(['company_id'=>$companyId,'user_id'=>$userId,'module'=>'production','action'=>$action,'auditable_type'=>'production_operation_runs','auditable_id'=>$id,'before'=>json_encode($before),'after'=>json_encode($after),'method'=>'SERVICE','status_code'=>200,'created_at'=>now(),'updated_at'=>now()]);
     }
 
     private function context(int $companyId,int $operationRunId,bool $lock=false): object
