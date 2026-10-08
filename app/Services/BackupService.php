@@ -94,6 +94,9 @@ class BackupService
 
         try {
             $connection->transaction(function () use ($connection, $payload, $deleteOrder, $insertOrder): void {
+                if ($connection->getDriverName() === 'sqlite') {
+                    $connection->statement('PRAGMA defer_foreign_keys = ON');
+                }
                 foreach ($deleteOrder as $table) {
                     $connection->table($table)->delete();
                 }
