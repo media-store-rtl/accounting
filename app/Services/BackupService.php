@@ -96,7 +96,13 @@ class BackupService
         try {
             // SQLite does not allow PRAGMA foreign_keys changes inside an open
             // transaction, so constraints must be disabled before starting it.
-            Schema::disableForeignKeyConstraints();
+            if ($connection->getDriverName() === 'sqlite') {
+                $connection->statement('PRAGMA foreign_keys = OFF');
+            } elseif (in_array($connection->getDriverName(), ['mysql','mariadb'], true)) {
+                $connection->statement('SET FOREIGN_KEY_CHECKS = 0');
+            } else {
+                Schema::disableForeignKeyConstraints();
+            }
             $constraintsDisabled = true;
 
             $connection->transaction(function () use ($connection, $payload, $restoreOrder): void {
@@ -118,7 +124,15 @@ class BackupService
             throw new RuntimeException('Restore failed: '.$e->getMessage(), previous: $e);
         } finally {
             if ($constraintsDisabled) {
-                try { Schema::enableForeignKeyConstraints(); } catch (Throwable) {}
+                try {
+                    if ($connection->getDriverName() === 'sqlite') {
+                        $connection->statement('PRAGMA foreign_keys = ON');
+                    } elseif (in_array($connection->getDriverName(), ['mysql','mariadb'], true)) {
+                        $connection->statement('SET FOREIGN_KEY_CHECKS = 1');
+                    } else {
+                        Schema::enableForeignKeyConstraints();
+                    }
+                } catch (Throwable) {}
             }
         }
     }
