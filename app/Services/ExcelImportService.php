@@ -122,7 +122,7 @@ class ExcelImportService
             $mapped = array_key_exists($column, $row);
             $value = $row[$column] ?? null;
             $hasDefault = array_key_exists('default', $meta ?? []) && $meta['default'] !== null;
-            if (!$mapped && ($meta['nullable'] ?? false || $hasDefault)) {
+            if (!$mapped && (($meta['nullable'] ?? false) || $hasDefault || $column === 'is_active')) {
                 continue;
             }
             if (! (bool) ($meta['nullable'] ?? false) && ($value === null || trim((string) $value) === '')) {
