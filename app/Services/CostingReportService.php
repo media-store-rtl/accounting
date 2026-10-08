@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 final class CostingReportService
 {
@@ -17,6 +16,7 @@ final class CostingReportService
         $rows=[];
         $this->materials($rows,$companyId,$fiscalYearId,$orderId,$goodsId);
         $this->labor($rows,$companyId,$fiscalYearId,$orderId,$goodsId);
+        $this->scraps($rows,$companyId,$fiscalYearId,$orderId,$goodsId);
 
         $ids=array_values(array_unique(array_filter(array_column($rows,'goods_id'))));
         $goods=$ids ? DB::table('goods')->where('company_id',$companyId)->whereIn('id',$ids)->get(['id','code','name'])->keyBy('id') : collect();
@@ -28,7 +28,8 @@ final class CostingReportService
             $row['valuation_methods']=array_keys($row['valuation_methods'] ?? []);
             $row['material_cost']=round($row['material_cost'],4);
             $row['labor_cost']=round($row['labor_cost'],4);
-            $row['total_cost']=round($row['material_cost']+$row['labor_cost'],4);
+            $row['scrap_cost']=round($row['scrap_cost'],4);
+            $row['total_cost']=round($row['material_cost']+$row['labor_cost']+$row['scrap_cost'],4);
             $row['unvalued_material_quantity']=round($row['unvalued_material_quantity'],4);
         } unset($row);
 
@@ -46,6 +47,7 @@ final class CostingReportService
             'totals'=>[
                 'material_cost'=>round(array_sum(array_column($rows,'material_cost')),4),
                 'labor_cost'=>round(array_sum(array_column($rows,'labor_cost')),4),
+                'scrap_cost'=>round(array_sum(array_column($rows,'scrap_cost')),4),
                 'total_cost'=>round(array_sum(array_column($rows,'total_cost')),4),
                 'unvalued_material_quantity'=>round(array_sum(array_column($rows,'unvalued_material_quantity')),4),
             ],
@@ -55,7 +57,6 @@ final class CostingReportService
 
     private function materials(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId): void
     {
-        if (!Schema::hasTable('inventory_consumption_costs')) return;
         $costs=DB::table('inventory_consumption_costs as c')->join('inventory_movements as m','m.id','=','c.inventory_movement_id')
             ->where('c.company_id',$companyId)->when($fy,fn($q)=>$q->where('c.fiscal_year_id',$fy))->when($goodsId,fn($q)=>$q->where('c.goods_id',$goodsId))
             ->get(['c.goods_id','c.total_cost','c.valuation_method','m.metadata']);
@@ -81,7 +82,6 @@ final class CostingReportService
 
     private function labor(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId): void
     {
-        if (!Schema::hasTable('production_labor_costs')) return;
         $costs=DB::table('production_labor_costs')->where('company_id',$companyId)->when($fy,fn($q)=>$q->where('fiscal_year_id',$fy))->get(['production_id','total_cost']);
         $pids=$costs->pluck('production_id')->unique()->values();if($pids->isEmpty())return;
         $goods=DB::table('productions')->whereIn('id',$pids)->get(['id','goods_id'])->keyBy('id');$links=DB::table('production_order')->whereIn('production_id',$pids)->get(['production_id','order_id'])->groupBy('production_id');
@@ -93,9 +93,34 @@ final class CostingReportService
         }
     }
 
+    private function scraps(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId): void
+    {
+        $costs=DB::table('scraps as s')
+            ->join('production_operation_runs as r','r.id','=','s.production_operation_run_id')
+            ->join('production_stage_runs as sr','sr.id','=','r.production_stage_run_id')
+            ->join('productions as p','p.id','=','sr.production_id')
+            ->where('p.company_id',$companyId)
+            ->when($fy,fn($q)=>$q->where('p.fiscal_year_id',$fy))
+            ->when($goodsId,fn($q)=>$q->where('p.goods_id',$goodsId))
+            ->get(['s.total_cost','p.id as production_id','p.goods_id']);
+        $pids=$costs->pluck('production_id')->unique()->values();
+        $links=$pids->isEmpty()?collect():DB::table('production_order')->whereIn('production_id',$pids)->get(['production_id','order_id'])->groupBy('production_id');
+        foreach($costs as $s){
+            $linksForProduction=$links->get((int)$s->production_id,collect());
+            if($linksForProduction->isEmpty()){
+                if($orderId!==null) continue;
+                $key=$this->key(null,(int)$s->goods_id);$this->row($rows,$key,null,(int)$s->goods_id);$rows[$key]['scrap_cost']+=(float)$s->total_cost;continue;
+            }
+            foreach($linksForProduction as $link){
+                if($orderId!==null&&(int)$link->order_id!==$orderId) continue;
+                $key=$this->key((int)$link->order_id,(int)$s->goods_id);$this->row($rows,$key,(int)$link->order_id,(int)$s->goods_id);$rows[$key]['scrap_cost']+=(float)$s->total_cost;
+            }
+        }
+    }
+
     private function key(?int $orderId,int $goodsId): string{return ($orderId??0).':'.$goodsId;}
     private function row(array &$rows,string $key,?int $orderId,int $goodsId): void{
         if(isset($rows[$key]))return;
-        $rows[$key]=['order_id'=>$orderId,'goods_id'=>$goodsId,'material_cost'=>0.0,'labor_cost'=>0.0,'total_cost'=>0.0,'unvalued_material_quantity'=>0.0,'valuation_methods'=>[]];
+        $rows[$key]=['order_id'=>$orderId,'goods_id'=>$goodsId,'material_cost'=>0.0,'labor_cost'=>0.0,'total_cost'=>0.0,'unvalued_material_quantity'=>0.0,'scrap_cost'=>0.0,'valuation_methods'=>[]];
     }
 }
