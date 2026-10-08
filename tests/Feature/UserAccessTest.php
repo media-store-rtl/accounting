@@ -17,18 +17,15 @@ class UserAccessTest extends TestCase
 
     public function test_user_without_permission_cannot_reach_protected_user_url(): void
     {
-        [$user] = $this->makeUserWithCompany(false);
+        [$user, $company] = $this->makeUserWithCompany(false);
 
-        $this->actingAs($user)->get('/settings/users')->assertForbidden();
+        $this->actingAs($user)->withSession(['company_id' => $company->id])->get('/settings/users')->assertForbidden();
     }
 
     public function test_role_permission_allows_protected_url(): void
     {
         [$user, $company, $account] = $this->makeUserWithCompany(true);
-        $account->update(['owner_user_id' => null]);
-        $user->refresh();
-
-        $this->actingAs($user)->get('/settings/users')->assertOk();
+        $this->actingAs($user)->withSession(['company_id' => $company->id])->get('/settings/users')->assertOk();
     }
 
     public function test_user_creation_is_blocked_when_plan_limit_is_reached(): void
@@ -43,7 +40,7 @@ class UserAccessTest extends TestCase
             'expires_at' => now()->addDay(),
         ]);
 
-        $this->actingAs($owner)->post('/settings/users', [
+        $this->actingAs($owner)->withSession(['company_id' => $company->id])->post('/settings/users', [
             'code' => 'P-2',
             'first_name' => 'کاربر',
             'last_name' => 'دوم',
