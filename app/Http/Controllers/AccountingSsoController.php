@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class AccountingSsoController extends Controller
@@ -24,6 +25,31 @@ class AccountingSsoController extends Controller
         $url = rtrim((string) config('services.web2022.url'), '/');
         abort_if($url === '', 503, 'Web2022 SSO is not configured.');
         return redirect()->away($url . '/accounting/sso/start');
+    }
+
+    public function logout(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user, 401, 'کاربر وارد نشده است.');
+
+        $web2022Url = rtrim((string) config('services.web2022.url'), '/');
+        $secret = (string) config('services.accounting.sso_secret');
+        if ($web2022Url !== '' && $secret !== '' && $request->session()->get('auth_source') === 'web2022' && $user->web2022_user_id) {
+            $timestamp = now()->timestamp;
+            $nonce = bin2hex(random_bytes(16));
+            $payload = (int)$user->web2022_user_id.'|'.$timestamp.'|'.$nonce;
+            $signature = hash_hmac('sha256',$payload,$secret);
+            $token = rtrim(strtr(base64_encode($payload.'|'.$signature), '+/','-_'),'=');
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->away($web2022Url.'/accounting/sso/logout?token='.rawurlencode($token));
+        }
+
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect()->route('logout.success');
     }
 
     public function callback(Request $request): RedirectResponse
