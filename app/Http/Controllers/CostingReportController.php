@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\CostCalculationService;
 use App\Services\CostingReportService;
 use App\Support\CompanyAuthorization;
 use Illuminate\Http\Request;
@@ -9,6 +10,14 @@ use Illuminate\Support\Facades\DB;
 
 final class CostingReportController extends Controller
 {
+    public function calculate(Request $request, CostCalculationService $service)
+    {
+        $companyId=CompanyAuthorization::authorize($request,'costing.report.view');
+        $data=$request->validate(['fiscal_year_id'=>'nullable|integer','order_id'=>'nullable|integer','goods_id'=>'nullable|integer']);
+        $result=$service->calculate($companyId,(int)$request->user()->id,$data['fiscal_year_id']??null,$data['order_id']??null,$data['goods_id']??null);
+        return $request->expectsJson() ? response()->json(['data'=>$result]) : back()->with('success','محاسبه بهای تمام‌شده ثبت و قابل ردیابی شد.');
+    }
+
     public function index(Request $request, CostingReportService $service)
     {
         $companyId=CompanyAuthorization::authorize($request,'costing.report.view');
