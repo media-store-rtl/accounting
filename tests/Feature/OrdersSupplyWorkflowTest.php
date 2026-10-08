@@ -18,9 +18,9 @@ class OrdersSupplyWorkflowTest extends TestCase
         $user=DB::table('users')->insertGetId(['account_id'=>$account,'name'=>'Tester','username'=>'u'.uniqid(),'email'=>uniqid().'@test.local','password'=>Hash::make('secret'),'created_at'=>now(),'updated_at'=>now()]);
         $role=DB::table('roles')->insertGetId(['company_id'=>$company,'name'=>'Operations','slug'=>'ops','is_system'=>false,'created_at'=>now(),'updated_at'=>now()]);
         foreach(['order.create','order.view','supply_request.create','supply_request.view','purchase.create','purchase.view','purchase.receipt.create','purchase.receipt.approve'] as $slug){
-            $permission=DB::table('permissions')->where('slug',$slug)->first();
-            $permissionId=$permission?->id ?? DB::table('permissions')->insertGetId(['name'=>$slug,'slug'=>$slug,'module'=>'orders-supply','created_at'=>now(),'updated_at'=>now()]);
-            DB::table('role_permissions')->insertOrIgnore(['role_id'=>$role,'permission_id'=>$permissionId]);
+            DB::table('permissions')->updateOrInsert(['slug'=>$slug],['name'=>$slug,'module'=>'orders-supply','updated_at'=>now(),'created_at'=>now()]);
+            $permission=(int) DB::table('permissions')->where('slug',$slug)->value('id');
+            DB::table('role_permissions')->insert(['role_id'=>$role,'permission_id'=>$permission]);
         }
         DB::table('company_user')->insert(['company_id'=>$company,'user_id'=>$user,'role_id'=>$role,'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $fy=DB::table('fiscal_years')->insertGetId(['company_id'=>$company,'name'=>'1405','code'=>'FY1405','starts_at'=>'2026-03-21','ends_at'=>'2027-03-20','is_closed'=>false,'created_at'=>now(),'updated_at'=>now()]);
