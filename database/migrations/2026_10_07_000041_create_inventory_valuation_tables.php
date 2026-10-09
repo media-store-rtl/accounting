@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\\Database\\Migrations\\Migration;
+use Illuminate\\Database\\Schema\\Blueprint;
+use Illuminate\\Support\\Facades\\Schema;
 
 return new class extends Migration {
     public function up(): void
@@ -28,8 +28,14 @@ return new class extends Migration {
             $table->decimal('total_cost', 20, 4);
             $table->dateTime('received_at');
             $table->timestamps();
-            $table->index(['company_id', 'goods_id', 'location_id', 'received_at']);
-            $table->index(['goods_id', 'location_id', 'fifo_quantity_remaining']);
+            $table->index(
+                ['company_id', 'goods_id', 'location_id', 'received_at'],
+                'icl_company_goods_loc_received_idx'
+            );
+            $table->index(
+                ['goods_id', 'location_id', 'fifo_quantity_remaining'],
+                'icl_goods_loc_fifo_remaining_idx'
+            );
             $table->unique('purchase_receipt_item_id');
         });
 
