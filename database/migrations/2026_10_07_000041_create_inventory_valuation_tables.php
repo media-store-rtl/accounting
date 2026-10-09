@@ -52,7 +52,7 @@ return new class extends Migration {
                 $table->dateTime('consumed_at');
                 $table->timestamps();
                 $table->unique('inventory_movement_id');
-                $table->index(['company_id', 'goods_id', 'consumed_at']);
+                $table->index(['company_id', 'goods_id', 'consumed_at'], 'icc_company_goods_consumed_idx');
             });
         }
 
