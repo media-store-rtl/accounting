@@ -47,10 +47,10 @@
 <div class="role-meta">
     <span class="role-badge">شناسه: {{ $role->slug }}</span>
     <span class="role-badge">{{ $role->permissions->count() }} مجوز انتخاب‌شده</span>
-    @if($role->is_system)<span class="role-badge" style="color:#d7c28a">نقش سیستمی؛ فقط مشاهده</span>@endif
+    @if($role->is_system)<span class="role-badge" style="color:#d7c28a">نقش سیستمی{{ $canManageSystemRoles ? '؛ قابل ویرایش توسط مالک حساب' : '؛ فقط مشاهده' }}</span>@endif
 </div>
 
-@if($role->is_system)
+@if($role->is_system && ! $canManageSystemRoles)
     <section class="role-panel">
         <h2 style="font-size:14px;margin-bottom:8px">مجوزهای نقش سیستمی</h2>
         <p class="role-warning">برای جلوگیری از تغییر ناخواستهٔ دسترسی‌های پایه، نقش‌های سیستمی از این صفحه قابل ویرایش نیستند.</p>
@@ -121,7 +121,9 @@
                 </details>
             @endforeach
             <div class="role-actions">
-                <button class="btn" type="submit" form="delete-role-{{ $role->id }}" style="background:#3b2528;border-color:#63343b;color:#ffb8a8" onclick="return confirm('از حذف این نقش مطمئن هستید؟')">حذف نقش</button>
+                @unless($role->is_system)
+                    <button class="btn" type="submit" form="delete-role-{{ $role->id }}" style="background:#3b2528;border-color:#63343b;color:#ffb8a8" onclick="return confirm('از حذف این نقش مطمئن هستید؟')">حذف نقش</button>
+                @endunless
                 <div class="role-actions-main">
                     <a class="btn" href="{{ route('roles.index') }}">انصراف</a>
                     <button class="btn primary" type="submit">ذخیره تغییرات</button>
