@@ -81,7 +81,7 @@
 <div class="user"><div><strong>{{ $user->name }}</strong><small>{{ $subscriptionStatus }}</small></div><div class="avatar">{{ mb_substr($user->name,0,1) }}</div><form method="POST" action="{{ route('logout') }}">@csrf<button class="logout">خروج</button></form></div>
 </header>
 
-<section class="content">
+<section class="dashboard-content">
 <div class="welcome">
 <div><div class="eyebrow">CONTROL CENTER</div><h1>داشبورد حسابداری صنعتی</h1><p>وضعیت واقعی زنجیره سفارش، تأمین، انبار، تولید و هزینه‌های ثبت‌شده.</p></div>
 </div>
