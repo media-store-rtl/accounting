@@ -9,6 +9,9 @@
 @if(session('success'))
     <div class="panel" style="margin-bottom:16px;border-color:#245447;color:#6ee7d0">{{ session('success') }}</div>
 @endif
+@if ($errors->any())
+    <div role="alert" class="panel" style="margin-bottom:16px;border-color:#63343b;color:#ffb8a8">{{ $errors->first() }}</div>
+@endif
 <div class="actions">
     <a class="btn primary" href="{{ route('users.create') }}">+ کاربر جدید</a>
     <a class="btn" href="{{ route('roles.index') }}">مدیریت نقش‌ها</a>
