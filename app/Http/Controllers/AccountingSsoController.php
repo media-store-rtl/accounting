@@ -152,10 +152,18 @@ class AccountingSsoController extends Controller
             if ($company) {
                 $entitlement = SubscriptionEntitlement::firstOrNew(['company_id' => $company->id]);
                 $entitlement->external_subscription_id = (string) $payload['subscription_id'];
-                $entitlement->status = (string) ($payload['subscription_status'] ?? $entitlement->status ?? 'pending');
+                // Web2022 may send generic field names (status, starts_at, expires_at)
+                // or subscription-prefixed names. Accept both so an active plan is not
+                // incorrectly stored as pending just because the field names differ.
+                $incomingStatus = $payload['subscription_status'] ?? $payload['status'] ?? $entitlement->status ?? 'pending';
+                $entitlement->status = strtolower(trim((string) $incomingStatus));
                 $entitlement->max_users = isset($payload['max_users']) ? (int) $payload['max_users'] : $entitlement->max_users;
-                $entitlement->starts_at = $payload['subscription_starts_at'] ?? $entitlement->starts_at;
-                $entitlement->expires_at = $payload['subscription_expires_at'] ?? $entitlement->expires_at;
+                $entitlement->starts_at = array_key_exists('subscription_starts_at', $payload)
+                    ? $payload['subscription_starts_at']
+                    : (array_key_exists('starts_at', $payload) ? $payload['starts_at'] : $entitlement->starts_at);
+                $entitlement->expires_at = array_key_exists('subscription_expires_at', $payload)
+                    ? $payload['subscription_expires_at']
+                    : (array_key_exists('expires_at', $payload) ? $payload['expires_at'] : $entitlement->expires_at);
                 $entitlement->last_verified_at = now();
                 $metadata = is_array($entitlement->metadata) ? $entitlement->metadata : [];
                 if (isset($payload['max_users'])) $metadata['max_users'] = (int) $payload['max_users'];
