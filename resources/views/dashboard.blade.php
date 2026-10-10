@@ -111,13 +111,12 @@
 @if($goods->isNotEmpty())
 <div style="overflow-x:auto;margin-top:14px">
 <table style="width:100%;border-collapse:collapse;font-size:10px;text-align:right">
-<thead><tr style="color:#71879d;border-bottom:1px solid #1b354b"><th style="padding:10px">کد کالا</th><th style="padding:10px">نام کالا</th><th style="padding:10px">عملیات</th></tr></thead>
+<thead><tr style="color:#71879d;border-bottom:1px solid #1b354b"><th style="padding:10px">کد کالا</th><th style="padding:10px">نام کالا</th></tr></thead>
 <tbody>
 @foreach($goods as $good)
 <tr style="border-bottom:1px solid #173047">
 <td style="padding:11px 10px;color:#6ee7d0;font-weight:700;white-space:nowrap">{{ $good->code }}</td>
 <td style="padding:11px 10px">{{ $good->name }}</td>
-<td style="padding:11px 10px"><a href="{{ route('master.edit', ['goods', $good->id]) }}" style="color:#9eb2c4;text-decoration:none">مشاهده / ویرایش ←</a></td>
 </tr>
 @endforeach
 </tbody></table>
