@@ -1,15 +1,23 @@
-@extends('layouts.app')
+@extends('layouts.dashboard-shell')
+
+@section('title', 'تحویل مواد')
+
 @section('content')
-<div class="container" dir="rtl"><h1>تحویل مواد به تولید</h1>
-@if(session('success'))<div class="alert alert-success">{{session('success')}}</div>@endif
-<form method="post" action="{{route('workflows.handovers.store')}}" class="card p-4 mb-4">@csrf
-<div class="row g-3"><div class="col-md-6"><label>درخواست تأمین</label><select name="supply_request_id" class="form-select" required>@foreach($requests as $x)<option value="{{$x->id}}">{{$x->id}} / {{$x->status}}</option>@endforeach</select></div>
-<div class="col-md-6"><label>انبار</label><select name="warehouse_location_id" class="form-select" required>@foreach($locations as $x)<option value="{{$x->id}}">{{$x->name}}</option>@endforeach</select></div>
-<div class="col-md-6"><label>تحویل‌دهنده</label><select name="delivered_by_user_id" class="form-select" required>@foreach($users as $x)<option value="{{$x->id}}">{{$x->name}}</option>@endforeach</select></div>
-<div class="col-md-6"><label>تحویل‌گیرنده</label><select name="received_by_user_id" class="form-select" required>@foreach($users as $x)<option value="{{$x->id}}">{{$x->name}}</option>@endforeach</select></div>
-<div class="col-md-6"><label>زمان</label><input name="handed_over_at" type="datetime-local" class="form-control" required></div>
-<div class="col-md-6"><label>کالا</label><select name="items[0][goods_id]" class="form-select" required>@foreach($goods as $x)<option value="{{$x->id}}">{{$x->name}}</option>@endforeach</select></div>
-<div class="col-md-6"><label>مقدار</label><input name="items[0][quantity]" type="number" step="0.0001" min="0.0001" class="form-control" required></div></div>
-<button class="btn btn-primary mt-3">ثبت تحویل</button></form>
-<table class="table"><thead><tr><th>شناسه</th><th>درخواست</th><th>وضعیت</th><th>زمان</th></tr></thead><tbody>@forelse($rows as $x)<tr><td>{{$x->id}}</td><td>{{$x->supply_request_id}}</td><td>{{$x->status}}</td><td>{{$x->handed_over_at}}</td></tr>@empty<tr><td colspan="4">تحویلی وجود ندارد.</td></tr>@endforelse</tbody></table>{{$rows->links()}}</div>
+<div class="page-heading"><div><h1>تحویل مواد به تولید</h1><p>ثبت و پیگیری تحویل مواد از انبار به واحد تولید</p></div></div>
+@if(session('success'))<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #246451;border-radius:12px;background:#0c282b;color:#8ce8ce;font-size:12px">{{ session('success') }}</div>@endif
+@if($errors->any())<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #714448;border-radius:12px;background:#302126;color:#ffb8a8;font-size:12px">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
+<div class="panel" style="margin-bottom:18px"><h2 style="font-size:15px;margin:0 0 16px">ثبت تحویل جدید</h2>
+<form method="POST" action="{{ route('workflows.handovers.store') }}">@csrf
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px">
+<label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">درخواست تأمین<select name="supply_request_id" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">@foreach($requests as $x)<option value="{{ $x->id }}" @selected((string)old('supply_request_id')===(string)$x->id)>درخواست #{{ $x->id }} / {{ $x->status }}</option>@endforeach</select></label>
+<label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">انبار<select name="warehouse_location_id" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">@foreach($locations as $x)<option value="{{ $x->id }}" @selected((string)old('warehouse_location_id')===(string)$x->id)>{{ $x->name }}</option>@endforeach</select></label>
+<label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">تحویل‌دهنده<select name="delivered_by_user_id" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">@foreach($users as $x)<option value="{{ $x->id }}" @selected((string)old('delivered_by_user_id')===(string)$x->id)>{{ $x->name }}</option>@endforeach</select></label>
+<label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">تحویل‌گیرنده<select name="received_by_user_id" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">@foreach($users as $x)<option value="{{ $x->id }}" @selected((string)old('received_by_user_id')===(string)$x->id)>{{ $x->name }}</option>@endforeach</select></label>
+<label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">زمان تحویل<input name="handed_over_at" type="datetime-local" value="{{ old('handed_over_at') }}" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit;color-scheme:dark"></label>
+<label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">کالا<select name="items[0][goods_id]" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">@foreach($goods as $x)<option value="{{ $x->id }}" @selected((string)old('items.0.goods_id')===(string)$x->id)>{{ $x->name }}</option>@endforeach</select></label>
+<label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">مقدار<input name="items[0][quantity]" type="number" step="0.0001" min="0.0001" value="{{ old('items.0.quantity') }}" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit"></label>
+</div><div style="margin-top:18px"><button class="btn primary" type="submit">ثبت تحویل</button></div></form></div>
+<div class="panel"><h2 style="font-size:15px;margin:0 0 14px">تحویل‌های ثبت‌شده</h2><div class="table-wrap"><table><thead><tr><th>شناسه</th><th>درخواست</th><th>وضعیت</th><th>زمان تحویل</th></tr></thead><tbody>
+@forelse($rows as $x)<tr><td>#{{ $x->id }}</td><td>#{{ $x->supply_request_id }}</td><td><span class="status {{ in_array($x->status, ['completed','approved','delivered'], true) ? 'active' : 'inactive' }}">{{ $x->status }}</span></td><td>{{ $x->handed_over_at }}</td></tr>@empty<tr><td colspan="4" style="text-align:center;padding:28px;color:#8198ac">تحویلی برای نمایش وجود ندارد.</td></tr>@endforelse
+</tbody></table></div>@if(method_exists($rows, 'links'))<div class="pagination">{{ $rows->links() }}</div>@endif</div>
 @endsection
