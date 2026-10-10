@@ -23,7 +23,10 @@ class AuthController extends Controller
         $request->session()->put('auth_source', 'local');
         $request->session()->forget('web2022_user_id');
 
-        if ($company = Auth::user()->currentCompany()) {
+        $user = Auth::user();
+        $user->ensureAccountOwnerAccess();
+
+        if ($company = $user->currentCompany()) {
             $request->session()->put('company_id', $company->id);
         }
 
