@@ -15,7 +15,7 @@
 .nav{padding-top:20px}.nav-title{font-size:8px;color:#587087;margin:0 10px 8px}.nav a{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:11px;text-decoration:none;color:#8ba1b5;font-size:11px;margin-bottom:4px}.nav a.active,.nav a:hover{background:#10283c;color:#dcebf6}
 .main{min-width:0}.top{min-height:76px;border-bottom:1px solid #183047;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 34px;background:#081522}
 .company{display:flex;align-items:center;gap:12px;min-width:0}.company select{background:#0d2133;color:#dcebf5;border:1px solid #29465e;border-radius:10px;padding:9px 13px;font-family:inherit;font-size:11px;max-width:230px}
-.user{display:flex;align-items:center;gap:10px;flex-shrink:0}.avatar{width:35px;height:35px;border-radius:50%;display:grid;place-items:center;background:#15334a;color:#6ee7d0;font-weight:800}.user small{display:block;color:#71889d;font-size:8px}.user strong{font-size:11px}.logout{border:0;background:none;color:#7f97aa;font-family:inherit;cursor:pointer;font-size:10px}
+.user{display:flex;align-items:center;gap:10px;flex-shrink:0}.notification-bell{position:relative;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border:1px solid #29465e;border-radius:12px;color:#cce0ef;text-decoration:none;font-size:19px;background:#0d2133}.notification-bell:hover{border-color:#6ee7d0;color:#6ee7d0}.notification-bell .count{position:absolute;top:-6px;left:-6px;min-width:17px;height:17px;padding:0 4px;border-radius:99px;display:grid;place-items:center;background:#ff826e;color:#07111f;font-size:9px;font-weight:900;line-height:1}.avatar{width:35px;height:35px;border-radius:50%;display:grid;place-items:center;background:#15334a;color:#6ee7d0;font-weight:800}.user small{display:block;color:#71889d;font-size:8px}.user strong{font-size:11px}.logout{border:0;background:none;color:#7f97aa;font-family:inherit;cursor:pointer;font-size:10px}
 .content{padding:32px 34px}.page-heading{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:18px}.page-heading h1{font-size:25px;margin:0}.page-heading p{margin:7px 0 0;color:#71879d;font-size:11px}
 .panel{background:#0a1b2b;border:1px solid #1b354b;border-radius:18px;padding:21px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:9px;background:#12314a;color:#e9f3fb;text-decoration:none;border:1px solid #29465e;font-size:11px;font-family:inherit}.btn.primary{background:#6ee7d0;color:#04131b;border-color:#6ee7d0;font-weight:800}
 .table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:11px;text-align:right;white-space:nowrap}th{color:#71879d;font-weight:600;background:#0d2235}th,td{padding:13px 12px;border-bottom:1px solid #1b354b}tbody tr:hover{background:#0d2235}.status{display:inline-block;border-radius:20px;padding:4px 9px;font-size:10px}.status.active{color:#6ee7d0;background:#12372f}.status.inactive{color:#ffb8a8;background:#3b2528}
@@ -38,6 +38,7 @@ if (!isset($can) || !is_array($can)) {
     $can = [];
     foreach ($permissions as $key => $permission) { $can[$key] = (bool) ($company && $user->hasCompanyPermission((int) $company->id, $permission)); }
 }
+    $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifications()->count() : 0;
 @endphp
 <div class="app">
 <aside class="sidebar">
@@ -90,6 +91,9 @@ if (!isset($can) || !is_array($can)) {
 </select></form>
 @elseif($company && $can['fiscal_years'])<a href="{{ route('fiscal-years.create') }}" style="color:#6ee7d0;font-size:10px;text-decoration:none">+ تعریف سال مالی</a>@endif
 </div>
+@if($can['notifications'])
+<a class="notification-bell" href="{{ route('notifications.index') }}" aria-label="مرکز اعلان‌ها" title="مرکز اعلان‌ها">♧@if($unreadNotificationCount > 0)<span class="count">{{ $unreadNotificationCount > 99 ? '99+' : $unreadNotificationCount }}</span>@endif</a>
+@endif
 <div class="user"><div><strong>{{ $user->name }}</strong><small>{{ $company?->name ?? 'حسابداری صنعتی' }}</small></div><div class="avatar">{{ mb_substr($user->name,0,1) }}</div><form method="POST" action="{{ route('logout') }}">@csrf<button class="logout">خروج</button></form></div>
 </header>
 <section class="content">@yield('content')</section>
