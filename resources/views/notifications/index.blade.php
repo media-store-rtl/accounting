@@ -32,6 +32,22 @@
                     </div>
                 @endif
 
+                @if($n->readers->isNotEmpty())
+                    <div style="margin-top:12px;padding:10px 12px;border:1px solid #245447;border-radius:9px;background:#0a2024">
+                        <strong style="display:block;color:#8ce8ce;font-size:11px;margin-bottom:7px">خوانده‌شده توسط</strong>
+                        <div style="display:flex;flex-direction:column;gap:6px">
+                            @foreach($n->readers as $reader)
+                                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px">
+                                    <span style="color:#d2e5ee">{{ $reader->username ?: $reader->user_name }}</span>
+                                    <small style="color:#8198ac">{{ $reader->read_at }}</small>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @elseif(!empty($data['notification_batch_id']))
+                    <div style="margin-top:10px;color:#8198ac;font-size:10px">هنوز هیچ‌یک از گیرندگان این اعلان را نخوانده است.</div>
+                @endif
+
                 @if(!$n->read_at)
                     <form method="POST" action="{{ route('notifications.read', $n->id) }}" style="margin-top:12px">
                         @csrf
