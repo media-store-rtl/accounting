@@ -1,1 +1,66 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>مشتری جدید</title><style>body{font-family:Tahoma;background:#07111f;color:#e9f3fb;padding:30px}.box{max-width:700px;background:#0a1b2b;padding:24px;border-radius:14px}input,textarea{width:100%;padding:10px;margin:7px 0 14px;background:#10283c;color:#fff;border:1px solid #29465e;border-radius:8px}button{padding:10px 18px;background:#1c806e;color:#fff;border:0;border-radius:8px}</style></head><body><div class="box"><h1>ثبت مشتری</h1><form method="post" action="{{ route('sales.customers.store') }}">@csrf<label>نام</label><input name="name" required><label>کد مشتری</label><input name="code" required><label>شناسه ملی</label><input name="national_id"><label>تلفن</label><input name="phone"><label>ایمیل</label><input name="email" type="email"><label>آدرس</label><textarea name="address"></textarea><button>ثبت مشتری</button></form></div></body></html>
+@extends('layouts.dashboard-shell')
+
+@section('title', 'ثبت مشتری جدید | حسابداری صنعتی')
+
+@section('content')
+<div class="page-heading">
+    <div>
+        <h1>ثبت مشتری جدید</h1>
+        <p>اطلاعات مشتری را برای ثبت در مجموعه وارد کنید</p>
+    </div>
+    <a class="btn" href="{{ route('sales.customers.index') }}">بازگشت به فهرست مشتریان</a>
+</div>
+
+@if($errors->any())
+    <div class="panel" style="margin-bottom:16px;border-color:#754047;color:#ffb8a8">
+        <strong>لطفاً خطاهای زیر را بررسی کنید:</strong>
+        <ul style="margin-bottom:0">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
+<div class="panel" style="max-width:900px">
+    <form method="POST" action="{{ route('sales.customers.store') }}">
+        @csrf
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px">
+            <div>
+                <label for="name" style="display:block;margin-bottom:7px;font-size:12px">نام مشتری <span style="color:#ffb8a8">*</span></label>
+                <input id="name" name="name" value="{{ old('name') }}" required autocomplete="organization" class="form-control" style="width:100%;padding:11px;background:#10283c;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;font:inherit">
+                @error('name')<small style="color:#ffb8a8">{{ $message }}</small>@enderror
+            </div>
+            <div>
+                <label for="code" style="display:block;margin-bottom:7px;font-size:12px">کد مشتری <span style="color:#ffb8a8">*</span></label>
+                <input id="code" name="code" value="{{ old('code') }}" required autocomplete="off" class="form-control" style="width:100%;padding:11px;background:#10283c;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;font:inherit">
+                @error('code')<small style="color:#ffb8a8">{{ $message }}</small>@enderror
+            </div>
+            <div>
+                <label for="national_id" style="display:block;margin-bottom:7px;font-size:12px">شناسه ملی</label>
+                <input id="national_id" name="national_id" value="{{ old('national_id') }}" autocomplete="off" class="form-control" style="width:100%;padding:11px;background:#10283c;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;font:inherit">
+                @error('national_id')<small style="color:#ffb8a8">{{ $message }}</small>@enderror
+            </div>
+            <div>
+                <label for="phone" style="display:block;margin-bottom:7px;font-size:12px">تلفن</label>
+                <input id="phone" name="phone" value="{{ old('phone') }}" type="tel" autocomplete="tel" class="form-control" style="width:100%;padding:11px;background:#10283c;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;font:inherit">
+                @error('phone')<small style="color:#ffb8a8">{{ $message }}</small>@enderror
+            </div>
+            <div>
+                <label for="email" style="display:block;margin-bottom:7px;font-size:12px">ایمیل</label>
+                <input id="email" name="email" value="{{ old('email') }}" type="email" autocomplete="email" class="form-control" style="width:100%;padding:11px;background:#10283c;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;font:inherit">
+                @error('email')<small style="color:#ffb8a8">{{ $message }}</small>@enderror
+            </div>
+            <div style="grid-column:1/-1">
+                <label for="address" style="display:block;margin-bottom:7px;font-size:12px">آدرس</label>
+                <textarea id="address" name="address" rows="4" autocomplete="street-address" style="width:100%;padding:11px;background:#10283c;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;font:inherit;resize:vertical">{{ old('address') }}</textarea>
+                @error('address')<small style="color:#ffb8a8">{{ $message }}</small>@enderror
+            </div>
+        </div>
+        <div class="actions" style="margin-top:22px;margin-bottom:0">
+            <button type="submit" class="btn primary">ثبت مشتری</button>
+            <a class="btn" href="{{ route('sales.customers.index') }}">انصراف</a>
+        </div>
+    </form>
+</div>
+@endsection
