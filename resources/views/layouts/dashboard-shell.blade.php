@@ -42,8 +42,8 @@ foreach ($permissions as $key => $permission) { $can[$key] = (bool) ($company &&
 <nav class="nav">
 <div class="nav-title">نمای کلی</div><a href="{{ route('dashboard') }}">⌂ داشبورد</a>
 <div class="nav-title">سفارش و فروش</div>
-@if($can['customers'])<a class="active" href="{{ route('sales.customers.index') }}">♙ مشتریان</a>@endif
-@if($can['orders'])<a href="{{ route('sales.orders.index') }}">▤ سفارش‌های فروش</a>@endif
+@if($can['customers'])<a class="{{ request()->routeIs('sales.customers.*') ? 'active' : '' }}" href="{{ route('sales.customers.index') }}">♙ مشتریان</a>@endif
+@if($can['orders'])<a class="{{ request()->routeIs('sales.orders.*') ? 'active' : '' }}" href="{{ route('sales.orders.index') }}">▤ سفارش‌های فروش</a>@endif
 @if($can['deliveries'])<a href="{{ route('sales.deliveries.index') }}">⇢ تحویل و ارسال</a>@endif
 <div class="nav-title">تعاریف و مدیریت</div>
 @if($can['company'])<a href="{{ route('company.edit') }}">▤ اطلاعات مجموعه</a>@endif
@@ -79,8 +79,8 @@ foreach ($permissions as $key => $permission) { $can[$key] = (bool) ($company &&
 </div>
 <nav class="mobile-nav" aria-label="ناوبری موبایل">
 <a href="{{ route('dashboard') }}"><span>⌂</span>خانه</a>
-@if($can['customers'])<a class="active" href="{{ route('sales.customers.index') }}"><span>♙</span>مشتریان</a>@endif
-@if($can['orders'])<a href="{{ route('sales.orders.index') }}"><span>▤</span>فروش</a>@endif
+@if($can['customers'])<a class="{{ request()->routeIs('sales.customers.*') ? 'active' : '' }}" href="{{ route('sales.customers.index') }}"><span>♙</span>مشتریان</a>@endif
+@if($can['orders'])<a class="{{ request()->routeIs('sales.orders.*') ? 'active' : '' }}" href="{{ route('sales.orders.index') }}"><span>▤</span>فروش</a>@endif
 @if($can['deliveries'])<a href="{{ route('sales.deliveries.index') }}"><span>⇢</span>تحویل</a>@endif
 @if($can['users'])<a href="{{ route('users.index') }}"><span>♙</span>کاربران</a>@endif
 </nav>
