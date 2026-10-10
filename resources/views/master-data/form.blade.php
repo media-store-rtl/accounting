@@ -1,12 +1,12 @@
-@extends(in_array(($module ?? null), ['goods', 'goods-categories', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? 'layouts.dashboard-shell' : 'layouts.app')
-@if(in_array(($module ?? null), ['goods', 'goods-categories', 'locations', 'productions', 'suppliers', 'production-routes'], true))
+@extends(in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? 'layouts.dashboard-shell' : 'layouts.app')
+@if(in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes'], true))
 @section('title', (($editing ?? false) ? 'ویرایش ' : 'ثبت ') . ($definition['title'] ?? 'اطلاعات پایه'))
 @endif
 @section('content')
 @php
 $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbol'=>'نماد','unit_type'=>'نوع واحد','national_id'=>'شناسه ملی','phone'=>'تلفن','email'=>'ایمیل','address'=>'آدرس','category_id'=>'دسته‌بندی','purchasable'=>'قابل خرید','producible'=>'قابل تولید','sellable'=>'قابل فروش','location_id'=>'محل / انبار','supervisor_personnel_id'=>'سرپرست','type'=>'نوع','production_route_id'=>'مسیر تولید','production_section_id'=>'قسمت تولید','production_stage_id'=>'مرحله تولید','sequence'=>'ترتیب','standard_duration_minutes'=>'مدت استاندارد (دقیقه)','setup_duration_minutes'=>'زمان آماده‌سازی (دقیقه)','status'=>'وضعیت','number'=>'شماره','goods_id'=>'کالا','fiscal_year_id'=>'سال مالی','planned_quantity'=>'مقدار برنامه‌ریزی‌شده','planned_start_at'=>'شروع برنامه‌ریزی‌شده','planned_end_at'=>'پایان برنامه‌ریزی‌شده','description'=>'توضیحات','notes'=>'یادداشت'];
 @endphp
-@if(in_array(($module ?? null), ['goods', 'goods-categories', 'locations', 'productions', 'suppliers', 'production-routes'], true))
+@if(in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes'], true))
 <style>
 .master-form-page{max-width:1100px;margin:0 auto}
 .master-form-page .master-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
@@ -33,10 +33,10 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 @media(max-width:620px){.master-form-page .row{grid-template-columns:1fr;gap:14px}.master-form-page .master-heading{align-items:flex-start;flex-direction:column}.master-form-page .master-card{padding:15px}.master-form-page h1{font-size:21px}}
 </style>
 @endif
-<div class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? 'master-form-page' : 'container py-3' }}" dir="rtl">
-<div class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? 'master-heading' : 'd-flex justify-content-between align-items-center mb-4' }}"><div><h1 class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? '' : 'h3 mb-1' }}">{{ in_array(($module ?? null), ['goods', 'goods-categories', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? ((($editing ?? false) ? 'ویرایش اطلاعات ' : 'ثبت اطلاعات ') . ($definition['title'] ?? '')) : $definition['title'] }}</h1><div class="text-muted small">{{ ($editing ?? false) ? 'ویرایش اطلاعات ثبت‌شده' : 'ثبت اطلاعات جدید' }}</div></div><a href="{{route('master.index',$module)}}" class="btn btn-outline-secondary">بازگشت به فهرست {{ $definition['title'] }}</a></div>
+<div class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? 'master-form-page' : 'container py-3' }}" dir="rtl">
+<div class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? 'master-heading' : 'd-flex justify-content-between align-items-center mb-4' }}"><div><h1 class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? '' : 'h3 mb-1' }}">{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? ((($editing ?? false) ? 'ویرایش اطلاعات ' : 'ثبت اطلاعات ') . ($definition['title'] ?? '')) : $definition['title'] }}</h1><div class="text-muted small">{{ ($editing ?? false) ? 'ویرایش اطلاعات ثبت‌شده' : 'ثبت اطلاعات جدید' }}</div></div><a href="{{route('master.index',$module)}}" class="btn btn-outline-secondary">بازگشت به فهرست {{ $definition['title'] }}</a></div>
 @if($errors->any())<div class="alert alert-danger">@foreach($errors->all() as $e)<div>{{$e}}</div>@endforeach</div>@endif
-<form method="post" action="{{ ($editing ?? false) ? route('master.update',[$module,$row->id]) : route('master.store',$module) }}" class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? 'master-card' : 'card shadow-sm border-0 p-4' }}">
+<form method="post" action="{{ ($editing ?? false) ? route('master.update',[$module,$row->id]) : route('master.store',$module) }}" class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? 'master-card' : 'card shadow-sm border-0 p-4' }}">
 @csrf @if($editing ?? false) @method('PUT') @endif
 <div class="row g-3">
 @foreach($definition['fields'] as $f)
