@@ -2,13 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Notifications\WorkflowNotification;
+use App\Services\NotificationRecipientService;
 use App\Support\CompanyAuthorization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification;
 
 class SupplyRequestController extends Controller
 {
@@ -44,10 +42,14 @@ class SupplyRequestController extends Controller
             DB::table('supply_requests')->where('id',$id)->update(['status'=>$shortage?'shortage_pending':'stock_available','updated_at'=>now()]);
             return DB::table('supply_requests')->where('id',$id)->first();
         });
-        if($model->status==='shortage_pending'){
-            $ids=DB::table('company_user as cu')->join('role_permissions as rp','rp.role_id','=','cu.role_id')->join('permissions as p','p.id','=','rp.permission_id')
-                ->where('cu.company_id',$companyId)->where('cu.is_active',true)->where('p.slug','supply.manage')->pluck('cu.user_id');
-            Notification::send(User::whereIn('id',$ids)->get(),new WorkflowNotification('supply.shortage',['supply_request_id'=>$model->id,'company_id'=>$companyId]));
+        if ($model->status === 'shortage_pending') {
+            app(NotificationRecipientService::class)->send(
+                $companyId,
+                'supply.shortage',
+                ['supply_request_id' => $model->id],
+                (int) $request->user()->id,
+                'supply.manage'
+            );
         }
         return response()->json(['data'=>$model],201);
     }
