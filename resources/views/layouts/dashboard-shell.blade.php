@@ -58,18 +58,11 @@ foreach ($permissions as $key => $permission) { $can[$key] = (bool) ($company &&
 <div class="nav-title">تولید</div>
 @if($can['productions'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'productions' ? 'active' : '' }}" href="{{ route('master.index', 'productions') }}">⚙ دستورهای تولید</a>@endif
 @if($can['production_execution'])<a class="{{ request()->routeIs('production.execution.*') ? 'active' : '' }}" href="{{ route('production.execution.index') }}">⚒ عملیات تولید</a>@endif
-@if($can['production_sections'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-sections' ? 'active' : '' }}" href="{{ route('master.index', 'production-sections') }}">▣ بخش‌های تولید</a>@endif
-@if($can['production_stages'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-stages' ? 'active' : '' }}" href="{{ route('master.index', 'production-stages') }}">☷ مراحل تولید</a>@endif
-@if($can['production_operations'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-operations' ? 'active' : '' }}" href="{{ route('master.index', 'production-operations') }}">⚒ تعریف عملیات</a>@endif
-@if($can['production_labor'])<a class="{{ request()->routeIs('workflows.labor*') ? 'active' : '' }}" href="{{ route('workflows.labor') }}">♟ کارکرد نیروی انسانی</a>@endif
 @if($can['production_outputs'])<a class="{{ request()->routeIs('production.outputs.*') ? 'active' : '' }}" href="{{ route('production.outputs.index') }}">⇡ خروجی تولید</a>@endif
 <div class="nav-title">اطلاعات پایه</div>
 @if($can['goods'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'goods' ? 'active' : '' }}" href="{{ route('master.index', 'goods') }}">▦ کالاها و کد کالا</a>@endif
-@if($can['goods_categories'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'goods-categories' ? 'active' : '' }}" href="{{ route('master.index', 'goods-categories') }}">▤ دسته‌بندی کالاها</a>@endif
-@if($can['units'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'units' ? 'active' : '' }}" href="{{ route('master.index', 'units') }}">⚖ واحدهای اندازه‌گیری</a>@endif
 @if($can['suppliers'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'suppliers' ? 'active' : '' }}" href="{{ route('master.index', 'suppliers') }}">♙ تأمین‌کنندگان</a>@endif
 @if($can['production_routes'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-routes' ? 'active' : '' }}" href="{{ route('master.index', 'production-routes') }}">⇢ مسیرهای تولید</a>@endif
-@if($can['imports'])<a class="{{ request()->routeIs('imports.excel.*') ? 'active' : '' }}" href="{{ route('imports.excel.index') }}">⇧ ورود اطلاعات از اکسل</a>@endif
 <div class="nav-title">مدیریت</div>
 @if($can['company'])<a class="{{ request()->routeIs('company.*') ? 'active' : '' }}" href="{{ route('company.edit') }}">▤ اطلاعات مجموعه</a>@endif
 @if($can['fiscal_years'])<a class="{{ request()->routeIs('fiscal-years.*') ? 'active' : '' }}" href="{{ route('fiscal-years.index') }}">▣ سال‌های مالی</a>@endif
