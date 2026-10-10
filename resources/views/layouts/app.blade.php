@@ -1,2 +1,2 @@
-{{-- Legacy layout compatibility: all authenticated internal pages share the dashboard shell. --}}
-@include('layouts.dashboard-shell')
+{{-- Backward-compatible alias: internal pages inherit the shared dashboard shell. --}}
+@extends('layouts.dashboard-shell')
