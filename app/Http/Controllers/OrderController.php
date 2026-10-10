@@ -2,14 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Services\InventoryService;
-use App\Notifications\WorkflowNotification;
+use App\Services\NotificationRecipientService;
 use App\Support\CompanyAuthorization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification;
 
 class OrderController extends Controller
 {
@@ -65,7 +63,9 @@ class OrderController extends Controller
             DB::table('orders')->where('id',$id)->update(['status'=>$status,'updated_at'=>now()]);
             return DB::table('orders')->where('id',$id)->first();
         });
-        if($order->status==='production_required') $this->notifyPermission($companyId,'production.supervise','order.production_required',['order_id'=>$order->id,'company_id'=>$companyId]);
+        if ($order->status === 'production_required') {
+            app(NotificationRecipientService::class)->send($companyId, 'order.production_required', ['order_id' => $order->id], (int) $request->user()->id, 'production.supervise');
+        }
         return response()->json(['data'=>$order],201);
     }
 
@@ -103,7 +103,9 @@ class OrderController extends Controller
             DB::table('orders')->where('id',$order)->update(['status'=>$status,'updated_at'=>now()]);
             return DB::table('orders')->where('id',$order)->first();
         });
-        if($result->status==='ready_for_delivery') $this->notifyPermission($companyId,'order.view','order.ready_for_delivery',['order_id'=>$order,'company_id'=>$companyId]);
+        if ($result->status === 'ready_for_delivery') {
+            app(NotificationRecipientService::class)->send($companyId, 'order.ready_for_delivery', ['order_id' => $order], (int) $request->user()->id, 'order.view');
+        }
         return response()->json(['data'=>$result]);
     }
 
@@ -116,7 +118,7 @@ class OrderController extends Controller
                 'production_due_at'=>$data['production_due_at'],'status'=>'awaiting_production','updated_at'=>now()
             ]);
         abort_unless($updated,404);
-        $this->notifyPermission($companyId,'order.view','order.production_due_set',['order_id'=>$order,'company_id'=>$companyId,'production_due_at'=>$data['production_due_at']]);
+        app(NotificationRecipientService::class)->send($companyId, 'order.production_due_set', ['order_id' => $order, 'production_due_at' => $data['production_due_at']], (int) $request->user()->id, 'order.view');
         return response()->json(['data'=>DB::table('orders')->find($order)]);
     }
 
@@ -142,15 +144,8 @@ class OrderController extends Controller
             DB::table('orders')->where('id',$order)->update(['status'=>'delivery_requested','updated_at'=>now()]);
             return $id;
         });
-        $this->notifyPermission($companyId,'warehouse.delivery.manage','delivery.requested',['delivery_request_id'=>$requestId,'order_id'=>$order,'company_id'=>$companyId]);
+        app(NotificationRecipientService::class)->send($companyId, 'delivery.requested', ['delivery_request_id' => $requestId, 'order_id' => $order], (int) $request->user()->id, 'warehouse.delivery.manage');
         return response()->json(['data'=>DB::table('delivery_requests')->find($requestId)],201);
     }
 
-    private function notifyPermission(int $companyId,string $permission,string $event,array $payload): void
-    {
-        $ids=DB::table('company_user as cu')->join('role_permissions as rp','rp.role_id','=','cu.role_id')
-            ->join('permissions as p','p.id','=','rp.permission_id')->where('cu.company_id',$companyId)->where('cu.is_active',true)
-            ->where('p.slug',$permission)->pluck('cu.user_id');
-        Notification::send(User::whereIn('id',$ids)->get(),new WorkflowNotification($event,$payload));
-    }
 }
