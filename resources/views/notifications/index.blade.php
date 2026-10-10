@@ -22,10 +22,10 @@
                     <small style="font-size:10px;color:#8198ac">{{ $n->created_at }}</small>
                 </div>
 
-                @if(count(array_diff(array_keys($data), ['event'])) > 0)
+                @if(count(array_diff(array_keys($data), ['event', 'notification_batch_id'])) > 0)
                     <div style="display:flex;flex-direction:column;gap:5px;margin-top:10px;color:#9eb2c4;font-size:11px;line-height:1.9;overflow-wrap:anywhere">
                         @foreach($data as $k => $v)
-                            @if($k !== 'event')
+                            @if(!in_array($k, ['event', 'notification_batch_id'], true))
                                 <div><span style="color:#71879d">{{ $k }}:</span> {{ is_scalar($v) ? $v : json_encode($v, JSON_UNESCAPED_UNICODE) }}</div>
                             @endif
                         @endforeach
