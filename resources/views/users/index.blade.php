@@ -13,6 +13,8 @@
     <a class="btn primary" href="{{ route('users.create') }}">+ کاربر جدید</a>
     <a class="btn" href="{{ route('roles.index') }}">مدیریت نقش‌ها</a>
     <a class="btn" href="{{ route('personnel.index') }}">پرسنل</a>
+    <a class="btn" href="{{ route('settings.departments.index') }}">واحدهای سازمانی</a>
+    <a class="btn" href="{{ route('settings.notification-recipients.index') }}">گیرندگان اعلان</a>
 </div>
 <div class="panel">
   <div class="table-wrap">
