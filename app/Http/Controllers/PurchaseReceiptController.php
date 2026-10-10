@@ -2,15 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Notifications\WorkflowNotification;
 use App\Services\InventoryService;
+use App\Services\NotificationRecipientService;
 use App\Services\InventoryValuationService;
 use App\Support\CompanyAuthorization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification;
 
 class PurchaseReceiptController extends Controller
 {
@@ -81,11 +79,18 @@ class PurchaseReceiptController extends Controller
             }
             return [$purchase,DB::table('purchase_receipts')->where('id',$receipt->id)->first()];
         });
-        $ids=DB::table('company_user as cu')->join('role_permissions as rp','rp.role_id','=','cu.role_id')->join('permissions as p','p.id','=','rp.permission_id')
-            ->where('cu.company_id',$companyId)->where('cu.is_active',true)->where('p.slug','finance.purchase.receive')->pluck('cu.user_id');
-        Notification::send(User::whereIn('id',$ids)->get(),new WorkflowNotification('purchase.received_financial_value',[
-            'purchase_id'=>$purchase->id,'purchase_total_amount'=>(float)$purchase->total_amount,'direct_cost_total'=>(float)$purchase->direct_cost_total,'receipt_id'=>$receipt->id,'company_id'=>$companyId
-        ]));
+        app(NotificationRecipientService::class)->send(
+            $companyId,
+            'purchase.received_financial_value',
+            [
+                'purchase_id' => $purchase->id,
+                'purchase_total_amount' => (float) $purchase->total_amount,
+                'direct_cost_total' => (float) $purchase->direct_cost_total,
+                'receipt_id' => $receipt->id,
+            ],
+            (int) $request->user()->id,
+            'finance.purchase.receive'
+        );
         return response()->json(['data'=>$receipt]);
     }
 }
