@@ -33,9 +33,11 @@ $companies = $user->companies()->where('companies.is_active', true)->orderBy('co
 $company = $companies->firstWhere('id', (int) session('company_id'));
 $fiscalYears = $company?->fiscalYears()->orderByDesc('starts_at')->get() ?? collect();
 $fiscalYear = $fiscalYears->firstWhere('id', (int) session('fiscal_year_id'));
-$permissions = ['company'=>'company.view','customers'=>'customer.view','orders'=>'order.view','deliveries'=>'delivery_request.view','personnel'=>'personnel.view','users'=>'user.view','roles'=>'role.view','fiscal_years'=>'fiscal_year.view','costing'=>'costing.report.view','backups'=>'backup.view','goods'=>'goods.view','notifications'=>'notification.view','supply'=>'supply_request.view','purchasing'=>'purchase.view','inventory'=>'inventory.view','production_execution'=>'production.operation.view','suppliers'=>'supplier.view','locations'=>'location.view','production_routes'=>'production_route.view','productions'=>'production.view','production_outputs'=>'production.output.view','handovers'=>'supply_request.handover.view','receipts'=>'purchase.receipt.create'];
-$can = [];
-foreach ($permissions as $key => $permission) { $can[$key] = (bool) ($company && $user->hasCompanyPermission((int) $company->id, $permission)); }
+if (!isset($can) || !is_array($can)) {
+    $permissions = ['company'=>'company.view','customers'=>'customer.view','orders'=>'order.view','deliveries'=>'delivery_request.view','personnel'=>'personnel.view','users'=>'user.view','roles'=>'role.view','fiscal_years'=>'fiscal_year.view','costing'=>'costing.report.view','backups'=>'backup.view','goods'=>'goods.view','notifications'=>'notification.view','supply'=>'supply_request.view','purchasing'=>'purchase.view','inventory'=>'inventory.view','production_execution'=>'production.operation.view','suppliers'=>'supplier.view','locations'=>'location.view','production_routes'=>'production_route.view','productions'=>'production.view','production_outputs'=>'production.output.view','handovers'=>'supply_request.handover.view','receipts'=>'purchase.receipt.create'];
+    $can = [];
+    foreach ($permissions as $key => $permission) { $can[$key] = (bool) ($company && $user->hasCompanyPermission((int) $company->id, $permission)); }
+}
 @endphp
 <div class="app">
 <aside class="sidebar">
