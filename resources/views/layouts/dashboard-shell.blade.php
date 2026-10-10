@@ -47,7 +47,7 @@ foreach ($permissions as $key => $permission) { $can[$key] = (bool) ($company &&
 @if($can['deliveries'])<a class="{{ request()->routeIs('sales.deliveries.*') ? 'active' : '' }}" href="{{ route('sales.deliveries.index') }}">⇢ تحویل و ارسال</a>@endif
 <div class="nav-title">تعاریف و مدیریت</div>
 @if($can['company'])<a href="{{ route('company.edit') }}">▤ اطلاعات مجموعه</a>@endif
-@if($can['fiscal_years'])<a href="{{ route('fiscal-years.index') }}">▣ سال‌های مالی</a>@endif
+@if($can['fiscal_years'])<a class="{{ request()->routeIs('fiscal-years.*') ? 'active' : '' }}" href="{{ route('fiscal-years.index') }}">▣ سال‌های مالی</a>@endif
 @if($can['personnel'])<a href="{{ route('personnel.index') }}">♟ پرسنل</a>@endif
 @if($can['users'])<a href="{{ route('users.index') }}">♙ کاربران</a>@endif
 @if($can['roles'])<a href="{{ route('roles.index') }}">⚿ نقش‌ها و دسترسی‌ها</a>@endif
