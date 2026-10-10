@@ -94,7 +94,7 @@ if (!isset($can) || !is_array($can)) {
 </div>
 <div class="user"><div><strong>{{ $user->name }}</strong><small>{{ $company?->name ?? 'حسابداری صنعتی' }}</small></div><div class="avatar">{{ mb_substr($user->name,0,1) }}</div>
 @if($can['notifications'])
-<a class="notification-bell" href="{{ route('notifications.index') }}" aria-label="مرکز اعلان‌ها" title="مرکز اعلان‌ها">🔔@if($unreadNotificationCount > 0)<span class="count">{{ $unreadNotificationCount > 99 ? '99+' : $unreadNotificationCount }}</span>@endif</a>
+<a class="notification-bell" href="{{ route('notifications.index') }}" aria-label="مرکز اعلان‌ها" title="مرکز اعلان‌ها"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>@if($unreadNotificationCount > 0)<span class="count">{{ $unreadNotificationCount > 99 ? '99+' : $unreadNotificationCount }}</span>@endif</a>
 @endif
 <form method="POST" action="{{ route('logout') }}">@csrf<button class="logout">خروج</button></form></div>
 </header>
