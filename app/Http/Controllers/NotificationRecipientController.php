@@ -16,6 +16,8 @@ class NotificationRecipientController extends Controller
         ['key' => 'order.production_due_set', 'name' => 'ثبت موعد قابل تحویل تولید برای فروش'],
         ['key' => 'order.ready_for_delivery', 'name' => 'آماده شدن سفارش برای تحویل'],
         ['key' => 'delivery.requested', 'name' => 'ثبت درخواست تحویل برای انبار'],
+        ['key' => 'supply.shortage', 'name' => 'کسری موجودی درخواست تأمین برای تدارکات'],
+        ['key' => 'purchase.received_financial_value', 'name' => 'تأیید ورود خرید و اطلاع به مالی'],
     ];
 
     public function index(Request $request): View
