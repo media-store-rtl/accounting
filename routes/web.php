@@ -150,6 +150,15 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::prefix('settings')->group(function () {
+        Route::get('/departments', [\App\Http\Controllers\OrganizationalDepartmentController::class, 'index'])->middleware('company.permission:user.update')->name('settings.departments.index');
+        Route::post('/departments', [\App\Http\Controllers\OrganizationalDepartmentController::class, 'store'])->middleware('company.permission:user.update')->name('settings.departments.store');
+        Route::put('/departments/{department}', [\App\Http\Controllers\OrganizationalDepartmentController::class, 'update'])->whereNumber('department')->middleware('company.permission:user.update')->name('settings.departments.update');
+        Route::post('/departments/{department}/members', [\App\Http\Controllers\OrganizationalDepartmentController::class, 'syncMembers'])->whereNumber('department')->middleware('company.permission:user.update')->name('settings.departments.members');
+        Route::post('/departments/{department}/deactivate', [\App\Http\Controllers\OrganizationalDepartmentController::class, 'deactivate'])->whereNumber('department')->middleware('company.permission:user.update')->name('settings.departments.deactivate');
+
+        Route::get('/notification-recipients', [\App\Http\Controllers\NotificationRecipientController::class, 'index'])->middleware('company.permission:user.update')->name('settings.notification-recipients.index');
+        Route::put('/notification-recipients/{rule}', [\App\Http\Controllers\NotificationRecipientController::class, 'update'])->whereNumber('rule')->middleware('company.permission:user.update')->name('settings.notification-recipients.update');
+
         Route::get('/personnel', [PersonnelController::class, 'index'])->middleware('company.permission:personnel.view')->name('personnel.index');
         Route::get('/personnel/create', [PersonnelController::class, 'create'])->middleware(['company.permission:personnel.create', 'account.owner'])->name('personnel.create');
         Route::post('/personnel', [PersonnelController::class, 'store'])->middleware(['company.permission:personnel.create', 'account.owner'])->name('personnel.store');
