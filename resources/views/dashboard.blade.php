@@ -4,6 +4,7 @@
 
 @push('styles')
 <style>
+.welcome{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:18px}.eyebrow{color:#6ee7d0;font-size:9px;font-weight:800;letter-spacing:1px}.welcome h1{font-size:29px;margin:7px 0 0;letter-spacing:-.7px}.welcome p{margin:7px 0 0;color:#71879d;font-size:11px}
 .notice{margin-bottom:18px;padding:13px 16px;border:1px solid #28445d;border-radius:13px;background:#0a1b2b;color:#9eb2c4;font-size:10px;line-height:1.9}.notice strong{color:#dcebf5}.notice.warn{border-color:#5a4b2c}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}.card{background:#0a1b2b;border:1px solid #1b354b;border-radius:17px;padding:19px}.card small{color:#698096;font-size:9px}.card b{display:block;font-size:23px;margin-top:10px}.card span{display:block;margin-top:6px;color:#617b91;font-size:8px}
 .section{margin-top:18px;display:grid;grid-template-columns:1.35fr .65fr;gap:18px}.panel{background:#0a1b2b;border:1px solid #1b354b;border-radius:18px;padding:21px}.panel h2{font-size:14px;margin:0}.panel p{font-size:10px;color:#71879d;line-height:2;margin:8px 0 18px}
