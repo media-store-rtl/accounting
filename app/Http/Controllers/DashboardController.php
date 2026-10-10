@@ -124,6 +124,18 @@ class DashboardController extends Controller
             'costing' => 'costing.report.view',
             'backups' => 'backup.view',
             'goods' => 'goods.view',
+            'notifications' => 'notification.view',
+            'supply' => 'supply_request.view',
+            'purchasing' => 'purchase.view',
+            'inventory' => 'inventory.view',
+            'production_execution' => 'production.operation.view',
+            'suppliers' => 'supplier.view',
+            'locations' => 'location.view',
+            'production_routes' => 'production_route.view',
+            'productions' => 'production.view',
+            'production_outputs' => 'production.output.view',
+            'handovers' => 'supply_request.handover.view',
+            'receipts' => 'purchase.receipt.create',
         ];
 
         $can = [];

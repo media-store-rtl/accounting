@@ -37,23 +37,41 @@
 <nav class="nav">
 <div class="nav-title">نمای کلی</div>
 <a class="active" href="{{ route('dashboard') }}">⌂ داشبورد</a>
+@if($can['notifications'])<a href="{{ route('notifications.index') }}">♢ اعلان‌ها</a>@endif
+
 <div class="nav-title">سفارش و فروش</div>
 @if($can['customers'])<a href="{{ route('sales.customers.index') }}">♙ مشتریان</a>@endif
 @if($can['orders'])<a href="{{ route('sales.orders.index') }}">▤ سفارش‌های فروش</a>@endif
 @if($can['deliveries'])<a href="{{ route('sales.deliveries.index') }}">⇢ تحویل و ارسال</a>@endif
-<div class="nav-title">تعاریف و مدیریت</div>
+
+<div class="nav-title">تأمین و خرید</div>
+@if($can['supply'])<a href="{{ route('workflows.supply') }}">◈ درخواست‌های تأمین</a>@endif
+@if($can['purchasing'])<a href="{{ route('workflows.purchasing') }}">▤ خریدها</a>@endif
+@if($can['receipts'])<a href="{{ route('workflows.receipts') }}">⇣ رسیدهای خرید</a>@endif
+@if($can['handovers'])<a href="{{ route('workflows.handovers') }}">⇢ تحویل مواد</a>@endif
+
+<div class="nav-title">انبار</div>
+@if($can['inventory'])<a href="{{ route('inventory.index') }}">▦ موجودی انبار</a>@endif
+@if($can['locations'])<a href="{{ route('master.index', 'locations') }}">▣ انبارها و محل‌ها</a>@endif
+
+<div class="nav-title">تولید</div>
+@if($can['productions'])<a href="{{ route('master.index', 'productions') }}">⚙ دستورهای تولید</a>@endif
+@if($can['production_execution'])<a href="{{ route('production.execution.index') }}">⚒ عملیات تولید</a>@endif
+@if($can['production_outputs'])<a href="{{ route('production.outputs.index') }}">⇡ خروجی تولید</a>@endif
+
+<div class="nav-title">اطلاعات پایه</div>
+@if($can['goods'])<a href="{{ route('master.index', 'goods') }}">▦ کالاها و کد کالا</a>@endif
+@if($can['suppliers'])<a href="{{ route('master.index', 'suppliers') }}">♙ تأمین‌کنندگان</a>@endif
+@if($can['production_routes'])<a href="{{ route('master.index', 'production-routes') }}">⇢ مسیرهای تولید</a>@endif
+
+<div class="nav-title">مدیریت</div>
 @if($can['company'])<a href="{{ route('company.edit') }}">▤ اطلاعات مجموعه</a>@endif
 @if($can['fiscal_years'])<a href="{{ route('fiscal-years.index') }}">▣ سال‌های مالی</a>@endif
 @if($can['personnel'])<a href="{{ route('personnel.index') }}">♟ پرسنل</a>@endif
 @if($can['users'])<a href="{{ route('users.index') }}">♙ کاربران</a>@endif
 @if($can['roles'])<a href="{{ route('roles.index') }}">⚿ نقش‌ها و دسترسی‌ها</a>@endif
 @if($can['costing'])<a href="{{ route('reports.costing') }}">◌ بهای تمام‌شده</a>@endif
-@if($can['goods'])<a href="{{ route('master.index', 'goods') }}">▦ کالاها و کد کالا</a>@endif
 @if($can['backups'])<a href="{{ route('backups.index') }}">▣ پشتیبان‌گیری</a>@endif
-@if($can['customers'] || $can['orders'] || $can['deliveries'])
-<div class="nav-title">سایر حوزه‌ها</div>
-<a href="#modules">◈ تأمین، انبار و تولید</a>
-@endif
 </nav>
 </aside>
 
