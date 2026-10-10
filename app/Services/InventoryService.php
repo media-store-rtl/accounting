@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\User;
 use App\Notifications\WorkflowNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -85,15 +84,18 @@ class InventoryService
     private function notifyIfReorderPointReached(int $companyId,int $locationId,int $goodsId,float $previous,float $current,float $reorderPoint): void
     {
         if ($reorderPoint <= 0 || !($previous > $reorderPoint && $current <= $reorderPoint)) return;
-        $recipients=User::query()->whereIn('id',DB::table('company_user as cu')
-            ->join('role_permissions as rp','rp.role_id','=','cu.role_id')
-            ->join('permissions as p','p.id','=','rp.permission_id')
-            ->where('cu.company_id',$companyId)->where('cu.is_active',true)->where('p.slug','supply.manage')->pluck('cu.user_id'))->get();
-        if ($recipients->isEmpty()) return;
-        Notification::send($recipients,new WorkflowNotification('inventory_reorder_point_reached',[
-            'company_id'=>$companyId,'location_id'=>$locationId,'goods_id'=>$goodsId,
-            'current_quantity'=>$current,'reorder_point'=>$reorderPoint,
-        ]));
+        app(NotificationRecipientService::class)->send(
+            $companyId,
+            'inventory_reorder_point_reached',
+            [
+                'location_id'=>$locationId,
+                'goods_id'=>$goodsId,
+                'current_quantity'=>$current,
+                'reorder_point'=>$reorderPoint,
+            ],
+            null,
+            'supply.manage'
+        );
     }
 
     private function receiveIntoInventory(int $companyId,int $locationId,int $goodsId,float $quantity,string $movementType,string $referenceType,int $referenceId,array $metadata=[]): void
