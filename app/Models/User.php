@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Permission;
+use App\Models\Role;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
@@ -91,6 +93,37 @@ class User extends Authenticatable
     public function isAccountOwner(): bool
     {
         return $this->account !== null && (int) $this->account->owner_user_id === (int) $this->id;
+    }
+
+    /**
+     * Keep the account owner's access assigned through the normal company role system.
+     * This is intentionally role-based rather than an authorization bypass.
+     */
+    public function ensureAccountOwnerAccess(): void
+    {
+        if (! $this->isAccountOwner()) {
+            return;
+        }
+
+        $companies = $this->companies()
+            ->where('companies.account_id', $this->account_id)
+            ->where('companies.is_active', true)
+            ->wherePivot('is_active', true)
+            ->get();
+
+        foreach ($companies as $company) {
+            $role = Role::firstOrCreate(
+                ['company_id' => $company->id, 'slug' => 'owner'],
+                ['name' => 'مالک حساب', 'description' => 'نقش سیستمی مالک حساب', 'is_system' => true]
+            );
+
+            $role->permissions()->sync(Permission::query()->pluck('id')->all());
+
+            DB::table('company_user')
+                ->where('company_id', $company->id)
+                ->where('user_id', $this->getKey())
+                ->update(['role_id' => $role->id]);
+        }
     }
 
     public function hasCompanyPermission(int $companyId, string $permission): bool
