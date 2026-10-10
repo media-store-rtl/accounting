@@ -32,7 +32,7 @@ $companies = $user->companies()->where('companies.is_active', true)->orderBy('co
 $company = $companies->firstWhere('id', (int) session('company_id'));
 $fiscalYears = $company?->fiscalYears()->orderByDesc('starts_at')->get() ?? collect();
 $fiscalYear = $fiscalYears->firstWhere('id', (int) session('fiscal_year_id'));
-$permissions = ['company'=>'company.view','customers'=>'customer.view','orders'=>'order.view','deliveries'=>'delivery_request.view','personnel'=>'personnel.view','users'=>'user.view','roles'=>'role.view','fiscal_years'=>'fiscal_year.view','costing'=>'costing.report.view','backups'=>'backup.view','goods'=>'goods.view','notifications'=>'notification.view','supply'=>'supply_request.view','purchasing'=>'purchase.view','inventory'=>'inventory.view','production_execution'=>'production.operation.view','suppliers'=>'supplier.view','locations'=>'location.view','production_routes'=>'production_route.view','productions'=>'production.view','production_outputs'=>'production.output.view','handovers'=>'supply_request.handover.view','receipts'=>'purchase.receipt.create'];
+$permissions = ['company'=>'company.view','customers'=>'customer.view','orders'=>'order.view','deliveries'=>'delivery_request.view','personnel'=>'personnel.view','users'=>'user.view','roles'=>'role.view','fiscal_years'=>'fiscal_year.view','costing'=>'costing.report.view','backups'=>'backup.view','goods'=>'goods.view','goods_categories'=>'goods_category.view','units'=>'unit.view','notifications'=>'notification.view','supply'=>'supply_request.view','purchasing'=>'purchase.view','inventory'=>'inventory.view','production_execution'=>'production.operation.view','production_labor'=>'production.labor.create','suppliers'=>'supplier.view','locations'=>'location.view','production_routes'=>'production_route.view','production_sections'=>'production_section.view','production_stages'=>'production_stage.view','production_operations'=>'production_operation.view','productions'=>'production.view','production_outputs'=>'production.output.view','handovers'=>'supply_request.handover.view','receipts'=>'purchase.receipt.create','imports'=>'import.excel'];
 $can = [];
 foreach ($permissions as $key => $permission) { $can[$key] = (bool) ($company && $user->hasCompanyPermission((int) $company->id, $permission)); }
 @endphp
@@ -57,11 +57,18 @@ foreach ($permissions as $key => $permission) { $can[$key] = (bool) ($company &&
 <div class="nav-title">تولید</div>
 @if($can['productions'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'productions' ? 'active' : '' }}" href="{{ route('master.index', 'productions') }}">⚙ دستورهای تولید</a>@endif
 @if($can['production_execution'])<a class="{{ request()->routeIs('production.execution.*') ? 'active' : '' }}" href="{{ route('production.execution.index') }}">⚒ عملیات تولید</a>@endif
+@if($can['production_sections'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-sections' ? 'active' : '' }}" href="{{ route('master.index', 'production-sections') }}">▣ بخش‌های تولید</a>@endif
+@if($can['production_stages'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-stages' ? 'active' : '' }}" href="{{ route('master.index', 'production-stages') }}">☷ مراحل تولید</a>@endif
+@if($can['production_operations'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-operations' ? 'active' : '' }}" href="{{ route('master.index', 'production-operations') }}">⚒ تعریف عملیات</a>@endif
+@if($can['production_labor'])<a class="{{ request()->routeIs('workflows.labor*') ? 'active' : '' }}" href="{{ route('workflows.labor') }}">♟ کارکرد نیروی انسانی</a>@endif
 @if($can['production_outputs'])<a class="{{ request()->routeIs('production.outputs.*') ? 'active' : '' }}" href="{{ route('production.outputs.index') }}">⇡ خروجی تولید</a>@endif
 <div class="nav-title">اطلاعات پایه</div>
 @if($can['goods'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'goods' ? 'active' : '' }}" href="{{ route('master.index', 'goods') }}">▦ کالاها و کد کالا</a>@endif
+@if($can['goods_categories'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'goods-categories' ? 'active' : '' }}" href="{{ route('master.index', 'goods-categories') }}">▤ دسته‌بندی کالاها</a>@endif
+@if($can['units'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'units' ? 'active' : '' }}" href="{{ route('master.index', 'units') }}">⚖ واحدهای اندازه‌گیری</a>@endif
 @if($can['suppliers'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'suppliers' ? 'active' : '' }}" href="{{ route('master.index', 'suppliers') }}">♙ تأمین‌کنندگان</a>@endif
 @if($can['production_routes'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-routes' ? 'active' : '' }}" href="{{ route('master.index', 'production-routes') }}">⇢ مسیرهای تولید</a>@endif
+@if($can['imports'])<a class="{{ request()->routeIs('imports.excel.*') ? 'active' : '' }}" href="{{ route('imports.excel.index') }}">⇧ ورود اطلاعات از اکسل</a>@endif
 <div class="nav-title">مدیریت</div>
 @if($can['company'])<a class="{{ request()->routeIs('company.*') ? 'active' : '' }}" href="{{ route('company.edit') }}">▤ اطلاعات مجموعه</a>@endif
 @if($can['fiscal_years'])<a class="{{ request()->routeIs('fiscal-years.*') ? 'active' : '' }}" href="{{ route('fiscal-years.index') }}">▣ سال‌های مالی</a>@endif
