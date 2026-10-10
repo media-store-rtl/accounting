@@ -47,7 +47,7 @@ foreach ($permissions as $key => $permission) { $can[$key] = (bool) ($company &&
 @if($can['customers'])<a class="{{ request()->routeIs('sales.customers.*') ? 'active' : '' }}" href="{{ route('sales.customers.index') }}">♙ مشتریان</a>@endif
 @if($can['orders'])<a class="{{ request()->routeIs('sales.orders.*') ? 'active' : '' }}" href="{{ route('sales.orders.index') }}">▤ سفارش‌های فروش</a>@endif
 @if($can['deliveries'])<a class="{{ request()->routeIs('sales.deliveries.*') ? 'active' : '' }}" href="{{ route('sales.deliveries.index') }}">⇢ تحویل و ارسال</a>@endif
-<div class="nav-title">تأمین</div>
+<div class="nav-title">تأمین و خرید</div>
 @if($can['supply'])<a class="{{ request()->routeIs('workflows.supply') ? 'active' : '' }}" href="{{ route('workflows.supply') }}">◈ درخواست‌های تأمین</a>@endif
 @if($can['purchasing'])<a class="{{ request()->routeIs('workflows.purchasing') ? 'active' : '' }}" href="{{ route('workflows.purchasing') }}">▤ خریدها</a>@endif
 @if($can['receipts'])<a class="{{ request()->routeIs('workflows.receipts') ? 'active' : '' }}" href="{{ route('workflows.receipts') }}">⇣ رسیدهای خرید</a>@endif
@@ -95,10 +95,10 @@ foreach ($permissions as $key => $permission) { $can[$key] = (bool) ($company &&
 </div>
 <nav class="mobile-nav" aria-label="ناوبری موبایل">
 <a class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><span>⌂</span>خانه</a>
-@if($can['notifications'])<a class="{{ request()->routeIs('notifications.*') ? 'active' : '' }}" href="{{ route('notifications.index') }}"><span>♢</span>اعلان‌ها</a>@endif
 @if($can['orders'])<a class="{{ request()->routeIs('sales.orders.*') ? 'active' : '' }}" href="{{ route('sales.orders.index') }}"><span>▤</span>فروش</a>@endif
-@if($can['inventory'])<a class="{{ request()->routeIs('inventory.*') ? 'active' : '' }}" href="{{ route('inventory.index') }}"><span>▦</span>انبار</a>@endif
-@if($can['production_execution'])<a class="{{ request()->routeIs('production.execution.*') ? 'active' : '' }}" href="{{ route('production.execution.index') }}"><span>⚒</span>تولید</a>@endif
+@if($can['deliveries'])<a class="{{ request()->routeIs('sales.deliveries.*') ? 'active' : '' }}" href="{{ route('sales.deliveries.index') }}"><span>⇢</span>تحویل</a>@endif
+@if($can['costing'])<a class="{{ request()->routeIs('reports.costing*') ? 'active' : '' }}" href="{{ route('reports.costing') }}"><span>◌</span>هزینه</a>@endif
+@if($can['users'])<a class="{{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}"><span>♙</span>کاربران</a>@endif
 </nav>
 </body>
 </html>
