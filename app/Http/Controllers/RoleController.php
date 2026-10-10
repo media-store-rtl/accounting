@@ -119,7 +119,7 @@ class RoleController extends Controller
         $company = $request->user()->currentCompany();
         abort_unless($company && (int) $role->company_id === (int) $company->id, 404);
         abort_if($role->is_system, 403);
-        abort_if($role->users()->wherePivot('company_id', $company->id)->exists(), 422, 'این نقش به کاربر اختصاص دارد و قابل حذف نیست.');
+        abort_if($role->users()->exists(), 422, 'نقش دارای کاربر است و قابل حذف نیست.');
 
         $role->delete();
 
