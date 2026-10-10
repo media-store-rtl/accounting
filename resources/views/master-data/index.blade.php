@@ -1,11 +1,11 @@
-@extends(($module ?? null) === 'goods' ? 'layouts.dashboard-shell' : 'layouts.app')
+@extends(in_array(($module ?? null), ['goods', 'locations', 'productions', 'suppliers'], true) ? 'layouts.dashboard-shell' : 'layouts.app')
 
-@if(($module ?? null) === 'goods')
+@if(in_array(($module ?? null), ['goods', 'locations', 'productions', 'suppliers'], true))
     @section('title', $definition['title'] ?? 'کالاها و کد کالا')
 @endif
 
 @section('content')
-@if(($module ?? null) === 'goods')
+@if(in_array(($module ?? null), ['goods', 'locations', 'productions', 'suppliers'], true))
 <style>
 .master-search{display:flex;gap:8px;margin-bottom:16px}
 .master-search input{flex:1;min-width:0;background:#081522;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px 12px;font:inherit;font-size:11px}
@@ -24,9 +24,9 @@
 <div class="page-heading">
     <div>
         <h1>{{ $definition['title'] ?? 'کالاها و کد کالا' }}</h1>
-        <p>مدیریت اطلاعات کالاها و جستجو در فهرست ثبت‌شده</p>
+        <p>مدیریت اطلاعات پایه و جستجو در فهرست ثبت‌شده</p>
     </div>
-    <a class="btn primary" href="{{ route('master.create', $module) }}">+ ثبت کالای جدید</a>
+    <a class="btn primary" href="{{ route('master.create', $module) }}">+ ثبت مورد جدید</a>
 </div>
 
 @if (session('success'))
@@ -38,7 +38,7 @@
 
 <div class="panel">
     <form method="get" class="master-search">
-        <input name="q" value="{{ request('q') }}" placeholder="جستجو در کالاها...">
+        <input name="q" value="{{ request('q') }}" placeholder="جستجو در فهرست...">
         <button type="submit" class="btn">جستجو</button>
         @if(request()->filled('q'))<a class="btn" href="{{ url()->current() }}">پاک‌کردن</a>@endif
     </form>
