@@ -76,6 +76,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/sales/customers', [CustomerController::class, 'index'])->middleware('company.permission:customer.view')->name('sales.customers.index');
     Route::get('/sales/customers/create', [CustomerController::class, 'create'])->middleware('company.permission:customer.create')->name('sales.customers.create');
     Route::post('/sales/customers', [CustomerController::class, 'store'])->middleware('company.permission:customer.create')->name('sales.customers.store');
+    Route::get('/sales/customers/{id}/edit', [CustomerController::class, 'edit'])->middleware('company.permission:customer.update')->whereNumber('id')->name('sales.customers.edit');
+    Route::put('/sales/customers/{id}', [CustomerController::class, 'update'])->middleware('company.permission:customer.update')->whereNumber('id')->name('sales.customers.update');
     Route::get('/sales/orders', [OrderController::class, 'index'])->middleware('company.permission:order.view')->name('sales.orders.index');
     Route::get('/sales/orders/create', [OrderController::class, 'create'])->middleware('company.permission:order.create')->name('sales.orders.create');
     Route::post('/sales/orders', [OrderController::class, 'store'])->middleware('company.permission:order.create')->name('sales.orders.store');
