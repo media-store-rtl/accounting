@@ -1,11 +1,11 @@
-@extends(in_array(($module ?? null), ['goods', 'locations', 'productions', 'suppliers'], true) ? 'layouts.dashboard-shell' : 'layouts.app')
+@extends(in_array(($module ?? null), ['goods', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? 'layouts.dashboard-shell' : 'layouts.app')
 
-@if(in_array(($module ?? null), ['goods', 'locations', 'productions', 'suppliers'], true))
+@if(in_array(($module ?? null), ['goods', 'locations', 'productions', 'suppliers', 'production-routes'], true))
     @section('title', $definition['title'] ?? 'کالاها و کد کالا')
 @endif
 
 @section('content')
-@if(in_array(($module ?? null), ['goods', 'locations', 'productions', 'suppliers'], true))
+@if(in_array(($module ?? null), ['goods', 'locations', 'productions', 'suppliers', 'production-routes'], true))
 <style>
 .master-search{display:flex;gap:8px;margin-bottom:16px}
 .master-search input{flex:1;min-width:0;background:#081522;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px 12px;font:inherit;font-size:11px}
