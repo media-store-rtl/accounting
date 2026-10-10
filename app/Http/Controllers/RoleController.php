@@ -62,8 +62,9 @@ class RoleController extends Controller
         $role->load('permissions');
         $permissions = Permission::orderBy('module')->orderBy('name')->get()->groupBy('module');
         $moduleLabels = self::MODULE_LABELS;
+        $canManageSystemRoles = $request->user()->isAccountOwner();
 
-        return view('roles.show', compact('role', 'permissions', 'moduleLabels'));
+        return view('roles.show', compact('role', 'permissions', 'moduleLabels', 'canManageSystemRoles'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -94,7 +95,7 @@ class RoleController extends Controller
     {
         $company = $request->user()->currentCompany();
         abort_unless($company && (int) $role->company_id === (int) $company->id, 404);
-        abort_if($role->is_system, 403);
+        abort_if($role->is_system && ! $request->user()->isAccountOwner(), 403);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
