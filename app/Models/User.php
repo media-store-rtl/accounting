@@ -99,10 +99,6 @@ class User extends Authenticatable
             return false;
         }
 
-        if ($this->isAccountOwner()) {
-            return true;
-        }
-
         return DB::table('company_user')
             ->join('roles', 'roles.id', '=', 'company_user.role_id')
             ->join('role_permissions', 'role_permissions.role_id', '=', 'roles.id')
