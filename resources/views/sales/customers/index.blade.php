@@ -29,6 +29,7 @@
                     <th>تلفن</th>
                     <th>ایمیل</th>
                     <th>وضعیت</th>
+                    @if($canEditCustomers)<th>عملیات</th>@endif
                 </tr>
             </thead>
             <tbody>
@@ -43,10 +44,13 @@
                                 {{ $c->is_active ? 'فعال' : 'غیرفعال' }}
                             </span>
                         </td>
+                        @if($canEditCustomers)
+                            <td><a class="btn" href="{{ route('sales.customers.edit', $c->id) }}">ویرایش</a></td>
+                        @endif
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" style="text-align:center;color:#71879d;padding:28px">هنوز مشتری‌ای ثبت نشده است.</td>
+                        <td colspan="{{ $canEditCustomers ? 6 : 5 }}" style="text-align:center;color:#71879d;padding:28px">هنوز مشتری‌ای ثبت نشده است.</td>
                     </tr>
                 @endforelse
             </tbody>
