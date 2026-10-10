@@ -1,1 +1,58 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>مشتریان</title><style>body{font-family:Tahoma;background:#07111f;color:#e9f3fb;padding:30px}a,button{padding:9px 14px;border-radius:8px;background:#12314a;color:#fff;text-decoration:none;border:0}table{width:100%;margin-top:20px;border-collapse:collapse;background:#0a1b2b}th,td{padding:12px;border-bottom:1px solid #20384d;text-align:right}.ok{color:#6ee7d0}</style></head><body><h1>مشتریان</h1><a href="{{ route('sales.customers.create') }}">+ مشتری جدید</a> <a href="{{ route('sales.orders.index') }}">سفارش‌های فروش</a><table><tr><th>کد</th><th>نام</th><th>تلفن</th><th>ایمیل</th><th>وضعیت</th></tr>@foreach($customers as $c)<tr><td>{{ $c->code }}</td><td>{{ $c->name }}</td><td>{{ $c->phone }}</td><td>{{ $c->email }}</td><td class="ok">{{ $c->is_active?'فعال':'غیرفعال' }}</td></tr>@endforeach</table>{{ $customers->links() }}</body></html>
+@extends('layouts.dashboard-shell')
+
+@section('title', 'مشتریان | حسابداری صنعتی')
+
+@section('content')
+<div class="page-heading">
+    <div>
+        <h1>مشتریان</h1>
+        <p>مدیریت فهرست مشتریان مجموعه</p>
+    </div>
+</div>
+
+@if(session('success'))
+    <div class="panel" style="margin-bottom:16px;color:#6ee7d0">{{ session('success') }}</div>
+@endif
+
+<div class="panel">
+    <div class="actions">
+        <a class="btn primary" href="{{ route('sales.customers.create') }}">+ مشتری جدید</a>
+        <a class="btn" href="{{ route('sales.orders.index') }}">سفارش‌های فروش ←</a>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>کد</th>
+                    <th>نام</th>
+                    <th>تلفن</th>
+                    <th>ایمیل</th>
+                    <th>وضعیت</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($customers as $c)
+                    <tr>
+                        <td>{{ $c->code }}</td>
+                        <td>{{ $c->name }}</td>
+                        <td>{{ $c->phone ?: '—' }}</td>
+                        <td>{{ $c->email ?: '—' }}</td>
+                        <td>
+                            <span class="status {{ $c->is_active ? 'active' : 'inactive' }}">
+                                {{ $c->is_active ? 'فعال' : 'غیرفعال' }}
+                            </span>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5" style="text-align:center;color:#71879d;padding:28px">هنوز مشتری‌ای ثبت نشده است.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination">{{ $customers->links() }}</div>
+</div>
+@endsection
