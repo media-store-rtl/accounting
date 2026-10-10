@@ -165,6 +165,8 @@ Route::middleware('auth')->group(function () {
             Route::post('/users/{user}/activate', [UserManagementController::class, 'activate'])->middleware('company.permission:user.activate')->name('users.activate');
             Route::post('/users/{user}/deactivate', [UserManagementController::class, 'deactivate'])->middleware('company.permission:user.deactivate')->name('users.deactivate');
             Route::get('/roles', [RoleController::class, 'index'])->middleware('company.permission:role.view')->name('roles.index');
+            Route::get('/roles/create', [RoleController::class, 'create'])->middleware('company.permission:role.create')->name('roles.create');
+            Route::get('/roles/{role}', [RoleController::class, 'show'])->middleware('company.permission:role.view')->name('roles.show');
             Route::post('/roles', [RoleController::class, 'store'])->middleware('company.permission:role.create')->name('roles.store');
             Route::put('/roles/{role}', [RoleController::class, 'update'])->middleware('company.permission:role.update')->name('roles.update');
             Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->middleware('company.permission:role.delete')->name('roles.destroy');
