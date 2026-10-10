@@ -1,23 +1,69 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\\Http\\Controllers;
 
-use App\Models\Permission;
-use App\Models\Role;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\View\View;
+use App\\Models\\Permission;
+use App\\Models\\Role;
+use Illuminate\\Http\\RedirectResponse;
+use Illuminate\\Http\\Request;
+use Illuminate\\View\\View;
 
 class RoleController extends Controller
 {
+    private const MODULE_LABELS = [
+        'company' => 'اطلاعات مجموعه',
+        'fiscal_year' => 'سال‌های مالی',
+        'users' => 'کاربران و دسترسی‌ها',
+        'personnel' => 'پرسنل',
+        'access' => 'مدیریت نقش‌ها',
+        'sales' => 'فروش و سفارش‌ها',
+        'production' => 'تولید',
+        'warehouse' => 'انبار و تحویل',
+        'supply' => 'تأمین',
+        'purchasing' => 'خرید',
+        'finance' => 'مالی',
+        'notifications' => 'اعلان‌ها',
+        'backup' => 'پشتیبان‌گیری',
+        'import' => 'ورود اطلاعات',
+        'costing' => 'گزارش بهای تمام‌شده',
+        'goods' => 'کالاها و واحدها',
+        'suppliers' => 'تأمین‌کنندگان',
+    ];
+
     public function index(Request $request): View
     {
         $company = $request->user()->currentCompany();
         abort_unless($company, 409);
-        $roles = $company->roles()->with('permissions')->orderBy('name')->get();
-        $permissions = Permission::orderBy('module')->orderBy('name')->get();
 
-        return view('roles.index', compact('roles', 'permissions'));
+        $roles = $company->roles()
+            ->with('permissions')
+            ->withCount('users')
+            ->orderBy('name')
+            ->get();
+
+        return view('roles.index', compact('roles'));
+    }
+
+    public function create(Request $request): View
+    {
+        abort_unless($request->user()->currentCompany(), 409);
+
+        $permissions = Permission::orderBy('module')->orderBy('name')->get()->groupBy('module');
+        $moduleLabels = self::MODULE_LABELS;
+
+        return view('roles.create', compact('permissions', 'moduleLabels'));
+    }
+
+    public function show(Request $request, Role $role): View
+    {
+        $company = $request->user()->currentCompany();
+        abort_unless($company && (int) $role->company_id === (int) $company->id, 404);
+
+        $role->load('permissions');
+        $permissions = Permission::orderBy('module')->orderBy('name')->get()->groupBy('module');
+        $moduleLabels = self::MODULE_LABELS;
+
+        return view('roles.show', compact('role', 'permissions', 'moduleLabels'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -41,7 +87,7 @@ class RoleController extends Controller
         ]);
         $role->permissions()->sync($data['permissions'] ?? []);
 
-        return back()->with('success', 'نقش ایجاد شد.');
+        return redirect()->route('roles.show', $role)->with('success', 'نقش ایجاد شد.');
     }
 
     public function update(Request $request, Role $role): RedirectResponse
@@ -65,7 +111,7 @@ class RoleController extends Controller
         ]);
         $role->permissions()->sync($data['permissions'] ?? []);
 
-        return back()->with('success', 'نقش به‌روزرسانی شد.');
+        return redirect()->route('roles.show', $role)->with('success', 'تغییرات نقش ذخیره شد.');
     }
 
     public function destroy(Request $request, Role $role): RedirectResponse
@@ -73,9 +119,10 @@ class RoleController extends Controller
         $company = $request->user()->currentCompany();
         abort_unless($company && (int) $role->company_id === (int) $company->id, 404);
         abort_if($role->is_system, 403);
-        abort_if($role->users()->exists(), 422, 'نقش دارای کاربر است و قابل حذف نیست.');
+        abort_if($role->users()->wherePivot('company_id', $company->id)->exists(), 422, 'این نقش به کاربر اختصاص دارد و قابل حذف نیست.');
 
         $role->delete();
-        return back()->with('success', 'نقش حذف شد.');
+
+        return redirect()->route('roles.index')->with('success', 'نقش حذف شد.');
     }
 }
