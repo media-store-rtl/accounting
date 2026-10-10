@@ -49,9 +49,9 @@ foreach ($permissions as $key => $permission) { $can[$key] = (bool) ($company &&
 @if($can['company'])<a href="{{ route('company.edit') }}">▤ اطلاعات مجموعه</a>@endif
 @if($can['fiscal_years'])<a class="{{ request()->routeIs('fiscal-years.*') ? 'active' : '' }}" href="{{ route('fiscal-years.index') }}">▣ سال‌های مالی</a>@endif
 @if($can['personnel'])<a class="{{ request()->routeIs('personnel.*') ? 'active' : '' }}" href="{{ route('personnel.index') }}">♟ پرسنل</a>@endif
-@if($can['users'])<a href="{{ route('users.index') }}">♙ کاربران</a>@endif
-@if($can['roles'])<a href="{{ route('roles.index') }}">⚿ نقش‌ها و دسترسی‌ها</a>@endif
-@if($can['costing'])<a href="{{ route('reports.costing') }}">◌ بهای تمام‌شده</a>@endif
+@if($can['users'])<a class="{{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">♙ کاربران</a>@endif
+@if($can['roles'])<a class="{{ request()->routeIs('roles.*') ? 'active' : '' }}" href="{{ route('roles.index') }}">⚿ نقش‌ها و دسترسی‌ها</a>@endif
+@if($can['costing'])<a class="{{ request()->routeIs('reports.costing*') ? 'active' : '' }}" href="{{ route('reports.costing') }}">◌ بهای تمام‌شده</a>@endif
 @if($can['goods'])<a href="{{ route('master.index', 'goods') }}">▦ کالاها و کد کالا</a>@endif
 @if($can['backups'])<a href="{{ route('backups.index') }}">▣ پشتیبان‌گیری</a>@endif
 @if($can['customers'] || $can['orders'] || $can['deliveries'])<div class="nav-title">سایر حوزه‌ها</div><a href="{{ route('workflows.supply') }}">◈ تأمین، انبار و تولید</a>@endif
@@ -82,7 +82,7 @@ foreach ($permissions as $key => $permission) { $can[$key] = (bool) ($company &&
 @if($can['customers'])<a class="{{ request()->routeIs('sales.customers.*') ? 'active' : '' }}" href="{{ route('sales.customers.index') }}"><span>♙</span>مشتریان</a>@endif
 @if($can['orders'])<a class="{{ request()->routeIs('sales.orders.*') ? 'active' : '' }}" href="{{ route('sales.orders.index') }}"><span>▤</span>فروش</a>@endif
 @if($can['deliveries'])<a class="{{ request()->routeIs('sales.deliveries.*') ? 'active' : '' }}" href="{{ route('sales.deliveries.index') }}"><span>⇢</span>تحویل</a>@endif
-@if($can['users'])<a href="{{ route('users.index') }}"><span>♙</span>کاربران</a>@endif
+@if($can['users'])<a class="{{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}"><span>♙</span>کاربران</a>@endif
 </nav>
 </body>
 </html>
