@@ -16,10 +16,7 @@ final class NotificationCenterController extends Controller
         $rows = DB::table('notifications')
             ->where('notifiable_type', User::class)
             ->where('notifiable_id', $request->user()->id)
-            ->where(function ($query) use ($companyId) {
-                $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(data, '$.company_id')) = ?", [(string) $companyId])
-                    ->orWhereNull('data');
-            })
+            ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(data, '$.company_id')) = ?", [(string) $companyId])
             ->latest('created_at')
             ->paginate(30);
 
