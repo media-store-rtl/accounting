@@ -138,6 +138,15 @@ class AccountingSsoController extends Controller
 
             $company = $user->currentCompany();
             if ($company) {
+                // The owner role is always a full-access role. Permissions are granted
+                // through the role itself, never through an owner bypass in authorization.
+                if ($user->isAccountOwner()) {
+                    $ownerRole = Role::where('company_id', $company->id)
+                        ->where('slug', 'owner')
+                        ->first();
+                    $ownerRole?->permissions()->sync(Permission::pluck('id'));
+                }
+
                 $entitlement = SubscriptionEntitlement::firstOrNew(['company_id' => $company->id]);
                 $entitlement->external_subscription_id = (string) $payload['subscription_id'];
                 // Web2022 may send generic field names (status, starts_at, expires_at)
