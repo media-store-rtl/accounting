@@ -138,14 +138,8 @@ class AccountingSsoController extends Controller
 
             $company = $user->currentCompany();
             if ($company) {
-                // The owner role is always a full-access role. Permissions are granted
-                // through the role itself, never through an owner bypass in authorization.
-                if ($user->isAccountOwner()) {
-                    $ownerRole = Role::where('company_id', $company->id)
-                        ->where('slug', 'owner')
-                        ->first();
-                    $ownerRole?->permissions()->sync(Permission::pluck('id'));
-                }
+                // Apply the same role-based owner access repair used by local login.
+                $user->ensureAccountOwnerAccess();
 
                 $entitlement = SubscriptionEntitlement::firstOrNew(['company_id' => $company->id]);
                 $entitlement->external_subscription_id = (string) $payload['subscription_id'];
