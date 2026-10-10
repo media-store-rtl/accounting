@@ -32,6 +32,7 @@
 @media(max-width:560px){.top{min-height:70px;align-items:flex-start;padding-top:12px;padding-bottom:12px}.company{flex:1;flex-wrap:wrap}.company select{max-width:160px}.user>div:first-child{display:none}.grid{grid-template-columns:1fr 1fr;gap:9px}.card{padding:14px}.card b{font-size:20px}.content{padding-top:22px}.welcome{display:block;margin-bottom:18px}.welcome h1{font-size:23px}.panel{padding:16px}.flow{grid-template-columns:1fr 1fr}.module-grid{grid-template-columns:1fr}.mobile-nav{height:64px}}
 
 body{font-family:"Vazirmatn","Segoe UI",Tahoma,sans-serif;background:#07111f;color:#e9f3fb}
+.dashboard-content{padding:0}
 a{color:#6ee7d0}
 main.main{min-width:0}
 .content>.container{max-width:1400px}
@@ -125,12 +126,12 @@ main.main{min-width:0}
 </div>
 <div class="user"><div><strong>{{ $layoutUser?->name }}</strong><small>{{ $layoutCompany?->name ?? 'بدون مجموعه' }}</small></div><div class="avatar">{{ $layoutUser ? mb_substr($layoutUser->name,0,1) : 'ح' }}</div><form method="POST" action="{{ route('logout') }}">@csrf<button class="logout">خروج</button></form></div>
 </header>
-<main class="content">
+<div class="content">
 @if(session('success'))<div class="notice" style="margin-bottom:18px">{{ session('success') }}</div>@endif
 @if(session('error'))<div class="notice warn" style="margin-bottom:18px">{{ session('error') }}</div>@endif
 @if($errors->any())<div class="notice warn" style="margin-bottom:18px">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
 @yield('content')
-</main>
+</div>
 </main>
 </div>
 <nav class="mobile-nav" aria-label="ناوبری موبایل">
