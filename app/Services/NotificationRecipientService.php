@@ -7,6 +7,7 @@ use App\Notifications\WorkflowNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 
 class NotificationRecipientService
 {
@@ -59,9 +60,12 @@ class NotificationRecipientService
             return;
         }
 
+        $notificationPayload = $payload + ['company_id' => $companyId];
+        $notificationPayload['notification_batch_id'] = (string) Str::uuid();
+
         Notification::send(
             User::query()->whereIn('id', $ids)->get(),
-            new WorkflowNotification($event, $payload + ['company_id' => $companyId])
+            new WorkflowNotification($event, $notificationPayload)
         );
     }
 
@@ -84,9 +88,12 @@ class NotificationRecipientService
             return;
         }
 
+        $notificationPayload = $payload + ['company_id' => $companyId];
+        $notificationPayload['notification_batch_id'] = (string) Str::uuid();
+
         Notification::send(
             User::query()->whereIn('id', $ids)->get(),
-            new WorkflowNotification($event, $payload + ['company_id' => $companyId])
+            new WorkflowNotification($event, $notificationPayload)
         );
     }
 }
