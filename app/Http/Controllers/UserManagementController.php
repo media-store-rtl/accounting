@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Illuminate\Validation\ValidationException;
 
 class UserManagementController extends Controller
 {
@@ -200,11 +201,11 @@ class UserManagementController extends Controller
         $maxUsers = $company->subscriptionEntitlement?->effectiveMaxUsers();
         abort_unless($maxUsers !== null, 409, 'سقف کاربران پلن در اطلاعات اشتراک مشخص نشده است.');
 
-        abort_if(
-            $company->users()->wherePivot('is_active', true)->count() >= $maxUsers,
-            422,
-            'سقف تعداد کاربران پلن تکمیل شده است.'
-        );
+        if ($company->users()->wherePivot('is_active', true)->count() >= $maxUsers) {
+            throw ValidationException::withMessages([
+                'capacity' => 'سقف تعداد کاربران پلن تکمیل شده است. برای افزودن کاربر، پلن خود را ارتقا دهید.',
+            ]);
+        }
     }
 
     private function assertUserInCompany(Request $request, User $user): Company
