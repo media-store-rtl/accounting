@@ -46,6 +46,9 @@ class DashboardController extends Controller
             }
         }
 
+        $goods = collect();
+        $goodsCount = 0;
+
         $stats = [
             'inventory_quantity' => 0,
             'open_orders' => 0,
@@ -120,11 +123,18 @@ class DashboardController extends Controller
             'fiscal_years' => 'fiscal_year.view',
             'costing' => 'costing.report.view',
             'backups' => 'backup.view',
+            'goods' => 'goods.view',
         ];
 
         $can = [];
         foreach ($permissions as $key => $permission) {
             $can[$key] = (bool) ($company && $user->hasCompanyPermission((int) $company->id, $permission));
+        }
+
+        if ($company && $user->hasCompanyPermission((int) $company->id, 'goods.view')) {
+            $goodsQuery = DB::table('goods')->where('company_id', $company->id)->where('is_active', true);
+            $goodsCount = (clone $goodsQuery)->count();
+            $goods = $goodsQuery->orderByDesc('id')->limit(8)->get(['id', 'code', 'name']);
         }
 
         $subscription = $company?->subscriptionEntitlement;
@@ -140,6 +150,8 @@ class DashboardController extends Controller
             'fiscalYears',
             'fiscalYear',
             'stats',
+            'goods',
+            'goodsCount',
             'subscription',
             'subscriptionActive',
             'subscriptionStatus',
