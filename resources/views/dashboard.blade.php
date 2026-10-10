@@ -48,6 +48,7 @@
 @if($can['users'])<a href="{{ route('users.index') }}">♙ کاربران</a>@endif
 @if($can['roles'])<a href="{{ route('roles.index') }}">⚿ نقش‌ها و دسترسی‌ها</a>@endif
 @if($can['costing'])<a href="{{ route('reports.costing') }}">◌ بهای تمام‌شده</a>@endif
+@if($can['goods'])<a href="{{ route('master.index', 'goods') }}">▦ کالاها و کد کالا</a>@endif
 @if($can['backups'])<a href="{{ route('backups.index') }}">▣ پشتیبان‌گیری</a>@endif
 @if($can['customers'] || $can['orders'] || $can['deliveries'])
 <div class="nav-title">سایر حوزه‌ها</div>
@@ -100,6 +101,33 @@
 <div class="card"><small>تولیدهای جاری</small><b>{{ number_format($stats['active_productions']) }}</b><span>تولیدهای تکمیل‌نشده</span></div>
 </div>
 
+
+@if($can['goods'])
+<div class="panel" style="margin-top:18px">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+<div><h2>کالاها و کد کالا</h2><p style="margin-bottom:0">تعداد کالاهای فعال: {{ number_format($goodsCount) }} — آخرین کالاهای ثبت‌شده در این مجموعه</p></div>
+<a href="{{ route('master.index', 'goods') }}" style="color:#6ee7d0;text-decoration:none;font-size:10px;white-space:nowrap">مشاهده همه کالاها ←</a>
+</div>
+@if($goods->isNotEmpty())
+<div style="overflow-x:auto;margin-top:14px">
+<table style="width:100%;border-collapse:collapse;font-size:10px;text-align:right">
+<thead><tr style="color:#71879d;border-bottom:1px solid #1b354b"><th style="padding:10px">کد کالا</th><th style="padding:10px">نام کالا</th><th style="padding:10px">عملیات</th></tr></thead>
+<tbody>
+@foreach($goods as $good)
+<tr style="border-bottom:1px solid #173047">
+<td style="padding:11px 10px;color:#6ee7d0;font-weight:700;white-space:nowrap">{{ $good->code }}</td>
+<td style="padding:11px 10px">{{ $good->name }}</td>
+<td style="padding:11px 10px"><a href="{{ route('master.edit', ['goods', $good->id]) }}" style="color:#9eb2c4;text-decoration:none">مشاهده / ویرایش ←</a></td>
+</tr>
+@endforeach
+</tbody></table>
+</div>
+@else
+<div class="empty" style="margin-top:14px">هنوز کالای فعالی ثبت نشده است. از بخش کالاها می‌توانید کالای جدید اضافه کنید.</div>
+@endif
+</div>
+@endif
+
 <div class="section">
 <div class="panel">
 <h2>زنجیره اصلی پروژه</h2>
@@ -120,6 +148,7 @@
 @if($can['orders'])<a href="{{ route('sales.orders.index') }}">سفارش‌های فروش <span>←</span></a>@endif
 @if($can['deliveries'])<a href="{{ route('sales.deliveries.index') }}">تحویل‌ها <span>←</span></a>@endif
 @if($can['costing'])<a href="{{ route('reports.costing') }}">گزارش بهای تمام‌شده <span>←</span></a>@endif
+@if($can['goods'])<a href="{{ route('master.index', 'goods') }}">کالاها و کد کالا <span>←</span></a>@endif
 @if($can['backups'])<a href="{{ route('backups.index') }}">پشتیبان‌گیری <span>←</span></a>@endif
 @if($can['company'])<a href="{{ route('company.edit') }}">اطلاعات مجموعه <span>←</span></a>@endif
 @if($can['fiscal_years'])<a href="{{ route('fiscal-years.index') }}">سال‌های مالی <span>←</span></a>@endif
