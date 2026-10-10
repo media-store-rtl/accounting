@@ -1,1 +1,41 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>سفارش‌های فروش</title><style>body{font-family:Tahoma;background:#07111f;color:#e9f3fb;padding:30px}a{padding:9px 14px;border-radius:8px;background:#12314a;color:#fff;text-decoration:none}table{width:100%;margin-top:20px;border-collapse:collapse;background:#0a1b2b}th,td{padding:12px;border-bottom:1px solid #20384d;text-align:right}.badge{padding:4px 8px;border-radius:7px;background:#173b55}</style></head><body><h1>سفارش‌های فروش</h1><a href="{{ route('sales.orders.create') }}">+ سفارش جدید</a> <a href="{{ route('sales.customers.index') }}">مشتریان</a> <a href="{{ route('sales.deliveries.index') }}">تحویل‌ها</a><table><tr><th>شماره</th><th>مشتری</th><th>موعد درخواستی</th><th>موعد تولید</th><th>وضعیت</th><th></th></tr>@foreach($orders as $o)<tr><td>{{ $o->number }}</td><td>{{ $o->customer_name }}</td><td>{{ $o->requested_delivery_at }}</td><td>{{ $o->production_due_at??'—' }}</td><td><span class="badge">{{ $o->status }}</span></td><td><a href="{{ route('sales.orders.show',$o->id) }}">جزئیات</a></td></tr>@endforeach</table>{{ $orders->links() }}</body></html>
+@extends('layouts.dashboard-shell')
+
+@section('title', 'سفارش‌های فروش | حسابداری صنعتی')
+
+@section('content')
+<div class="page-heading">
+  <div>
+    <h1>سفارش‌های فروش</h1>
+    <p>مدیریت سفارش‌ها، موعدهای تحویل و وضعیت تولید</p>
+  </div>
+</div>
+<div class="panel">
+  <div class="actions">
+    <a class="btn primary" href="{{ route('sales.orders.create') }}">+ سفارش جدید</a>
+    <a class="btn" href="{{ route('sales.customers.index') }}">مشتریان</a>
+    <a class="btn" href="{{ route('sales.deliveries.index') }}">تحویل‌ها</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>شماره</th><th>مشتری</th><th>موعد درخواستی</th><th>موعد تولید</th><th>وضعیت</th><th>جزئیات</th></tr>
+      </thead>
+      <tbody>
+        @forelse($orders as $o)
+          <tr>
+            <td>{{ $o->number }}</td>
+            <td>{{ $o->customer_name }}</td>
+            <td>{{ $o->requested_delivery_at }}</td>
+            <td>{{ $o->production_due_at ?? '—' }}</td>
+            <td><span class="status">{{ $o->status }}</span></td>
+            <td><a class="btn" href="{{ route('sales.orders.show', $o->id) }}">مشاهده جزئیات</a></td>
+          </tr>
+        @empty
+          <tr><td colspan="6" style="text-align:center;color:#71879d;padding:28px">هنوز سفارشی ثبت نشده است.</td></tr>
+        @endforelse
+      </tbody>
+    </table>
+  </div>
+  <div class="pagination">{{ $orders->links() }}</div>
+</div>
+@endsection
