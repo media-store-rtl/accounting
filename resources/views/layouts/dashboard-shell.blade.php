@@ -92,10 +92,11 @@ if (!isset($can) || !is_array($can)) {
 </select></form>
 @elseif($company && $can['fiscal_years'])<a href="{{ route('fiscal-years.create') }}" style="color:#6ee7d0;font-size:10px;text-decoration:none">+ تعریف سال مالی</a>@endif
 </div>
+<div class="user"><div><strong>{{ $user->name }}</strong><small>{{ $company?->name ?? 'حسابداری صنعتی' }}</small></div><div class="avatar">{{ mb_substr($user->name,0,1) }}</div>
 @if($can['notifications'])
 <a class="notification-bell" href="{{ route('notifications.index') }}" aria-label="مرکز اعلان‌ها" title="مرکز اعلان‌ها">🔔@if($unreadNotificationCount > 0)<span class="count">{{ $unreadNotificationCount > 99 ? '99+' : $unreadNotificationCount }}</span>@endif</a>
 @endif
-<div class="user"><div><strong>{{ $user->name }}</strong><small>{{ $company?->name ?? 'حسابداری صنعتی' }}</small></div><div class="avatar">{{ mb_substr($user->name,0,1) }}</div><form method="POST" action="{{ route('logout') }}">@csrf<button class="logout">خروج</button></form></div>
+<form method="POST" action="{{ route('logout') }}">@csrf<button class="logout">خروج</button></form></div>
 </header>
 <section class="content">@yield('content')</section>
 </main>
