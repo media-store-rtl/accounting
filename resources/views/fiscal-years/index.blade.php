@@ -1,1 +1,88 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>سال‌های مالی</title><style>body{font-family:Tahoma;background:#07111f;color:#e9f3fb;padding:30px;margin:0}.panel{background:#0a1b2b;border:1px solid #1b354b;border-radius:16px;padding:22px;max-width:1100px;margin:auto}.toolbar{display:flex;gap:8px;margin-bottom:18px}.btn{display:inline-block;padding:9px 13px;background:#10283c;color:#6ee7d0;border-radius:8px;text-decoration:none;border:0;cursor:pointer}table{width:100%;border-collapse:collapse}th,td{padding:12px;border-bottom:1px solid #173047;text-align:right}.badge{padding:5px 9px;border-radius:7px;background:#173b32;color:#8ee7c8;font-size:12px}.closed{background:#3a2b24;color:#e7b98b}.success{padding:10px;background:#123629;border-radius:9px;margin-bottom:15px}.muted{color:#7890a5;font-size:12px}form{display:inline}</style></head><body><div class="panel"><div class="toolbar"><a class="btn" href="{{ route('dashboard') }}">← داشبورد</a><a class="btn" href="{{ route('fiscal-years.create') }}">＋ تعریف سال مالی</a></div><h1>سال‌های مالی</h1><p class="muted">شرکت: {{ $company->name }}</p>@if(session('success'))<div class="success">{{ session('success') }}</div>@endif @if($fiscalYears->isEmpty())<p class="muted">هنوز سال مالی تعریف نشده است.</p>@else<table><tr><th>نام</th><th>کد</th><th>شروع</th><th>پایان</th><th>وضعیت</th><th>عملیات</th></tr>@foreach($fiscalYears as $year)<tr><td>{{ $year->name }}</td><td>{{ $year->code }}</td><td>{{ $year->starts_at?->format('Y/m/d') }}</td><td>{{ $year->ends_at?->format('Y/m/d') }}</td><td><span class="badge {{ $year->is_closed?'closed':'' }}">{{ $year->is_closed?'بسته':'باز' }}</span></td><td>@if(!$year->is_closed)<a class="btn" href="{{ route('fiscal-years.edit',$year) }}">ویرایش</a>@if($currentFiscalYearId !== (int) $year->id)<form method="POST" action="{{ route('fiscal-years.select',$year) }}">@csrf<button class="btn">فعال‌کردن</button></form>@else<span class="badge">سال جاری</span>@endif<form method="POST" action="{{ route('fiscal-years.close',$year) }}">@csrf<button class="btn" onclick="return confirm('سال مالی بسته شود؟')">بستن سال</button></form>@endif</td></tr>@endforeach</table>@endif</div></body></html>
+@extends('layouts.dashboard-shell')
+
+@section('title', 'سال‌های مالی | حسابداری صنعتی')
+
+@section('content')
+<div class="page-heading">
+    <div>
+        <h1>سال‌های مالی</h1>
+        <p>مدیریت دوره‌های مالی شرکت و وضعیت باز یا بسته بودن آن‌ها.</p>
+    </div>
+    <a class="btn primary" href="{{ route('fiscal-years.create') }}">＋ تعریف سال مالی</a>
+</div>
+
+<style>
+.fiscal-meta{color:#71879d;font-size:11px;margin:0 0 18px}
+.fiscal-badge{display:inline-block;border-radius:20px;padding:5px 10px;font-size:10px;background:#12372f;color:#6ee7d0}
+.fiscal-badge.closed{background:#3b2b24;color:#e7b98b}
+.fiscal-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.fiscal-actions form{display:inline-flex;margin:0}
+.fiscal-actions .btn{white-space:nowrap;cursor:pointer;font-family:inherit}
+.fiscal-empty{text-align:center;padding:34px 12px;color:#71879d;font-size:12px}
+.fiscal-success{padding:12px 14px;background:#123629;border:1px solid #245443;color:#8ee7c8;border-radius:10px;margin-bottom:16px;font-size:11px}
+@media(max-width:700px){.fiscal-actions{min-width:180px}.fiscal-actions .btn{font-size:10px;padding:8px 9px}}
+</style>
+
+<p class="fiscal-meta">شرکت فعال: {{ $company->name }}</p>
+
+@if(session('success'))
+    <div class="fiscal-success">{{ session('success') }}</div>
+@endif
+
+<div class="panel">
+    @if($fiscalYears->isEmpty())
+        <div class="fiscal-empty">
+            <p>هنوز سال مالی‌ای برای این شرکت تعریف نشده است.</p>
+            <a class="btn primary" href="{{ route('fiscal-years.create') }}">تعریف اولین سال مالی</a>
+        </div>
+    @else
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>نام سال مالی</th>
+                        <th>کد</th>
+                        <th>تاریخ شروع</th>
+                        <th>تاریخ پایان</th>
+                        <th>وضعیت</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($fiscalYears as $year)
+                        <tr>
+                            <td>{{ $year->name }}</td>
+                            <td>{{ $year->code }}</td>
+                            <td>{{ $year->starts_at?->format('Y/m/d') }}</td>
+                            <td>{{ $year->ends_at?->format('Y/m/d') }}</td>
+                            <td>
+                                <span class="fiscal-badge {{ $year->is_closed ? 'closed' : '' }}">{{ $year->is_closed ? 'بسته' : 'باز' }}</span>
+                                @if(!$year->is_closed && $currentFiscalYearId === (int) $year->id)
+                                    <span class="fiscal-badge">سال جاری</span>
+                                @endif
+                            </td>
+                            <td>
+                                <div class="fiscal-actions">
+                                    @if(!$year->is_closed)
+                                        <a class="btn" href="{{ route('fiscal-years.edit', $year) }}">ویرایش</a>
+                                        @if($currentFiscalYearId !== (int) $year->id)
+                                            <form method="POST" action="{{ route('fiscal-years.select', $year) }}">
+                                                @csrf
+                                                <button class="btn" type="submit">فعال‌کردن</button>
+                                            </form>
+                                        @endif
+                                        <form method="POST" action="{{ route('fiscal-years.close', $year) }}" onsubmit="return confirm('سال مالی بسته شود؟ پس از بستن، امکان ویرایش آن وجود نخواهد داشت.');">
+                                            @csrf
+                                            <button class="btn" type="submit">بستن سال</button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+</div>
+@endsection
