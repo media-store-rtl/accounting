@@ -1,10 +1,10 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Support\\CompanyAuthorization;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\DB;
+use App\Support\CompanyAuthorization;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
@@ -74,12 +74,16 @@ class CustomerController extends Controller
             'address' => 'nullable|string',
         ]);
 
-        $updated = DB::table('customers')
+        $exists = DB::table('customers')
+            ->where('company_id', $companyId)
+            ->where('id', $id)
+            ->exists();
+        abort_unless($exists, 404);
+
+        DB::table('customers')
             ->where('company_id', $companyId)
             ->where('id', $id)
             ->update(array_merge($data, ['updated_at' => now()]));
-
-        abort_unless($updated || DB::table('customers')->where('company_id', $companyId)->where('id', $id)->exists(), 404);
 
         return redirect()->route('sales.customers.index')->with('success', 'اطلاعات مشتری با موفقیت ویرایش شد.');
     }
