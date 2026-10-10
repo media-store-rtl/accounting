@@ -75,7 +75,7 @@ class AccountingSsoController extends Controller
 
         [$user, $isNewUser, $initialPassword] = DB::transaction(function () use ($payload) {
             // Keep SSO-created accounts aligned with the application's complete permission catalog.
-            app(\\Database\\Seeders\\PermissionSeeder::class)->run();
+            app(\Database\Seeders\PermissionSeeder::class)->run();
 
             $user = User::where('web2022_user_id', (int) $payload['user_id'])->first()
                 ?? User::where('email', (string) $payload['email'])->first();
