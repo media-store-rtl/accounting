@@ -33,11 +33,24 @@
         <p style="font-size:11px;color:#8198ac;margin:0">مواد اولیه موردنیاز تولید را برای بررسی و تحویل توسط انبار ثبت کنید.</p>
     </div>
 
+    <div style="padding:13px 15px;margin-bottom:18px;border:1px solid #29465e;border-radius:12px;background:#0d2235;color:#c5d6e4;font-size:11px;line-height:2">
+        <strong style="color:#6ee7d0">راهنمای ثبت درخواست</strong>
+        <ol style="margin:6px 0 0;padding-right:20px">
+            <li>سال مالی فعال مجموعه را انتخاب کنید.</li>
+            <li>اگر درخواست برای دستور تولید یا سفارش مشخصی است، شماره آن را انتخاب کنید؛ این دو مورد اختیاری‌اند.</li>
+            <li>نام ماده اولیه موردنیاز را از فهرست کالاها انتخاب و مقدار لازم را وارد کنید.</li>
+            <li>تاریخی را تعیین کنید که مواد باید حداکثر تا آن روز به تولید برسند.</li>
+            <li>روی «ارسال درخواست مواد به انبار» بزنید تا درخواست برای بررسی ثبت شود.</li>
+        </ol>
+        <p style="margin:7px 0 0;color:#ffcf8b">توجه: در حال حاضر هر درخواست فقط یک نوع کالا دارد. اگر چند ماده مختلف لازم دارید، برای هرکدام یک درخواست جدا ثبت کنید.</p>
+    </div>
+
     <form method="POST" action="{{ route('workflows.supply.store') }}">
         @csrf
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px">
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">
                 سال مالی
+                <small style="color:#71879d;font-size:10px;font-weight:400">سال مالی فعال مجموعه را انتخاب کنید.</small>
                 <select name="fiscal_year_id" required style="width:100%;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
                     @foreach($years as $y)
                         <option value="{{ $y->id }}" @selected((string) old('fiscal_year_id') === (string) $y->id)>{{ $y->year ?? $y->id }}</option>
@@ -47,6 +60,7 @@
 
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">
                 تولید (اختیاری)
+                <small style="color:#71879d;font-size:10px;font-weight:400">اگر شماره دستور تولید را دارید، انتخاب کنید.</small>
                 <select name="production_id" style="width:100%;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
                     <option value="">—</option>
                     @foreach($productions as $p)
@@ -57,6 +71,7 @@
 
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">
                 سفارش (اختیاری)
+                <small style="color:#71879d;font-size:10px;font-weight:400">اگر مواد برای سفارش مشتری مشخصی است، آن را انتخاب کنید.</small>
                 <select name="order_id" style="width:100%;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
                     <option value="">—</option>
                     @foreach($orders as $o)
@@ -66,7 +81,8 @@
             </label>
 
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">
-                کالا
+                نام ماده اولیه
+                <small style="color:#71879d;font-size:10px;font-weight:400">مثلاً پارچه، نخ یا دکمه؛ کالای موردنیاز را انتخاب کنید.</small>
                 <select name="items[0][goods_id]" required style="width:100%;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
                     @foreach($goods as $g)
                         <option value="{{ $g->id }}" @selected((string) old('items.0.goods_id') === (string) $g->id)>{{ $g->name }}</option>
@@ -75,12 +91,14 @@
             </label>
 
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">
-                مقدار
+                مقدار موردنیاز
+                <small style="color:#71879d;font-size:10px;font-weight:400">مقدار لازم را بر اساس واحد تعریف‌شده برای کالا وارد کنید.</small>
                 <input name="items[0][quantity]" type="number" min="0.0001" step="0.0001" value="{{ old('items.0.quantity') }}" required style="width:100%;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
             </label>
 
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">
-                نیاز تا
+                تاریخ موردنیاز
+                <small style="color:#71879d;font-size:10px;font-weight:400">مواد باید حداکثر تا این تاریخ به تولید برسند.</small>
                 <input name="needed_at" type="date" value="{{ old('needed_at') }}" required style="width:100%;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit;color-scheme:dark">
             </label>
         </div>
