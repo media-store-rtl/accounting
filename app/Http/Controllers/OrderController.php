@@ -105,6 +105,31 @@ class OrderController extends Controller
         });
         if ($result->status === 'ready_for_delivery') {
             app(NotificationRecipientService::class)->send($companyId, 'order.ready_for_delivery', ['order_id' => $order], (int) $request->user()->id, 'order.view');
+        } else {
+            // A recheck can confirm an existing shortage (including orders already awaiting production).
+            // Create the production-required notification once per order, rather than on every button click.
+            $hasShortage = DB::table('order_items')
+                ->where('order_id', $order)
+                ->where('shortage_quantity', '>', 0)
+                ->exists();
+
+            if ($hasShortage) {
+                $alreadyNotified = DB::table('notifications')
+                    ->where('type', 'order.production_required')
+                    ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(data, '$.order_id')) = ?", [(string) $order])
+                    ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(data, '$.company_id')) = ?", [(string) $companyId])
+                    ->exists();
+
+                if (! $alreadyNotified) {
+                    app(NotificationRecipientService::class)->send(
+                        $companyId,
+                        'order.production_required',
+                        ['order_id' => $order],
+                        (int) $request->user()->id,
+                        'production.supervise'
+                    );
+                }
+            }
         }
         return response()->json(['data'=>$result]);
     }
