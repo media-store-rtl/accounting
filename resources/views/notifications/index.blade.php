@@ -44,8 +44,8 @@
         'production_due_at' => 'زمان قابل تحویل اعلام‌شده توسط تولید',
         'purchase_total_amount' => 'مبلغ خرید',
         'direct_cost_total' => 'مجموع هزینه‌های مستقیم',
-        'location_id' => 'شناسه انبار',
-        'goods_id' => 'شناسه کالا',
+        'location_id' => 'انبار',
+        'goods_id' => 'کالا',
         'current_quantity' => 'موجودی فعلی',
         'reorder_point' => 'نقطه سفارش',
     ];
@@ -81,6 +81,24 @@
                 ];
                 $visibleKeys = $visibleFields[$event] ?? [];
                 $extraData = array_intersect_key($data, array_flip($visibleKeys));
+                $companyId = (int) session('company_id');
+                $goodsName = null;
+                $locationName = null;
+
+                if ($event === 'inventory_reorder_point_reached' && $companyId > 0) {
+                    if (!empty($data['goods_id'])) {
+                        $goodsName = \\Illuminate\\Support\\Facades\\DB::table('goods')
+                            ->where('company_id', $companyId)
+                            ->where('id', (int) $data['goods_id'])
+                            ->value('name');
+                    }
+                    if (!empty($data['location_id'])) {
+                        $locationName = \\Illuminate\\Support\\Facades\\DB::table('locations')
+                            ->where('company_id', $companyId)
+                            ->where('id', (int) $data['location_id'])
+                            ->value('name');
+                    }
+                }
             @endphp
             <article style="padding:15px;border:1px solid {{ $n->read_at ? '#1b354b' : '#246451' }};border-radius:12px;background:{{ $n->read_at ? '#0d2235' : '#0c282b' }}">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -107,7 +125,7 @@
                             @if($k !== 'order_id')
                                 <div>
                                     <span style="color:#71879d">{{ $fieldLabels[$k] ?? 'جزئیات' }}:</span>
-                                    <strong style="color:#e9f3fb">{{ is_numeric($v) && in_array($k, ['purchase_total_amount', 'direct_cost_total'], true) ? number_format((float) $v, 0) . ' ریال' : (is_scalar($v) ? $v : '') }}</strong>
+                                    <strong style="color:#e9f3fb">{{ $k === 'goods_id' ? ($goodsName ?: 'کالای ثبت‌شده') : ($k === 'location_id' ? ($locationName ?: 'انبار ثبت‌شده') : ($k === 'production_due_at' && is_scalar($v) && $v !== '' ? \\Illuminate\\Support\\Carbon::parse($v)->format('Y/m/d H:i') : (is_numeric($v) && in_array($k, ['purchase_total_amount', 'direct_cost_total'], true) ? number_format((float) $v, 0) . ' ریال' : (is_scalar($v) ? $v : '')))) }}</strong>
                                 </div>
                             @endif
                         @endforeach
