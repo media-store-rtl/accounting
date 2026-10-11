@@ -49,69 +49,6 @@ class DashboardController extends Controller
         $goods = collect();
         $goodsCount = 0;
 
-        $stats = [
-            'inventory_quantity' => 0,
-            'open_orders' => 0,
-            'shortage_requests' => 0,
-            'active_productions' => 0,
-            'pending_deliveries' => 0,
-            'pending_finished_goods' => 0,
-            'material_cost' => 0,
-            'labor_cost' => 0,
-        ];
-
-        if ($company) {
-            $stats['inventory_quantity'] = (float) DB::table('inventory')
-                ->where('company_id', $company->id)
-                ->sum('quantity');
-
-            $stats['open_orders'] = DB::table('orders')
-                ->where('company_id', $company->id)
-                ->whereNotIn('status', ['completed', 'cancelled'])
-                ->when($fiscalYear, fn ($q) => $q->where('fiscal_year_id', $fiscalYear->id))
-                ->count();
-
-            $stats['shortage_requests'] = DB::table('supply_requests')
-                ->where('company_id', $company->id)
-                ->whereIn('status', ['shortage_pending', 'partially_supplied'])
-                ->when($fiscalYear, fn ($q) => $q->where('fiscal_year_id', $fiscalYear->id))
-                ->count();
-
-            $stats['active_productions'] = DB::table('productions')
-                ->where('company_id', $company->id)
-                ->whereNotIn('status', ['completed', 'cancelled'])
-                ->when($fiscalYear, fn ($q) => $q->where('fiscal_year_id', $fiscalYear->id))
-                ->count();
-
-            {
-                $stats['pending_deliveries'] = DB::table('delivery_requests')
-                    ->where('company_id', $company->id)
-                    ->whereIn('status', ['pending', 'requested'])
-                    ->count();
-            }
-
-            {
-                $stats['pending_finished_goods'] = DB::table('finished_goods_receipts')
-                    ->where('company_id', $company->id)
-                    ->where('status', 'pending')
-                    ->count();
-            }
-
-            if ($fiscalYear) {
-                $stats['material_cost'] = (float) DB::table('inventory_consumption_costs')
-                    ->where('company_id', $company->id)
-                    ->where('fiscal_year_id', $fiscalYear->id)
-                    ->sum('total_cost');
-            }
-
-            if ($fiscalYear) {
-                $stats['labor_cost'] = (float) DB::table('production_labor_costs')
-                    ->where('company_id', $company->id)
-                    ->where('fiscal_year_id', $fiscalYear->id)
-                    ->sum('total_cost');
-            }
-        }
-
         $permissions = [
             'company' => 'company.view',
             'customers' => 'customer.view',
@@ -148,6 +85,77 @@ class DashboardController extends Controller
         $can = [];
         foreach ($permissions as $key => $permission) {
             $can[$key] = (bool) ($company && $user->hasCompanyPermission((int) $company->id, $permission));
+        }
+
+        $stats = [
+            'inventory_quantity' => 0,
+            'open_orders' => 0,
+            'shortage_requests' => 0,
+            'active_productions' => 0,
+            'pending_deliveries' => 0,
+            'pending_finished_goods' => 0,
+            'material_cost' => 0,
+            'labor_cost' => 0,
+        ];
+
+        if ($company) {
+            if ($can['inventory']) {
+                $stats['inventory_quantity'] = (float) DB::table('inventory')
+                ->where('company_id', $company->id)
+                ->sum('quantity');
+            }
+
+            if ($can['orders']) {
+                $stats['open_orders'] = DB::table('orders')
+                ->where('company_id', $company->id)
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->when($fiscalYear, fn ($q) => $q->where('fiscal_year_id', $fiscalYear->id))
+                ->count();
+            }
+
+            if ($can['supply']) {
+                $stats['shortage_requests'] = DB::table('supply_requests')
+                ->where('company_id', $company->id)
+                ->whereIn('status', ['shortage_pending', 'partially_supplied'])
+                ->when($fiscalYear, fn ($q) => $q->where('fiscal_year_id', $fiscalYear->id))
+                ->count();
+            }
+
+            if ($can['productions']) {
+                $stats['active_productions'] = DB::table('productions')
+                ->where('company_id', $company->id)
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->when($fiscalYear, fn ($q) => $q->where('fiscal_year_id', $fiscalYear->id))
+                ->count();
+            }
+
+            if ($can['deliveries']) {
+                $stats['pending_deliveries'] = DB::table('delivery_requests')
+                    ->where('company_id', $company->id)
+                    ->whereIn('status', ['pending', 'requested'])
+                    ->count();
+            }
+
+            if ($can['production_outputs'] || $can['inventory']) {
+                $stats['pending_finished_goods'] = DB::table('finished_goods_receipts')
+                    ->where('company_id', $company->id)
+                    ->where('status', 'pending')
+                    ->count();
+            }
+
+            if ($can['costing'] && $fiscalYear) {
+                $stats['material_cost'] = (float) DB::table('inventory_consumption_costs')
+                    ->where('company_id', $company->id)
+                    ->where('fiscal_year_id', $fiscalYear->id)
+                    ->sum('total_cost');
+            }
+
+            if ($can['costing'] && $fiscalYear) {
+                $stats['labor_cost'] = (float) DB::table('production_labor_costs')
+                    ->where('company_id', $company->id)
+                    ->where('fiscal_year_id', $fiscalYear->id)
+                    ->sum('total_cost');
+            }
         }
 
         if ($company && $user->hasCompanyPermission((int) $company->id, 'goods.view')) {
