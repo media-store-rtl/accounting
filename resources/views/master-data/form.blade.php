@@ -36,6 +36,23 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 <div class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? 'master-form-page' : 'container py-3' }}" dir="rtl">
 <div class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? 'master-heading' : 'd-flex justify-content-between align-items-center mb-4' }}"><div><h1 class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? '' : 'h3 mb-1' }}">{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? ((($editing ?? false) ? 'ویرایش اطلاعات ' : 'ثبت اطلاعات ') . ($definition['title'] ?? '')) : $definition['title'] }}</h1><div class="text-muted small">{{ ($editing ?? false) ? 'ویرایش اطلاعات ثبت‌شده' : 'ثبت اطلاعات جدید' }}</div></div><a href="{{route('master.index',$module)}}" class="btn btn-outline-secondary">بازگشت به فهرست {{ $definition['title'] }}</a></div>
 @if($errors->any())<div class="alert alert-danger">@foreach($errors->all() as $e)<div>{{$e}}</div>@endforeach</div>@endif
+@if(($module ?? null) === 'productions')
+<div class="master-card" style="margin-bottom:18px;line-height:2">
+<h2 style="font-size:15px;margin:0 0 8px">راهنمای ثبت دستور تولید</h2>
+<p>این فرم برای برنامه‌ریزی تولید یک کالا است. پیش از ثبت، کالا باید در بخش کالاها قابل تولید باشد و مسیر تولید و مراحل آن تعریف شده باشند.</p>
+<ul>
+<li><b>شماره:</b> شناسه یکتای دستور برای پیگیری است؛ از الگوی ثابت مجموعه استفاده کنید، مانند PR-1405-001.</li>
+<li><b>کالا:</b> محصولی که قرار است ساخته شود. فقط کالاهای فعال و قابل تولید نمایش داده می‌شوند.</li>
+<li><b>مسیر تولید:</b> مسیر تعریف‌شده ساخت محصول، شامل مراحل و عملیات آن.</li>
+<li><b>سال مالی:</b> سال مالی مربوط به این دستور را انتخاب کنید.</li>
+<li><b>مقدار برنامه‌ریزی‌شده:</b> مقدار هدف تولید بر اساس واحد تعریف‌شده برای کالا.</li>
+<li><b>شروع برنامه‌ریزی‌شده:</b> زمان پیش‌بینی‌شده شروع کار.</li>
+<li><b>پایان برنامه‌ریزی‌شده:</b> زمان پیش‌بینی‌شده پایان کار؛ با توجه به مقدار و مراحل تولید تعیین شود.</li>
+</ul>
+<p>زمان‌های بالا برنامه‌ریزی هستند، نه زمان واقعی اجرا. ثبت دستور به‌تنهایی تولید را شروع نمی‌کند.</p>
+</div>
+@endif
+
 <form method="post" action="{{ ($editing ?? false) ? route('master.update',[$module,$row->id]) : route('master.store',$module) }}" class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? 'master-card' : 'card shadow-sm border-0 p-4' }}">
 @csrf @if($editing ?? false) @method('PUT') @endif
 <div class="row g-3">
