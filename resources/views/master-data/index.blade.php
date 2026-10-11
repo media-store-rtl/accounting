@@ -63,13 +63,29 @@
     </form>
     <div class="table-wrap">
         <table class="master-table">
-            <thead><tr>@foreach ($definition['fields'] as $field)<th>{{ $field }}</th>@endforeach<th>عملیات</th></tr></thead>
+            @if ($module === 'productions')
+                <thead><tr><th>شماره دستور</th><th>کالا</th><th>مسیر تولید</th><th>سال مالی</th><th>مقدار برنامه‌ریزی‌شده</th><th>شروع برنامه‌ریزی‌شده</th><th>پایان برنامه‌ریزی‌شده</th><th>یادداشت</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+            @else
+                <thead><tr>@foreach ($definition['fields'] as $field)<th>{{ $field }}</th>@endforeach<th>عملیات</th></tr></thead>
+            @endif
             <tbody>
                 @forelse ($rows as $row)
                     <tr>
-                        @foreach ($definition['fields'] as $field)
-                            <td>{{ is_bool($row->$field ?? null) ? (($row->$field ?? false) ? 'بله' : 'خیر') : ($row->$field ?? '—') }}</td>
-                        @endforeach
+                        @if ($module === 'productions')
+                            <td>{{ $row->number ?? '—' }}</td>
+                            <td>{{ $row->goods_name ?? 'کالای نامشخص' }}</td>
+                            <td>{{ $row->production_route_name ?? 'مسیر نامشخص' }}</td>
+                            <td>{{ $row->fiscal_year_name ?? 'سال مالی نامشخص' }}</td>
+                            <td>{{ rtrim(rtrim(number_format((float)($row->planned_quantity ?? 0), 4, '.', ''), '0'), '.') }}</td>
+                            <td>{{ $row->planned_start_at ?? '—' }}</td>
+                            <td>{{ $row->planned_end_at ?? '—' }}</td>
+                            <td>{{ $row->notes ?: '—' }}</td>
+                            <td>{{ match((string)($row->status ?? '')) { 'draft' => 'پیش‌نویس', 'in_progress' => 'در حال اجرا', 'completed' => 'تکمیل‌شده', 'cancelled' => 'لغوشده', default => ($row->status ?? 'نامشخص') } }}</td>
+                        @else
+                            @foreach ($definition['fields'] as $field)
+                                <td>{{ is_bool($row->$field ?? null) ? (($row->$field ?? false) ? 'بله' : 'خیر') : ($row->$field ?? '—') }}</td>
+                            @endforeach
+                        @endif
                         <td>
                             <a class="btn" href="{{ route('master.edit', [$module, $row->id]) }}">ویرایش</a>
                             @if ($module === 'productions' && ($row->status ?? null) === 'draft')
@@ -81,7 +97,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="{{ count($definition['fields']) + 1 }}" style="text-align:center;padding:30px;color:#71879d">رکوردی برای نمایش وجود ندارد.</td></tr>
+                    <tr><td colspan="{{ ($module === 'productions' ? 10 : count($definition['fields']) + 1) }}" style="text-align:center;padding:30px;color:#71879d">رکوردی برای نمایش وجود ندارد.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -94,39 +110,20 @@
         <h1>{{ $definition['title'] }}</h1>
         <a class="btn btn-primary" href="{{ route('master.create', $module) }}">ثبت جدید</a>
     </div>
-
-    @if (session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    @if ($errors->any())
-        <div class="alert alert-danger">@foreach ($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>
-    @endif
-
-    <form method="get" class="mb-3">
-        <div class="input-group">
-            <input name="q" value="{{ request('q') }}" class="form-control" placeholder="جستجو...">
-            <button class="btn btn-outline-secondary">جستجو</button>
-        </div>
-    </form>
-
+    @if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+    @if ($errors->any())<div class="alert alert-danger">@foreach ($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
+    <form method="get" class="mb-3"><div class="input-group"><input name="q" value="{{ request('q') }}" class="form-control" placeholder="جستجو..."><button class="btn btn-outline-secondary">جستجو</button></div></form>
     <div class="table-responsive">
         <table class="table table-striped">
             <thead><tr><th>عملیات</th>@foreach ($definition['fields'] as $field)<th>{{ $field }}</th>@endforeach</tr></thead>
             <tbody>
                 @forelse ($rows as $row)
                     <tr>
-                        @foreach ($definition['fields'] as $field)
-                            <td>{{ is_bool($row->$field ?? null) ? (($row->$field ?? false) ? 'بله' : 'خیر') : ($row->$field ?? '—') }}</td>
-                        @endforeach
+                        @foreach ($definition['fields'] as $field)<td>{{ is_bool($row->$field ?? null) ? (($row->$field ?? false) ? 'بله' : 'خیر') : ($row->$field ?? '—') }}</td>@endforeach
                         <td>
                             <a class="btn btn-sm btn-outline-primary" href="{{ route('master.edit', [$module, $row->id]) }}">ویرایش</a>
-                            @if ($module === 'productions' && ($row->status ?? null) === 'draft')
-                                <form method="post" action="{{ route('master.production.start', $row->id) }}" class="d-inline" onsubmit="return confirm('توجه: با ادامه، این دستور از وضعیت پیش‌نویس وارد مرحله اجرا می‌شود و مراحل و عملیات آن ایجاد می‌شوند. آیا مطمئن هستید؟')">@csrf<button class="btn btn-sm btn-success">شروع تولید</button></form>
-                            @endif
-                            @if (isset($row->is_active) && $row->is_active)
-                                <form method="post" action="{{ route('master.deactivate', [$module, $row->id]) }}" class="d-inline" onsubmit="return confirm('از غیرفعال کردن مطمئن هستید؟')">@csrf<button class="btn btn-sm btn-outline-danger">غیرفعال</button></form>
-                            @endif
+                            @if ($module === 'productions' && ($row->status ?? null) === 'draft')<form method="post" action="{{ route('master.production.start', $row->id) }}" class="d-inline" onsubmit="return confirm('توجه: با ادامه، این دستور از وضعیت پیش‌نویس وارد مرحله اجرا می‌شود و مراحل و عملیات آن ایجاد می‌شوند. آیا مطمئن هستید؟')">@csrf<button class="btn btn-sm btn-success">شروع تولید</button></form>@endif
+                            @if (isset($row->is_active) && $row->is_active)<form method="post" action="{{ route('master.deactivate', [$module, $row->id]) }}" class="d-inline" onsubmit="return confirm('از غیرفعال کردن مطمئن هستید؟')">@csrf<button class="btn btn-sm btn-outline-danger">غیرفعال</button></form>@endif
                         </td>
                     </tr>
                 @empty
