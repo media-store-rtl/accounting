@@ -51,7 +51,7 @@ if (!isset($can) || !is_array($can)) {
 @if($can['orders'])<a class="{{ request()->routeIs('sales.orders.*') ? 'active' : '' }}" href="{{ route('sales.orders.index') }}">▤ سفارش‌های فروش</a>@endif
 @if($can['deliveries'])<a class="{{ request()->routeIs('sales.deliveries.*') ? 'active' : '' }}" href="{{ route('sales.deliveries.index') }}">⇢ تحویل و ارسال</a>@endif
 <div class="nav-title">تأمین و خرید</div>
-<a class="{{ request()->routeIs('workflows.supply') ? 'active' : '' }}" href="{{ route('workflows.supply') }}">◈ درخواست‌های تأمین</a>
+<a class="{{ request()->routeIs('workflows.supply') ? 'active' : '' }}" href="{{ route('workflows.supply') }}">◈ درخواست مواد اولیه از انبار</a>
 <a class="{{ request()->routeIs('workflows.purchasing') ? 'active' : '' }}" href="{{ route('workflows.purchasing') }}">▤ خریدها</a>
 <a class="{{ request()->routeIs('workflows.receipts') ? 'active' : '' }}" href="{{ route('workflows.receipts') }}">⇣ رسیدهای خرید</a>
 <a class="{{ request()->routeIs('workflows.handovers') ? 'active' : '' }}" href="{{ route('workflows.handovers') }}">⇢ تحویل مواد</a>
