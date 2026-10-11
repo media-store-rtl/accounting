@@ -34,48 +34,80 @@ $company = $companies->firstWhere('id', (int) session('company_id'));
 $fiscalYears = $company?->fiscalYears()->orderByDesc('starts_at')->get() ?? collect();
 $fiscalYear = $fiscalYears->firstWhere('id', (int) session('fiscal_year_id'));
 if (!isset($can) || !is_array($can)) {
-    $permissions = ['company'=>'company.view','customers'=>'customer.view','orders'=>'order.view','deliveries'=>'delivery_request.view','personnel'=>'personnel.view','users'=>'user.view','roles'=>'role.view','fiscal_years'=>'fiscal_year.view','costing'=>'costing.report.view','backups'=>'backup.view','goods'=>'goods.view','notifications'=>'notification.view','supply'=>'supply_request.view','purchasing'=>'purchase.view','inventory'=>'inventory.view','production_execution'=>'production.operation.view','suppliers'=>'supplier.view','locations'=>'location.view','production_routes'=>'production_route.view','productions'=>'production.view','production_outputs'=>'production.output.view','handovers'=>'supply_request.handover.view','receipts'=>'purchase.receipt.create'];
+    $permissions = [
+        'company' => 'company.view', 'customers' => 'customer.view', 'orders' => 'order.view',
+        'deliveries' => 'delivery_request.view', 'personnel' => 'personnel.view', 'users' => 'user.view',
+        'roles' => 'role.view', 'fiscal_years' => 'fiscal_year.view', 'costing' => 'costing.report.view',
+        'backups' => 'backup.view', 'goods' => 'goods.view', 'goods_categories' => 'goods_category.view',
+        'units' => 'unit.view', 'notifications' => 'notification.view', 'supply' => 'supply_request.view',
+        'purchasing' => 'purchase.view', 'inventory' => 'inventory.view',
+        'production_execution' => 'production.operation.view', 'production_labor' => 'production.labor.create',
+        'suppliers' => 'supplier.view', 'locations' => 'location.view', 'production_routes' => 'production_route.view',
+        'production_sections' => 'production_section.view', 'production_stages' => 'production_stage.view',
+        'production_operations' => 'production_operation.view', 'productions' => 'production.view',
+        'production_outputs' => 'production.output.view', 'handovers' => 'supply_request.handover.view',
+        'receipts' => 'purchase.receipt.create', 'imports' => 'import.excel',
+    ];
     $can = [];
-    foreach ($permissions as $key => $permission) { $can[$key] = (bool) ($company && $user->hasCompanyPermission((int) $company->id, $permission)); }
+    foreach ($permissions as $key => $permission) {
+        $can[$key] = (bool) ($company && $user->hasCompanyPermission((int) $company->id, $permission));
+    }
 }
-    $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifications()->count() : 0;
+$unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifications()->count() : 0;
 @endphp
 <div class="app">
 <aside class="sidebar">
 <div class="brand"><div class="logo">ح</div><div><b>حسابداری صنعتی</b><span>مدیریت تولید و بهای تمام‌شده</span></div></div>
 <nav class="nav">
-<div class="nav-title">نمای کلی</div><a class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">⌂ داشبورد</a>
+<div class="nav-title">نمای کلی</div>
+<a class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">⌂ داشبورد</a>
 @if($can['notifications'])<a class="{{ request()->routeIs('notifications.*') ? 'active' : '' }}" href="{{ route('notifications.index') }}">♢ اعلان‌ها</a>@endif
+@if($can['customers'] || $can['orders'] || $can['deliveries'])
 <div class="nav-title">سفارش و فروش</div>
 @if($can['customers'])<a class="{{ request()->routeIs('sales.customers.*') ? 'active' : '' }}" href="{{ route('sales.customers.index') }}">♙ مشتریان</a>@endif
 @if($can['orders'])<a class="{{ request()->routeIs('sales.orders.*') ? 'active' : '' }}" href="{{ route('sales.orders.index') }}">▤ سفارش‌های فروش</a>@endif
 @if($can['deliveries'])<a class="{{ request()->routeIs('sales.deliveries.*') ? 'active' : '' }}" href="{{ route('sales.deliveries.index') }}">⇢ تحویل و ارسال</a>@endif
+@endif
+@if($can['supply'] || $can['purchasing'] || $can['receipts'] || $can['handovers'])
 <div class="nav-title">تأمین و خرید</div>
-<a class="{{ request()->routeIs('workflows.supply') ? 'active' : '' }}" href="{{ route('workflows.supply') }}">◈ درخواست مواد اولیه از انبار</a>
-<a class="{{ request()->routeIs('workflows.purchasing') ? 'active' : '' }}" href="{{ route('workflows.purchasing') }}">▤ خریدها</a>
-<a class="{{ request()->routeIs('workflows.receipts') ? 'active' : '' }}" href="{{ route('workflows.receipts') }}">⇣ رسیدهای خرید</a>
-<a class="{{ request()->routeIs('workflows.handovers') ? 'active' : '' }}" href="{{ route('workflows.handovers') }}">⇢ تحویل مواد</a>
+@if($can['supply'])<a class="{{ request()->routeIs('workflows.supply*') ? 'active' : '' }}" href="{{ route('workflows.supply') }}">◈ درخواست مواد اولیه از انبار</a>@endif
+@if($can['purchasing'])<a class="{{ request()->routeIs('workflows.purchasing*') ? 'active' : '' }}" href="{{ route('workflows.purchasing') }}">▤ خریدها</a>@endif
+@if($can['receipts'])<a class="{{ request()->routeIs('workflows.receipts*') ? 'active' : '' }}" href="{{ route('workflows.receipts') }}">⇣ رسیدهای خرید</a>@endif
+@if($can['handovers'])<a class="{{ request()->routeIs('workflows.handovers*') ? 'active' : '' }}" href="{{ route('workflows.handovers') }}">⇢ تحویل مواد</a>@endif
+@endif
+@if($can['inventory'] || $can['locations'])
 <div class="nav-title">انبار</div>
-<a class="{{ request()->routeIs('inventory.*') ? 'active' : '' }}" href="{{ route('inventory.index') }}">▦ موجودی انبار</a>
-<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'locations' ? 'active' : '' }}" href="{{ route('master.index', 'locations') }}">▣ انبارها و محل‌ها</a>
+@if($can['inventory'])<a class="{{ request()->routeIs('inventory.*') ? 'active' : '' }}" href="{{ route('inventory.index') }}">▦ موجودی انبار</a>@endif
+@if($can['locations'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'locations' ? 'active' : '' }}" href="{{ route('master.index', 'locations') }}">▣ انبارها و محل‌ها</a>@endif
+@endif
+@if($can['productions'] || $can['production_execution'] || $can['production_outputs'])
 <div class="nav-title">تولید</div>
-<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'productions' ? 'active' : '' }}" href="{{ route('master.index', 'productions') }}">⚙ دستورهای تولید</a>
-<a class="{{ request()->routeIs('production.execution.*') ? 'active' : '' }}" href="{{ route('production.execution.index') }}">⚒ عملیات تولید</a>
-<a class="{{ request()->routeIs('production.outputs.*') ? 'active' : '' }}" href="{{ route('production.outputs.index') }}">⇡ خروجی تولید</a>
-<div class="nav-title">اطلاعات پایه</div>
-<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'goods' ? 'active' : '' }}" href="{{ route('master.index', 'goods') }}">▦ کالاها و کد کالا</a>
-<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'suppliers' ? 'active' : '' }}" href="{{ route('master.index', 'suppliers') }}">♙ تأمین‌کنندگان</a>
-<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-routes' ? 'active' : '' }}" href="{{ route('master.index', 'production-routes') }}">⇢ مسیرهای تولید</a>
-<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-stages' ? 'active' : '' }}" href="{{ route('master.index', 'production-stages') }}">▤ مراحل تولید</a>
+@if($can['productions'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'productions' ? 'active' : '' }}" href="{{ route('master.index', 'productions') }}">⚙ دستورهای تولید</a>@endif
+@if($can['production_execution'])<a class="{{ request()->routeIs('production.execution.*') ? 'active' : '' }}" href="{{ route('production.execution.index') }}">⚒ عملیات تولید</a>@endif
+@if($can['production_outputs'])<a class="{{ request()->routeIs('production.outputs.*') ? 'active' : '' }}" href="{{ route('production.outputs.index') }}">⇡ خروجی تولید</a>@endif
+@endif
+@if($can['goods'] || $can['suppliers'] || $can['production_routes'] || $can['production_sections'] || $can['production_stages'] || $can['production_operations'] || $can['goods_categories'] || $can['units'])
+<div class="nav-title">تعاریف پایه</div>
+@if($can['goods'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'goods' ? 'active' : '' }}" href="{{ route('master.index', 'goods') }}">▦ کالاها و کد کالا</a>@endif
+@if($can['suppliers'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'suppliers' ? 'active' : '' }}" href="{{ route('master.index', 'suppliers') }}">♙ تأمین‌کنندگان</a>@endif
+@if($can['production_routes'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-routes' ? 'active' : '' }}" href="{{ route('master.index', 'production-routes') }}">⇢ مسیرهای تولید</a>@endif
+@if($can['production_sections'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-sections' ? 'active' : '' }}" href="{{ route('master.index', 'production-sections') }}">▣ قسمت‌های تولید</a>@endif
+@if($can['production_stages'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-stages' ? 'active' : '' }}" href="{{ route('master.index', 'production-stages') }}">▤ مراحل تولید</a>@endif
+@if($can['production_operations'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-operations' ? 'active' : '' }}" href="{{ route('master.index', 'production-operations') }}">⚒ تعاریف عملیات تولید</a>@endif
+@endif
+@if($can['company'] || $can['fiscal_years'] || $can['personnel'] || $can['users'] || $can['roles'])
 <div class="nav-title">مدیریت</div>
 @if($can['company'])<a class="{{ request()->routeIs('company.*') ? 'active' : '' }}" href="{{ route('company.edit') }}">▤ اطلاعات مجموعه</a>@endif
 @if($can['fiscal_years'])<a class="{{ request()->routeIs('fiscal-years.*') ? 'active' : '' }}" href="{{ route('fiscal-years.index') }}">▣ سال‌های مالی</a>@endif
 @if($can['personnel'])<a class="{{ request()->routeIs('personnel.*') ? 'active' : '' }}" href="{{ route('personnel.index') }}">♟ پرسنل</a>@endif
 @if($can['users'])<a class="{{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">♙ کاربران</a>@endif
 @if($can['roles'])<a class="{{ request()->routeIs('roles.*') ? 'active' : '' }}" href="{{ route('roles.index') }}">⚿ نقش‌ها و دسترسی‌ها</a>@endif
+@endif
+@if($can['costing'] || $can['backups'])
 <div class="nav-title">گزارشات</div>
 @if($can['costing'])<a class="{{ request()->routeIs('reports.costing*') ? 'active' : '' }}" href="{{ route('reports.costing') }}">◌ گزارش بهای تمام‌شده</a>@endif
 @if($can['backups'])<a class="{{ request()->routeIs('backups.*') ? 'active' : '' }}" href="{{ route('backups.index') }}">▣ پشتیبان‌گیری</a>@endif
+@endif
 </nav>
 </aside>
 <main class="main">
@@ -105,7 +137,9 @@ if (!isset($can) || !is_array($can)) {
 <nav class="mobile-nav" aria-label="ناوبری موبایل">
 <a class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><span>⌂</span>خانه</a>
 @if($can['orders'])<a class="{{ request()->routeIs('sales.orders.*') ? 'active' : '' }}" href="{{ route('sales.orders.index') }}"><span>▤</span>فروش</a>@endif
-@if($can['deliveries'])<a class="{{ request()->routeIs('sales.deliveries.*') ? 'active' : '' }}" href="{{ route('sales.deliveries.index') }}"><span>⇢</span>تحویل</a>@endif
+@if($can['supply'])<a class="{{ request()->routeIs('workflows.supply*') ? 'active' : '' }}" href="{{ route('workflows.supply') }}"><span>◈</span>تأمین</a>@endif
+@if($can['inventory'])<a class="{{ request()->routeIs('inventory.*') ? 'active' : '' }}" href="{{ route('inventory.index') }}"><span>▦</span>انبار</a>@endif
+@if($can['production_execution'])<a class="{{ request()->routeIs('production.execution.*') ? 'active' : '' }}" href="{{ route('production.execution.index') }}"><span>⚒</span>تولید</a>@endif
 @if($can['costing'])<a class="{{ request()->routeIs('reports.costing*') ? 'active' : '' }}" href="{{ route('reports.costing') }}"><span>◌</span>گزارشات</a>@endif
 @if($can['users'])<a class="{{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}"><span>♙</span>کاربران</a>@endif
 </nav>
