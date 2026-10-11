@@ -45,9 +45,9 @@
         <p style="margin:7px 0 0;color:#ffcf8b">توجه: در حال حاضر هر درخواست فقط یک نوع کالا دارد. اگر چند ماده مختلف لازم دارید، برای هرکدام یک درخواست جدا ثبت کنید.</p>
     </div>
 
-    <form method="POST" action="{{ route('workflows.supply.store') }}">
+    <form method="POST" action="{{ route('workflows.supply.store') }}" style="margin-top:20px">
         @csrf
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:18px 14px">
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">
                 سال مالی
                 <small style="color:#71879d;font-size:10px;font-weight:400">سال مالی فعال مجموعه را انتخاب کنید.</small>
