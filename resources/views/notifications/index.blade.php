@@ -3,30 +3,130 @@
 @section('title', 'مرکز اعلان‌ها')
 
 @section('content')
+@php
+    $eventLabels = [
+        'order.production_required' => [
+            'title' => 'این سفارش به بررسی و برنامه‌ریزی تولید نیاز دارد',
+            'message' => 'موجودی انبار برای تأمین کامل سفارش کافی نیست. سرپرست تولید باید امکان تولید و زمان‌بندی آن را بررسی کند.',
+        ],
+        'order.ready_for_delivery' => [
+            'title' => 'سفارش آماده تحویل است',
+            'message' => 'موجودی لازم برای سفارش فراهم است. واحد فروش می‌تواند مراحل درخواست تحویل را پیگیری کند.',
+        ],
+        'order.production_due_set' => [
+            'title' => 'زمان آماده‌شدن سفارش در تولید مشخص شد',
+            'message' => 'سرپرست تولید زمان قابل تحویل را ثبت کرده است. واحد فروش باید زمان را بررسی و در صورت نیاز با مشتری هماهنگ کند.',
+        ],
+        'delivery.requested' => [
+            'title' => 'برای سفارش درخواست تحویل ثبت شد',
+            'message' => 'درخواست تحویل ثبت شده و برای بررسی و انجام مراحل تحویل در اختیار واحد انبار قرار گرفته است.',
+        ],
+        'supply.shortage' => [
+            'title' => 'برای تأمین کالا کسری موجودی وجود دارد',
+            'message' => 'موجودی انبار برای تأمین کامل این درخواست کافی نیست. واحد تدارکات باید مقدار کسری را پیگیری کند.',
+        ],
+        'inventory_reorder_point_reached' => [
+            'title' => 'موجودی کالا به نقطه سفارش رسیده است',
+            'message' => 'موجودی این کالا به حد سفارش یا کمتر از آن رسیده است. واحد تدارکات باید نیاز به تأمین مجدد را بررسی کند.',
+        ],
+        'purchase.received_financial_value' => [
+            'title' => 'اطلاعات مالی خرید برای پیگیری ثبت شد',
+            'message' => 'اطلاعات مبلغ خرید و هزینه‌های مستقیم ثبت شده است. مسئول مالی باید اطلاعات را بررسی و پیگیری کند.',
+        ],
+    ];
+
+    $fieldLabels = [
+        'order_id' => 'شماره سفارش',
+        'delivery_request_id' => 'شماره درخواست تحویل',
+        'supply_request_id' => 'شماره درخواست تأمین',
+        'purchase_id' => 'شماره خرید',
+        'receipt_id' => 'شماره رسید خرید',
+        'production_due_at' => 'زمان قابل تحویل اعلام‌شده توسط تولید',
+        'purchase_total_amount' => 'مبلغ خرید',
+        'direct_cost_total' => 'مجموع هزینه‌های مستقیم',
+        'location_id' => 'انبار',
+        'goods_id' => 'کالا',
+        'current_quantity' => 'موجودی فعلی',
+        'reorder_point' => 'نقطه سفارش',
+    ];
+@endphp
+
 <div class="page-heading">
     <div>
         <h1>مرکز اعلان‌ها</h1>
-        <p>مشاهده رویدادها و پیگیری اعلان‌های ثبت‌شده در مجموعه</p>
+        <p>پیام‌های مربوط به کارها و سفارش‌هایی که نیاز به پیگیری دارند</p>
     </div>
 </div>
 
 <div class="panel">
     <div style="display:flex;flex-direction:column;gap:10px">
         @forelse($rows as $n)
-            @php $data = json_decode($n->data, true) ?: []; @endphp
+            @php
+                $data = json_decode($n->data, true) ?: [];
+                $event = $data['event'] ?? $n->type;
+                $presentation = $eventLabels[$event] ?? [
+                    'title' => 'اعلان جدید',
+                    'message' => 'رویدادی در مجموعه ثبت شده است. برای اطلاع از جزئیات، از مسئول مربوط به این فرآیند راهنمایی بگیرید.',
+                ];
+                $orderId = isset($data['order_id']) && is_numeric($data['order_id']) ? (int) $data['order_id'] : null;
+                $canViewOrder = $orderId && auth()->user()->hasCompanyPermission((int) session('company_id'), 'order.view');
+                $visibleFields = [
+                    'order.production_required' => ['order_id'],
+                    'order.ready_for_delivery' => ['order_id'],
+                    'order.production_due_set' => ['order_id', 'production_due_at'],
+                    'delivery.requested' => ['order_id', 'delivery_request_id'],
+                    'supply.shortage' => ['supply_request_id'],
+                    'inventory_reorder_point_reached' => ['goods_id', 'location_id', 'current_quantity', 'reorder_point'],
+                    'purchase.received_financial_value' => ['purchase_id', 'receipt_id', 'purchase_total_amount', 'direct_cost_total'],
+                ];
+                $visibleKeys = $visibleFields[$event] ?? [];
+                $extraData = array_intersect_key($data, array_flip($visibleKeys));
+                $companyId = (int) session('company_id');
+                $goodsName = null;
+                $locationName = null;
+
+                if ($event === 'inventory_reorder_point_reached' && $companyId > 0) {
+                    if (!empty($data['goods_id'])) {
+                        $goodsName = \Illuminate\Support\Facades\DB::table('goods')
+                            ->where('company_id', $companyId)
+                            ->where('id', (int) $data['goods_id'])
+                            ->value('name');
+                    }
+                    if (!empty($data['location_id'])) {
+                        $locationName = \Illuminate\Support\Facades\DB::table('locations')
+                            ->where('company_id', $companyId)
+                            ->where('id', (int) $data['location_id'])
+                            ->value('name');
+                    }
+                }
+            @endphp
             <article style="padding:15px;border:1px solid {{ $n->read_at ? '#1b354b' : '#246451' }};border-radius:12px;background:{{ $n->read_at ? '#0d2235' : '#0c282b' }}">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
-                    <strong style="font-size:12px;line-height:1.8;{{ $n->read_at ? 'color:#c2d1de' : 'color:#8ce8ce' }}">
-                        {{ $data['event'] ?? $n->type }}
+                    <strong style="font-size:13px;line-height:1.8;{{ $n->read_at ? 'color:#c2d1de' : 'color:#8ce8ce' }}">
+                        {{ $presentation['title'] }}
                     </strong>
-                    <small style="font-size:10px;color:#8198ac">{{ $n->created_at }}</small>
+                    <small style="font-size:10px;color:#8198ac">{{ \Illuminate\Support\Carbon::parse($n->created_at)->format('Y/m/d H:i') }}</small>
                 </div>
 
-                @if(count(array_diff(array_keys($data), ['event', 'notification_batch_id'])) > 0)
+                <p style="margin:9px 0 0;color:#c2d1de;font-size:11px;line-height:2">{{ $presentation['message'] }}</p>
+
+                @if($orderId)
+                    <div style="margin-top:10px;color:#9eb2c4;font-size:11px">
+                        شماره سفارش: <strong style="color:#e9f3fb">#{{ $orderId }}</strong>
+                        @if($canViewOrder)
+                            <a href="{{ route('sales.orders.show', $orderId) }}" style="margin-right:10px;color:#6ee7d0;text-decoration:none">مشاهده سفارش ←</a>
+                        @endif
+                    </div>
+                @endif
+
+                @if(count($extraData) > 0)
                     <div style="display:flex;flex-direction:column;gap:5px;margin-top:10px;color:#9eb2c4;font-size:11px;line-height:1.9;overflow-wrap:anywhere">
-                        @foreach($data as $k => $v)
-                            @if(!in_array($k, ['event', 'notification_batch_id'], true))
-                                <div><span style="color:#71879d">{{ $k }}:</span> {{ is_scalar($v) ? $v : json_encode($v, JSON_UNESCAPED_UNICODE) }}</div>
+                        @foreach($extraData as $k => $v)
+                            @if($k !== 'order_id')
+                                <div>
+                                    <span style="color:#71879d">{{ $fieldLabels[$k] ?? 'جزئیات' }}:</span>
+                                    <strong style="color:#e9f3fb">{{ $k === 'goods_id' ? ($goodsName ?: 'کالای ثبت‌شده') : ($k === 'location_id' ? ($locationName ?: 'انبار ثبت‌شده') : ($k === 'production_due_at' && is_scalar($v) && $v !== '' ? \Illuminate\Support\Carbon::parse($v)->format('Y/m/d H:i') : (is_numeric($v) && in_array($k, ['purchase_total_amount', 'direct_cost_total'], true) ? number_format((float) $v, 0) . ' ریال' : (is_scalar($v) ? $v : '')))) }}</strong>
+                                </div>
                             @endif
                         @endforeach
                     </div>
@@ -39,7 +139,7 @@
                             @foreach($n->readers as $reader)
                                 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px">
                                     <span style="color:#d2e5ee">{{ $reader->username ?: $reader->user_name }}</span>
-                                    <small style="color:#8198ac">{{ $reader->read_at }}</small>
+                                    <small style="color:#8198ac">{{ \Illuminate\Support\Carbon::parse($reader->read_at)->format('Y/m/d H:i') }}</small>
                                 </div>
                             @endforeach
                         </div>
@@ -51,8 +151,10 @@
                 @if(!$n->read_at)
                     <form method="POST" action="{{ route('notifications.read', $n->id) }}" style="margin-top:12px">
                         @csrf
-                        <button type="submit" class="btn">علامت‌گذاری به‌عنوان خوانده‌شده</button>
+                        <button type="submit" class="btn">متوجه شدم؛ علامت‌گذاری به‌عنوان خوانده‌شده</button>
                     </form>
+                @else
+                    <div style="margin-top:10px;color:#8198ac;font-size:10px">این اعلان را خوانده‌اید.</div>
                 @endif
             </article>
         @empty
