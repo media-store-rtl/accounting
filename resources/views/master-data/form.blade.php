@@ -62,7 +62,7 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 <li><b>نام:</b> نامی روشن برای مسیر انتخاب کنید؛ مانند «مسیر تولید محصول الف».</li>
 <li><b>کالا:</b> مشخص کنید این مسیر برای ساخت کدام کالا است.</li>
 <li><b>توضیحات:</b> نکته‌های خاص یا کاربرد مسیر را در صورت نیاز بنویسید.</li>
-<li><b>وضعیت:</b> وضعیت مسیر را مطابق گزینه‌های فرم مشخص کنید؛ برای استفاده، مسیر و مراحل موردنیاز باید فعال باشند.</li>
+<li><b>وضعیت:</b> از فهرست زیر، «فعال» را انتخاب کنید تا مسیر برای استفاده در دستور تولید قابل انتخاب باشد. نیازی به تایپ کلمه انگلیسی نیست. مراحل و عملیات موردنیاز را نیز جداگانه فعال کنید.</li>
 </ul>
 <p>پس از ثبت مسیر، در بخش «مراحل تولید» مرحله‌ها و ترتیب اجرای آن‌ها را تعریف کنید؛ سپس در بخش «عملیات تولید» عملیات هر مرحله را مشخص کنید. این صفحه برای ثبت نتیجه اجرای واقعی عملیات نیست.</p>
 </div>
@@ -93,6 +93,8 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 <select name="{{$f}}" class="form-select" required>@foreach(($options['locations']??[]) as $o)<option value="{{$o->id}}" @selected((string)$value===(string)$o->id)>{{$o->name}}</option>@endforeach</select>
 @elseif($f==='supervisor_personnel_id')
 <select name="{{$f}}" class="form-select"><option value="">بدون سرپرست</option>@foreach(($options['personnel']??[]) as $o)<option value="{{$o->id}}" @selected((string)$value===(string)$o->id)>{{$o->name}}</option>@endforeach</select>
+@elseif($f==='status')
+<select name="{{$f}}" class="form-select" required><option value="active" @selected((string)$value==='active')>فعال</option><option value="inactive" @selected((string)$value==='inactive')>غیرفعال</option></select>
 @elseif(in_array($f,['purchasable','producible','sellable']))
 <div class="form-check form-switch pt-2"><input type="checkbox" name="{{$f}}" value="1" class="form-check-input" @checked((bool)$value)><label class="form-check-label">فعال</label></div>
 @elseif(in_array($f,['sequence','standard_duration_minutes','setup_duration_minutes']))
