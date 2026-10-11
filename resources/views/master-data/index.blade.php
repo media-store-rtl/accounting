@@ -1,11 +1,11 @@
-@extends(in_array(($module ?? null), ['goods', 'locations', 'productions', 'suppliers', 'production-routes', 'production-stages', 'production-operations'], true) ? 'layouts.dashboard-shell' : 'layouts.app')
+@extends(in_array(($module ?? null), ['goods', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true) ? 'layouts.dashboard-shell' : 'layouts.app')
 
-@if(in_array(($module ?? null), ['goods', 'locations', 'productions', 'suppliers', 'production-routes', 'production-stages', 'production-operations'], true))
+@if(in_array(($module ?? null), ['goods', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true))
     @section('title', $definition['title'] ?? 'کالاها و کد کالا')
 @endif
 
 @section('content')
-@if(in_array(($module ?? null), ['goods', 'locations', 'productions', 'suppliers', 'production-routes', 'production-stages', 'production-operations'], true))
+@if(in_array(($module ?? null), ['goods', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true))
 <style>
 .master-search{display:flex;gap:8px;margin-bottom:16px}
 .master-search input{flex:1;min-width:0;background:#081522;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px 12px;font:inherit;font-size:11px}
@@ -40,6 +40,19 @@
     <div class="master-errors">@foreach ($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>
 @endif
 
+@if ($module === 'production-sections')
+    <div class="master-guide" role="note">
+        <strong>راهنمای قسمت‌های تولید</strong>
+        <div>«قسمت تولید» محل یا واحد سازمانی‌ای است که مسئول اجرای بخشی از فرایند ساخت است؛ برای نمونه، کارگاه برش، سالن مونتاژ یا واحد بسته‌بندی. در این صفحه قسمت تولید را به یک محل از فهرست انبارها و محل‌ها وصل می‌کنید.</div>
+        <ul>
+            <li><strong>محل / انبار:</strong> محل فیزیکی یا سازمانی مربوط به این قسمت را انتخاب کنید. اگر گزینه مناسبی وجود ندارد، ابتدا آن محل را در بخش «انبارها و محل‌ها» تعریف کنید.</li>
+            <li><strong>سرپرست:</strong> در صورت مشخص بودن مسئول، پرسنل سرپرست این قسمت را انتخاب کنید؛ اگر هنوز تعیین نشده، می‌توانید خالی بگذارید.</li>
+            <li>پس از ثبت قسمت تولید، در بخش «مراحل تولید» آن را به مرحله مناسب وصل کنید و مسیر و ترتیب مرحله را مشخص کنید.</li>
+        </ul>
+        <div class="warning"><strong>نکته:</strong> ایجاد قسمت تولید به‌تنهایی مسیر یا مرحله تولید نمی‌سازد و تولید را شروع نمی‌کند. برای شروع دستور تولید، باید مسیر و دست‌کم یک مرحله فعال به همان مسیر متصل باشد.</div>
+    </div>
+@endif
+
 @if ($module === 'productions')
     <div class="master-guide" role="note">
         <strong>راهنمای دستورهای تولید</strong>
@@ -66,7 +79,7 @@
             @if ($module === 'productions')
                 <thead><tr><th>شماره دستور</th><th>کالا</th><th>مسیر تولید</th><th>سال مالی</th><th>مقدار برنامه‌ریزی‌شده</th><th>شروع برنامه‌ریزی‌شده</th><th>پایان برنامه‌ریزی‌شده</th><th>یادداشت</th><th>وضعیت</th><th>عملیات</th></tr></thead>
             @else
-                <thead><tr>@foreach ($definition['fields'] as $field)<th>{{ $field }}</th>@endforeach<th>عملیات</th></tr></thead>
+                <thead><tr>@if ($module === 'production-sections')<th>محل / انبار</th><th>سرپرست</th>@else @foreach ($definition['fields'] as $field)<th>{{ $field }}</th>@endforeach @endif<th>عملیات</th></tr></thead>
             @endif
             <tbody>
                 @forelse ($rows as $row)
@@ -82,9 +95,14 @@
                             <td>{{ $row->notes ?: '—' }}</td>
                             <td>{{ match((string)($row->status ?? '')) { 'draft' => 'پیش‌نویس', 'in_progress' => 'در حال اجرا', 'completed' => 'تکمیل‌شده', 'cancelled' => 'لغوشده', default => ($row->status ?? 'نامشخص') } }}</td>
                         @else
-                            @foreach ($definition['fields'] as $field)
-                                <td>{{ is_bool($row->$field ?? null) ? (($row->$field ?? false) ? 'بله' : 'خیر') : ($row->$field ?? '—') }}</td>
-                            @endforeach
+                            @if ($module === 'production-sections')
+                                <td>{{ $row->location_name ?? $row->location_id ?? '—' }}</td>
+                                <td>{{ $row->supervisor_name ?? $row->supervisor_personnel_id ?? '—' }}</td>
+                            @else
+                                @foreach ($definition['fields'] as $field)
+                                    <td>{{ is_bool($row->$field ?? null) ? (($row->$field ?? false) ? 'بله' : 'خیر') : ($row->$field ?? '—') }}</td>
+                                @endforeach
+                            @endif
                         @endif
                         <td>
                             <a class="btn" href="{{ route('master.edit', [$module, $row->id]) }}">ویرایش</a>

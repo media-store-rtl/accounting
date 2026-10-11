@@ -1,12 +1,12 @@
-@extends(in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-stages', 'production-operations'], true) ? 'layouts.dashboard-shell' : 'layouts.app')
-@if(in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-stages', 'production-operations'], true))
+@extends(in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true) ? 'layouts.dashboard-shell' : 'layouts.app')
+@if(in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true))
 @section('title', (($editing ?? false) ? 'ویرایش ' : 'ثبت ') . ($definition['title'] ?? 'اطلاعات پایه'))
 @endif
 @section('content')
 @php
 $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbol'=>'نماد','unit_type'=>'نوع واحد','national_id'=>'شناسه ملی','phone'=>'تلفن','email'=>'ایمیل','address'=>'آدرس','category_id'=>'دسته‌بندی','purchasable'=>'قابل خرید','producible'=>'قابل تولید','sellable'=>'قابل فروش','location_id'=>'محل / انبار','supervisor_personnel_id'=>'سرپرست','type'=>'نوع','production_route_id'=>'مسیر تولید','production_section_id'=>'قسمت تولید','production_stage_id'=>'مرحله تولید','sequence'=>'ترتیب','standard_duration_minutes'=>'مدت استاندارد (دقیقه)','setup_duration_minutes'=>'زمان آماده‌سازی (دقیقه)','status'=>'وضعیت','number'=>'شماره','goods_id'=>'کالا','fiscal_year_id'=>'سال مالی','planned_quantity'=>'مقدار برنامه‌ریزی‌شده','planned_start_at'=>'شروع برنامه‌ریزی‌شده','planned_end_at'=>'پایان برنامه‌ریزی‌شده','description'=>'توضیحات','notes'=>'یادداشت'];
 @endphp
-@if(in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-stages', 'production-operations'], true))
+@if(in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true))
 <style>
 .master-form-page{max-width:1100px;margin:0 auto}
 .master-form-page .master-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
@@ -33,8 +33,8 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 @media(max-width:620px){.master-form-page .row{grid-template-columns:1fr;gap:14px}.master-form-page .master-heading{align-items:flex-start;flex-direction:column}.master-form-page .master-card{padding:15px}.master-form-page h1{font-size:21px}}
 </style>
 @endif
-<div class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-stages', 'production-operations'], true) ? 'master-form-page' : 'container py-3' }}" dir="rtl">
-<div class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-stages', 'production-operations'], true) ? 'master-heading' : 'd-flex justify-content-between align-items-center mb-4' }}"><div><h1 class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-stages', 'production-operations'], true) ? '' : 'h3 mb-1' }}">{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-stages', 'production-operations'], true) ? ((($editing ?? false) ? 'ویرایش اطلاعات ' : 'ثبت اطلاعات ') . ($definition['title'] ?? '')) : $definition['title'] }}</h1><div class="text-muted small">{{ ($editing ?? false) ? 'ویرایش اطلاعات ثبت‌شده' : 'ثبت اطلاعات جدید' }}</div></div><a href="{{route('master.index',$module)}}" class="btn btn-outline-secondary">بازگشت به فهرست {{ $definition['title'] }}</a></div>
+<div class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true) ? 'master-form-page' : 'container py-3' }}" dir="rtl">
+<div class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true) ? 'master-heading' : 'd-flex justify-content-between align-items-center mb-4' }}"><div><h1 class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true) ? '' : 'h3 mb-1' }}">{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true) ? ((($editing ?? false) ? 'ویرایش اطلاعات ' : 'ثبت اطلاعات ') . ($definition['title'] ?? '')) : $definition['title'] }}</h1><div class="text-muted small">{{ ($editing ?? false) ? 'ویرایش اطلاعات ثبت‌شده' : 'ثبت اطلاعات جدید' }}</div></div><a href="{{route('master.index',$module)}}" class="btn btn-outline-secondary">بازگشت به فهرست {{ $definition['title'] }}</a></div>
 @if($errors->any())<div class="alert alert-danger">@foreach($errors->all() as $e)<div>{{$e}}</div>@endforeach</div>@endif
 @if(($module ?? null) === 'productions')
 <div class="master-card" style="margin-bottom:18px;line-height:2">
@@ -50,6 +50,19 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 <li><b>پایان برنامه‌ریزی‌شده:</b> زمان پیش‌بینی‌شده پایان کار؛ با توجه به مقدار و مراحل تولید تعیین شود.</li>
 </ul>
 <p>زمان‌های بالا برنامه‌ریزی هستند، نه زمان واقعی اجرا. ثبت دستور به‌تنهایی تولید را شروع نمی‌کند.</p>
+</div>
+@endif
+
+@if(($module ?? null) === 'production-sections')
+<div class="master-card" style="margin-bottom:18px;line-height:2">
+<h2 style="font-size:15px;margin:0 0 8px">راهنمای ثبت قسمت تولید</h2>
+<p>قسمت تولید، محل یا واحدی است که یک بخش از فرایند ساخت در آن انجام می‌شود؛ مانند کارگاه برش، سالن مونتاژ یا واحد بسته‌بندی. بعداً می‌توانید این قسمت را به مرحله مرتبط در مسیر تولید وصل کنید.</p>
+<ul>
+<li><b>محل / انبار:</b> محل فیزیکی یا سازمانی مربوط به این قسمت را انتخاب کنید. اگر فهرست محل‌ها خالی است، ابتدا از بخش «انبارها و محل‌ها» محل مناسب را تعریف کنید.</li>
+<li><b>سرپرست:</b> در صورت مشخص بودن مسئول قسمت، پرسنل سرپرست را انتخاب کنید. اگر هنوز تعیین نشده، می‌توانید این مورد را خالی بگذارید.</li>
+</ul>
+<p><b>ترتیب پیشنهادی:</b> ابتدا محل را تعریف کنید؛ سپس قسمت تولید را ثبت کنید؛ بعد در «مراحل تولید» آن را به مرحله مناسب وصل کنید و مرحله را به مسیر مربوط اختصاص دهید.</p>
+<p style="color:#ffd7a1"><b>توجه:</b> ثبت قسمت تولید به‌تنهایی مرحله فعال ایجاد نمی‌کند. برای شروع دستور تولید، مسیر انتخاب‌شده باید دست‌کم یک مرحله فعال داشته باشد.</p>
 </div>
 @endif
 
@@ -85,7 +98,7 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 </div>
 @endif
 
-<form method="post" action="{{ ($editing ?? false) ? route('master.update',[$module,$row->id]) : route('master.store',$module) }}" class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-stages', 'production-operations'], true) ? 'master-card' : 'card shadow-sm border-0 p-4' }}">
+<form method="post" action="{{ ($editing ?? false) ? route('master.update',[$module,$row->id]) : route('master.store',$module) }}" class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true) ? 'master-card' : 'card shadow-sm border-0 p-4' }}">
 @csrf @if($editing ?? false) @method('PUT') @endif
 <div class="row g-3">
 @foreach($definition['fields'] as $f)
