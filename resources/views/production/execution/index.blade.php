@@ -4,6 +4,15 @@
 
 @section('content')
 <div class="page-heading"><div><h1>اجرای عملیات تولید</h1><p>پیگیری مراحل اجرا، خروجی عملیات و بررسی سرپرست</p></div><a class="btn primary" href="{{ route('production.execution.create') }}">ثبت عملیات</a></div>
+<div class="panel" style="margin-bottom:16px;line-height:2">
+<h2 style="font-size:14px;margin:0 0 8px">راهنمای اجرای عملیات تولید</h2>
+<p style="margin:0 0 8px">این صفحه برای پیگیری عملیات ایجادشده از دستورهای تولیدِ شروع‌شده است؛ تعریف مسیر، مرحله و عملیات پایه در بخش «تولید» انجام می‌شود و ردیف‌های اجرا هنگام شروع دستور تولید ساخته می‌شوند.</p>
+<ul style="margin:0;padding-right:22px">
+<li>اگر فهرست خالی است، ابتدا دستور تولید را شروع کنید و مطمئن شوید مسیر آن مرحله فعال و در هر مرحله عملیات فعال دارد.</li>
+<li>برای ثبت مقدار ورودی، خروجی، ضایعات و زمان پایان، از «ثبت عملیات» استفاده کنید و فرم را ارسال کنید تا برای بررسی سرپرست قرار گیرد.</li>
+<li>ردیف «در انتظار بررسی» با اقدام سرپرست تأیید یا رد می‌شود؛ ردیف‌های تکمیل‌شده برای پیگیری سابقه باقی می‌مانند.</li>
+</ul>
+</div>
 @if(session('success'))<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #246451;border-radius:12px;background:#0c282b;color:#8ce8ce;font-size:12px">{{ session('success') }}</div>@endif
 @if($errors->any())<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #714448;border-radius:12px;background:#302126;color:#ffb8a8;font-size:12px">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>تولید</th><th>مرحله</th><th>عملیات</th><th>ورودی</th><th>خروجی</th><th>ضایعات</th><th>وضعیت</th><th>اقدام</th></tr></thead><tbody>
