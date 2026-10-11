@@ -31,13 +31,14 @@
 <div class="notice warn"><strong>سال مالی:</strong> برای این مجموعه سال مالی باز وجود ندارد.</div>
 @endif
 
+@if($can['inventory'] || $can['orders'] || $can['supply'] || $can['productions'])
 <div class="grid">
-<div class="card"><small>موجودی تعدادی انبار</small><b>{{ number_format($stats['inventory_quantity'], 2, '.', ',') }}</b><span>جمع موجودی ثبت‌شده</span></div>
-<div class="card"><small>سفارش‌های باز</small><b>{{ number_format($stats['open_orders']) }}</b><span>غیر از سفارش‌های تکمیل/لغو‌شده</span></div>
-<div class="card"><small>کسری‌های تأمین</small><b>{{ number_format($stats['shortage_requests']) }}</b><span>نیازمند پیگیری تدارکات</span></div>
-<div class="card"><small>تولیدهای جاری</small><b>{{ number_format($stats['active_productions']) }}</b><span>تولیدهای تکمیل‌نشده</span></div>
+@if($can['inventory'])<div class="card"><small>موجودی تعدادی انبار</small><b>{{ number_format($stats['inventory_quantity'], 2, '.', ',') }}</b><span>جمع موجودی ثبت‌شده</span></div>@endif
+@if($can['orders'])<div class="card"><small>سفارش‌های باز</small><b>{{ number_format($stats['open_orders']) }}</b><span>غیر از سفارش‌های تکمیل/لغو‌شده</span></div>@endif
+@if($can['supply'])<div class="card"><small>کسری‌های تأمین</small><b>{{ number_format($stats['shortage_requests']) }}</b><span>نیازمند پیگیری تدارکات</span></div>@endif
+@if($can['productions'])<div class="card"><small>تولیدهای جاری</small><b>{{ number_format($stats['active_productions']) }}</b><span>تولیدهای تکمیل‌نشده</span></div>@endif
 </div>
-
+@endif
 
 @if($can['goods'])
 <div class="panel" style="margin-top:18px">
