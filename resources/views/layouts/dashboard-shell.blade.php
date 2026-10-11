@@ -80,20 +80,20 @@ $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifica
 @if($can['inventory'])<a class="{{ request()->routeIs('inventory.*') ? 'active' : '' }}" href="{{ route('inventory.index') }}">▦ موجودی انبار</a>@endif
 @if($can['locations'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'locations' ? 'active' : '' }}" href="{{ route('master.index', 'locations') }}">▣ انبارها و محل‌ها</a>@endif
 @endif
-@if($can['productions'] || $can['production_execution'] || $can['production_outputs'])
+@if($can['productions'] || $can['production_execution'] || $can['production_outputs'] || $can['production_routes'] || $can['production_sections'] || $can['production_stages'] || $can['production_operations'])
 <div class="nav-title">تولید</div>
-@if($can['productions'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'productions' ? 'active' : '' }}" href="{{ route('master.index', 'productions') }}">⚙ دستورهای تولید</a>@endif
-@if($can['production_execution'])<a class="{{ request()->routeIs('production.execution.*') ? 'active' : '' }}" href="{{ route('production.execution.index') }}">⚒ عملیات تولید</a>@endif
-@if($can['production_outputs'])<a class="{{ request()->routeIs('production.outputs.*') ? 'active' : '' }}" href="{{ route('production.outputs.index') }}">⇡ خروجی تولید</a>@endif
-@endif
-@if($can['goods'] || $can['suppliers'] || $can['production_routes'] || $can['production_sections'] || $can['production_stages'] || $can['production_operations'] || $can['goods_categories'] || $can['units'])
-<div class="nav-title">تعاریف پایه</div>
-@if($can['goods'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'goods' ? 'active' : '' }}" href="{{ route('master.index', 'goods') }}">▦ کالاها و کد کالا</a>@endif
-@if($can['suppliers'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'suppliers' ? 'active' : '' }}" href="{{ route('master.index', 'suppliers') }}">♙ تأمین‌کنندگان</a>@endif
 @if($can['production_routes'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-routes' ? 'active' : '' }}" href="{{ route('master.index', 'production-routes') }}">⇢ مسیرهای تولید</a>@endif
 @if($can['production_sections'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-sections' ? 'active' : '' }}" href="{{ route('master.index', 'production-sections') }}">▣ قسمت‌های تولید</a>@endif
 @if($can['production_stages'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-stages' ? 'active' : '' }}" href="{{ route('master.index', 'production-stages') }}">▤ مراحل تولید</a>@endif
 @if($can['production_operations'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-operations' ? 'active' : '' }}" href="{{ route('master.index', 'production-operations') }}">⚒ تعاریف عملیات تولید</a>@endif
+@if($can['productions'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'productions' ? 'active' : '' }}" href="{{ route('master.index', 'productions') }}">⚙ دستورهای تولید</a>@endif
+@if($can['production_execution'])<a class="{{ request()->routeIs('production.execution.*') ? 'active' : '' }}" href="{{ route('production.execution.index') }}">⚒ اجرای عملیات تولید</a>@endif
+@if($can['production_outputs'])<a class="{{ request()->routeIs('production.outputs.*') ? 'active' : '' }}" href="{{ route('production.outputs.index') }}">⇡ خروجی تولید</a>@endif
+@endif
+@if($can['goods'] || $can['suppliers'] || $can['goods_categories'] || $can['units'])
+<div class="nav-title">تعاریف پایه</div>
+@if($can['goods'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'goods' ? 'active' : '' }}" href="{{ route('master.index', 'goods') }}">▦ کالاها و کد کالا</a>@endif
+@if($can['suppliers'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'suppliers' ? 'active' : '' }}" href="{{ route('master.index', 'suppliers') }}">♙ تأمین‌کنندگان</a>@endif
 @endif
 @if($can['company'] || $can['fiscal_years'] || $can['personnel'] || $can['users'] || $can['roles'])
 <div class="nav-title">مدیریت</div>
