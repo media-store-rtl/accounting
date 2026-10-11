@@ -6,6 +6,19 @@
 <div class="page-heading"><div><h1>ثبت اجرای عملیات تولید</h1><p>ثبت مقادیر ورودی، خروجی و ضایعات برای عملیات انتخاب‌شده و ارسال جهت تأیید</p></div><a class="btn" href="{{ route('production.execution.index') }}">بازگشت به فهرست</a></div>
 @if(session('success'))<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #246451;border-radius:12px;background:#0c282b;color:#8ce8ce;font-size:12px">{{ session('success') }}</div>@endif
 @if($errors->any())<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #714448;border-radius:12px;background:#302126;color:#ffb8a8;font-size:12px">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
+<div class="panel" style="margin-bottom:18px;line-height:2">
+<h2 style="font-size:15px;margin:0 0 8px">راهنمای ثبت اجرای عملیات تولید</h2>
+<p>در این صفحه نتیجه اجرای یک عملیات از دستور تولید را ثبت می‌کنید. تولید باید شروع شده باشد و عملیات در وضعیت قابل ثبت باشد.</p>
+<ol style="padding-right:22px">
+<li><b>عملیات تولید:</b> عملیات موردنظر را انتخاب کنید؛ فهرست شامل عملیات‌های در انتظار اجرا یا در حال اجراست.</li>
+<li><b>مواد ورودی:</b> کالای مصرف‌شده و مقدار آن را وارد کنید.</li>
+<li><b>محصولات خروجی:</b> کالای حاصل و مقدار تولیدشده را ثبت کنید.</li>
+<li><b>ضایعات:</b> در صورت وجود، کالا، مقدار و علت ضایعات را وارد کنید.</li>
+<li><b>زمان پایان و توضیحات:</b> زمان پایان و توضیحات تکمیلی را در صورت نیاز وارد کنید.</li>
+<li>روی «ثبت برای تأیید» بزنید تا گزارش برای بررسی سرپرست ارسال شود.</li>
+</ol>
+<p>ثبت عملیات به معنی تأیید نهایی نیست. فرم فعلی برای هر بخش یک ردیف ورودی، خروجی و ضایعات دارد.</p>
+</div>
 <form method="POST" action="{{ route('production.execution.store') }}" class="panel">
 @csrf
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px">
