@@ -53,6 +53,21 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 </div>
 @endif
 
+@if(($module ?? null) === 'production-routes')
+<div class="master-card" style="margin-bottom:18px;line-height:2">
+<h2 style="font-size:15px;margin:0 0 8px">راهنمای تعریف مسیر تولید</h2>
+<p>مسیر تولید نقشه کلی ساخت یک کالا است. در این صفحه خود مسیر را تعریف می‌کنید؛ مراحل و عملیات آن در بخش‌های جداگانه ساخته می‌شوند.</p>
+<ul>
+<li><b>کد:</b> شناسه قابل پیگیری مسیر را وارد کنید و از کد تکراری پرهیز کنید.</li>
+<li><b>نام:</b> نامی روشن برای مسیر انتخاب کنید؛ مانند «مسیر تولید محصول الف».</li>
+<li><b>کالا:</b> مشخص کنید این مسیر برای ساخت کدام کالا است.</li>
+<li><b>توضیحات:</b> نکته‌های خاص یا کاربرد مسیر را در صورت نیاز بنویسید.</li>
+<li><b>وضعیت:</b> وضعیت مسیر را مطابق گزینه‌های فرم مشخص کنید؛ برای استفاده، مسیر و مراحل موردنیاز باید فعال باشند.</li>
+</ul>
+<p>پس از ثبت مسیر، در بخش «مراحل تولید» مرحله‌ها و ترتیب اجرای آن‌ها را تعریف کنید؛ سپس در بخش «عملیات تولید» عملیات هر مرحله را مشخص کنید. این صفحه برای ثبت نتیجه اجرای واقعی عملیات نیست.</p>
+</div>
+@endif
+
 <form method="post" action="{{ ($editing ?? false) ? route('master.update',[$module,$row->id]) : route('master.store',$module) }}" class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? 'master-card' : 'card shadow-sm border-0 p-4' }}">
 @csrf @if($editing ?? false) @method('PUT') @endif
 <div class="row g-3">
