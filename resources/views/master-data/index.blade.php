@@ -12,6 +12,10 @@
 .master-search input::placeholder{color:#71879d}
 .master-errors{background:#3b2528;border:1px solid #63343b;color:#ffb8a8;border-radius:12px;padding:12px;margin-bottom:16px;font-size:11px}
 .master-success{background:#12372f;border:1px solid #245447;color:#6ee7d0;border-radius:12px;padding:12px;margin-bottom:16px;font-size:11px}
+.master-guide{background:#102b3d;border:1px solid #2d5872;color:#d9edf8;border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:11px;line-height:1.9}
+.master-guide strong{color:#ffffff}
+.master-guide ul{margin:7px 0 0;padding-right:18px}
+.master-guide .warning{margin-top:9px;color:#ffd7a1}
 .master-table{width:100%;border-collapse:collapse;white-space:nowrap}
 .master-table th,.master-table td{padding:12px 10px;border-bottom:1px solid #1b354b;text-align:right;font-size:11px}
 .master-table th{background:#0d2235;color:#71879d;font-weight:600}
@@ -36,6 +40,21 @@
     <div class="master-errors">@foreach ($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>
 @endif
 
+@if ($module === 'productions')
+    <div class="master-guide" role="note">
+        <strong>راهنمای دستورهای تولید</strong>
+        <div>این صفحه برای ثبت و مدیریت <strong>دستور تولید</strong> است. قبل از استفاده از گزینه «شروع تولید» موارد زیر را بررسی کنید:</div>
+        <ul>
+            <li><strong>شروع تولید به معنی انجام تولید فیزیکی نیست.</strong> با این گزینه فقط دستور از وضعیت پیش‌نویس وارد مرحله اجرا می‌شود.</li>
+            <li>با شروع دستور، مراحل و عملیات فعال مسیر تولید برای ثبت اجرای واقعی ایجاد می‌شوند.</li>
+            <li><strong>هیچ ماده اولیه‌ای در این مرحله از انبار خارج نمی‌شود</strong> و محصول نهایی نیز به انبار تحویل نمی‌شود.</li>
+            <li>پس از شروع، از بخش «ثبت اجرای عملیات تولید» باید مواد مصرف‌شده، محصول خروجی، ضایعات و اطلاعات اجرای واقعی را ثبت کنید.</li>
+            <li>عملیات ثبت‌شده برای بررسی و تأیید سرپرست تولید ارسال می‌شود؛ ثبت عملیات به معنی تأیید نهایی نیست.</li>
+        </ul>
+        <div class="warning"><strong>نکته:</strong> قبل از زدن «شروع تولید»، کالا، مسیر تولید، مقدار برنامه‌ریزی‌شده و مراحل/عملیات فعال را بررسی کنید. این اقدام فقط برای دستورهای «پیش‌نویس» در دسترس است.</div>
+    </div>
+@endif
+
 <div class="panel">
     <form method="get" class="master-search">
         <input name="q" value="{{ request('q') }}" placeholder="جستجو در فهرست...">
@@ -54,7 +73,7 @@
                         <td>
                             <a class="btn" href="{{ route('master.edit', [$module, $row->id]) }}">ویرایش</a>
                             @if ($module === 'productions' && ($row->status ?? null) === 'draft')
-                                <form method="post" action="{{ route('master.production.start', $row->id) }}" onsubmit="return confirm('تولید شروع شود؟')">@csrf<button class="btn" type="submit">شروع تولید</button></form>
+                                <form method="post" action="{{ route('master.production.start', $row->id) }}" onsubmit="return confirm('توجه: با ادامه، این دستور از وضعیت پیش‌نویس وارد مرحله اجرا می‌شود و مراحل و عملیات آن ایجاد می‌شوند. آیا مطمئن هستید؟')">@csrf<button class="btn" type="submit">شروع تولید</button></form>
                             @endif
                             @if (isset($row->is_active) && $row->is_active)
                                 <form method="post" action="{{ route('master.deactivate', [$module, $row->id]) }}" onsubmit="return confirm('از غیرفعال کردن مطمئن هستید؟')">@csrf<button class="btn" type="submit" style="background:#3b2528;border-color:#63343b;color:#ffb8a8">غیرفعال</button></form>
@@ -103,7 +122,7 @@
                         <td>
                             <a class="btn btn-sm btn-outline-primary" href="{{ route('master.edit', [$module, $row->id]) }}">ویرایش</a>
                             @if ($module === 'productions' && ($row->status ?? null) === 'draft')
-                                <form method="post" action="{{ route('master.production.start', $row->id) }}" class="d-inline" onsubmit="return confirm('تولید شروع شود؟')">@csrf<button class="btn btn-sm btn-success">شروع تولید</button></form>
+                                <form method="post" action="{{ route('master.production.start', $row->id) }}" class="d-inline" onsubmit="return confirm('توجه: با ادامه، این دستور از وضعیت پیش‌نویس وارد مرحله اجرا می‌شود و مراحل و عملیات آن ایجاد می‌شوند. آیا مطمئن هستید؟')">@csrf<button class="btn btn-sm btn-success">شروع تولید</button></form>
                             @endif
                             @if (isset($row->is_active) && $row->is_active)
                                 <form method="post" action="{{ route('master.deactivate', [$module, $row->id]) }}" class="d-inline" onsubmit="return confirm('از غیرفعال کردن مطمئن هستید؟')">@csrf<button class="btn btn-sm btn-outline-danger">غیرفعال</button></form>
