@@ -6,17 +6,48 @@
 @php
     $eventLabels = [
         'order.production_required' => [
-            'title' => 'این سفارش به تولید نیاز دارد',
-            'message' => 'موجودی انبار برای تأمین کامل این سفارش کافی نیست. لطفاً جزئیات سفارش را بررسی کنید و برای برنامه‌ریزی تولید اقدام کنید.',
+            'title' => 'این سفارش به بررسی و برنامه‌ریزی تولید نیاز دارد',
+            'message' => 'موجودی انبار برای تأمین کامل سفارش کافی نیست. سرپرست تولید باید امکان تولید و زمان‌بندی آن را بررسی کند.',
         ],
         'order.ready_for_delivery' => [
-            'title' => 'این سفارش آماده تحویل است',
-            'message' => 'وضعیت سفارش بررسی شده و برای پیگیری مرحله تحویل آماده است.',
+            'title' => 'سفارش آماده تحویل است',
+            'message' => 'موجودی لازم برای سفارش فراهم است. واحد فروش می‌تواند مراحل درخواست تحویل را پیگیری کند.',
+        ],
+        'order.production_due_set' => [
+            'title' => 'زمان آماده‌شدن سفارش در تولید مشخص شد',
+            'message' => 'سرپرست تولید زمان قابل تحویل را ثبت کرده است. واحد فروش باید زمان را بررسی و در صورت نیاز با مشتری هماهنگ کند.',
+        ],
+        'delivery.requested' => [
+            'title' => 'برای سفارش درخواست تحویل ثبت شد',
+            'message' => 'درخواست تحویل ثبت شده و برای بررسی و انجام مراحل تحویل در اختیار واحد انبار قرار گرفته است.',
+        ],
+        'supply.shortage' => [
+            'title' => 'برای تأمین کالا کسری موجودی وجود دارد',
+            'message' => 'موجودی انبار برای تأمین کامل این درخواست کافی نیست. واحد تدارکات باید مقدار کسری را پیگیری کند.',
+        ],
+        'inventory_reorder_point_reached' => [
+            'title' => 'موجودی کالا به نقطه سفارش رسیده است',
+            'message' => 'موجودی این کالا به حد سفارش یا کمتر از آن رسیده است. واحد تدارکات باید نیاز به تأمین مجدد را بررسی کند.',
+        ],
+        'purchase.received_financial_value' => [
+            'title' => 'اطلاعات مالی خرید برای پیگیری ثبت شد',
+            'message' => 'اطلاعات مبلغ خرید و هزینه‌های مستقیم ثبت شده است. مسئول مالی باید اطلاعات را بررسی و پیگیری کند.',
         ],
     ];
+
     $fieldLabels = [
         'order_id' => 'شماره سفارش',
-        'company_id' => 'شناسه مجموعه',
+        'delivery_request_id' => 'شماره درخواست تحویل',
+        'supply_request_id' => 'شماره درخواست تأمین',
+        'purchase_id' => 'شماره خرید',
+        'receipt_id' => 'شماره رسید خرید',
+        'production_due_at' => 'زمان قابل تحویل اعلام‌شده توسط تولید',
+        'purchase_total_amount' => 'مبلغ خرید',
+        'direct_cost_total' => 'مجموع هزینه‌های مستقیم',
+        'location_id' => 'شناسه انبار',
+        'goods_id' => 'شناسه کالا',
+        'current_quantity' => 'موجودی فعلی',
+        'reorder_point' => 'نقطه سفارش',
     ];
 @endphp
 
@@ -35,10 +66,21 @@
                 $event = $data['event'] ?? $n->type;
                 $presentation = $eventLabels[$event] ?? [
                     'title' => 'اعلان جدید',
-                    'message' => 'یک رویداد در مجموعه ثبت شده است. برای جزئیات بیشتر اطلاعات زیر را بررسی کنید.',
+                    'message' => 'رویدادی در مجموعه ثبت شده است. برای اطلاع از جزئیات، از مسئول مربوط به این فرآیند راهنمایی بگیرید.',
                 ];
                 $orderId = isset($data['order_id']) && is_numeric($data['order_id']) ? (int) $data['order_id'] : null;
                 $canViewOrder = $orderId && auth()->user()->hasCompanyPermission((int) session('company_id'), 'order.view');
+                $visibleFields = [
+                    'order.production_required' => ['order_id'],
+                    'order.ready_for_delivery' => ['order_id'],
+                    'order.production_due_set' => ['order_id', 'production_due_at'],
+                    'delivery.requested' => ['order_id', 'delivery_request_id'],
+                    'supply.shortage' => ['supply_request_id'],
+                    'inventory_reorder_point_reached' => ['goods_id', 'location_id', 'current_quantity', 'reorder_point'],
+                    'purchase.received_financial_value' => ['purchase_id', 'receipt_id', 'purchase_total_amount', 'direct_cost_total'],
+                ];
+                $visibleKeys = $visibleFields[$event] ?? [];
+                $extraData = array_intersect_key($data, array_flip($visibleKeys));
             @endphp
             <article style="padding:15px;border:1px solid {{ $n->read_at ? '#1b354b' : '#246451' }};border-radius:12px;background:{{ $n->read_at ? '#0d2235' : '#0c282b' }}">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -59,13 +101,15 @@
                     </div>
                 @endif
 
-                @php
-                    $extraData = array_diff_key($data, array_flip(['event', 'notification_batch_id', 'order_id', 'company_id']));
-                @endphp
                 @if(count($extraData) > 0)
                     <div style="display:flex;flex-direction:column;gap:5px;margin-top:10px;color:#9eb2c4;font-size:11px;line-height:1.9;overflow-wrap:anywhere">
                         @foreach($extraData as $k => $v)
-                            <div><span style="color:#71879d">{{ $fieldLabels[$k] ?? $k }}:</span> {{ is_scalar($v) ? $v : json_encode($v, JSON_UNESCAPED_UNICODE) }}</div>
+                            @if($k !== 'order_id')
+                                <div>
+                                    <span style="color:#71879d">{{ $fieldLabels[$k] ?? 'جزئیات' }}:</span>
+                                    <strong style="color:#e9f3fb">{{ is_numeric($v) && in_array($k, ['purchase_total_amount', 'direct_cost_total'], true) ? number_format((float) $v, 0) . ' ریال' : (is_scalar($v) ? $v : '') }}</strong>
+                                </div>
+                            @endif
                         @endforeach
                     </div>
                 @endif
