@@ -106,7 +106,7 @@
 @if($can['production_outputs'] || $can['inventory'])<div class="module pending"><strong>کالای ساخته‌شده</strong><span>Output و Receipt وجود دارد؛ صفحه عملیاتی مستقل هنوز اضافه نشده است.</span></div>@endif
 @if($can['costing'])<div class="module pending"><strong>بهای تمام‌شده</strong><span>گزارش فعلی مواد و دستمزد را جمع می‌کند؛ ضایعات و سایر اجزای تعریف‌شده هنوز کامل نیستند.</span></div>@endif
 @if($can['notifications'])<div class="module pending"><strong>Notification و Audit</strong><span>Notification workflow برای چند رویداد وجود دارد؛ Audit Trail مستقل هنوز تکمیل نشده است.</span></div>@endif
-<div class="module ready"><strong>Backup و Import</strong><span>سرویس‌های Backup و Excel Import وجود دارند؛ رابط کاربری مستقل باید تکمیل شود.</span></div>
+@if($can['backups'] || $can['imports'])<div class="module ready"><strong>Backup و Import</strong><span>سرویس‌های Backup و Excel Import وجود دارند؛ رابط کاربری مستقل باید تکمیل شود.</span></div>@endif
 </div>
 </div>
 
