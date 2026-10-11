@@ -43,5 +43,5 @@
 - فهرست، جستجو و بازیابی فرم ویرایش مراحل و عملیات اکنون شرکت را از طریق مسیر تولید محدود می‌کنند؛ ذخیره رکوردهای این دو جدول نیز دیگر `company_id` غیرموجود را ارسال نمی‌کند.
 - اعتبارسنجی ارجاع مرحله و قسمت تولید بر اساس ارتباط‌های واقعی جداول انجام می‌شود.
 - یک Migration افزوده شد تا ستون `production_section_id` مورد استفاده فرم مرحله تولید به جدول مراحل اضافه شود.
-- فایل‌های تغییرکرده: `app/Http/Controllers/MasterDataController.php`، `resources/views/master-data/form.blade.php` و Migration جدید.
+- فایل‌های تغییرکرده: `app/Http/Controllers/MasterDataController.php`، `resources/views/master-data/form.blade.php`، `resources/views/master-data/index.blade.php` و Migration جدید.
 - **Migration باید روی سرور اجرا و کد Deploy شود.** دسترسی به پایگاه داده زنده، اجرای Migration، تست خودکار و بررسی زنده انجام نشده است.
