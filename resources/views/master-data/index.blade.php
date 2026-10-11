@@ -6,6 +6,23 @@
 
 @section('content')
 @if(in_array(($module ?? null), ['goods', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true))
+@php
+    $fieldLabels = [
+        'code' => 'کد', 'name' => 'نام', 'production_stage_id' => 'مرحله تولید',
+        'sequence' => 'ترتیب', 'standard_duration_minutes' => 'مدت استاندارد (دقیقه)',
+        'setup_duration_minutes' => 'زمان آماده‌سازی (دقیقه)', 'status' => 'وضعیت',
+        'production_route_id' => 'مسیر تولید', 'production_section_id' => 'قسمت تولید',
+        'goods_id' => 'کالا', 'fiscal_year_id' => 'سال مالی', 'planned_quantity' => 'مقدار برنامه‌ریزی‌شده',
+        'planned_start_at' => 'شروع برنامه‌ریزی‌شده', 'planned_end_at' => 'پایان برنامه‌ریزی‌شده',
+        'notes' => 'یادداشت', 'description' => 'توضیحات', 'type' => 'نوع',
+        'is_active' => 'وضعیت'
+    ];
+    $valueLabels = [
+        'active' => 'فعال', 'inactive' => 'غیرفعال', 'pending' => 'در انتظار',
+        'in_progress' => 'در حال اجرا', 'completed' => 'تکمیل‌شده', 'cancelled' => 'لغوشده',
+        'draft' => 'پیش‌نویس', 'pending_review' => 'در انتظار بررسی'
+    ];
+@endphp
 <style>
 .master-search{display:flex;gap:8px;margin-bottom:16px}
 .master-search input{flex:1;min-width:0;background:#081522;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px 12px;font:inherit;font-size:11px}
@@ -38,6 +55,21 @@
 @endif
 @if ($errors->any())
     <div class="master-errors">@foreach ($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>
+@endif
+
+@if ($module === 'production-operations')
+    <div class="master-guide" role="note">
+        <strong>راهنمای عملیات تولید</strong>
+        <div>در این بخش، کارهای مشخص هر مرحله از تولید را تعریف می‌کنید؛ برای نمونه برش، مونتاژ یا بسته‌بندی. این اطلاعات، ساختار برنامه تولید را مشخص می‌کنند و به‌تنهایی به معنی ثبت اجرای واقعی کار نیستند.</div>
+        <ul>
+            <li><strong>کد و نام عملیات:</strong> برای شناسایی روشن هر کار، کد یکتا و نام قابل‌فهم وارد کنید.</li>
+            <li><strong>مرحله تولید:</strong> عملیات را به مرحله درست وصل کنید؛ مرحله باید به مسیر تولید موردنظر تعلق داشته باشد.</li>
+            <li><strong>ترتیب:</strong> عدد کوچک‌تر یعنی عملیات زودتر در ترتیب مرحله قرار می‌گیرد.</li>
+            <li><strong>مدت استاندارد:</strong> زمان معمول انجام کار به دقیقه؛ <strong>زمان آماده‌سازی:</strong> زمان آماده‌کردن دستگاه، ابزار یا ایستگاه پیش از کار.</li>
+            <li><strong>وضعیت:</strong> فقط عملیات فعال هنگام شروع دستور تولید برای آن دستور، ردیف اجرای عملیات می‌سازد.</li>
+        </ul>
+        <div class="warning"><strong>نکته:</strong> ابتدا مسیر تولید و مراحل فعال آن را تعریف کنید، سپس عملیات هر مرحله را ثبت و فعال کنید؛ بعد از آن دستور تولید را شروع کنید تا ردیف‌های اجرای عملیات ایجاد شوند.</div>
+    </div>
 @endif
 
 @if ($module === 'production-sections')
@@ -79,7 +111,7 @@
             @if ($module === 'productions')
                 <thead><tr><th>شماره دستور</th><th>کالا</th><th>مسیر تولید</th><th>سال مالی</th><th>مقدار برنامه‌ریزی‌شده</th><th>شروع برنامه‌ریزی‌شده</th><th>پایان برنامه‌ریزی‌شده</th><th>یادداشت</th><th>وضعیت</th><th>عملیات</th></tr></thead>
             @else
-                <thead><tr>@if ($module === 'production-sections')<th>محل / انبار</th><th>سرپرست</th>@else @foreach ($definition['fields'] as $field)<th>{{ $field }}</th>@endforeach @endif<th>عملیات</th></tr></thead>
+                <thead><tr>@if ($module === 'production-sections')<th>محل / انبار</th><th>سرپرست</th>@else @foreach ($definition['fields'] as $field)<th>{{ $fieldLabels[$field] ?? $field }}</th>@endforeach @endif<th>عملیات</th></tr></thead>
             @endif
             <tbody>
                 @forelse ($rows as $row)
@@ -100,7 +132,7 @@
                                 <td>{{ $row->supervisor_name ?? $row->supervisor_personnel_id ?? '—' }}</td>
                             @else
                                 @foreach ($definition['fields'] as $field)
-                                    <td>{{ is_bool($row->$field ?? null) ? (($row->$field ?? false) ? 'بله' : 'خیر') : ($row->$field ?? '—') }}</td>
+                                    <td>{{ is_bool($row->$field ?? null) ? (($row->$field ?? false) ? 'بله' : 'خیر') : ($valueLabels[(string)($row->$field ?? '')] ?? ($row->$field ?? '—')) }}</td>
                                 @endforeach
                             @endif
                         @endif
