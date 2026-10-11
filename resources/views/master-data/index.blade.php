@@ -57,6 +57,35 @@
     <div class="master-errors">@foreach ($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>
 @endif
 
+@if ($module === 'production-routes')
+    <div class="master-guide" role="note">
+        <strong>راهنمای مسیرهای تولید</strong>
+        <div>مسیر تولید مشخص می‌کند یک کالا از چه مرحله‌هایی عبور می‌کند تا ساخته شود.</div>
+        <ul>
+            <li><strong>کد و نام:</strong> مسیر را با شناسه و نام روشن ثبت کنید.</li>
+            <li><strong>کالا:</strong> کالایی را انتخاب کنید که این مسیر برای تولید آن است.</li>
+            <li><strong>توضیحات:</strong> نکات ویژه مسیر را در صورت نیاز بنویسید.</li>
+            <li><strong>وضعیت:</strong> برای استفاده در دستور تولید، مسیر باید فعال باشد.</li>
+        </ul>
+        <div class="warning"><strong>ترتیب پیشنهادی:</strong> مسیر را ثبت کنید، سپس مرحله‌های آن را تعریف و فعال کنید و بعد عملیات هر مرحله را ثبت کنید.</div>
+    </div>
+@endif
+
+@if ($module === 'production-stages')
+    <div class="master-guide" role="note">
+        <strong>راهنمای مراحل تولید</strong>
+        <div>هر مرحله بخشی از مسیر ساخت کالا است؛ مانند برش، مونتاژ یا بسته‌بندی.</div>
+        <ul>
+            <li><strong>کد و نام:</strong> برای شناسایی مرحله، کد و نام روشن وارد کنید.</li>
+            <li><strong>مسیر تولید:</strong> مسیر مربوط به کالای موردنظر را انتخاب کنید.</li>
+            <li><strong>قسمت تولید:</strong> واحد یا محل مسئول انجام مرحله را مشخص کنید.</li>
+            <li><strong>ترتیب:</strong> شماره کوچک‌تر یعنی اجرای زودتر مرحله.</li>
+            <li><strong>وضعیت:</strong> فقط مرحله‌های فعال هنگام شروع دستور تولید وارد اجرای آن می‌شوند.</li>
+        </ul>
+        <div class="warning"><strong>نکته:</strong> پس از ثبت مرحله‌ها، عملیات مربوط به هر مرحله را در صفحه «عملیات تولید» تعریف کنید. تغییر تعریف‌ها لزوماً اجرای دستورهای قبلی را تغییر نمی‌دهد.</div>
+    </div>
+@endif
+
 @if ($module === 'production-operations')
     <div class="master-guide" role="note">
         <strong>راهنمای عملیات تولید</strong>
