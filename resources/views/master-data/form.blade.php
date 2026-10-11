@@ -16,8 +16,16 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 .master-form-page .mb-1{margin-bottom:4px}
 .master-form-page .mb-4{margin-bottom:20px}
 .master-form-page .master-card{background:#0a1b2b;border:1px solid #1b354b;border-radius:16px;padding:22px}
-.master-form-page .row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
-.master-form-page .col-md-6{min-width:0}
+.master-form-page .row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 24px;margin:0}
+.master-form-page .col-md-6{min-width:0;padding:0}
+.master-form-page .form-field{display:flex;flex-direction:column;gap:7px}
+.master-form-page .field-help{color:#8da5ba;font-size:11px;line-height:1.8;margin:0}
+.master-form-page .form-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid #1b354b;padding-top:18px}
+.master-form-page .form-actions .btn{min-width:130px;justify-content:center}
+.master-form-page .section-form .form-section-title{font-size:14px;margin:0 0 4px;color:#e9f3fb}
+.master-form-page .section-form .form-section-intro{font-size:12px;color:#8da5ba;margin:0 0 18px;line-height:1.9}
+.master-form-page .section-form .form-label{margin-bottom:0}
+.master-form-page .section-form .form-control,.master-form-page .section-form .form-select{min-height:46px}
 .master-form-page .form-label{display:block;color:#c5d5e3;font-size:11px;font-weight:600;margin-bottom:8px}
 .master-form-page .form-control,.master-form-page .form-select{width:100%;background:#081522;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px 12px;font:inherit;font-size:12px;min-height:42px}
 .master-form-page textarea.form-control{resize:vertical}
@@ -30,7 +38,7 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 .master-form-page .text-danger{color:#ffb8a8}
 .master-form-page .px-4{padding-left:22px;padding-right:22px}
 .master-form-page .btn{cursor:pointer}
-@media(max-width:620px){.master-form-page .row{grid-template-columns:1fr;gap:14px}.master-form-page .master-heading{align-items:flex-start;flex-direction:column}.master-form-page .master-card{padding:15px}.master-form-page h1{font-size:21px}}
+@media(max-width:620px){.master-form-page .row{grid-template-columns:1fr;gap:16px}.master-form-page .master-heading{align-items:flex-start;flex-direction:column}.master-form-page .master-card{padding:15px}.master-form-page h1{font-size:21px}.master-form-page .form-actions .btn{width:100%}}
 </style>
 @endif
 <div class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true) ? 'master-form-page' : 'container py-3' }}" dir="rtl">
@@ -98,13 +106,17 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 </div>
 @endif
 
-<form method="post" action="{{ ($editing ?? false) ? route('master.update',[$module,$row->id]) : route('master.store',$module) }}" class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true) ? 'master-card' : 'card shadow-sm border-0 p-4' }}">
+<form method="post" action="{{ ($editing ?? false) ? route('master.update',[$module,$row->id]) : route('master.store',$module) }}" class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true) ? 'master-card' : 'card shadow-sm border-0 p-4' }} {{ ($module ?? null) === 'production-sections' ? 'section-form' : '' }}">
 @csrf @if($editing ?? false) @method('PUT') @endif
-<div class="row g-3">
+@if(($module ?? null) === 'production-sections')
+    <h2 class="form-section-title">مشخصات قسمت تولید</h2>
+    <p class="form-section-intro">محل انجام فعالیت و مسئول این قسمت را مشخص کنید. موارد ستاره‌دار الزامی هستند.</p>
+@endif
+<div class="row">
 @foreach($definition['fields'] as $f)
 @php $value=old($f,$row->$f ?? ''); @endphp
-<div class="col-md-6">
-<label class="form-label fw-semibold">{{ $labels[$f] ?? $f }}</label>
+<div class="col-md-6 form-field">
+<label class="form-label fw-semibold" for="field-{{$f}}">{{ $labels[$f] ?? $f }}@if(($module ?? null) === 'production-sections' && $f === 'location_id') <span class="text-danger">*</span>@endif</label>
 @if($f==='category_id')
 <select name="{{$f}}" class="form-select" required><option value="">انتخاب کنید</option>@foreach(($options['categories']??[]) as $o)<option value="{{$o->id}}" @selected((string)$value===(string)$o->id)>{{$o->name}}</option>@endforeach</select>
 @elseif($f==='parent_id')
@@ -120,9 +132,11 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 @elseif($f==='fiscal_year_id')
 <select name="{{$f}}" class="form-select" required>@foreach(($options['fiscalYears']??[]) as $o)<option value="{{$o->id}}" @selected((string)$value===(string)$o->id)>{{$o->name}}</option>@endforeach</select>
 @elseif($f==='location_id')
-<select name="{{$f}}" class="form-select" required>@foreach(($options['locations']??[]) as $o)<option value="{{$o->id}}" @selected((string)$value===(string)$o->id)>{{$o->name}}</option>@endforeach</select>
+<select id="field-{{$f}}" name="{{$f}}" class="form-select" required><option value="">انتخاب محل / انبار</option>@foreach(($options['locations']??[]) as $o)<option value="{{$o->id}}" @selected((string)$value===(string)$o->id)>{{$o->name}}</option>@endforeach</select>
+@if(($module ?? null) === 'production-sections')<p class="field-help">محل فیزیکی یا سازمانی این قسمت را انتخاب کنید. اگر فهرست خالی است، ابتدا محل را در بخش «انبارها و محل‌ها» ثبت کنید.</p>@endif
 @elseif($f==='supervisor_personnel_id')
-<select name="{{$f}}" class="form-select"><option value="">بدون سرپرست</option>@foreach(($options['personnel']??[]) as $o)<option value="{{$o->id}}" @selected((string)$value===(string)$o->id)>{{$o->name}}</option>@endforeach</select>
+<select id="field-{{$f}}" name="{{$f}}" class="form-select"><option value="">بدون سرپرست</option>@foreach(($options['personnel']??[]) as $o)<option value="{{$o->id}}" @selected((string)$value===(string)$o->id)>{{$o->name}}</option>@endforeach</select>
+@if(($module ?? null) === 'production-sections')<p class="field-help">در صورت مشخص بودن مسئول این قسمت، سرپرست را انتخاب کنید؛ این فیلد اختیاری است.</p>@endif
 @elseif($f==='status')
 <select name="{{$f}}" class="form-select" required><option value="active" @selected((string)$value==='active')>فعال</option><option value="inactive" @selected((string)$value==='inactive')>غیرفعال</option></select>
 @elseif(in_array($f,['purchasable','producible','sellable']))
@@ -142,6 +156,6 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 </div>
 @endforeach
 </div>
-<div class="mt-4"><button class="btn btn-primary px-4">{{ ($editing ?? false) ? 'ذخیره تغییرات' : 'ثبت اطلاعات' }}</button></div>
+<div class="mt-4 form-actions"><button type="submit" class="btn btn-primary px-4">{{ ($editing ?? false) ? 'ذخیره تغییرات' : 'ثبت قسمت تولید' }}</button><a href="{{ route('master.index', $module) }}" class="btn btn-outline-secondary">انصراف و بازگشت</a></div>
 </form></div>
 @endsection
