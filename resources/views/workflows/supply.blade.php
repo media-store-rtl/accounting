@@ -1,12 +1,12 @@
 @extends('layouts.dashboard-shell')
 
-@section('title', 'درخواست‌های تأمین')
+@section('title', 'درخواست مواد اولیه از انبار')
 
 @section('content')
 <div class="page-heading">
     <div>
-        <h1>درخواست‌های تأمین</h1>
-        <p>ثبت درخواست مواد و مشاهده وضعیت درخواست‌های تأمین مجموعه</p>
+        <h1>درخواست مواد اولیه از انبار</h1>
+        <p>ثبت درخواست مواد اولیه برای انبار و مشاهده وضعیت درخواست‌ها</p>
     </div>
 </div>
 
@@ -30,7 +30,7 @@
 <div class="panel" style="margin-bottom:18px">
     <div style="margin-bottom:16px">
         <h2 style="font-size:15px;margin:0 0 6px">ثبت درخواست جدید</h2>
-        <p style="font-size:11px;color:#8198ac;margin:0">اطلاعات موردنیاز برای تأمین کالا را وارد کنید.</p>
+        <p style="font-size:11px;color:#8198ac;margin:0">مواد اولیه موردنیاز تولید را برای بررسی و تحویل توسط انبار ثبت کنید.</p>
     </div>
 
     <form method="POST" action="{{ route('workflows.supply.store') }}">
@@ -86,7 +86,7 @@
         </div>
 
         <div style="margin-top:18px">
-            <button type="submit" class="btn primary">ثبت درخواست تأمین</button>
+            <button type="submit" class="btn primary">ارسال درخواست مواد به انبار</button>
         </div>
     </form>
 </div>
@@ -95,7 +95,7 @@
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
         <div>
             <h2 style="font-size:15px;margin:0 0 5px">درخواست‌های ثبت‌شده</h2>
-            <p style="font-size:11px;color:#8198ac;margin:0">فهرست درخواست‌های تأمین مجموعه</p>
+            <p style="font-size:11px;color:#8198ac;margin:0">فهرست درخواست‌های مواد اولیه مجموعه</p>
         </div>
         <span style="font-size:10px;color:#9eb2c4;background:#0d2235;border:1px solid #1b354b;border-radius:20px;padding:6px 10px">{{ $rows->total() }} درخواست</span>
     </div>
