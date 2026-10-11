@@ -99,7 +99,7 @@
 <h2>وضعیت حوزه‌های اصلی</h2>
 <p>این بخش وضعیت واقعی implementation را نشان می‌دهد و قابلیت‌هایی که هنوز صفحه مستقل ندارند به‌صورت ساختگی لینک نشده‌اند.</p>
 <div class="module-grid">
-<div class="module ready"><strong>سفارش و فروش</strong><span>مشتری، ثبت سفارش، کنترل موجودی، درخواست تحویل و تحویل.</span></div>
+@if($can['orders'] || $can['customers'] || $can['deliveries'])<div class="module ready"><strong>سفارش و فروش</strong><span>مشتری، ثبت سفارش، کنترل موجودی، درخواست تحویل و تحویل.</span></div>@endif
 <div class="module ready"><strong>تأمین و خرید</strong><span>درخواست تأمین، کسری، خرید، هزینه مستقیم و رسید خرید در Backend.</span></div>
 <div class="module ready"><strong>انبار و گردش کالا</strong><span>موجودی، ورود/خروج و ارزش‌گذاری مواد در Backend.</span></div>
 <div class="module pending"><strong>تولید</strong><span>Schema و بخشی از سرویس‌ها موجود است؛ UI و workflow کامل هنوز نیازمند تکمیل است.</span></div>
