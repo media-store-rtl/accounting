@@ -103,7 +103,7 @@
 @if($can['supply'] || $can['purchasing'])<div class="module ready"><strong>تأمین و خرید</strong><span>درخواست تأمین، کسری، خرید، هزینه مستقیم و رسید خرید در Backend.</span></div>@endif
 @if($can['inventory'])<div class="module ready"><strong>انبار و گردش کالا</strong><span>موجودی، ورود/خروج و ارزش‌گذاری مواد در Backend.</span></div>@endif
 @if($can['productions'] || $can['production_execution'])<div class="module pending"><strong>تولید</strong><span>Schema و بخشی از سرویس‌ها موجود است؛ UI و workflow کامل هنوز نیازمند تکمیل است.</span></div>@endif
-<div class="module pending"><strong>کالای ساخته‌شده</strong><span>Output و Receipt وجود دارد؛ صفحه عملیاتی مستقل هنوز اضافه نشده است.</span></div>
+@if($can['production_outputs'] || $can['inventory'])<div class="module pending"><strong>کالای ساخته‌شده</strong><span>Output و Receipt وجود دارد؛ صفحه عملیاتی مستقل هنوز اضافه نشده است.</span></div>@endif
 <div class="module pending"><strong>بهای تمام‌شده</strong><span>گزارش فعلی مواد و دستمزد را جمع می‌کند؛ ضایعات و سایر اجزای تعریف‌شده هنوز کامل نیستند.</span></div>
 <div class="module pending"><strong>Notification و Audit</strong><span>Notification workflow برای چند رویداد وجود دارد؛ Audit Trail مستقل هنوز تکمیل نشده است.</span></div>
 <div class="module ready"><strong>Backup و Import</strong><span>سرویس‌های Backup و Excel Import وجود دارند؛ رابط کاربری مستقل باید تکمیل شود.</span></div>
