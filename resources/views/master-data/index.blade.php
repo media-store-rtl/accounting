@@ -15,7 +15,7 @@
         'goods_id' => 'کالا', 'fiscal_year_id' => 'سال مالی', 'planned_quantity' => 'مقدار برنامه‌ریزی‌شده',
         'planned_start_at' => 'شروع برنامه‌ریزی‌شده', 'planned_end_at' => 'پایان برنامه‌ریزی‌شده',
         'notes' => 'یادداشت', 'description' => 'توضیحات', 'type' => 'نوع',
-        'is_active' => 'وضعیت'
+        'is_active' => 'وضعیت', 'parent_id' => 'دسته‌بندی بالادست', 'category_id' => 'دسته‌بندی', 'purchasable' => 'قابل خرید', 'producible' => 'قابل تولید', 'sellable' => 'قابل فروش'
     ];
     $valueLabels = [
         'active' => 'فعال', 'inactive' => 'غیرفعال', 'pending' => 'در انتظار',
@@ -161,7 +161,7 @@
                                 <td>{{ $row->supervisor_name ?? $row->supervisor_personnel_id ?? '—' }}</td>
                             @else
                                 @foreach ($definition['fields'] as $field)
-                                    <td>{{ is_bool($row->$field ?? null) ? (($row->$field ?? false) ? 'بله' : 'خیر') : ($valueLabels[(string)($row->$field ?? '')] ?? ($row->$field ?? '—')) }}</td>
+                                    <td>{{ is_bool($row->$field ?? null) ? (($row->$field ?? false) ? 'بله' : 'خیر') : ($valueLabels[(string)($row->$field ?? '')] ?? (($row->$field ?? null) === null || ($row->$field ?? '') === '' ? '—' : $row->$field)) }}</td>
                                 @endforeach
                             @endif
                         @endif
