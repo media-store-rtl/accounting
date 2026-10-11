@@ -71,10 +71,10 @@
 <p>ترتیب زیر مطابق تعریف پروژه است. فقط بخش‌هایی که در نسخه فعلی route و رابط عملیاتی دارند قابل ورود مستقیم هستند.</p>
 <div class="flow">
 @if($can['orders'])<a class="step" href="{{ route('sales.orders.index') }}"><strong>۱. سفارش</strong><span>مشتری و اقلام</span></a>@else<div class="step disabled"><strong>۱. سفارش</strong><span>بدون مجوز مشاهده</span></div>@endif
-<div class="step disabled"><strong>۲. تأمین</strong><span>Backend موجود؛ UI مستقل هنوز ندارد</span></div>
-<div class="step disabled"><strong>۳. انبار</strong><span>گردش موجودی در Backend</span></div>
-<div class="step disabled"><strong>۴. تولید</strong><span>Workflow در حال تکمیل</span></div>
-<div class="step disabled"><strong>۵. کالای ساخته‌شده</strong><span>Receipt در Backend</span></div>
+@if($can['supply'] || $can['purchasing'])<div class="step disabled"><strong>۲. تأمین</strong><span>Backend موجود؛ UI مستقل هنوز ندارد</span></div>@endif
+@if($can['inventory'])<div class="step disabled"><strong>۳. انبار</strong><span>گردش موجودی در Backend</span></div>@endif
+@if($can['productions'] || $can['production_execution'])<div class="step disabled"><strong>۴. تولید</strong><span>Workflow در حال تکمیل</span></div>@endif
+@if($can['production_outputs'] || $can['inventory'])<div class="step disabled"><strong>۵. کالای ساخته‌شده</strong><span>Receipt در Backend</span></div>@endif
 @if($can['deliveries'])<a class="step" href="{{ route('sales.deliveries.index') }}"><strong>۶. تحویل</strong><span>درخواست و خروج</span></a>@else<div class="step disabled"><strong>۶. تحویل</strong><span>بدون مجوز مشاهده</span></div>@endif
 </div>
 </div>
@@ -95,6 +95,7 @@
 </div>
 </div>
 
+@if($can['orders'] || $can['customers'] || $can['deliveries'] || $can['supply'] || $can['purchasing'] || $can['inventory'] || $can['productions'] || $can['production_execution'] || $can['production_outputs'] || $can['costing'] || $can['notifications'] || $can['backups'] || $can['imports'])
 <div class="panel modules" id="modules">
 <h2>وضعیت حوزه‌های اصلی</h2>
 <p>این بخش وضعیت واقعی implementation را نشان می‌دهد و قابلیت‌هایی که هنوز صفحه مستقل ندارند به‌صورت ساختگی لینک نشده‌اند.</p>
@@ -109,6 +110,8 @@
 @if($can['backups'] || $can['imports'])<div class="module ready"><strong>Backup و Import</strong><span>سرویس‌های Backup و Excel Import وجود دارند؛ رابط کاربری مستقل باید تکمیل شود.</span></div>@endif
 </div>
 </div>
+
+@endif
 
 @if($can['costing'])
 <div class="section" style="grid-template-columns:1fr">
