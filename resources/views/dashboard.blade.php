@@ -25,9 +25,9 @@
 
 @if(!$company)
 <div class="notice warn"><strong>راه‌اندازی اولیه:</strong> این حساب هنوز شرکت فعالی ندارد. ابتدا اطلاعات شرکت باید ایجاد/تکمیل شود.</div>
-@elseif(!$subscriptionActive)
+@elseif(!$subscriptionActive && $can['company'])
 <div class="notice warn"><strong>اشتراک:</strong> وضعیت اشتراک این مجموعه فعال نیست. داده‌های قبلی قابل مشاهده‌اند، اما ایجاد سال مالی و عملیات نیازمند اشتراک فعال باید محدود بماند.</div>
-@elseif(!$fiscalYear)
+@elseif(!$fiscalYear && $can['fiscal_years'])
 <div class="notice warn"><strong>سال مالی:</strong> برای این مجموعه سال مالی باز وجود ندارد.</div>
 @endif
 
