@@ -110,6 +110,7 @@
 </div>
 </div>
 
+@if($can['costing'])
 <div class="section" style="grid-template-columns:1fr">
 <div class="panel">
 <h2>هزینه‌های ثبت‌شده در سال جاری</h2>
@@ -122,7 +123,9 @@
 </div>
 </div>
 
-@if($stats['pending_finished_goods'] > 0)
+@endif
+
+@if(($can['production_outputs'] || $can['inventory']) && $stats['pending_finished_goods'] > 0)
 <div class="panel" style="margin-top:18px"><div class="notice" style="margin:0"><strong>کالای ساخته‌شده:</strong> {{ number_format($stats['pending_finished_goods']) }} رسید کالای ساخته‌شده در انتظار تأیید انبار است.</div></div>
 @endif
 
