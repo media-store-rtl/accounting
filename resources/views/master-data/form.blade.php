@@ -1,4 +1,4 @@
-@extends(in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes'], true) ? 'layouts.dashboard-shell' : 'layouts.app')
+@extends(in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-stages', 'production-operations'], true) ? 'layouts.dashboard-shell' : 'layouts.app')
 @if(in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes'], true))
 @section('title', (($editing ?? false) ? 'ویرایش ' : 'ثبت ') . ($definition['title'] ?? 'اطلاعات پایه'))
 @endif
