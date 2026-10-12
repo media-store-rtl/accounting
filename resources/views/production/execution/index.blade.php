@@ -20,7 +20,7 @@
 <p style="font-size:12px;line-height:1.9">پس از تأیید آخرین عملیات هر مرحله، مقدار خروجی برای قسمت بعد ارسال می‌شود. قسمت بعد باید مقدار دریافتی را ثبت کند؛ تا آن زمان اجرای مرحله بعد مسدود است.</p>
 <div class="table-wrap"><table><thead><tr><th>دستور</th><th>از قسمت</th><th>به قسمت / مرحله</th><th>ارسالی</th><th>دریافتی</th><th>وضعیت / اقدام</th></tr></thead><tbody>
 @forelse($handovers as $h)
-<tr><td>{{ $h->production_number }}</td><td>{{ $h->from_section_name }}</td><td>{{ $h->to_section_name }} — {{ $h->to_stage_name }}</td><td>{{ $h->sent_quantity }}</td><td>{{ $h->received_quantity ?? '—' }}</td><td>
+<tr><td>{{ $h->production_number }}</td><td>{{ $h->from_section_name ?: 'قسمت تعریف‌نشده' }}</td><td>{{ $h->to_section_name ?: 'قسمت تعریف‌نشده' }} — {{ $h->to_stage_name }}</td><td>{{ $h->sent_quantity }}</td><td>{{ $h->received_quantity ?? '—' }}</td><td>
 @if($h->status === 'pending')
 <form method="POST" action="{{ route('production.execution.handover.receive',$h->id) }}">@csrf
 <input name="received_quantity" type="number" min="0.0001" max="{{ $h->sent_quantity }}" step="0.0001" value="{{ $h->sent_quantity }}" required>
