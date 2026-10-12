@@ -14,17 +14,18 @@ class SupplyRequestController extends Controller
     {
         $companyId=CompanyAuthorization::authorize($request,'supply_request.create');
         $data=$request->validate([
-            'fiscal_year_id'=>'required|integer','production_id'=>'nullable|integer','order_id'=>'nullable|integer','needed_at'=>'required|date',
+            'fiscal_year_id'=>'required|integer','production_id'=>'nullable|integer','order_id'=>'nullable|integer','production_section_id'=>'nullable|integer','needed_at'=>'required|date',
             'notes'=>'nullable|string','items'=>'required|array|min:1','items.*.goods_id'=>'required|integer','items.*.quantity'=>'required|numeric|gt:0'
         ]);
-        abort_unless(!empty($data['production_id'])||!empty($data['order_id']),422,'مرجع تولید یا سفارش الزامی است.');
+        abort_unless(!empty($data['production_id'])||!empty($data['order_id'])||!empty($data['production_section_id']),422,'قسمت تولید، تولید قدیمی یا سفارش باید مشخص شود.');
         $model=DB::transaction(function()use($data,$companyId,$request){
             abort_unless(DB::table('fiscal_years')->where('id',$data['fiscal_year_id'])->where('company_id',$companyId)->exists(),422,'سال مالی نامعتبر است.');
+            if(!empty($data['production_section_id'])) abort_unless(DB::table('production_sections as s')->join('locations as l','l.id','=','s.location_id')->where('s.id',$data['production_section_id'])->where('l.company_id',$companyId)->where('l.is_active',true)->exists(),422,'قسمت تولید نامعتبر است.');
             foreach(['production_id'=>'productions','order_id'=>'orders'] as $key=>$table){
                 if(!empty($data[$key])) abort_unless(DB::table($table)->where('id',$data[$key])->where('company_id',$companyId)->exists(),422,'مرجع انتخاب‌شده نامعتبر است.');
             }
             $id=DB::table('supply_requests')->insertGetId([
-                'company_id'=>$companyId,'fiscal_year_id'=>$data['fiscal_year_id'],'production_id'=>$data['production_id']??null,'order_id'=>$data['order_id']??null,
+                'company_id'=>$companyId,'fiscal_year_id'=>$data['fiscal_year_id'],'production_id'=>$data['production_id']??null,'order_id'=>$data['order_id']??null,'production_section_id'=>$data['production_section_id']??null,
                 'requested_by_user_id'=>$request->user()->id,'requested_at'=>now(),'needed_at'=>$data['needed_at'],'status'=>'checking_stock','notes'=>$data['notes']??null,
                 'created_at'=>now(),'updated_at'=>now()
             ]);
