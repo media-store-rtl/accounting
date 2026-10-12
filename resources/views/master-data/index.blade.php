@@ -169,8 +169,8 @@
                             @endif
                         @endif
                         <td>
-                            @if ($module !== 'productions' || ($row->status ?? null) === 'draft')
-                                <a class="btn" href="{{ route('master.edit', [$module, $row->id]) }}">ویرایش</a>
+                            @if ($module !== 'productions' || in_array(($row->status ?? null), ['draft', 'paused'], true))
+                                <a class="btn" href="{{ route('master.edit', [$module, $row->id]) }}">{{ $module === 'productions' && ($row->status ?? null) === 'paused' ? 'ویرایش زمان‌بندی' : 'ویرایش' }}</a>
                             @else
                                 <span style="font-size:10px;color:#8198ac">ویرایش پس از شروع غیرفعال است</span>
                             @endif
