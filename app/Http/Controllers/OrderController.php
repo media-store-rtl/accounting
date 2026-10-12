@@ -210,11 +210,18 @@ class OrderController extends Controller
     {
         $companyId=CompanyAuthorization::authorize($request,'production.supervise');
         $data=$request->validate(['production_due_at'=>'required|date']);
-        $updated=DB::table('orders')->where('id',$order)->where('company_id',$companyId)
-            ->whereIn('status',['production_required','awaiting_production'])->update([
-                'production_due_at'=>$data['production_due_at'],'status'=>'awaiting_production','updated_at'=>now()
-            ]);
-        abort_unless($updated,404);
+
+        DB::transaction(function () use ($order, $companyId, $data) {
+            $row=DB::table('orders')->where('id',$order)->where('company_id',$companyId)->lockForUpdate()->first();
+            abort_unless($row,404);
+            abort_unless($row->status === 'production_required' && $row->production_due_at === null,422,'موعد تولید این سفارش قبلاً ثبت شده و قابل تغییر نیست.');
+
+            DB::table('orders')->where('id',$order)->where('company_id',$companyId)
+                ->where('status','production_required')->whereNull('production_due_at')->update([
+                    'production_due_at'=>$data['production_due_at'],'status'=>'awaiting_production','updated_at'=>now()
+                ]);
+        });
+
         app(NotificationRecipientService::class)->send($companyId, 'order.production_due_set', ['order_id' => $order, 'production_due_at' => $data['production_due_at']], (int) $request->user()->id, 'order.view');
         return response()->json(['data'=>DB::table('orders')->find($order)]);
     }
