@@ -17,7 +17,7 @@ class OrdersSupplyWorkflowTest extends TestCase
         $company=DB::table('companies')->insertGetId(['account_id'=>$account,'name'=>'Test Company','code'=>'COM'.uniqid(),'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $user=DB::table('users')->insertGetId(['account_id'=>$account,'name'=>'Tester','username'=>'u'.uniqid(),'email'=>uniqid().'@test.local','password'=>Hash::make('secret'),'created_at'=>now(),'updated_at'=>now()]);
         $role=DB::table('roles')->insertGetId(['company_id'=>$company,'name'=>'Operations','slug'=>'ops','is_system'=>false,'created_at'=>now(),'updated_at'=>now()]);
-        foreach(['order.create','order.view','supply_request.create','supply_request.view','purchase.create','purchase.view','purchase.receipt.create','purchase.receipt.approve'] as $slug){
+        foreach(['order.create','order.view','production.supervise','supply_request.create','supply_request.view','purchase.create','purchase.view','purchase.receipt.create','purchase.receipt.approve'] as $slug){
             $permission=DB::table('permissions')->where('slug',$slug)->first();
             $permissionId=$permission?->id ?? DB::table('permissions')->insertGetId(['name'=>$slug,'slug'=>$slug,'module'=>'orders-supply','created_at'=>now(),'updated_at'=>now()]);
             DB::table('role_permissions')->insertOrIgnore(['role_id'=>$role,'permission_id'=>$permissionId]);
@@ -65,6 +65,39 @@ class OrdersSupplyWorkflowTest extends TestCase
         $response=$this->postJson('/api/orders',['fiscal_year_id'=>$c['fy'],'customer_id'=>$c['customer'],'number'=>'O1','ordered_at'=>'2026-10-06','requested_delivery_at'=>'2026-10-20','items'=>[['goods_id'=>$c['goods'],'quantity'=>8]]]);
         $response->assertCreated()->assertJsonPath('data.status','production_required');
         $this->assertDatabaseHas('order_items',['order_id'=>$response->json('data.id'),'shortage_quantity'=>3]);
+    }
+
+    public function test_production_due_date_can_be_updated_more_than_once(): void
+    {
+        $c = $this->context();
+        $order = $this->postJson('/api/orders', [
+            'fiscal_year_id' => $c['fy'],
+            'customer_id' => $c['customer'],
+            'number' => 'DUE-1',
+            'ordered_at' => '2026-10-06',
+            'requested_delivery_at' => '2026-10-30',
+            'items' => [['goods_id' => $c['goods'], 'quantity' => 8]],
+        ])->assertCreated()->json('data.id');
+
+        $this->postJson('/production/orders/'.$order.'/due-date', [
+            'production_due_at' => '2026-10-22',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order,
+            'production_due_at' => '2026-10-22',
+            'status' => 'awaiting_production',
+        ]);
+
+        $this->postJson('/production/orders/'.$order.'/due-date', [
+            'production_due_at' => '2026-10-25',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order,
+            'production_due_at' => '2026-10-25',
+            'status' => 'awaiting_production',
+        ]);
     }
 
     public function test_order_does_not_double_allocate_stock_to_multiple_open_orders(): void

@@ -93,10 +93,6 @@ $fulfillmentLabels = [
 </div>
 
 <div class="panel">
-  <div class="actions">
-    <button class="btn primary" type="button" onclick="refreshOrder()">بررسی مجدد موجودی</button>
-  </div>
-
   <div class="order-forms">
     @if($row->status === 'ready_for_delivery')
       <form class="order-form" onsubmit="requestDelivery(event)">
