@@ -15,6 +15,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="canonical" href="https://mymedimo.ir/">
+    <meta property="og:url" content="https://mymedimo.ir/">
     <title>حسابداری صنعتی | کنترل تولید و بهای تمام‌شده</title>
     <style>
         :root{font-family:"Vazirmatn","Segoe UI",Tahoma,sans-serif;color:#edf5ff;background:#050b14;font-synthesis:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
