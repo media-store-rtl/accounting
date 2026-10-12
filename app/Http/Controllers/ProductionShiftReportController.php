@@ -73,22 +73,24 @@ final class ProductionShiftReportController extends Controller
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.operation.review');
         $data = $request->validate(['approve' => ['required', 'boolean'], 'review_notes' => ['nullable', 'string', 'max:1000']]);
-        $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
-        if (!$row || $row->status !== 'pending') throw ValidationException::withMessages(['report' => 'این گزارش دیگر در انتظار بررسی نیست.']);
-        DB::table('production_shift_reports')->where('id', $report)->where('company_id', $companyId)->update([
-            'status' => $data['approve'] ? 'approved' : 'rejected',
-            'reviewed_by_user_id' => (int)$request->user()->id,
-            'review_notes' => $data['review_notes'] ?? null,
-            'reviewed_at' => now(), 'updated_at' => now(),
-        ]);
-        DB::table('audit_trails')->insert([
-            'company_id' => $companyId, 'user_id' => (int)$request->user()->id, 'module' => 'production',
-            'action' => $data['approve'] ? 'production_shift_report.approve' : 'production_shift_report.reject',
-            'auditable_type' => 'production_shift_reports', 'auditable_id' => $report,
-            'before' => json_encode((array)$row),
-            'after' => json_encode((array)DB::table('production_shift_reports')->where('id', $report)->first()),
-            'method' => 'SERVICE', 'status_code' => 200, 'created_at' => now(), 'updated_at' => now(),
-        ]);
+        DB::transaction(function () use ($companyId, $report, $data, $request) {
+            $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
+            if (!$row || $row->status !== 'pending') throw ValidationException::withMessages(['report' => 'این گزارش دیگر در انتظار بررسی نیست.']);
+            DB::table('production_shift_reports')->where('id', $report)->where('company_id', $companyId)->update([
+                'status' => $data['approve'] ? 'approved' : 'rejected',
+                'reviewed_by_user_id' => (int)$request->user()->id,
+                'review_notes' => $data['review_notes'] ?? null,
+                'reviewed_at' => now(), 'updated_at' => now(),
+            ]);
+            DB::table('audit_trails')->insert([
+                'company_id' => $companyId, 'user_id' => (int)$request->user()->id, 'module' => 'production',
+                'action' => $data['approve'] ? 'production_shift_report.approve' : 'production_shift_report.reject',
+                'auditable_type' => 'production_shift_reports', 'auditable_id' => $report,
+                'before' => json_encode((array)$row),
+                'after' => json_encode((array)DB::table('production_shift_reports')->where('id', $report)->first()),
+                'method' => 'SERVICE', 'status_code' => 200, 'created_at' => now(), 'updated_at' => now(),
+            ]);
+        });
         return back()->with('success', $data['approve'] ? 'گزارش شیفت تأیید شد؛ اکنون می‌توان مقدار تحویلی به انبار را ثبت کرد.' : 'گزارش شیفت رد شد.');
     }
 
@@ -101,10 +103,10 @@ final class ProductionShiftReportController extends Controller
         ]);
         DB::transaction(function () use ($companyId, $report, $data, $request, $inventory) {
             $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
-            if (!$row || $row->status !== 'approved') throw ValidationException::withMessages(['report' => 'فقط گزارش تأییدشده و تحویل‌نشده قابل ورود به انبار است.']);
+            if (!$row || $row->status !== 'approved') throw ValidationException::withMessages(['report' => 'فقط گزارش تأییدشده با مقدار باقی‌مانده قابل تحویل به انبار است.']);
             $quantity = (float)$data['warehouse_quantity'];
             $available = max(0, (float)$row->produced_quantity - (float)$row->scrap_quantity);
-            if ($quantity > $available + 0.0000001) throw ValidationException::withMessages(['warehouse_quantity' => 'مقدار تحویل به انبار نمی‌تواند از تولید سالم تأییدشده بیشتر باشد.']);
+            $alreadyReceived = (float)($row->warehouse_quantity ?? 0);\n            if ($quantity > ($available - $alreadyReceived) + 0.0000001) throw ValidationException::withMessages(['warehouse_quantity' => 'مقدار تحویل از باقیمانده تولید سالم بیشتر است.']);\n            if ($alreadyReceived > 0 && (int)$row->warehouse_location_id !== (int)$data['warehouse_location_id']) throw ValidationException::withMessages(['warehouse_location_id' => 'برای تحویل‌های یک گزارش، همان انبار قبلی را انتخاب کنید.']);
             $warehouse = DB::table('locations')->where('id', (int)$data['warehouse_location_id'])->where('company_id', $companyId)->where('type', 'warehouse')->where('is_active', true)->exists();
             if (!$warehouse) throw ValidationException::withMessages(['warehouse_location_id' => 'انبار معتبر نیست.']);
             $inventory->receiveFinishedGoods($companyId, (int)$data['warehouse_location_id'], (int)$row->goods_id, $quantity,
