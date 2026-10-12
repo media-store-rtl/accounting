@@ -56,6 +56,7 @@ class NotificationRecipientService
             'supply.stock_check_required' => 'supply_request.handover.create',
             'supply.shortage' => 'supply.manage',
             'supply.stock_rejected' => 'supply_request.create',
+            'supply.stock_available' => 'supply_request.create',
             'supply.purchased' => 'supply_request.create',
             default => null,
         };
