@@ -91,15 +91,15 @@ class MaterialHandoverController extends Controller
 
                 abort_unless($available + 0.0000001 >= $quantity, 422, 'موجودی انبار برای تحویل کافی نیست.');
 
-                $inventory->issue(
-                    $companyId,
-                    (int) $data['warehouse_location_id'],
-                    (int) $item['goods_id'],
-                    $quantity,
-                    'material_handovers',
-                    $handoverId,
-                    ['supply_request_id' => $requestRow->id]
-                );
+                if (!empty($requestRow->production_section_id)) {
+                    $inventory->transferToProductionSection($companyId, (int) $data['warehouse_location_id'],
+                        (int) $requestRow->production_section_id, (int) $item['goods_id'], $quantity,
+                        'material_handovers', $handoverId, ['supply_request_id' => (int) $requestRow->id]);
+                } else {
+                    // Preserve legacy behavior for old requests without a production section.
+                    $inventory->issue($companyId, (int) $data['warehouse_location_id'], (int) $item['goods_id'], $quantity,
+                        'material_handovers', $handoverId, ['supply_request_id' => $requestRow->id]);
+                }
 
                 DB::table('material_handover_items')->insert([
                     'material_handover_id' => $handoverId,
