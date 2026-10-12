@@ -65,6 +65,19 @@ class InventoryValuationTest extends TestCase
         $this->assertSame(80.0,(float)DB::table('inventory_cost_layers')->sum('weighted_average_quantity_remaining'));
     }
 
+    public function test_goods_can_override_company_valuation_method(): void
+    {
+        $c=$this->context(InventoryValuationService::FIFO);
+        $service=app(InventoryValuationService::class);
+        $service->setGoodsMethod($c['company'],$c['goods'],InventoryValuationService::WEIGHTED_AVERAGE);
+        $this->assertSame(InventoryValuationService::WEIGHTED_AVERAGE,$service->methodForGoods($c['company'],$c['goods']));
+        $this->layer($c,100,10,'2026-10-01 10:00:00');
+        $this->layer($c,100,15,'2026-10-02 10:00:00');
+        $result=$service->valueInventoryMovement($this->movement($c,120),$c['fy']);
+        $this->assertSame(1500.0,round($result['total_cost'],4));
+        $this->assertSame(InventoryValuationService::WEIGHTED_AVERAGE,$result['method']);
+    }
+
     public function test_method_can_be_selected_before_valued_transactions(): void
     {
         $c=$this->context(InventoryValuationService::FIFO);
