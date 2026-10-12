@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\InventoryService;
 use App\Support\CompanyAuthorization;
-use Illuminate\\Support\\Facades\\Schema;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
