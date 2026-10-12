@@ -108,6 +108,7 @@ class WorkflowPagesController extends Controller {
    'sections'=>DB::table('production_sections as s')->join('locations as l','l.id','=','s.location_id')->where('l.company_id',$cid)->where('l.is_active',true)->orderBy('l.name')->get(['s.id','l.name']),
    'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->orderBy('name')->get(['id','code','name']),
    'fiscalYears'=>DB::table('fiscal_years')->where('company_id',$cid)->where('is_closed',false)->orderByDesc('id')->get(),
+   'canReview'=>$r->user()->hasCompanyPermission($cid,'production.labor.review'),
   ]);
  }
  public function warehouseSupplyRequests(Request $r){
