@@ -76,6 +76,9 @@ class ProductionOutputService
             DB::table('finished_goods_receipts')->where('id',$receipt->id)->update([
                 'status'=>'approved','received_by_user_id'=>$userId,'received_at'=>$receivedAt??now(),'approved_at'=>now(),'approved_by_user_id'=>$userId,'updated_at'=>now()
             ]);
+            DB::table('production_outputs')->where('id',$outputId)->where('company_id',$companyId)->update([
+                'status'=>'received','updated_at'=>now()
+            ]);
             DB::table('productions')->where('id',$production->id)->update([
                 'produced_quantity'=>DB::raw('produced_quantity + '.(float)$output->quantity),'updated_at'=>now()
             ]);
