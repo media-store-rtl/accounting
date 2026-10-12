@@ -88,6 +88,78 @@ final class LaborCostService
         ]);
     }
 
+    public function recordShiftEntry(
+        int $companyId,
+        int $fiscalYearId,
+        int $productionSectionId,
+        int $goodsId,
+        int $personnelId,
+        float $hoursWorked,
+        float $quantityCompleted,
+        string $payBasis,
+        string $workedAt,
+        ?string $shiftName,
+        int $createdByUserId,
+        ?string $notes = null
+    ): int {
+        if ($hoursWorked <= 0 || $quantityCompleted < 0 || !in_array($payBasis, self::RATE_TYPES, true)
+            || ($payBasis === 'per_unit' && $quantityCompleted <= 0)) {
+            throw ValidationException::withMessages(['hours_worked' => 'ساعت، تعداد تولید یا مبنای دستمزد معتبر نیست.']);
+        }
+
+        $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
+        if (!DB::table('personnel')->where('id', $personnelId)->where('account_id', $accountId)->where('is_active', true)->exists()) {
+            throw ValidationException::withMessages(['personnel_id' => 'پرسنل فعال شرکت معتبر نیست.']);
+        }
+        if (!DB::table('fiscal_years')->where('id', $fiscalYearId)->where('company_id', $companyId)->where('is_closed', false)->exists()) {
+            throw ValidationException::withMessages(['fiscal_year_id' => 'سال مالی باز و متعلق به شرکت انتخاب نشده است.']);
+        }
+        if (!DB::table('production_sections as s')->join('locations as l', 'l.id', '=', 's.location_id')
+            ->where('s.id', $productionSectionId)->where('l.company_id', $companyId)->where('l.is_active', true)->exists()) {
+            throw ValidationException::withMessages(['production_section_id' => 'قسمت تولید معتبر نیست.']);
+        }
+        if (!DB::table('goods')->where('id', $goodsId)->where('company_id', $companyId)->where('is_active', true)->exists()) {
+            throw ValidationException::withMessages(['goods_id' => 'کالای فعال شرکت معتبر نیست.']);
+        }
+
+        $rate = DB::table('personnel_labor_rates')
+            ->where('company_id', $companyId)->where('personnel_id', $personnelId)->where('rate_type', $payBasis)
+            ->where('effective_from', '<=', substr($workedAt, 0, 10))
+            ->where(function ($query) use ($workedAt) {
+                $query->whereNull('effective_to')->orWhere('effective_to', '>=', substr($workedAt, 0, 10));
+            })->orderByDesc('effective_from')->orderByDesc('id')->value('rate');
+        if ($rate === null) {
+            throw ValidationException::withMessages(['pay_basis' => 'برای این پرسنل و مبنای دستمزد در تاریخ کارکرد نرخ معتبر ثبت نشده است.']);
+        }
+
+        $measureQuantity = $payBasis === 'hourly' ? $hoursWorked : $quantityCompleted;
+        return DB::table('production_labor_entries')->insertGetId([
+            'company_id' => $companyId,
+            'fiscal_year_id' => $fiscalYearId,
+            'production_id' => null,
+            'production_stage_id' => null,
+            'production_operation_run_id' => null,
+            'production_section_id' => $productionSectionId,
+            'goods_id' => $goodsId,
+            'personnel_id' => $personnelId,
+            'measure_type' => $payBasis === 'hourly' ? 'hours' : 'quantity',
+            'measure_quantity' => $measureQuantity,
+            'unit_rate' => (float) $rate,
+            'total_cost' => $measureQuantity * (float) $rate,
+            'worked_at' => $workedAt,
+            'shift_date' => substr($workedAt, 0, 10),
+            'shift_name' => $shiftName,
+            'hours_worked' => $hoursWorked,
+            'quantity_completed' => $quantityCompleted,
+            'pay_basis' => $payBasis,
+            'status' => 'pending',
+            'created_by_user_id' => $createdByUserId,
+            'notes' => $notes,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
     public function review(int $companyId, int $entryId, int $reviewerUserId, bool $approve, ?string $reason = null): void
     {
         DB::transaction(function () use ($companyId,$entryId,$reviewerUserId,$approve,$reason) {
@@ -98,9 +170,9 @@ final class LaborCostService
                 DB::table('production_labor_costs')->insert([
                     'labor_entry_id'=>$entry->id,'company_id'=>$entry->company_id,'fiscal_year_id'=>$entry->fiscal_year_id,
                     'production_id'=>$entry->production_id,'production_stage_id'=>$entry->production_stage_id,
-                    'production_operation_run_id'=>$entry->production_operation_run_id,'personnel_id'=>$entry->personnel_id,
+                    'production_operation_run_id'=>$entry->production_operation_run_id,'production_section_id'=>$entry->production_section_id ?? null,'goods_id'=>$entry->goods_id ?? null,'personnel_id'=>$entry->personnel_id,
                     'measure_type'=>$entry->measure_type,'measure_quantity'=>$entry->measure_quantity,'unit_rate'=>$entry->unit_rate,
-                    'total_cost'=>$entry->total_cost,'worked_at'=>$entry->worked_at,'approved_at'=>now(),
+                    'total_cost'=>$entry->total_cost,'worked_at'=>$entry->worked_at,'shift_date'=>$entry->shift_date ?? null,'shift_name'=>$entry->shift_name ?? null,'hours_worked'=>$entry->hours_worked ?? 0,'quantity_completed'=>$entry->quantity_completed ?? 0,'pay_basis'=>$entry->pay_basis ?? null,'approved_at'=>now(),
                     'approved_by_user_id'=>$reviewerUserId,'created_at'=>now(),'updated_at'=>now(),
                 ]);
             } else {

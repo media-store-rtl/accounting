@@ -13,13 +13,17 @@ final class LaborCostController
     public function store(StoreLaborEntryRequest $request, LaborCostService $service): JsonResponse
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.labor.create');
-        $id = $service->record(
+        $id = $service->recordShiftEntry(
             $companyId,
-            (int)$request->integer('production_operation_run_id'),
+            (int)$request->integer('fiscal_year_id'),
+            (int)$request->integer('production_section_id'),
+            (int)$request->integer('goods_id'),
             (int)$request->integer('personnel_id'),
-            (string)$request->input('measure_type'),
-            (float)$request->input('measure_quantity'),
+            (float)$request->input('hours_worked'),
+            (float)$request->input('quantity_completed'),
+            (string)$request->input('pay_basis'),
             (string)$request->input('worked_at'),
+            $request->input('shift_name'),
             (int)$request->user()->id,
             $request->input('notes')
         );
@@ -29,8 +33,14 @@ final class LaborCostController
     public function review(Request $request, LaborCostService $service, int $laborEntry): JsonResponse
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.labor.review');
-        $validated=$request->validate(['approve'=>['required','boolean'],'reason'=>['nullable','string']]);
+        $validated=$request->validate([
+            'approve'=>['required','boolean'],
+            'reason'=>['required_if:approve,0','nullable','string','max:1000'],
+        ]);
         $service->review($companyId,$laborEntry,(int)$request->user()->id,(bool)$validated['approve'],$validated['reason']??null);
+        if (!$request->expectsJson()) {
+            return back()->with('success', $validated['approve'] ? 'کارکرد تأیید شد.' : 'کارکرد با ثبت دلیل رد شد.');
+        }
         return response()->json(['status'=>$validated['approve']?'approved':'rejected']);
     }
 

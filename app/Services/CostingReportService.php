@@ -85,13 +85,34 @@ final class CostingReportService
 
     private function labor(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId): void
     {
-        $costs=DB::table('production_labor_costs')->where('company_id',$companyId)->when($fy,fn($q)=>$q->where('fiscal_year_id',$fy))->get(['production_id','total_cost']);
-        $pids=$costs->pluck('production_id')->unique()->values();if($pids->isEmpty())return;
-        $goods=DB::table('productions')->whereIn('id',$pids)->get(['id','goods_id'])->keyBy('id');$links=DB::table('production_order')->whereIn('production_id',$pids)->get(['production_id','order_id'])->groupBy('production_id');
-        foreach($costs as $c){
-            $p=$goods->get((int)$c->production_id);if(!$p||($goodsId!==null&&(int)$p->goods_id!==$goodsId))continue;
-            foreach($links->get((int)$c->production_id,collect()) as $link){
-                if($orderId!==null&&(int)$link->order_id!==$orderId)continue;$key=$this->key((int)$link->order_id,(int)$p->goods_id);$this->row($rows,$key,(int)$link->order_id,(int)$p->goods_id);$rows[$key]['labor_cost']+=(float)$c->total_cost;
+        $costs = DB::table('production_labor_costs')
+            ->where('company_id', $companyId)
+            ->when($fy, fn($q) => $q->where('fiscal_year_id', $fy))
+            ->get(['production_id', 'goods_id', 'total_cost']);
+
+        $direct = $costs->filter(fn($c) => $c->goods_id !== null);
+        foreach ($direct as $c) {
+            // Shift labor is linked directly to the finished/product good. It cannot be
+            // assigned to an order unless an explicit production/order link exists.
+            if ($orderId !== null || ($goodsId !== null && (int)$c->goods_id !== $goodsId)) continue;
+            $key = $this->key(null, (int)$c->goods_id);
+            $this->row($rows, $key, null, (int)$c->goods_id);
+            $rows[$key]['labor_cost'] += (float)$c->total_cost;
+        }
+
+        $legacy = $costs->filter(fn($c) => $c->goods_id === null && $c->production_id !== null);
+        $pids = $legacy->pluck('production_id')->unique()->values();
+        if ($pids->isEmpty()) return;
+        $goods = DB::table('productions')->whereIn('id', $pids)->get(['id', 'goods_id'])->keyBy('id');
+        $links = DB::table('production_order')->whereIn('production_id', $pids)->get(['production_id', 'order_id'])->groupBy('production_id');
+        foreach ($legacy as $c) {
+            $p = $goods->get((int)$c->production_id);
+            if (!$p || ($goodsId !== null && (int)$p->goods_id !== $goodsId)) continue;
+            foreach ($links->get((int)$c->production_id, collect()) as $link) {
+                if ($orderId !== null && (int)$link->order_id !== $orderId) continue;
+                $key = $this->key((int)$link->order_id, (int)$p->goods_id);
+                $this->row($rows, $key, (int)$link->order_id, (int)$p->goods_id);
+                $rows[$key]['labor_cost'] += (float)$c->total_cost;
             }
         }
     }
