@@ -20,7 +20,18 @@ final class ProductionExecutionController extends Controller
             ->where('p.company_id',$companyId)
             ->select('r.*','o.name as operation_name','s.name as stage_name','p.number as production_number')
             ->latest('r.id')->paginate(20);
-        return view('production.execution.index',compact('rows'));
+        $handovers=DB::table('production_stage_handovers as h')
+            ->join('productions as p','p.id','=','h.production_id')
+            ->join('production_stage_runs as fsr','fsr.id','=','h.from_stage_run_id')
+            ->join('production_stages as fs','fs.id','=','fsr.production_stage_id')
+            ->join('production_sections as fsec','fsec.id','=','fs.production_section_id')
+            ->join('production_stage_runs as tsr','tsr.id','=','h.to_stage_run_id')
+            ->join('production_stages as ts','ts.id','=','tsr.production_stage_id')
+            ->join('production_sections as tsec','tsec.id','=','ts.production_section_id')
+            ->where('h.company_id',$companyId)
+            ->select('h.*','p.number as production_number','fsec.name as from_section_name','tsec.name as to_section_name','ts.name as to_stage_name')
+            ->latest('h.id')->limit(50)->get();
+        return view('production.execution.index',compact('rows','handovers'));
     }
 
     public function create(Request $request)
@@ -29,9 +40,16 @@ final class ProductionExecutionController extends Controller
         $runs=DB::table('production_operation_runs as r')
             ->join('production_stage_runs as sr','sr.id','=','r.production_stage_run_id')
             ->join('production_operations as o','o.id','=','r.production_operation_id')
+            ->join('production_stages as s','s.id','=','sr.production_stage_id')
             ->join('productions as p','p.id','=','sr.production_id')
             ->where('p.company_id',$companyId)->where('p.status','in_progress')->whereIn('r.status',['pending','in_progress'])
-            ->select('r.id','p.number','o.name')->orderByDesc('r.id')->get();
+            ->whereIn('sr.status',['pending','in_progress'])
+            ->select('r.id','p.number','o.name','sr.id as stage_run_id','sr.production_id')
+            ->orderBy('sr.id')->orderBy('r.sequence')->get()
+            ->filter(function($run) {
+                $previous=DB::table('production_stage_runs')->where('production_id',$run->production_id)->where('id','<',$run->stage_run_id)->orderByDesc('id')->first();
+                return !$previous || DB::table('production_stage_handovers')->where('from_stage_run_id',$previous->id)->where('to_stage_run_id',$run->stage_run_id)->where('status','received')->exists();
+            })->values();
         $goods=DB::table('goods')->where('company_id',$companyId)->where('is_active',true)->orderBy('name')->get(['id','code','name']);
         return view('production.execution.create',compact('runs','goods'));
     }
@@ -58,6 +76,17 @@ final class ProductionExecutionController extends Controller
         ]);
         $service->submit($companyId,(int)$data['production_operation_run_id'],$data['inputs']??[],$data['outputs']??[],$data['scraps']??[],(int)$request->user()->id,$data['completed_at']??null,$data['notes']??null);
         return redirect()->route('production.execution.index')->with('success','عملیات تولید ثبت و برای تأیید ارسال شد.');
+    }
+
+    public function receiveHandover(Request $request,int $handover,ProductionExecutionService $service)
+    {
+        $companyId=CompanyAuthorization::authorize($request,'production.operation.create');
+        $data=$request->validate([
+            'received_quantity'=>['required','numeric','gt:0'],
+            'notes'=>['nullable','string','max:1000'],
+        ]);
+        $service->receiveHandover($companyId,$handover,(int)$request->user()->id,(float)$data['received_quantity'],$data['notes']??null);
+        return back()->with('success','دریافت مقدار در قسمت بعدی ثبت شد؛ اجرای مرحله اکنون مجاز است.');
     }
 
     public function review(Request $request,int $run,ProductionExecutionService $service)
