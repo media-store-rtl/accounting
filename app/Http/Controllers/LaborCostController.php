@@ -33,8 +33,14 @@ final class LaborCostController
     public function review(Request $request, LaborCostService $service, int $laborEntry): JsonResponse
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.labor.review');
-        $validated=$request->validate(['approve'=>['required','boolean'],'reason'=>['nullable','string']]);
+        $validated=$request->validate([
+            'approve'=>['required','boolean'],
+            'reason'=>['required_if:approve,0','nullable','string','max:1000'],
+        ]);
         $service->review($companyId,$laborEntry,(int)$request->user()->id,(bool)$validated['approve'],$validated['reason']??null);
+        if (!$request->expectsJson()) {
+            return back()->with('success', $validated['approve'] ? 'کارکرد تأیید شد.' : 'کارکرد با ثبت دلیل رد شد.');
+        }
         return response()->json(['status'=>$validated['approve']?'approved':'rejected']);
     }
 
