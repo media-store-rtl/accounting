@@ -1,51 +1,186 @@
 @extends('layouts.dashboard-shell')
 
-@section('title', 'گزارش تولید شیفت')
+@section('title', 'ثبت تولید شیفت')
+
+@push('styles')
+<style>
+.shift-page{display:grid;gap:18px}
+.shift-intro{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.shift-intro .eyebrow{display:inline-flex;align-items:center;gap:7px;color:#6ee7d0;font-size:10px;margin-bottom:7px}
+.shift-intro h1{margin:0;font-size:25px}
+.shift-intro p{margin:7px 0 0;color:#8ba1b5;font-size:12px;line-height:1.9;max-width:720px}
+.shift-guide{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}
+.shift-guide-item{display:flex;align-items:flex-start;gap:10px;padding:13px;border:1px solid #1b354b;border-radius:12px;background:#0d2235}
+.shift-guide-num{display:grid;place-items:center;flex:0 0 27px;height:27px;border-radius:9px;background:#12372f;color:#6ee7d0;font-size:11px;font-weight:800}
+.shift-guide-item strong{display:block;font-size:11px;margin:1px 0 4px}
+.shift-guide-item span{display:block;color:#8ba1b5;font-size:10px;line-height:1.8}
+.shift-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:17px}
+.shift-panel-head h2{font-size:15px;margin:0 0 5px}
+.shift-panel-head p{font-size:11px;line-height:1.9;color:#8ba1b5;margin:0}
+.shift-tag{white-space:nowrap;border:1px solid #29465e;background:#0d2235;color:#9eb2c4;border-radius:20px;padding:5px 9px;font-size:10px}
+.shift-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.shift-field{display:flex;flex-direction:column;gap:7px;min-width:0;color:#cce0ef;font-size:11px}
+.shift-field.full{grid-column:1/-1}
+.shift-field input,.shift-field select,.shift-field textarea,.shift-action input,.shift-action select{width:100%;min-width:0;background:#071725;color:#e9f3fb;border:1px solid #29465e;border-radius:10px;padding:11px 12px;font:inherit;outline:none}
+.shift-field input:focus,.shift-field select:focus,.shift-field textarea:focus,.shift-action input:focus,.shift-action select:focus{border-color:#6ee7d0;box-shadow:0 0 0 3px rgba(110,231,208,.08)}
+.shift-field input::placeholder,.shift-field textarea::placeholder,.shift-action input::placeholder{color:#587087}
+.shift-field small{font-size:10px;color:#71879d;line-height:1.7}
+.shift-form-footer{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-top:5px}
+.shift-form-footer p{font-size:10px;color:#71879d;line-height:1.8;margin:0}
+.shift-table-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.shift-table-title h2{font-size:15px;margin:0}
+.shift-table-title p{font-size:10px;color:#71879d;margin:5px 0 0}
+.shift-table td{vertical-align:middle}
+.shift-primary-cell{font-weight:600;color:#dcebf6}
+.shift-secondary{display:block;color:#71879d;font-size:10px;margin-top:5px;white-space:normal;min-width:90px;line-height:1.7}
+.shift-number{font-variant-numeric:tabular-nums}
+.shift-action{display:grid;gap:7px;min-width:165px}
+.shift-action form{display:grid;gap:7px}
+.shift-action .btn{justify-content:center;cursor:pointer}
+.shift-note{font-size:10px;line-height:1.8;color:#8ba1b5;white-space:normal;min-width:130px;max-width:220px}
+.shift-empty{padding:30px 14px!important;text-align:center!important;white-space:normal;color:#8198ac}
+.shift-flash{padding:12px 15px;border-radius:12px;font-size:12px;line-height:1.8}
+.shift-flash.success{border:1px solid #246451;background:#0c282b;color:#8ce8ce}
+.shift-flash.error{border:1px solid #714448;background:#302126;color:#ffb8a8}
+@media(max-width:900px){.shift-form{grid-template-columns:repeat(2,minmax(0,1fr))}.shift-guide{grid-template-columns:1fr}}
+@media(max-width:560px){.shift-intro h1{font-size:22px}.shift-form{grid-template-columns:1fr}.shift-field.full,.shift-form-footer{grid-column:auto}.shift-panel-head{flex-direction:column}.shift-tag{white-space:normal}.shift-form-footer .btn{width:100%;justify-content:center}}
+</style>
+@endpush
 
 @section('content')
-<div class="page-heading"><div><h1>ثبت تولید شیفت</h1><p>ثبت محصول، قسمت، شیفت، تولید و ضایعات بدون نیاز به دستور تولید</p></div></div>
-@if(session('success'))<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #246451;border-radius:12px;background:#0c282b;color:#8ce8ce;font-size:12px">{{ session('success') }}</div>@endif
-@if($errors->any())<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #714448;border-radius:12px;background:#302126;color:#ffb8a8;font-size:12px">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
+<div class="shift-page">
+  <div class="shift-intro">
+    <div>
+      <span class="eyebrow">⚒ ثبت عملکرد واقعی تولید</span>
+      <h1>ثبت تولید شیفت</h1>
+      <p>مقدار تولید هر قسمت را به تفکیک محصول، کارگر و شیفت ثبت کنید. گزارش پس از ثبت برای بررسی سرپرست ارسال می‌شود.</p>
+    </div>
+    <span class="shift-tag">فرایند ساده ثبت تولید</span>
+  </div>
 
-<div class="panel" style="margin-bottom:18px">
-<h2 style="font-size:15px;margin:0 0 8px">ثبت گزارش پایان شیفت</h2>
-<p style="font-size:12px;line-height:1.9">اپراتور یا مسئول شیفت، مقدار تولید و ضایعات را ثبت می‌کند. پس از تأیید سرپرست، مقدار قابل‌تحویل به انبار جداگانه ثبت می‌شود؛ ثبت گزارش به‌تنهایی موجودی انبار را تغییر نمی‌دهد.</p>
-<form method="POST" action="{{ route('production.shift-reports.store') }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:12px">
-@csrf
-<label>قسمت تولید<select class="form-select" name="production_section_id" required><option value="">انتخاب قسمت</option>@foreach($sections as $s)<option value="{{ $s->id }}" @selected((string)old('production_section_id')===(string)$s->id)>{{ $s->name ?: 'قسمت '.$s->id }}</option>@endforeach</select></label>
-<label>کارگر<select class="form-select" name="personnel_id" required><option value="">انتخاب کارگر</option>@foreach($personnel as $p)<option value="{{ $p->id }}" @selected((string)old('personnel_id')===(string)$p->id)>{{ $p->code ? $p->code.' — ' : '' }}{{ $p->name }}</option>@endforeach</select></label>
-<label>محصول / قطعه<select class="form-select" name="goods_id" required><option value="">انتخاب کالا</option>@foreach($goods as $g)<option value="{{ $g->id }}" @selected((string)old('goods_id')===(string)$g->id)>{{ $g->code ? $g->code.' — ' : '' }}{{ $g->name }}</option>@endforeach</select></label>
-<label>شیفت<input class="form-input" name="shift_name" maxlength="80" value="{{ old('shift_name') }}" placeholder="مثلاً صبح، عصر یا شب" required></label>
-<label>تاریخ شیفت<input class="form-input" type="date" name="work_date" value="{{ old('work_date', now()->toDateString()) }}" required></label>
-<label>تعداد تولیدشده<input class="form-input" type="number" min="0.0001" step="0.0001" name="produced_quantity" value="{{ old('produced_quantity') }}" required></label>
-<label>ضایعات<input class="form-input" type="number" min="0" step="0.0001" name="scrap_quantity" value="{{ old('scrap_quantity', '0') }}"></label>
-<label style="grid-column:1/-1">توضیحات<textarea class="form-input" name="notes" rows="2" maxlength="2000">{{ old('notes') }}</textarea></label>
-<div><button class="btn primary" type="submit">ثبت گزارش برای تأیید</button></div>
-</form></div>
+  @if(session('success'))<div class="shift-flash success">{{ session('success') }}</div>@endif
+  @if($errors->any())<div class="shift-flash error"><strong>لطفاً موارد زیر را بررسی کنید:</strong>@foreach($errors->all() as $error)<div>• {{ $error }}</div>@endforeach</div>@endif
 
-<div class="panel"><h2 style="font-size:15px">گزارش‌های ثبت‌شده</h2>
-<div class="table-wrap"><table><thead><tr><th>تاریخ / شیفت</th><th>قسمت</th><th>کارگر</th><th>محصول</th><th>تولید</th><th>ضایعات</th><th>ثبت‌کننده</th><th>وضعیت</th><th>اقدام</th></tr></thead><tbody>
-@forelse($rows as $r)
-<tr><td>{{ $r->work_date }}<br>{{ $r->shift_name }}</td><td>{{ $r->section_name ?: '—' }}</td><td>{{ $r->worker_name ?: '—' }}</td><td>{{ $r->goods_code ? $r->goods_code.' — ' : '' }}{{ $r->goods_name }}</td><td>{{ $r->produced_quantity }}</td><td>{{ $r->scrap_quantity }}</td><td>{{ $r->reporter_name }}</td><td>
-@php($labels=['pending'=>'در انتظار تأیید','approved'=>'تأییدشده؛ آماده تحویل','rejected'=>'ردشده','received'=>'تحویل انبار شد'])
-<span class="status {{ in_array($r->status,['approved','received'],true) ? 'active' : 'inactive' }}">{{ $labels[$r->status] ?? $r->status }}</span>
-@if($r->review_notes)<div style="font-size:11px;margin-top:5px">{{ $r->review_notes }}</div>@endif
-@if((float)($r->warehouse_quantity ?? 0)>0)<div style="font-size:11px;margin-top:5px">تحویل انبار تا این لحظه: {{ $r->warehouse_quantity }} — {{ $r->warehouse_name ?: 'انبار' }}</div>@endif
-</td><td style="min-width:190px">
-@if($r->status==='pending' && $canReview)
-<form method="POST" action="{{ route('production.shift-reports.review',$r->id) }}" style="display:grid;gap:6px;margin-bottom:6px">@csrf
-<input type="hidden" name="approve" value="1"><input class="form-input" name="review_notes" placeholder="یادداشت سرپرست (اختیاری)"><button class="btn primary" type="submit">تأیید گزارش</button></form>
-<form method="POST" action="{{ route('production.shift-reports.review',$r->id) }}" style="display:grid;gap:6px">@csrf
-<input type="hidden" name="approve" value="0"><input class="form-input" name="review_notes" placeholder="دلیل رد گزارش" required><button class="btn" type="submit">رد گزارش</button></form>
-@elseif($r->status==='approved' && $canReceive)
-<form method="POST" action="{{ route('production.shift-reports.receive',$r->id) }}" style="display:grid;gap:6px">@csrf
-<select class="form-select" name="warehouse_location_id" required><option value="">انتخاب انبار</option>@foreach($warehouses as $w)<option value="{{ $w->id }}">{{ $w->name }}</option>@endforeach</select>
-<input class="form-input" name="warehouse_quantity" type="number" min="0.0001" max="{{ max(0,(float)$r->produced_quantity-(float)$r->scrap_quantity-(float)($r->warehouse_quantity ?? 0)) }}" step="0.0001" placeholder="مقدار تحویل این‌بار" required>
-<button class="btn primary" type="submit">ثبت ورود به انبار</button></form>
-@else—@endif
-</td></tr>
-@empty<tr><td colspan="9" style="text-align:center;padding:24px;color:#8198ac">هنوز گزارش شیفتی ثبت نشده است.</td></tr>@endforelse
-</tbody></table></div>
-@if(method_exists($rows,'links'))<div class="pagination">{{ $rows->links() }}</div>@endif
+  <div class="panel">
+    <div class="shift-panel-head">
+      <div>
+        <h2>راهنمای ثبت گزارش</h2>
+        <p>برای ثبت سریع و درست، این ترتیب را دنبال کنید.</p>
+      </div>
+    </div>
+    <div class="shift-guide">
+      <div class="shift-guide-item"><span class="shift-guide-num">۱</span><div><strong>مشخصات شیفت</strong><span>قسمت تولید، تاریخ و نام شیفت را انتخاب کنید.</span></div></div>
+      <div class="shift-guide-item"><span class="shift-guide-num">۲</span><div><strong>مقدار تولید</strong><span>کارگر، محصول، تعداد تولیدشده و ضایعات را وارد کنید.</span></div></div>
+      <div class="shift-guide-item"><span class="shift-guide-num">۳</span><div><strong>تأیید و تحویل</strong><span>بعد از تأیید سرپرست، محصول سالم را می‌توان به انبار تحویل داد.</span></div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="shift-panel-head">
+      <div>
+        <h2>فرم ثبت تولید</h2>
+        <p>فیلدهای ستاره‌دار الزامی‌اند. ثبت گزارش به‌تنهایی موجودی انبار را تغییر نمی‌دهد.</p>
+      </div>
+      <span class="shift-tag">گزارش جدید</span>
+    </div>
+    <form method="POST" action="{{ route('production.shift-reports.store') }}" class="shift-form">
+      @csrf
+      <label class="shift-field">قسمت تولید *
+        <select name="production_section_id" required>
+          <option value="">انتخاب قسمت تولید</option>
+          @foreach($sections as $s)<option value="{{ $s->id }}" @selected((string)old('production_section_id')===(string)$s->id)>{{ $s->name ?: 'قسمت '.$s->id }}</option>@endforeach
+        </select>
+      </label>
+      <label class="shift-field">تاریخ شیفت *
+        <input type="date" name="work_date" value="{{ old('work_date', now()->toDateString()) }}" required>
+      </label>
+      <label class="shift-field">نام شیفت *
+        <input name="shift_name" maxlength="80" value="{{ old('shift_name') }}" placeholder="مثلاً صبح، عصر یا شب" required>
+      </label>
+      <label class="shift-field">کارگر *
+        <select name="personnel_id" required>
+          <option value="">انتخاب کارگر</option>
+          @foreach($personnel as $p)<option value="{{ $p->id }}" @selected((string)old('personnel_id')===(string)$p->id)>{{ $p->code ? $p->code.' — ' : '' }}{{ $p->name }}</option>@endforeach
+        </select>
+      </label>
+      <label class="shift-field">محصول / قطعه *
+        <select name="goods_id" required>
+          <option value="">انتخاب محصول</option>
+          @foreach($goods as $g)<option value="{{ $g->id }}" @selected((string)old('goods_id')===(string)$g->id)>{{ $g->code ? $g->code.' — ' : '' }}{{ $g->name }}</option>@endforeach
+        </select>
+      </label>
+      <label class="shift-field">تعداد تولیدشده *
+        <input type="number" min="0.0001" step="0.0001" name="produced_quantity" value="{{ old('produced_quantity') }}" placeholder="مثلاً 250" required>
+        <small>کل تعداد تولیدشده در این شیفت</small>
+      </label>
+      <label class="shift-field">مقدار ضایعات
+        <input type="number" min="0" step="0.0001" name="scrap_quantity" value="{{ old('scrap_quantity', '0') }}" placeholder="اگر ضایعات ندارید صفر بماند">
+        <small>نمی‌تواند بیشتر از کل تولید باشد.</small>
+      </label>
+      <label class="shift-field full">توضیحات
+        <textarea name="notes" rows="3" maxlength="2000" placeholder="توضیحات یا نکات مربوط به این شیفت (اختیاری)">{{ old('notes') }}</textarea>
+      </label>
+      <div class="shift-form-footer">
+        <p>پس از ثبت، وضعیت گزارش «در انتظار تأیید» خواهد بود.</p>
+        <button class="btn primary" type="submit">ثبت گزارش تولید</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="shift-table-title">
+      <div><h2>گزارش‌های ثبت‌شده</h2><p>سوابق تولید، وضعیت بررسی و تحویل به انبار</p></div>
+      <span class="shift-tag">آخرین گزارش‌ها</span>
+    </div>
+    <div class="table-wrap">
+      <table class="shift-table">
+        <thead><tr><th>تاریخ / شیفت</th><th>قسمت</th><th>کارگر</th><th>محصول</th><th>تولید</th><th>ضایعات</th><th>ثبت‌کننده</th><th>وضعیت</th><th>اقدام</th></tr></thead>
+        <tbody>
+        @forelse($rows as $r)
+          <tr>
+            <td><span class="shift-primary-cell">{{ $r->work_date }}</span><span class="shift-secondary">{{ $r->shift_name }}</span></td>
+            <td>{{ $r->section_name ?: '—' }}</td>
+            <td>{{ $r->worker_name ?: '—' }}</td>
+            <td><span class="shift-primary-cell">{{ $r->goods_name }}</span>@if($r->goods_code)<span class="shift-secondary">{{ $r->goods_code }}</span>@endif</td>
+            <td class="shift-number">{{ $r->produced_quantity }}</td>
+            <td class="shift-number">{{ $r->scrap_quantity }}</td>
+            <td>{{ $r->reporter_name }}</td>
+            <td>
+              @php($labels=['pending'=>'در انتظار تأیید','approved'=>'تأییدشده؛ آماده تحویل','rejected'=>'ردشده','received'=>'تحویل کامل به انبار'])
+              <span class="status {{ in_array($r->status,['approved','received'],true) ? 'active' : 'inactive' }}">{{ $labels[$r->status] ?? $r->status }}</span>
+              @if($r->review_notes)<div class="shift-note" style="margin-top:7px">یادداشت: {{ $r->review_notes }}</div>@endif
+              @if((float)($r->warehouse_quantity ?? 0)>0)<div class="shift-note" style="margin-top:7px">تحویل‌شده: {{ $r->warehouse_quantity }}<br>انبار: {{ $r->warehouse_name ?: '—' }}</div>@endif
+            </td>
+            <td>
+              <div class="shift-action">
+                @if($r->status==='pending' && $canReview)
+                  <form method="POST" action="{{ route('production.shift-reports.review',$r->id) }}">@csrf
+                    <input type="hidden" name="approve" value="1"><input name="review_notes" placeholder="یادداشت سرپرست (اختیاری)">
+                    <button class="btn primary" type="submit">تأیید گزارش</button>
+                  </form>
+                  <form method="POST" action="{{ route('production.shift-reports.review',$r->id) }}">@csrf
+                    <input type="hidden" name="approve" value="0"><input name="review_notes" placeholder="دلیل رد گزارش" required>
+                    <button class="btn" type="submit">رد گزارش</button>
+                  </form>
+                @elseif($r->status==='approved' && $canReceive)
+                  <form method="POST" action="{{ route('production.shift-reports.receive',$r->id) }}">@csrf
+                    <select name="warehouse_location_id" required><option value="">انتخاب انبار</option>@foreach($warehouses as $w)<option value="{{ $w->id }}" @selected((int)($r->warehouse_location_id ?? 0)===(int)$w->id)>{{ $w->name }}</option>@endforeach</select>
+                    <input name="warehouse_quantity" type="number" min="0.0001" max="{{ max(0,(float)$r->produced_quantity-(float)$r->scrap_quantity-(float)($r->warehouse_quantity ?? 0)) }}" step="0.0001" placeholder="مقدار تحویل این‌بار" required>
+                    <button class="btn primary" type="submit">ثبت ورود به انبار</button>
+                  </form>
+                @else
+                  <span class="shift-secondary">اقدامی لازم نیست</span>
+                @endif
+              </div>
+            </td>
+          </tr>
+        @empty
+          <tr><td colspan="9" class="shift-empty">هنوز گزارشی ثبت نشده است. از فرم بالا برای ثبت اولین شیفت استفاده کنید.</td></tr>
+        @endforelse
+        </tbody>
+      </table>
+    </div>
+    @if(method_exists($rows,'links'))<div class="pagination">{{ $rows->links() }}</div>@endif
+  </div>
 </div>
 @endsection
