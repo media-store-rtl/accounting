@@ -63,6 +63,11 @@ class InventoryValuationTest extends TestCase
         $this->assertSame(1500.0,round($result['total_cost'],4));
         $this->assertSame(12.5,round($result['unit_cost'],6));
         $this->assertSame(80.0,(float)DB::table('inventory_cost_layers')->sum('weighted_average_quantity_remaining'));
+
+        // The remaining stock must retain the same average rate after a partial issue.
+        $second=app(InventoryValuationService::class)->valueInventoryMovement($this->movement($c,40,2),$c['fy']);
+        $this->assertSame(500.0,round($second['total_cost'],4));
+        $this->assertSame(12.5,round($second['unit_cost'],6));
     }
 
     public function test_method_can_be_selected_before_valued_transactions(): void
