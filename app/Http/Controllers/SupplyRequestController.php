@@ -28,30 +28,78 @@ class SupplyRequestController extends Controller
                 'requested_by_user_id'=>$request->user()->id,'requested_at'=>now(),'needed_at'=>$data['needed_at'],'status'=>'checking_stock','notes'=>$data['notes']??null,
                 'created_at'=>now(),'updated_at'=>now()
             ]);
-            $shortage=false;
             foreach($data['items'] as $item){
                 abort_unless(DB::table('goods')->where('id',$item['goods_id'])->where('company_id',$companyId)->where('is_active',true)->exists(),422,'کالا نامعتبر است.');
-                $available=(float)DB::table('inventory as i')->join('locations as l','l.id','=','i.location_id')->where('i.company_id',$companyId)->where('i.goods_id',$item['goods_id'])
-                    ->where('l.company_id',$companyId)->where('l.type','warehouse')->where('l.is_active',true)->sum('i.quantity');
-                $qty=(float)$item['quantity'];$missing=max(0,$qty-$available);$shortage=$shortage||$missing>0;
+                $qty=(float)$item['quantity'];
                 DB::table('supply_request_items')->insert([
-                    'supply_request_id'=>$id,'goods_id'=>$item['goods_id'],'requested_quantity'=>$qty,'available_quantity'=>min($qty,$available),'shortage_quantity'=>$missing,
+                    'supply_request_id'=>$id,'goods_id'=>$item['goods_id'],'requested_quantity'=>$qty,'available_quantity'=>0,'shortage_quantity'=>0,
                     'supplied_quantity'=>0,'created_at'=>now(),'updated_at'=>now()
                 ]);
             }
-            DB::table('supply_requests')->where('id',$id)->update(['status'=>$shortage?'shortage_pending':'stock_available','updated_at'=>now()]);
+            DB::table('supply_requests')->where('id',$id)->update(['status'=>'checking_stock','updated_at'=>now()]);
             return DB::table('supply_requests')->where('id',$id)->first();
         });
-        if ($model->status === 'shortage_pending') {
-            app(NotificationRecipientService::class)->send(
-                $companyId,
-                'supply.shortage',
-                ['supply_request_id' => $model->id],
-                (int) $request->user()->id,
-                'supply.manage'
-            );
-        }
+        app(NotificationRecipientService::class)->send(
+            $companyId,
+            'supply.stock_check_required',
+            ['supply_request_id' => $model->id],
+            (int) $request->user()->id,
+            'supply_request.handover.create'
+        );
         return response()->json(['data'=>$model],201);
+    }
+
+    public function reviewStock(Request $request, int $supplyRequest)
+    {
+        $companyId = CompanyAuthorization::authorize($request, 'supply_request.handover.create');
+        $result = DB::transaction(function () use ($companyId, $supplyRequest, $request) {
+            $row = DB::table('supply_requests')->where('id', $supplyRequest)->where('company_id', $companyId)->lockForUpdate()->first();
+            abort_unless($row, 404);
+            abort_unless($row->status === 'checking_stock', 422, 'این درخواست قبلاً بررسی شده یا در وضعیت بررسی انبار نیست.');
+
+            $items = DB::table('supply_request_items')->where('supply_request_id', $row->id)->lockForUpdate()->get();
+            abort_unless($items->isNotEmpty(), 422, 'اقلام درخواست پیدا نشدند.');
+            $hasShortage = false;
+            foreach ($items as $item) {
+                $available = (float) DB::table('inventory as i')
+                    ->join('locations as l', 'l.id', '=', 'i.location_id')
+                    ->where('i.company_id', $companyId)->where('i.goods_id', $item->goods_id)
+                    ->where('l.company_id', $companyId)->where('l.type', 'warehouse')->where('l.is_active', true)
+                    ->sum('i.quantity');
+                $usable = min((float) $item->requested_quantity, max(0, $available));
+                $shortage = max(0, (float) $item->requested_quantity - $usable);
+                $hasShortage = $hasShortage || $shortage > 0;
+                DB::table('supply_request_items')->where('id', $item->id)->update([
+                    'available_quantity' => $usable, 'shortage_quantity' => $shortage, 'updated_at' => now(),
+                ]);
+            }
+            $status = $hasShortage ? 'shortage_pending' : 'stock_available';
+            DB::table('supply_requests')->where('id', $row->id)->update(['status' => $status, 'updated_at' => now()]);
+            return ['status' => $status, 'items' => DB::table('supply_request_items as sri')
+                ->join('goods as g', 'g.id', '=', 'sri.goods_id')
+                ->where('sri.supply_request_id', $row->id)
+                ->select('sri.*', 'g.name as goods_name', 'g.code as goods_code')->get(), 'row' => $row];
+        });
+
+        if ($result['status'] === 'shortage_pending') {
+            $first = $result['items']->first();
+            app(NotificationRecipientService::class)->send($companyId, 'supply.shortage', [
+                'supply_request_id' => $supplyRequest,
+                'production_id' => $result['row']->production_id,
+                'order_id' => $result['row']->order_id,
+                'needed_at' => $result['row']->needed_at,
+                'goods_id' => $first?->goods_id,
+                'goods_name' => $first?->goods_name,
+                'requested_quantity' => $first?->requested_quantity,
+                'available_quantity' => $first?->available_quantity,
+                'shortage_quantity' => $first?->shortage_quantity,
+                'warehouse_note' => $request->input('warehouse_note'),
+            ], (int) $request->user()->id, 'supply.manage');
+        }
+
+        return back()->with('success', $result['status'] === 'shortage_pending'
+            ? 'بررسی انبار ثبت شد؛ کسری برای پیگیری به تدارکات ارجاع شد.'
+            : 'بررسی انبار ثبت شد؛ موجودی برای تحویل کافی است.');
     }
 
     public function show(Request $request,int $supplyRequest): JsonResponse
