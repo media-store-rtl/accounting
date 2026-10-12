@@ -34,6 +34,31 @@ class OrdersSupplyWorkflowTest extends TestCase
         return compact('company','user','fy','goods','customer','warehouse','supplier');
     }
 
+    public function test_order_number_is_generated_by_server_and_cannot_be_overridden(): void
+    {
+        $c = $this->context();
+
+        $first = $this->postJson('/api/orders', [
+            'fiscal_year_id' => $c['fy'],
+            'customer_id' => $c['customer'],
+            'number' => '9999',
+            'requested_delivery_at' => '2026-10-20',
+            'items' => [['goods_id' => $c['goods'], 'quantity' => 1]],
+        ])->assertCreated();
+
+        $this->assertSame('1', (string) $first->json('data.number'));
+
+        $second = $this->postJson('/api/orders', [
+            'fiscal_year_id' => $c['fy'],
+            'customer_id' => $c['customer'],
+            'number' => '1',
+            'requested_delivery_at' => '2026-10-20',
+            'items' => [['goods_id' => $c['goods'], 'quantity' => 1]],
+        ])->assertCreated();
+
+        $this->assertSame('2', (string) $second->json('data.number'));
+    }
+
     public function test_order_detects_shortage_before_production_notification(): void
     {
         $c=$this->context();
