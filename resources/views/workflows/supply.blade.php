@@ -155,7 +155,13 @@
                             </td>
                         @endif
                         <td><span class="status {{ in_array($r->status, ['stock_available', 'partially_supplied', 'supplied', 'fulfilled', 'completed'], true) ? 'active' : 'inactive' }}">{{ ['checking_stock'=>'در انتظار بررسی انبار','shortage_pending'=>'کسری تأییدشده؛ در انتظار تدارکات','stock_available'=>'موجودی کافی؛ آماده تحویل','rejected'=>'ردشده توسط انبار','purchasing'=>'در حال خرید','purchased'=>'خریداری شده','partially_supplied'=>'بخشی تحویل شده','fulfilled'=>'تحویل کامل','cancelled'=>'لغوشده'][$r->status] ?? $r->status }}</span></td>
-                        <td>@if($r->needed_at)<time class="jalali-date" datetime="{{ $r->needed_at }}">{{ $r->needed_at }}</time>@else—@endif</td>
+                        <td>
+                            @if($r->needed_at)
+                                <time class="jalali-date" datetime="{{ $r->needed_at }}">{{ $r->needed_at }}</time>
+                            @else
+                                —
+                            @endif
+                        </td>
                         @if($canReviewStock)
                             <td>
                                 @if($r->status === 'checking_stock')
