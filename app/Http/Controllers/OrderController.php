@@ -53,9 +53,11 @@ class OrderController extends Controller
         $companyId=CompanyAuthorization::authorize($request,'order.create');
         $data=$request->validate([
             'fiscal_year_id'=>'required|integer','customer_id'=>'required|integer','number'=>'required|string|max:100',
-            'ordered_at'=>'required|date','requested_delivery_at'=>'required|date','notes'=>'nullable|string',
+            'ordered_at'=>'nullable|date','requested_delivery_at'=>'required|date','notes'=>'nullable|string',
             'items'=>'required|array|min:1','items.*.goods_id'=>'required|integer|distinct','items.*.quantity'=>'required|numeric|gt:0'
         ], ['items.*.goods_id.distinct'=>'هر کالا را فقط یک‌بار در سفارش وارد کنید.']);
+        // Registration date is always assigned by the server; ignore any client-supplied value.
+        $data['ordered_at'] = now()->toDateString();
         $order=DB::transaction(function()use($data,$companyId){
             DB::table('companies')->where('id',$companyId)->lockForUpdate()->first();
             abort_unless(DB::table('fiscal_years')->where('id',$data['fiscal_year_id'])->where('company_id',$companyId)->where('is_closed',false)->exists(),422,'سال مالی نامعتبر است.');
