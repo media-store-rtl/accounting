@@ -21,9 +21,13 @@
             'title' => 'برای سفارش درخواست تحویل ثبت شد',
             'message' => 'درخواست تحویل ثبت شده و برای بررسی و انجام مراحل تحویل در اختیار واحد انبار قرار گرفته است.',
         ],
+        'supply.stock_check_required' => [
+            'title' => 'درخواست مواد اولیه در انتظار بررسی انبار است',
+            'message' => 'تولید این مواد را درخواست کرده است. انباردار باید موجودی را بررسی و نتیجه را در صفحه درخواست مواد ثبت کند؛ تا پیش از ثبت نتیجه، اعلانی برای تدارکات ارسال نمی‌شود.',
+        ],
         'supply.shortage' => [
-            'title' => 'برای تأمین کالا کسری موجودی وجود دارد',
-            'message' => 'موجودی انبار برای تأمین کامل این درخواست کافی نیست. واحد تدارکات باید مقدار کسری را پیگیری کند.',
+            'title' => 'کسری مواد اولیه توسط انبار تأیید شد',
+            'message' => 'انبار موجودی را بررسی کرده و کسری زیر را تأیید کرده است. تدارکات باید مقدار کسری را برای تاریخ نیاز اعلام‌شده تأمین کند.',
         ],
         'inventory_reorder_point_reached' => [
             'title' => 'موجودی کالا به نقطه سفارش رسیده است',
@@ -38,7 +42,14 @@
     $fieldLabels = [
         'order_id' => 'شماره سفارش',
         'delivery_request_id' => 'شماره درخواست تحویل',
-        'supply_request_id' => 'شماره درخواست تأمین',
+        'supply_request_id' => 'شماره درخواست مواد اولیه',
+        'production_id' => 'شماره دستور تولید',
+        'goods_name' => 'نام کالا',
+        'requested_quantity' => 'مقدار درخواستی',
+        'available_quantity' => 'مقدار قابل تأمین از انبار',
+        'shortage_quantity' => 'مقدار کسری تأییدشده',
+        'needed_at' => 'تاریخ موردنیاز',
+        'warehouse_note' => 'یادداشت انباردار',
         'purchase_id' => 'شماره خرید',
         'receipt_id' => 'شماره رسید خرید',
         'production_due_at' => 'زمان قابل تحویل اعلام‌شده توسط تولید',
@@ -75,7 +86,8 @@
                     'order.ready_for_delivery' => ['order_id'],
                     'order.production_due_set' => ['order_id', 'production_due_at'],
                     'delivery.requested' => ['order_id', 'delivery_request_id'],
-                    'supply.shortage' => ['supply_request_id'],
+                    'supply.stock_check_required' => ['supply_request_id'],
+                    'supply.shortage' => ['supply_request_id', 'production_id', 'order_id', 'goods_name', 'requested_quantity', 'available_quantity', 'shortage_quantity', 'needed_at', 'warehouse_note'],
                     'inventory_reorder_point_reached' => ['goods_id', 'location_id', 'current_quantity', 'reorder_point'],
                     'purchase.received_financial_value' => ['purchase_id', 'receipt_id', 'purchase_total_amount', 'direct_cost_total'],
                 ];
@@ -117,6 +129,9 @@
                             <a href="{{ route('sales.orders.show', $orderId) }}" style="margin-right:10px;color:#6ee7d0;text-decoration:none">مشاهده سفارش ←</a>
                         @endif
                     </div>
+                @endif
+                @if(in_array($event, ['supply.stock_check_required', 'supply.shortage'], true) && auth()->user()->hasCompanyPermission((int) session('company_id'), 'supply_request.view'))
+                    <div style="margin-top:10px"><a href="{{ route('workflows.supply') }}" style="color:#6ee7d0;text-decoration:none;font-size:11px">رفتن به درخواست‌های مواد اولیه ←</a></div>
                 @endif
 
                 @if(count($extraData) > 0)
