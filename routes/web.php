@@ -107,6 +107,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/supply', [WorkflowPagesController::class,'supply'])->middleware('company.permission:supply_request.view')->name('workflows.supply');
     Route::get('/production/material-requests', [WorkflowPagesController::class,'supply'])->middleware('company.permission:supply_request.view')->name('production.material-requests');
+    Route::get('/production/due-dates', [WorkflowPagesController::class,'productionDue'])->middleware('company.permission:production.supervise')->name('production.due-dates.index');
+    Route::post('/production/orders/{order}/due-date', [OrderController::class, 'setProductionDue'])->middleware('company.permission:production.supervise')->whereNumber('order')->name('production.orders.due-date');
     Route::get('/warehouse/supply-requests', [WorkflowPagesController::class,'warehouseSupplyRequests'])->middleware('company.permission:supply_request.handover.create')->name('warehouse.supply-requests');
     Route::post('/warehouse/supply-requests/{supplyRequest}/reject', [WorkflowPagesController::class,'rejectSupplyRequest'])->middleware('company.permission:supply_request.handover.create')->whereNumber('supplyRequest')->name('warehouse.supply-requests.reject');
     Route::post('/purchasing/supply-requests/{supplyRequest}/status', [WorkflowPagesController::class,'updateSupplyPurchaseStatus'])->middleware('company.permission:supply.manage')->whereNumber('supplyRequest')->name('workflows.purchasing.supply-status');
