@@ -44,7 +44,7 @@
 <div class="panel" style="margin-bottom:16px;border-color:#24536a;background:#0b2031">
     <strong style="display:block;color:#6ee7d0;font-size:12px;margin-bottom:8px">راهنمای ثبت سفارش</strong>
     <ol style="margin:0;padding-right:20px;color:#c4d6e4;font-size:11px;line-height:2.1">
-        <li>مشتری و شماره سفارش را انتخاب یا وارد کنید.</li>
+        <li>مشتری را انتخاب کنید؛ شماره سفارش به‌صورت خودکار تعیین می‌شود و قابل تغییر نیست.</li>
         <li>تاریخ ثبت و موعد درخواستی تحویل را مشخص کنید؛ موعد تحویل، تاریخ مورد انتظار مشتری است.</li>
         <li>هر کالا را فقط یک بار به فهرست اقلام اضافه کنید و مقدار موردنیاز را بنویسید. برای کالای دیگر، «افزودن قلم» را بزنید.</li>
         <li>پس از ثبت، موجودی بررسی می‌شود؛ سفارشِ دارای کسری برای پیگیری تأمین یا تولید مشخص خواهد شد.</li>
@@ -67,7 +67,8 @@
             </div>
             <div class="order-field">
                 <label for="number">شماره سفارش *</label>
-                <input id="number" name="number" value="{{ old('number') }}" required>
+                <input id="number" name="number" value="{{ $nextOrderNumber }}" readonly aria-readonly="true" required>
+                <small style="display:block;color:#71879d;font-size:10px;margin-top:5px">شماره بعدی به‌صورت خودکار از روی سفارش‌های ثبت‌شده تعیین می‌شود.</small>
                 @error('number')<div class="order-error">{{ $message }}</div>@enderror
             </div>
             <div class="order-field">
