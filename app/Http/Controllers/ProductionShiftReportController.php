@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\InventoryService;
 use App\Support\CompanyAuthorization;
+use Illuminate\\Support\\Facades\\Schema;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -45,12 +46,18 @@ final class ProductionShiftReportController extends Controller
         $canReview = $request->user()->hasCompanyPermission($companyId, 'production.operation.review');
         $canReceive = $request->user()->hasCompanyPermission($companyId, 'production.output.receive');
         $warehouses = $canReceive ? DB::table('locations')->where('company_id', $companyId)->where('type', 'warehouse')->where('is_active', true)->orderBy('name')->get(['id', 'name']) : collect();
-        $materialUsage = DB::table('production_shift_report_materials as rm')
-            ->join('goods as mg', 'mg.id', '=', 'rm.goods_id')
-            ->where('rm.company_id', $companyId)
-            ->whereIn('rm.production_shift_report_id', $rows->getCollection()->pluck('id'))
-            ->get(['rm.production_shift_report_id', 'rm.quantity', 'mg.name', 'mg.code'])
-            ->groupBy('production_shift_report_id');
+        $materialUsage = collect();
+        if (Schema::hasTable('production_shift_report_materials')) {
+            $reportIds = $rows->getCollection()->pluck('id');
+            if ($reportIds->isNotEmpty()) {
+                $materialUsage = DB::table('production_shift_report_materials as rm')
+                    ->join('goods as mg', 'mg.id', '=', 'rm.goods_id')
+                    ->where('rm.company_id', $companyId)
+                    ->whereIn('rm.production_shift_report_id', $reportIds)
+                    ->get(['rm.production_shift_report_id', 'rm.quantity', 'mg.name', 'mg.code'])
+                    ->groupBy('production_shift_report_id');
+            }
+        }
         return view('production.shift-reports.index', compact('rows', 'sections', 'goods', 'personnel', 'materials', 'materialUsage', 'canReview', 'canReceive', 'warehouses'));
     }
 
