@@ -21,7 +21,7 @@
 .shift-tag{white-space:nowrap;border:1px solid #29465e;background:#0d2235;color:#9eb2c4;border-radius:20px;padding:5px 9px;font-size:10px}
 .shift-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
 .shift-field{display:flex;flex-direction:column;gap:7px;min-width:0;color:#cce0ef;font-size:11px}
-.shift-field.full{grid-column:1/-1}
+.shift-field.full{grid-column:1/-1}.shift-material-lines{display:grid;gap:9px}.shift-material-line{display:grid;grid-template-columns:minmax(0,2fr) minmax(100px,1fr) auto;gap:8px;align-items:center}.shift-material-remove{border:1px solid #63343b;background:#3b2528;color:#ffb8a8;border-radius:8px;padding:9px 11px;cursor:pointer}.shift-add-material{border:1px solid #29465e;background:#12314a;color:#dcebf6;border-radius:9px;padding:9px 12px;cursor:pointer;font:inherit}.shift-material-help{font-size:10px;color:#71879d;line-height:1.8}
 .shift-field input,.shift-field select,.shift-field textarea,.shift-action input,.shift-action select{width:100%;min-width:0;background:#071725;color:#e9f3fb;border:1px solid #29465e;border-radius:10px;padding:11px 12px;font:inherit;outline:none}
 .shift-field input:focus,.shift-field select:focus,.shift-field textarea:focus,.shift-action input:focus,.shift-action select:focus{border-color:#6ee7d0;box-shadow:0 0 0 3px rgba(110,231,208,.08)}
 .shift-field input::placeholder,.shift-field textarea::placeholder,.shift-action input::placeholder{color:#587087}
@@ -104,6 +104,10 @@
         <input type="number" name="overtime_hours" min="0" max="24" step="0.25" value="{{ old('overtime_hours', 0) }}" placeholder="مثلاً ۲">
         <small>در صورت نداشتن اضافه‌کاری، صفر وارد کنید.</small>
       </label>
+      <label class="shift-field">تعطیل‌کاری (ساعت)
+        <input type="number" name="holiday_hours" min="0" max="24" step="0.25" value="{{ old('holiday_hours', 0) }}" placeholder="مثلاً ۸">
+        <small>جدا ثبت می‌شود تا نرخ پرداخت تعطیل‌کاری قابل محاسبه باشد.</small>
+      </label>
       <label class="shift-field">کارگر *
         <select name="personnel_id" required>
           <option value="">انتخاب کارگر</option>
@@ -116,6 +120,29 @@
           @foreach($goods as $g)<option value="{{ $g->id }}" @selected((string)old('goods_id')===(string)$g->id)>{{ $g->code ? $g->code.' — ' : '' }}{{ $g->name }}</option>@endforeach
         </select>
       </label>
+      <div class="shift-field full">
+        <span>مواد اولیه مصرف‌شده</span>
+        <div id="shift-material-lines" class="shift-material-lines">
+          @forelse(old('materials', [['goods_id' => '', 'quantity' => '']]) as $i => $line)
+            <div class="shift-material-line">
+              <select name="materials[{{ $i }}][goods_id]" aria-label="ماده اولیه">
+                <option value="">انتخاب ماده اولیه</option>
+                @foreach($materials as $m)<option value="{{ $m->id }}" @selected((string)($line['goods_id'] ?? '')===(string)$m->id)>{{ $m->code ? $m->code.' — ' : '' }}{{ $m->name }}</option>@endforeach
+              </select>
+              <input type="number" name="materials[{{ $i }}][quantity]" min="0.0001" step="0.0001" value="{{ $line['quantity'] ?? '' }}" placeholder="مقدار مصرف">
+              <button type="button" class="shift-material-remove" onclick="removeShiftMaterial(this)" aria-label="حذف ماده اولیه">حذف</button>
+            </div>
+          @empty
+            <div class="shift-material-line">
+              <select name="materials[0][goods_id]" aria-label="ماده اولیه"><option value="">انتخاب ماده اولیه</option>@foreach($materials as $m)<option value="{{ $m->id }}">{{ $m->code ? $m->code.' — ' : '' }}{{ $m->name }}</option>@endforeach</select>
+              <input type="number" name="materials[0][quantity]" min="0.0001" step="0.0001" placeholder="مقدار مصرف">
+              <button type="button" class="shift-material-remove" onclick="removeShiftMaterial(this)">حذف</button>
+            </div>
+          @endforelse
+        </div>
+        <div><button type="button" class="shift-add-material" onclick="addShiftMaterial()">+ افزودن ماده اولیه</button></div>
+        <small class="shift-material-help">برای هر ماده اولیه، مقدار مصرف‌شده را وارد کنید. اگر مواد اولیه‌ای ثبت نمی‌کنید، ردیف را خالی بگذارید.</small>
+      </div>
       <label class="shift-field">تعداد تولیدشده *
         <input type="number" min="0.0001" step="0.0001" name="produced_quantity" value="{{ old('produced_quantity') }}" placeholder="مثلاً 250" required>
         <small>کل تعداد تولیدشده در این شیفت</small>
@@ -145,10 +172,12 @@
         <tbody>
         @forelse($rows as $r)
           <tr>
-            <td><span class="shift-primary-cell shift-date-display" data-iso-date="{{ $r->work_date }}">{{ $r->work_date }}</span><span class="shift-secondary">کارکرد: {{ $r->worked_hours ?? '—' }} ساعت</span><span class="shift-secondary">اضافه‌کاری: {{ $r->overtime_hours ?? 0 }} ساعت</span></td>
+            <td><span class="shift-primary-cell shift-date-display" data-iso-date="{{ $r->work_date }}">{{ $r->work_date }}</span><span class="shift-secondary">کارکرد: {{ $r->worked_hours ?? '—' }} ساعت</span><span class="shift-secondary">اضافه‌کاری: {{ $r->overtime_hours ?? 0 }} ساعت</span><span class="shift-secondary">تعطیل‌کاری: {{ $r->holiday_hours ?? 0 }} ساعت</span></td>
             <td>{{ $r->section_name ?: '—' }}</td>
             <td>{{ $r->worker_name ?: '—' }}</td>
-            <td><span class="shift-primary-cell">{{ $r->goods_name }}</span>@if($r->goods_code)<span class="shift-secondary">{{ $r->goods_code }}</span>@endif</td>
+            <td><span class="shift-primary-cell">{{ $r->goods_name }}</span>@if($r->goods_code)<span class="shift-secondary">{{ $r->goods_code }}</span>@endif
+              @foreach(($materialUsage[$r->id] ?? collect()) as $material)<span class="shift-secondary">ماده: {{ $material->name }} — {{ $material->quantity }}</span>@endforeach
+            </td>
             <td class="shift-number">{{ $r->produced_quantity }}</td>
             <td class="shift-number">{{ $r->scrap_quantity }}</td>
             <td>{{ $r->reporter_name }}</td>
@@ -191,6 +220,33 @@
   </div>
 </div>
 @push('scripts')
+<script>
+let shiftMaterialIndex = document.querySelectorAll('#shift-material-lines .shift-material-line').length;
+function addShiftMaterial() {
+  const lines = document.getElementById('shift-material-lines');
+  if (!lines) return;
+  const source = lines.querySelector('.shift-material-line');
+  if (!source) return;
+  const row = source.cloneNode(true);
+  row.querySelectorAll('select,input').forEach((field) => {
+    field.name = field.name.replace(/materials\[\d+\]/, 'materials[' + shiftMaterialIndex + ']');
+    if (field.tagName === 'SELECT') field.selectedIndex = 0;
+    else field.value = '';
+  });
+  lines.appendChild(row);
+  shiftMaterialIndex++;
+}
+function removeShiftMaterial(button) {
+  const lines = document.getElementById('shift-material-lines');
+  const row = button.closest('.shift-material-line');
+  if (!lines || !row) return;
+  if (lines.querySelectorAll('.shift-material-line').length === 1) {
+    row.querySelectorAll('select,input').forEach(field => field.value = '');
+    return;
+  }
+  row.remove();
+}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
