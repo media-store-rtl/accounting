@@ -22,7 +22,7 @@ class MaterialHandoverController extends Controller
             'handed_over_at' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.goods_id' => ['required', 'integer'],
+            'items.*.goods_id' => ['required', 'integer', 'distinct'],
             'items.*.quantity' => ['required', 'numeric', 'gt:0'],
         ]);
 
