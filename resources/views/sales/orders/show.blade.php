@@ -2,6 +2,25 @@
 
 @section('title', 'جزئیات سفارش ' . $row->number . ' | حسابداری صنعتی')
 
+@php
+$statusLabels = [
+    'production_required' => 'نیازمند تأمین / تولید',
+    'awaiting_production' => 'در انتظار تولید',
+    'ready_for_delivery' => 'آماده تحویل',
+    'delivery_requested' => 'درخواست تحویل ثبت‌شده',
+    'issued' => 'خارج‌شده از انبار',
+    'completed' => 'تحویل تکمیل‌شده',
+    'cancelled' => 'لغوشده',
+];
+$fulfillmentLabels = [
+    'production_required' => 'نیازمند تأمین / تولید',
+    'awaiting_production' => 'در انتظار تولید',
+    'ready_for_delivery' => 'آماده تحویل',
+    'fulfilled' => 'تأمین‌شده',
+    'shortage' => 'دارای کسری',
+];
+@endphp
+
 @push('styles')
 <style>
 .order-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:18px}
@@ -42,15 +61,15 @@
     </div>
     <div class="order-fact">
       <span>وضعیت سفارش</span>
-      <strong><span class="order-status" id="status">{{ $row->status }}</span></strong>
+      <strong><span class="order-status" id="status">{{ $statusLabels[$row->status] ?? 'در حال بررسی' }}</span></strong>
     </div>
     <div class="order-fact">
       <span>موعد درخواستی مشتری</span>
-      <strong>{{ $row->requested_delivery_at ?? 'ثبت نشده' }}</strong>
+      <strong>@if($row->requested_delivery_at)<time class="jalali-date" datetime="{{ $row->requested_delivery_at }}">{{ $row->requested_delivery_at }}</time>@else ثبت نشده @endif</strong>
     </div>
     <div class="order-fact">
       <span>موعد تولید</span>
-      <strong>{{ $row->production_due_at ?? 'ثبت نشده' }}</strong>
+      <strong>@if($row->production_due_at)<time class="jalali-date" datetime="{{ $row->production_due_at }}">{{ $row->production_due_at }}</time>@else ثبت نشده @endif</strong>
     </div>
   </div>
 
@@ -58,13 +77,7 @@
   <div class="table-wrap">
     <table class="order-table">
       <thead>
-        <tr>
-          <th>کالا</th>
-          <th>مقدار سفارش</th>
-          <th>موجودی قابل استفاده</th>
-          <th>مقدار کسری</th>
-          <th>وضعیت تأمین</th>
-        </tr>
+        <tr><th>کالا</th><th>مقدار سفارش</th><th>موجودی قابل استفاده</th><th>مقدار کسری</th><th>وضعیت تأمین</th></tr>
       </thead>
       <tbody>
         @forelse($items as $i)
@@ -73,7 +86,7 @@
             <td>{{ $i->quantity }}</td>
             <td>{{ $i->available_quantity }}</td>
             <td>{{ $i->shortage_quantity }}</td>
-            <td><span class="status">{{ $i->fulfillment_status }}</span></td>
+            <td><span class="status">{{ $fulfillmentLabels[$i->fulfillment_status] ?? ($statusLabels[$i->fulfillment_status] ?? 'در حال بررسی') }}</span></td>
           </tr>
         @empty
           <tr><td colspan="5" style="text-align:center;color:#71879d;padding:24px">اقلامی برای این سفارش ثبت نشده است.</td></tr>
@@ -93,7 +106,7 @@
       <form class="order-form" onsubmit="setDue(event)">
         <h3>ثبت موعد تولید</h3>
         <label for="due">موعد قابل تحویل تولید</label>
-        <input id="due" type="date" required>
+        <input id="due" type="date" lang="fa-IR" required>
         <button class="btn primary" type="submit">ثبت موعد تولید</button>
       </form>
     @endif
@@ -102,7 +115,7 @@
       <form class="order-form" onsubmit="requestDelivery(event)">
         <h3>درخواست تحویل سفارش</h3>
         <label for="scheduled">زمان برنامه‌ریزی‌شده تحویل</label>
-        <input id="scheduled" type="datetime-local" required>
+        <input id="scheduled" type="datetime-local" lang="fa-IR" required>
         <label for="recipient">شخص تحویل‌گیرنده</label>
         <input id="recipient" placeholder="نام شخص تحویل‌گیرنده" required>
         <label for="vehicle">وسیله حمل</label>
@@ -115,56 +128,47 @@
 
 <script>
 const token = '{{ csrf_token() }}';
+document.querySelectorAll('.jalali-date').forEach((el) => {
+  const raw = (el.getAttribute('datetime') || '').slice(0, 10);
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  el.textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {year:'numeric',month:'2-digit',day:'2-digit'}).format(date);
+});
 
 async function call(url, data = {}) {
   const response = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'X-CSRF-TOKEN': token
-    },
+    headers: {'Accept':'application/json','Content-Type':'application/json','X-CSRF-TOKEN':token},
     body: JSON.stringify(data)
   });
   const result = await response.json();
   if (!response.ok) throw Error(result.message || 'خطا در انجام درخواست');
   return result;
 }
-
 async function refreshOrder() {
   try {
-    const result = await call('{{ route('sales.orders.refresh', $row->id) }}');
-    document.getElementById('status').textContent = result.data.status;
+    await call('{{ route('sales.orders.refresh', $row->id) }}');
     location.reload();
-  } catch (error) {
-    alert(error.message);
-  }
+  } catch (error) { alert(error.message); }
 }
-
 async function setDue(event) {
   event.preventDefault();
   try {
-    await call('{{ route('sales.orders.production-due', $row->id) }}', {
-      production_due_at: document.getElementById('due').value
-    });
+    await call('{{ route('sales.orders.production-due', $row->id) }}', {production_due_at:document.getElementById('due').value});
     location.reload();
-  } catch (error) {
-    alert(error.message);
-  }
+  } catch (error) { alert(error.message); }
 }
-
 async function requestDelivery(event) {
   event.preventDefault();
   try {
     await call('{{ route('sales.orders.delivery-request', $row->id) }}', {
-      scheduled_at: document.getElementById('scheduled').value,
-      recipient_name: document.getElementById('recipient').value,
-      vehicle: document.getElementById('vehicle').value
+      scheduled_at:document.getElementById('scheduled').value,
+      recipient_name:document.getElementById('recipient').value,
+      vehicle:document.getElementById('vehicle').value
     });
     location.reload();
-  } catch (error) {
-    alert(error.message);
-  }
+  } catch (error) { alert(error.message); }
 }
 </script>
 @endsection
