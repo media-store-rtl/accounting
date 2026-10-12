@@ -42,6 +42,49 @@ class OrdersSupplyWorkflowTest extends TestCase
         $this->assertDatabaseHas('order_items',['order_id'=>$response->json('data.id'),'shortage_quantity'=>3]);
     }
 
+    public function test_order_does_not_double_allocate_stock_to_multiple_open_orders(): void
+    {
+        $c = $this->context();
+        $payload = [
+            'fiscal_year_id' => $c['fy'], 'customer_id' => $c['customer'],
+            'ordered_at' => '2026-10-06', 'requested_delivery_at' => '2026-10-20',
+            'items' => [['goods_id' => $c['goods'], 'quantity' => 4]],
+        ];
+
+        $first = $this->postJson('/api/orders', $payload + ['number' => 'O1'])
+            ->assertCreated()->assertJsonPath('data.status', 'ready_for_delivery');
+
+        $secondPayload = $payload;
+        $secondPayload['number'] = 'O2';
+        $secondPayload['items'] = [['goods_id' => $c['goods'], 'quantity' => 3]];
+        $second = $this->postJson('/api/orders', $secondPayload)
+            ->assertCreated()->assertJsonPath('data.status', 'production_required');
+
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $first->json('data.id'), 'available_quantity' => 4, 'shortage_quantity' => 0,
+        ]);
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $second->json('data.id'), 'available_quantity' => 1, 'shortage_quantity' => 2,
+        ]);
+    }
+
+    public function test_order_rejects_duplicate_goods_rows_with_validation_error(): void
+    {
+        $c = $this->context();
+        $response = $this->postJson('/api/orders', [
+            'fiscal_year_id' => $c['fy'], 'customer_id' => $c['customer'], 'number' => 'O-DUP',
+            'ordered_at' => '2026-10-06', 'requested_delivery_at' => '2026-10-20',
+            'items' => [
+                ['goods_id' => $c['goods'], 'quantity' => 2],
+                ['goods_id' => $c['goods'], 'quantity' => 1],
+            ],
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['items.1.goods_id']);
+        $this->assertDatabaseMissing('orders', ['number' => 'O-DUP']);
+    }
+
     public function test_approved_purchase_receipt_updates_inventory_and_movement(): void
     {
         $c=$this->context();
