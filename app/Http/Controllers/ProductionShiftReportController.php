@@ -29,7 +29,7 @@ final class ProductionShiftReportController extends Controller
         $sections = DB::table('production_sections as s')
             ->leftJoin('locations as l', 'l.id', '=', 's.location_id')
             ->where('l.company_id', $companyId)->orderBy('l.name')->get(['s.id', 'l.name']);
-        $goods = DB::table('goods')->where('company_id', $companyId)->where('is_active', true)->orderBy('name')->get(['id', 'code', 'name']);
+        $goods = DB::table('goods')->where('company_id', $companyId)->where('is_active', true)->where('producible', true)->orderBy('name')->get(['id', 'code', 'name']);
         $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
         $personnel = DB::table('personnel as p')
             ->join('company_user as cu', 'cu.user_id', '=', 'p.user_id')
@@ -54,7 +54,7 @@ final class ProductionShiftReportController extends Controller
                     ->join('goods as mg', 'mg.id', '=', 'rm.goods_id')
                     ->where('rm.company_id', $companyId)
                     ->whereIn('rm.production_shift_report_id', $reportIds)
-                    ->get(['rm.production_shift_report_id', 'rm.quantity', 'mg.name', 'mg.code'])
+                    ->get(['rm.production_shift_report_id', 'rm.quantity', 'rm.scrap_quantity', 'mg.name', 'mg.code'])
                     ->groupBy('production_shift_report_id');
             }
         }
@@ -74,13 +74,14 @@ final class ProductionShiftReportController extends Controller
             'materials' => ['nullable', 'array'],
             'materials.*.goods_id' => ['nullable', 'integer'],
             'materials.*.quantity' => ['nullable', 'numeric', 'gt:0'],
+            'materials.*.scrap_quantity' => ['nullable', 'numeric', 'gte:0'],
             'work_date' => ['required', 'date'],
             'produced_quantity' => ['required', 'numeric', 'gt:0'],
             'scrap_quantity' => ['nullable', 'numeric', 'gte:0'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
         $section = DB::table('production_sections as s')->join('locations as l', 'l.id', '=', 's.location_id')->where('s.id', $data['production_section_id'])->where('l.company_id', $companyId)->exists();
-        $good = DB::table('goods')->where('id', $data['goods_id'])->where('company_id', $companyId)->where('is_active', true)->exists();
+        $good = DB::table('goods')->where('id', $data['goods_id'])->where('company_id', $companyId)->where('is_active', true)->where('producible', true)->exists();
         $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
         $worker = DB::table('personnel')->where('id', $data['personnel_id'])->where('account_id', $accountId)->where('is_active', true)->exists();
         if (!$section) throw ValidationException::withMessages(['production_section_id' => 'قسمت تولید معتبر نیست.']);
@@ -97,7 +98,11 @@ final class ProductionShiftReportController extends Controller
             $validMaterial = DB::table('goods')->where('id', $materialId)->where('company_id', $companyId)
                 ->where('is_active', true)->where('purchasable', true)->where('sellable', false)->exists();
             if (!$validMaterial) throw ValidationException::withMessages(['materials' => 'یکی از مواد اولیه انتخاب‌شده معتبر نیست.']);
-            $materialRows[] = ['goods_id' => $materialId, 'quantity' => (float) $materialQuantity];
+            $materialScrap = (float) ($line['scrap_quantity'] ?? 0);
+            if ($materialScrap > (float) $materialQuantity) {
+                throw ValidationException::withMessages(['materials' => 'ضایعات هر ماده اولیه نمی‌تواند از مقدار مصرف آن بیشتر باشد.']);
+            }
+            $materialRows[] = ['goods_id' => $materialId, 'quantity' => (float) $materialQuantity, 'scrap_quantity' => $materialScrap];
         }
         $scrap = (float)($data['scrap_quantity'] ?? 0);
         if ($scrap > (float)$data['produced_quantity']) throw ValidationException::withMessages(['scrap_quantity' => 'ضایعات نمی‌تواند از کل مقدار ثبت‌شده بیشتر باشد.']);
@@ -125,6 +130,7 @@ final class ProductionShiftReportController extends Controller
                 'production_shift_report_id' => $reportId,
                 'goods_id' => $line['goods_id'],
                 'quantity' => $line['quantity'],
+                'scrap_quantity' => $line['scrap_quantity'],
                 'created_at' => now(), 'updated_at' => now(),
             ]);
         }
