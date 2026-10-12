@@ -172,12 +172,22 @@ final class InventoryValuationService
                     $value += (float) $layer->{$column} * (float) $layer->unit_cost;
                 }
                 $average = $available > 0 ? $value / $available : 0.0;
-                $remaining = $quantity;
-                foreach ($layers as $layer) {
-                    if ($remaining <= 0) break;
-                    $take = min($remaining, (float) $layer->{$column});
+
+                // Moving weighted average consumes the remaining quantities proportionally.
+                // Taking from the oldest layer first makes future averages drift toward FIFO.
+                $remainingQuantity = $quantity;
+                $remainingAvailable = $available;
+                $lastIndex = $layers->count() - 1;
+                foreach ($layers->values() as $index => $layer) {
+                    if ($remainingQuantity <= 0 || $remainingAvailable <= 0) break;
+                    $layerQuantity = (float) $layer->{$column};
+                    $take = $index === $lastIndex
+                        ? $remainingQuantity
+                        : min($layerQuantity, $remainingQuantity * $layerQuantity / $remainingAvailable);
+                    if ($take <= 0) continue;
                     $allocations[] = [$layer, $take, $average];
-                    $remaining -= $take;
+                    $remainingQuantity -= $take;
+                    $remainingAvailable -= $layerQuantity;
                 }
                 $totalCost = $quantity * $average;
             }
