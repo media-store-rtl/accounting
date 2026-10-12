@@ -23,16 +23,18 @@ final class ProductionShiftReportController extends Controller
             ->leftJoin('locations as warehouse', 'warehouse.id', '=', 'r.warehouse_location_id')
             ->where('r.company_id', $companyId)
             ->select('r.*', 'sec_location.name as section_name', 'g.name as goods_name', 'g.code as goods_code',
-                'reporter.name as reporter_name', 'reviewer.name as reviewer_name', 'warehouse.name as warehouse_name')
+                'reporter.name as reporter_name', 'worker.name as worker_name', 'reviewer.name as reviewer_name', 'warehouse.name as warehouse_name')
             ->latest('r.work_date')->latest('r.id')->paginate(30);
         $sections = DB::table('production_sections as s')
             ->leftJoin('locations as l', 'l.id', '=', 's.location_id')
             ->where('l.company_id', $companyId)->orderBy('l.name')->get(['s.id', 'l.name']);
         $goods = DB::table('goods')->where('company_id', $companyId)->where('is_active', true)->orderBy('name')->get(['id', 'code', 'name']);
+        $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
+        $personnel = DB::table('personnel')->where('account_id', $accountId)->where('is_active', true)->orderBy('name')->get(['id', 'code', 'name']);
         $canReview = $request->user()->hasCompanyPermission($companyId, 'production.operation.review');
         $canReceive = $request->user()->hasCompanyPermission($companyId, 'production.output.receive');
         $warehouses = $canReceive ? DB::table('locations')->where('company_id', $companyId)->where('type', 'warehouse')->where('is_active', true)->orderBy('name')->get(['id', 'name']) : collect();
-        return view('production.shift-reports.index', compact('rows', 'sections', 'goods', 'canReview', 'canReceive', 'warehouses'));
+        return view('production.shift-reports.index', compact('rows', 'sections', 'goods', 'personnel', 'canReview', 'canReceive', 'warehouses'));
     }
 
     public function store(Request $request)
@@ -41,6 +43,7 @@ final class ProductionShiftReportController extends Controller
         $data = $request->validate([
             'production_section_id' => ['required', 'integer'],
             'goods_id' => ['required', 'integer'],
+            'personnel_id' => ['required', 'integer'],
             'shift_name' => ['required', 'string', 'max:80'],
             'work_date' => ['required', 'date'],
             'produced_quantity' => ['required', 'numeric', 'gt:0'],
@@ -49,8 +52,11 @@ final class ProductionShiftReportController extends Controller
         ]);
         $section = DB::table('production_sections as s')->join('locations as l', 'l.id', '=', 's.location_id')->where('s.id', $data['production_section_id'])->where('l.company_id', $companyId)->exists();
         $good = DB::table('goods')->where('id', $data['goods_id'])->where('company_id', $companyId)->where('is_active', true)->exists();
+        $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
+        $worker = DB::table('personnel')->where('id', $data['personnel_id'])->where('account_id', $accountId)->where('is_active', true)->exists();
         if (!$section) throw ValidationException::withMessages(['production_section_id' => 'قسمت تولید معتبر نیست.']);
         if (!$good) throw ValidationException::withMessages(['goods_id' => 'کالا معتبر نیست.']);
+        if (!$worker) throw ValidationException::withMessages(['personnel_id' => 'کارگر انتخاب‌شده معتبر یا فعال نیست.']);
         $scrap = (float)($data['scrap_quantity'] ?? 0);
         if ($scrap > (float)$data['produced_quantity']) throw ValidationException::withMessages(['scrap_quantity' => 'ضایعات نمی‌تواند از کل مقدار ثبت‌شده بیشتر باشد.']);
 
@@ -58,6 +64,7 @@ final class ProductionShiftReportController extends Controller
             'company_id' => $companyId,
             'production_section_id' => (int)$data['production_section_id'],
             'goods_id' => (int)$data['goods_id'],
+            'personnel_id' => (int)$data['personnel_id'],
             'reported_by_user_id' => (int)$request->user()->id,
             'shift_name' => trim($data['shift_name']),
             'work_date' => $data['work_date'],
