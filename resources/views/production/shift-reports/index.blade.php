@@ -3,6 +3,7 @@
 @section('title', 'ثبت تولید شیفت')
 
 @push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
 <style>
 .shift-page{display:grid;gap:18px}
 .shift-intro{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
@@ -93,7 +94,7 @@
         </select>
       </label>
       <label class="shift-field">تاریخ تولید (شمسی) *
-        <span class="shift-date-wrap"><input type="text" id="shift-jalali-date" inputmode="numeric" autocomplete="off" placeholder="۱۴۰۵/۰۷/۲۰" aria-label="تاریخ تولید به شمسی" required><input type="hidden" id="shift-gregorian-date" name="work_date" value="{{ old('work_date', now()->toDateString()) }}"><small class="shift-date-hint">تاریخ را به شکل سال/ماه/روز وارد کنید.</small></span>
+        <span class="shift-date-wrap"><input type="text" id="shift-jalali-date" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="{{ old('work_date', now()->toDateString()) }}" aria-label="تاریخ تولید به شمسی" required><input type="hidden" id="shift-gregorian-date" name="work_date" value="{{ old('work_date', now()->toDateString()) }}"><small class="shift-date-hint">تاریخ را به شکل سال/ماه/روز وارد کنید.</small></span>
       </label>
       <label class="shift-field">ساعات کارکرد *
         <input type="number" name="worked_hours" min="0.01" max="24" step="0.25" value="{{ old('worked_hours', 8) }}" placeholder="مثلاً ۸" required>
@@ -190,69 +191,37 @@
   </div>
 </div>
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
 <script>
-(function () {
-  const input = document.getElementById('shift-jalali-date');
-  const hidden = document.getElementById('shift-gregorian-date');
-  if (!input || !hidden) return;
-
-  const faDigits = value => String(value).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-  const toJalali = iso => {
-    const match = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (!match) return '';
-    const date = new Date(Date.UTC(+match[1], +match[2] - 1, +match[3]));
-    const parts = new Intl.DateTimeFormat('en-u-ca-persian-nu-latn', {timeZone:'UTC',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
-    const get = type => parts.find(p => p.type === type)?.value || '';
-    return get('year') + '/' + get('month').padStart(2,'0') + '/' + get('day').padStart(2,'0');
-  };
-  const toGregorian = value => {
-    const m = faDigits(value).trim().match(/^(\d{3,4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
-    if (!m) return null;
-    const jy=+m[1], jm=+m[2], jd=+m[3];
-    if (jm<1 || jm>12 || jd<1 || jd>31) return null;
-    const jalaliToGregorian = (year, month, day) => {
-      year += 1595;
-      let days = -355668 + 365 * year + Math.floor(year / 33) * 8 + Math.floor(((year % 33) + 3) / 4) + day + (month < 7 ? (month - 1) * 31 : (month - 7) * 30 + 186);
-      let gy = 400 * Math.floor(days / 146097);
-      days %= 146097;
-      if (days > 36524) {
-        gy += 100 * Math.floor(--days / 36524);
-        days %= 36524;
-        if (days >= 365) days++;
-      }
-      gy += 4 * Math.floor(days / 1461);
-      days %= 1461;
-      if (days > 365) {
-        gy += Math.floor((days - 1) / 365);
-        days = (days - 1) % 365;
-      }
-      let gd = days + 1;
-      const leap = gy % 4 === 0 && (gy % 100 !== 0 || gy % 400 === 0);
-      const monthDays = [0,31,leap ? 29 : 28,31,30,31,30,31,31,30,31,30,31];
-      let gm = 0;
-      while (gm < 12 && gd > monthDays[gm]) { gd -= monthDays[gm]; gm++; }
-      return [gy, gm, gd];
-    };
-    const [gy, gm, gd] = jalaliToGregorian(jy, jm, jd);
-    const iso = String(gy) + '-' + String(gm).padStart(2,'0') + '-' + String(gd).padStart(2,'0');
-    if (toJalali(iso) !== [String(jy),String(jm).padStart(2,'0'),String(jd).padStart(2,'0')].join('/')) return null;
-    return iso;
-  };
-  if (!input.value) input.value = toJalali(hidden.value);
-  input.value = toJalali(hidden.value) || input.value;
-  const sync = () => {
-    const iso = toGregorian(input.value);
-    input.setCustomValidity(iso ? '' : 'تاریخ شمسی معتبر وارد کنید؛ مثال: ۱۴۰۵/۰۷/۲۰');
-    if (iso) hidden.value = iso;
-  };
-  input.addEventListener('input', sync);
-  input.addEventListener('change', sync);
-  input.form?.addEventListener('submit', sync);
+document.addEventListener('DOMContentLoaded', function () {
+  const picker = document.querySelector('#shift-jalali-date');
+  const isoField = document.querySelector('#shift-gregorian-date');
+  if (picker && isoField && window.jQuery && jQuery.fn.persianDatepicker) {
+    jQuery(picker).persianDatepicker({
+      calendarType: 'persian',
+      initialValue: Boolean(picker.value),
+      initialValueType: 'gregorian',
+      format: 'YYYY/MM/DD',
+      altField: '#shift-gregorian-date',
+      altFormat: 'YYYY-MM-DD',
+      altFieldFormatter: function (unixDate) {
+        const date = new Date(unixDate);
+        return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+      },
+      calendar: { persian: { locale: 'fa' } },
+      toolbox: { calendarSwitch: { enabled: false }, todayButton: { enabled: true, text: { fa: 'امروز' } } }
+    });
+  }
   document.querySelectorAll('.shift-date-display[data-iso-date]').forEach(el => {
-    const jalali = toJalali(el.dataset.isoDate);
-    if (jalali) el.textContent = jalali;
+    const raw = (el.dataset.isoDate || '').slice(0, 10);
+    const match = raw.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+    if (!match) return;
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    el.textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {year:'numeric',month:'2-digit',day:'2-digit'}).format(date);
   });
-})();
+});
 </script>
 @endpush
 @endsection
