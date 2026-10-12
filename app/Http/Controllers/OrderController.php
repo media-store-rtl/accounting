@@ -45,14 +45,15 @@ class OrderController extends Controller
         $goods=DB::table('goods')->where('company_id',$companyId)->where('is_active',true)->where('sellable',true)->orderBy('name')->get();
         $fiscalYear=DB::table('fiscal_years')->where('company_id',$companyId)->where('is_closed',false)->latest('id')->first();
         abort_unless($fiscalYear,422,'سال مالی باز برای ثبت سفارش وجود ندارد.');
-        return view('sales.orders.create',compact('customers','goods','fiscalYear'));
+        $nextOrderNumber = $this->nextOrderNumber($companyId);
+        return view('sales.orders.create',compact('customers','goods','fiscalYear','nextOrderNumber'));
     }
 
     public function store(Request $request): JsonResponse
     {
         $companyId=CompanyAuthorization::authorize($request,'order.create');
         $data=$request->validate([
-            'fiscal_year_id'=>'required|integer','customer_id'=>'required|integer','number'=>'required|string|max:100',
+            'fiscal_year_id'=>'required|integer','customer_id'=>'required|integer',
             'ordered_at'=>'nullable|date','requested_delivery_at'=>'required|date','notes'=>'nullable|string',
             'items'=>'required|array|min:1','items.*.goods_id'=>'required|integer|distinct','items.*.quantity'=>'required|numeric|gt:0'
         ], ['items.*.goods_id.distinct'=>'هر کالا را فقط یک‌بار در سفارش وارد کنید.']);
@@ -60,10 +61,11 @@ class OrderController extends Controller
         $data['ordered_at'] = now()->toDateString();
         $order=DB::transaction(function()use($data,$companyId){
             DB::table('companies')->where('id',$companyId)->lockForUpdate()->first();
+            $number = (string) $this->nextOrderNumber($companyId);
             abort_unless(DB::table('fiscal_years')->where('id',$data['fiscal_year_id'])->where('company_id',$companyId)->where('is_closed',false)->exists(),422,'سال مالی نامعتبر است.');
             abort_unless(DB::table('customers')->where('id',$data['customer_id'])->where('company_id',$companyId)->where('is_active',true)->exists(),422,'مشتری نامعتبر است.');
             $id=DB::table('orders')->insertGetId([
-                'company_id'=>$companyId,'fiscal_year_id'=>$data['fiscal_year_id'],'customer_id'=>$data['customer_id'],'number'=>$data['number'],
+                'company_id'=>$companyId,'fiscal_year_id'=>$data['fiscal_year_id'],'customer_id'=>$data['customer_id'],'number'=>$number,
                 'ordered_at'=>$data['ordered_at'],'requested_delivery_at'=>$data['requested_delivery_at'],'notes'=>$data['notes']??null,
                 'status'=>'checking_stock','created_at'=>now(),'updated_at'=>now()
             ]);
@@ -155,6 +157,18 @@ class OrderController extends Controller
         return response()->json(['data'=>$result]);
     }
 
+
+    /** Return the next numeric order number within the current company. */
+    private function nextOrderNumber(int $companyId): int
+    {
+        $numbers = DB::table('orders')
+            ->where('company_id', $companyId)
+            ->pluck('number')
+            ->filter(fn ($number) => preg_match('/^\\d+$/', (string) $number) === 1)
+            ->map(fn ($number) => (int) $number);
+
+        return (int) ($numbers->max() ?? 0) + 1;
+    }
 
     /**
      * Stock not already allocated to other open orders.
