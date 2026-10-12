@@ -135,6 +135,9 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 @php $value=old($f,$row->$f ?? ''); @endphp
 <div class="col-md-6 form-field">
 <label class="form-label fw-semibold" for="field-{{$f}}">{{ $labels[$f] ?? $f }}@if(($module ?? null) === 'production-sections' && $f === 'location_id') <span class="text-danger">*</span>@endif</label>
+@if(($module ?? null) === 'productions' && ($row->status ?? null) === 'paused' && !in_array($f, ['planned_start_at', 'planned_end_at'], true))
+<div class="form-control" style="display:flex;align-items:center;min-height:42px;opacity:.75" aria-readonly="true">{{ $value !== '' && $value !== null ? $value : '—' }}</div>
+@else
 @if($f==='category_id')
 <select name="{{$f}}" class="form-select" required><option value="">انتخاب کنید</option>@foreach(($options['categories']??[]) as $o)<option value="{{$o->id}}" @selected((string)$value===(string)$o->id)>{{$o->name}}</option>@endforeach</select>
 @elseif($f==='parent_id')
@@ -174,6 +177,7 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 @else
 <input name="{{$f}}" value="{{$value}}" class="form-control" @if(in_array($f,['code','name','number'])) required @endif>
 @endif
+@endif
 @error($f)<div class="text-danger small mt-1">{{$message}}</div>@enderror
 </div>
 @endforeach
@@ -182,6 +186,7 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 </form></div>
 
 @if(($module ?? null) === 'productions')
+@if(($row->status ?? null) === 'paused')<div class="alert alert-warning">این دستور متوقف موقت است؛ فقط تاریخ و ساعت برنامه‌ریزی‌شده قابل ویرایش است. کالا، مسیر و مقدار تولید قفل هستند.</div>@endif
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
