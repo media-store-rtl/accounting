@@ -3,7 +3,8 @@
 - در فهرست کسری، برای سفارش دارای موعد ثبت‌شده، تاریخ فقط خواندنی نمایش داده می‌شود و فرم انتخاب/ثبت مجدد نمایش داده نمی‌شود.
 - تست Feature اصلاح شد: ثبت اول باید موفق باشد، تلاش دوم باید رد شود و تاریخ اولیه در پایگاه داده باقی بماند.
 - فایل‌های تغییرکرده: `app/Http/Controllers/OrderController.php`, `resources/views/production/sales-shortages.blade.php`, `tests/Feature/OrdersSupplyWorkflowTest.php`, `PROJECT_PROGRESS.md`.
-- این تغییر در شاخه `fix-production-due-date-one-time-only` و PR [#42](https://github.com/media-store-rtl/accounting/pull/42) برای بررسی آماده است؛ PR باز و ادغام‌نشده است. تست خودکار اجرا نشده است. انتشار و بررسی سایت زنده نیز انجام نشده‌اند.
+- PR [#42](https://github.com/media-store-rtl/accounting/pull/42) با تأیید کاربر در `main` ادغام شد؛ commit نهایی ادغام: `8199ae039e6c24b2dd9ea203a2faff54b8c8c342` (ادغام در 2026-10-12). پس از ادغام، فایل‌های کنترلر، نما، تست و این گزارش روی `main` دوباره بررسی شدند.
+- تست خودکار هنوز اجرا نشده است؛ بنابراین نتیجهٔ اجرای تست تأیید نشده. Deploy و بررسی مرورگر سایت زنده نیز انجام نشده‌اند.
 
 # وضعیت فعلی گردش سفارش فروش و برنامه ادامه کار — 2026-10-12
 
