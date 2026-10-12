@@ -34,5 +34,25 @@ class LaborCostTest extends TestCase
         $this->assertNotNull($cost);
         $this->assertSame(300.0,(float)$cost->total_cost);
         $this->assertSame('approved',DB::table('production_labor_entries')->where('id',$entry)->value('status'));
+
+        $location=DB::table('locations')->insertGetId([
+            'company_id'=>$company,'code'=>'SEC'.uniqid(),'name'=>'Cutting','type'=>'production_section',
+            'is_active'=>true,'created_at'=>now(),'updated_at'=>now()
+        ]);
+        $section=DB::table('production_sections')->insertGetId([
+            'location_id'=>$location,'created_at'=>now(),'updated_at'=>now()
+        ]);
+        $shiftEntry=app(LaborCostService::class)->recordShiftEntry(
+            $company,$fy,$section,$goods,$personnel,4,12,'hourly','2026-10-07 16:00:00','Evening',$user,'shift test'
+        );
+        $shift=DB::table('production_labor_entries')->where('id',$shiftEntry)->first();
+        $this->assertNull($shift->production_operation_run_id);
+        $this->assertSame(4.0,(float)$shift->hours_worked);
+        $this->assertSame(12.0,(float)$shift->quantity_completed);
+        $this->assertSame($section,(int)$shift->production_section_id);
+        app(LaborCostService::class)->review($company,$shiftEntry,$user,true);
+        $shiftCost=DB::table('production_labor_costs')->where('labor_entry_id',$shiftEntry)->first();
+        $this->assertSame(400.0,(float)$shiftCost->total_cost);
+        $this->assertSame($goods,(int)$shiftCost->goods_id);
     }
 }
