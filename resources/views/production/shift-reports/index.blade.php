@@ -210,9 +210,31 @@
     if (!m) return null;
     const jy=+m[1], jm=+m[2], jd=+m[3];
     if (jm<1 || jm>12 || jd<1 || jd>31) return null;
-    const d = new Date(Date.UTC( jy + 621, 2, 20 ));
-    d.setUTCDate(d.getUTCDate() + (jm <= 6 ? (jm-1)*31 + jd-1 : 186 + (jm-7)*30 + jd-1));
-    const iso = d.toISOString().slice(0,10);
+    const jalaliToGregorian = (year, month, day) => {
+      year += 1595;
+      let days = -355668 + 365 * year + Math.floor(year / 33) * 8 + Math.floor(((year % 33) + 3) / 4) + day + (month < 7 ? (month - 1) * 31 : (month - 7) * 30 + 186);
+      let gy = 400 * Math.floor(days / 146097);
+      days %= 146097;
+      if (days > 36524) {
+        gy += 100 * Math.floor(--days / 36524);
+        days %= 36524;
+        if (days >= 365) days++;
+      }
+      gy += 4 * Math.floor(days / 1461);
+      days %= 1461;
+      if (days > 365) {
+        gy += Math.floor((days - 1) / 365);
+        days = (days - 1) % 365;
+      }
+      let gd = days + 1;
+      const leap = gy % 4 === 0 && (gy % 100 !== 0 || gy % 400 === 0);
+      const monthDays = [0,31,leap ? 29 : 28,31,30,31,30,31,31,30,31,30,31];
+      let gm = 0;
+      while (gm < 12 && gd > monthDays[gm]) { gd -= monthDays[gm]; gm++; }
+      return [gy, gm, gd];
+    };
+    const [gy, gm, gd] = jalaliToGregorian(jy, jm, jd);
+    const iso = String(gy) + '-' + String(gm).padStart(2,'0') + '-' + String(gd).padStart(2,'0');
     if (toJalali(iso) !== [String(jy),String(jm).padStart(2,'0'),String(jd).padStart(2,'0')].join('/')) return null;
     return iso;
   };
