@@ -162,7 +162,7 @@ $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifica
 <div class="mobile-sales-card">
 <div class="mobile-base-head"><strong>مراحل فروش</strong><button type="button" onclick="document.getElementById('mobile-sales-panel')?.classList.remove('open');">×</button></div>
 <div class="mobile-sales-links">
-@if($can['orders'])<a href="{{ route('sales.orders.index') }}">همه سفارش‌ها</a><a href="{{ route('sales.orders.create') }}">ثبت سفارش جدید</a><a href="{{ route('sales.orders.index', ['status' => 'needs_supply']) }}">پیگیری تأمین و تولید</a><a href="{{ route('sales.orders.index', ['status' => 'ready']) }}">سفارش‌های آماده تحویل</a>@endif
+@if($can['orders'])<a href="{{ route('sales.orders.index') }}">همه سفارش‌ها</a><a href="{{ route('sales.orders.create') }}">ثبت سفارش جدید</a>@endif
 @if($can['deliveries'])<a href="{{ route('sales.deliveries.index') }}">درخواست‌ها و تحویل‌ها</a>@endif
 </div></div></div>
 <div class="mobile-base-panel" id="mobile-base-panel" aria-label="مرکز اطلاعات پایه" onclick="if(event.target===this)this.classList.remove('open');">
