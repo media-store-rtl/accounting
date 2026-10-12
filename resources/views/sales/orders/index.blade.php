@@ -28,7 +28,7 @@ $statusLabels = [
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>شماره</th><th>مشتری</th><th>موعد درخواستی</th><th>موعد تولید</th><th>وضعیت</th><th>جزئیات</th></tr>
+        <tr><th>شماره</th><th>مشتری</th><th>موعد درخواستی</th><th>موعد تولید</th><th>وضعیت</th><th>عملیات</th></tr>
       </thead>
       <tbody>
         @forelse($orders as $o)
@@ -38,7 +38,13 @@ $statusLabels = [
             <td><time class="jalali-date" datetime="{{ $o->requested_delivery_at }}">{{ $o->requested_delivery_at }}</time></td>
             <td>@if($o->production_due_at)<time class="jalali-date" datetime="{{ $o->production_due_at }}">{{ $o->production_due_at }}</time>@else — @endif</td>
             <td><span class="status">{{ $statusLabels[$o->status] ?? 'در حال بررسی' }}</span></td>
-            <td><a class="btn" href="{{ route('sales.orders.show', $o->id) }}">مشاهده جزئیات</a></td>
+            <td style="white-space:nowrap"><a class="btn" href="{{ route('sales.orders.show', $o->id) }}">مشاهده جزئیات</a>
+              @if(in_array($o->status, ['checking_stock','production_required','awaiting_production','ready_for_delivery'], true))
+                <form method="POST" action="{{ route('sales.orders.cancel', $o->id) }}" style="display:inline" onsubmit="return confirm('آیا از لغو این سفارش مطمئن هستید؟');">@csrf
+                  <button class="btn" type="submit" style="border-color:#8d3e3e;color:#ffb8b8">لغو سفارش</button>
+                </form>
+              @endif
+            </td>
           </tr>
         @empty
           <tr><td colspan="6" style="text-align:center;color:#71879d;padding:28px">هنوز سفارشی ثبت نشده است.</td></tr>
