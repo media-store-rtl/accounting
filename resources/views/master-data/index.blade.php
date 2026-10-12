@@ -228,7 +228,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.production-jalali-date[datetime]').forEach(function (element) {
         const value = element.getAttribute('datetime');
-        const match = value && value.match(/^(\\d{4})-(\\d{2})-(\\d{2})(?:[ T](\\d{2}):(\\d{2}))?/);
+        const match = value && value.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
         if (!match) return;
         const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4] || 12), Number(match[5] || 0));
         element.textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
