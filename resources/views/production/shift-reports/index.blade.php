@@ -13,6 +13,7 @@
 <form method="POST" action="{{ route('production.shift-reports.store') }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:12px">
 @csrf
 <label>قسمت تولید<select class="form-select" name="production_section_id" required><option value="">انتخاب قسمت</option>@foreach($sections as $s)<option value="{{ $s->id }}" @selected((string)old('production_section_id')===(string)$s->id)>{{ $s->name ?: 'قسمت '.$s->id }}</option>@endforeach</select></label>
+<label>کارگر<select class="form-select" name="personnel_id" required><option value="">انتخاب کارگر</option>@foreach($personnel as $p)<option value="{{ $p->id }}" @selected((string)old('personnel_id')===(string)$p->id)>{{ $p->code ? $p->code.' — ' : '' }}{{ $p->name }}</option>@endforeach</select></label>
 <label>محصول / قطعه<select class="form-select" name="goods_id" required><option value="">انتخاب کالا</option>@foreach($goods as $g)<option value="{{ $g->id }}" @selected((string)old('goods_id')===(string)$g->id)>{{ $g->code ? $g->code.' — ' : '' }}{{ $g->name }}</option>@endforeach</select></label>
 <label>شیفت<input class="form-input" name="shift_name" maxlength="80" value="{{ old('shift_name') }}" placeholder="مثلاً صبح، عصر یا شب" required></label>
 <label>تاریخ شیفت<input class="form-input" type="date" name="work_date" value="{{ old('work_date', now()->toDateString()) }}" required></label>
@@ -23,9 +24,9 @@
 </form></div>
 
 <div class="panel"><h2 style="font-size:15px">گزارش‌های ثبت‌شده</h2>
-<div class="table-wrap"><table><thead><tr><th>تاریخ / شیفت</th><th>قسمت</th><th>محصول</th><th>تولید</th><th>ضایعات</th><th>ثبت‌کننده</th><th>وضعیت</th><th>اقدام</th></tr></thead><tbody>
+<div class="table-wrap"><table><thead><tr><th>تاریخ / شیفت</th><th>قسمت</th><th>کارگر</th><th>محصول</th><th>تولید</th><th>ضایعات</th><th>ثبت‌کننده</th><th>وضعیت</th><th>اقدام</th></tr></thead><tbody>
 @forelse($rows as $r)
-<tr><td>{{ $r->work_date }}<br>{{ $r->shift_name }}</td><td>{{ $r->section_name ?: '—' }}</td><td>{{ $r->goods_code ? $r->goods_code.' — ' : '' }}{{ $r->goods_name }}</td><td>{{ $r->produced_quantity }}</td><td>{{ $r->scrap_quantity }}</td><td>{{ $r->reporter_name }}</td><td>
+<tr><td>{{ $r->work_date }}<br>{{ $r->shift_name }}</td><td>{{ $r->section_name ?: '—' }}</td><td>{{ $r->worker_name ?: '—' }}</td><td>{{ $r->goods_code ? $r->goods_code.' — ' : '' }}{{ $r->goods_name }}</td><td>{{ $r->produced_quantity }}</td><td>{{ $r->scrap_quantity }}</td><td>{{ $r->reporter_name }}</td><td>
 @php($labels=['pending'=>'در انتظار تأیید','approved'=>'تأییدشده؛ آماده تحویل','rejected'=>'ردشده','received'=>'تحویل انبار شد'])
 <span class="status {{ in_array($r->status,['approved','received'],true) ? 'active' : 'inactive' }}">{{ $labels[$r->status] ?? $r->status }}</span>
 @if($r->review_notes)<div style="font-size:11px;margin-top:5px">{{ $r->review_notes }}</div>@endif
@@ -43,7 +44,7 @@
 <button class="btn primary" type="submit">ثبت ورود به انبار</button></form>
 @else—@endif
 </td></tr>
-@empty<tr><td colspan="8" style="text-align:center;padding:24px;color:#8198ac">هنوز گزارش شیفتی ثبت نشده است.</td></tr>@endforelse
+@empty<tr><td colspan="9" style="text-align:center;padding:24px;color:#8198ac">هنوز گزارش شیفتی ثبت نشده است.</td></tr>@endforelse
 </tbody></table></div>
 @if(method_exists($rows,'links'))<div class="pagination">{{ $rows->links() }}</div>@endif
 </div>
