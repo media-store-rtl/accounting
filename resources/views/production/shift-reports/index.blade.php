@@ -45,7 +45,7 @@
 .shift-flash.success{border:1px solid #246451;background:#0c282b;color:#8ce8ce}
 .shift-flash.error{border:1px solid #714448;background:#302126;color:#ffb8a8}
 @media(max-width:900px){.shift-form{grid-template-columns:repeat(2,minmax(0,1fr))}.shift-guide{grid-template-columns:1fr}}
-@media(max-width:560px){.shift-intro h1{font-size:22px}.shift-form{grid-template-columns:1fr}.shift-field.full,.shift-form-footer{grid-column:auto}.shift-panel-head{flex-direction:column}.shift-tag{white-space:normal}.shift-form-footer .btn{width:100%;justify-content:center}}
+@media(max-width:560px){.shift-intro h1{font-size:22px}.shift-form{grid-template-columns:1fr}.shift-field.full,.shift-form-footer{grid-column:auto}.shift-panel-head{flex-direction:column}.shift-tag{white-space:normal}.shift-material-line{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.shift-material-line select{grid-column:1/-1}.shift-form-footer .btn{width:100%;justify-content:center}}
 </style>
 @endpush
 
