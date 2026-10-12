@@ -20,7 +20,7 @@ class WorkflowPagesController extends Controller {
  }
  public function productionSalesShortages(Request $r){
   $cid=CompanyAuthorization::authorize($r,'production.supervise');
-  $inventoryService=app(\\App\\Services\\InventoryService::class);
+  $inventoryService=app(\App\Services\InventoryService::class);
 
   // Reconcile open production-shortage orders against current allocatable stock.
   // Orders that become fully available leave this list and return to ready_for_delivery.
@@ -58,7 +58,7 @@ class WorkflowPagesController extends Controller {
    });
 
    if($newStatus==='ready_for_delivery' && $previousStatus!=='ready_for_delivery'){
-    app(\\App\\Services\\NotificationRecipientService::class)->send($cid,'order.ready_for_delivery',['order_id'=>$candidate->id],(int)$r->user()->id,'order.view');
+    app(\App\Services\NotificationRecipientService::class)->send($cid,'order.ready_for_delivery',['order_id'=>$candidate->id],(int)$r->user()->id,'order.view');
    }
   }
 
