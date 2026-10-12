@@ -14,9 +14,28 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         $companyId=CompanyAuthorization::authorize($request,'order.view');
-        $orders=DB::table('orders as o')->join('customers as c','c.id','=','o.customer_id')
-            ->where('o.company_id',$companyId)->select('o.*','c.name as customer_name')->latest('o.id')->paginate(20);
-        return view('sales.orders.index',compact('orders'));
+        $statusGroups = [
+            'needs_supply' => ['production_required', 'awaiting_production'],
+            'ready' => ['ready_for_delivery'],
+            'delivery' => ['delivery_requested', 'issued'],
+            'completed' => ['completed'],
+        ];
+        $selectedStatus = (string) $request->query('status', '');
+        $ordersQuery = DB::table('orders as o')->join('customers as c','c.id','=','o.customer_id')
+            ->where('o.company_id',$companyId)->select('o.*','c.name as customer_name');
+        if (isset($statusGroups[$selectedStatus])) {
+            $ordersQuery->whereIn('o.status', $statusGroups[$selectedStatus]);
+        }
+        $orders = $ordersQuery->latest('o.id')->paginate(20)->withQueryString();
+        $statusCounts = DB::table('orders')->where('company_id',$companyId)
+            ->select('status', DB::raw('COUNT(*) as total'))->groupBy('status')->pluck('total','status');
+        $salesCounts = [
+            'needs_supply' => (int) ($statusCounts['production_required'] ?? 0) + (int) ($statusCounts['awaiting_production'] ?? 0),
+            'ready' => (int) ($statusCounts['ready_for_delivery'] ?? 0),
+            'delivery' => (int) ($statusCounts['delivery_requested'] ?? 0) + (int) ($statusCounts['issued'] ?? 0),
+            'completed' => (int) ($statusCounts['completed'] ?? 0),
+        ];
+        return view('sales.orders.index',compact('orders','salesCounts','selectedStatus'));
     }
 
     public function create(Request $request)
