@@ -55,6 +55,8 @@ class NotificationRecipientService
             'order.production_required' => 'production.supervise',
             'supply.stock_check_required' => 'supply_request.handover.create',
             'supply.shortage' => 'supply.manage',
+            'supply.stock_rejected' => 'supply_request.create',
+            'supply.purchased' => 'supply_request.create',
             default => null,
         };
         if ($requiredPermission && $ids->isNotEmpty()) {
