@@ -11,6 +11,10 @@
     <a class="btn" href="{{ route('sales.orders.index') }}">بازگشت به سفارش‌ها</a>
 </div>
 
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
+@endpush
+
 <style>
 .order-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
 .order-field{min-width:0}.order-field.full{grid-column:1/-1}
@@ -66,12 +70,16 @@
             </div>
             <div class="order-field">
                 <label for="ordered_at">تاریخ ثبت *</label>
-                <input id="ordered_at" name="ordered_at" type="date" lang="fa-IR" value="{{ old('ordered_at', now()->toDateString()) }}" required>
+                <input id="ordered_at_picker" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="{{ old('ordered_at', now()->toDateString()) }}" required aria-describedby="ordered_at_help">
+                <input id="ordered_at" name="ordered_at" type="hidden" value="{{ old('ordered_at', now()->toDateString()) }}">
+                <small id="ordered_at_help" style="display:block;color:#71879d;font-size:10px;margin-top:5px">تاریخ را از تقویم شمسی انتخاب کنید.</small>
                 @error('ordered_at')<div class="order-error">{{ $message }}</div>@enderror
             </div>
             <div class="order-field">
                 <label for="requested_delivery_at">موعد درخواستی تحویل *</label>
-                <input id="requested_delivery_at" name="requested_delivery_at" type="date" lang="fa-IR" value="{{ old('requested_delivery_at') }}" required>
+                <input id="requested_delivery_at_picker" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="{{ old('requested_delivery_at') }}" required aria-describedby="requested_delivery_at_help">
+                <input id="requested_delivery_at" name="requested_delivery_at" type="hidden" value="{{ old('requested_delivery_at') }}">
+                <small id="requested_delivery_at_help" style="display:block;color:#71879d;font-size:10px;margin-top:5px">تاریخ را از تقویم شمسی انتخاب کنید.</small>
                 @error('requested_delivery_at')<div class="order-error">{{ $message }}</div>@enderror
             </div>
             <div class="order-section">اقلام سفارش</div>
@@ -103,7 +111,36 @@
     </form>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', function () {
+    const setupPersianDatepicker = (pickerSelector, isoSelector) => {
+        const picker = document.querySelector(pickerSelector);
+        const isoField = document.querySelector(isoSelector);
+        if (!picker || !isoField || !window.jQuery || !jQuery.fn.persianDatepicker) return;
+        jQuery(picker).persianDatepicker({
+            calendarType: 'persian',
+            initialValue: Boolean(picker.value),
+            initialValueType: 'gregorian',
+            format: 'YYYY/MM/DD',
+            altField: isoSelector,
+            altFormat: 'YYYY-MM-DD',
+            altFieldFormatter: function (unixDate) {
+                const date = new Date(unixDate);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return year + '-' + month + '-' + day;
+            },
+            calendar: { persian: { locale: 'fa' } },
+            toolbox: { calendarSwitch: { enabled: false }, todayButton: { enabled: true, text: { fa: 'امروز' } } }
+        });
+    };
+    setupPersianDatepicker('#ordered_at_picker', '#ordered_at');
+    setupPersianDatepicker('#requested_delivery_at_picker', '#requested_delivery_at');
+});
 let i = 1;
 function addItem() {
     const source = document.querySelector('#items .order-item');
