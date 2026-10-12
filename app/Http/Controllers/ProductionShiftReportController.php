@@ -46,6 +46,8 @@ final class ProductionShiftReportController extends Controller
             'personnel_id' => ['required', 'integer'],
             'shift_name' => ['required', 'string', 'max:80'],
             'work_date' => ['required', 'date'],
+            'worked_hours' => ['required', 'numeric', 'gt:0'],
+            'labor_rate_type' => ['required', 'in:hourly,per_unit'],
             'produced_quantity' => ['required', 'numeric', 'gt:0'],
             'scrap_quantity' => ['nullable', 'numeric', 'gte:0'],
             'notes' => ['nullable', 'string', 'max:2000'],
@@ -68,6 +70,9 @@ final class ProductionShiftReportController extends Controller
             'reported_by_user_id' => (int)$request->user()->id,
             'shift_name' => trim($data['shift_name']),
             'work_date' => $data['work_date'],
+            'worked_hours' => (float)$data['worked_hours'],
+            'labor_rate_type' => $data['labor_rate_type'],
+            'labor_total_cost' => 0,
             'produced_quantity' => (float)$data['produced_quantity'],
             'scrap_quantity' => $scrap,
             'status' => 'pending',
@@ -84,10 +89,34 @@ final class ProductionShiftReportController extends Controller
         DB::transaction(function () use ($companyId, $report, $data, $request) {
             $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
             if (!$row || $row->status !== 'pending') throw ValidationException::withMessages(['report' => 'این گزارش دیگر در انتظار بررسی نیست.']);
+            $laborCost = 0.0;
+            $unitRate = null;
+            if ($data['approve']) {
+                if ((float)($row->worked_hours ?? 0) <= 0 || !in_array($row->labor_rate_type, ['hourly', 'per_unit'], true)) {
+                    throw ValidationException::withMessages(['report' => 'این گزارش ساعت کار یا روش دستمزد ندارد؛ گزارش را اصلاح یا دوباره ثبت کنید.']);
+                }
+                $unitRate = DB::table('personnel_labor_rates')
+                    ->where('company_id', $companyId)
+                    ->where('personnel_id', $row->personnel_id)
+                    ->where('rate_type', $row->labor_rate_type)
+                    ->where('effective_from', '<=', $row->work_date)
+                    ->where(function ($q) use ($row) {
+                        $q->whereNull('effective_to')->orWhere('effective_to', '>=', $row->work_date);
+                    })
+                    ->orderByDesc('effective_from')->orderByDesc('id')
+                    ->value('rate');
+                if ($unitRate === null) {
+                    throw ValidationException::withMessages(['report' => 'برای این کارگر، نوع دستمزد و تاریخ شیفت نرخ فعالی ثبت نشده است. ابتدا نرخ دستمزد را تعریف کنید.']);
+                }
+                $laborCost = (float)$unitRate * ($row->labor_rate_type === 'hourly' ? (float)$row->worked_hours : (float)$row->produced_quantity);
+            }
             DB::table('production_shift_reports')->where('id', $report)->where('company_id', $companyId)->update([
                 'status' => $data['approve'] ? 'approved' : 'rejected',
                 'reviewed_by_user_id' => (int)$request->user()->id,
                 'review_notes' => $data['review_notes'] ?? null,
+                'labor_unit_rate' => $unitRate,
+                'labor_total_cost' => $laborCost,
+                'labor_cost_calculated_at' => $data['approve'] ? now() : null,
                 'reviewed_at' => now(), 'updated_at' => now(),
             ]);
             DB::table('audit_trails')->insert([
