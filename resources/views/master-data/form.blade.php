@@ -4,7 +4,7 @@
 @endif
 @section('content')
 @php
-$labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbol'=>'نماد','unit_type'=>'نوع واحد','national_id'=>'شناسه ملی','phone'=>'تلفن','email'=>'ایمیل','address'=>'آدرس','category_id'=>'دسته‌بندی','purchasable'=>'قابل خرید','producible'=>'قابل تولید','sellable'=>'قابل فروش','location_id'=>'محل / انبار','supervisor_personnel_id'=>'سرپرست','type'=>'نوع','production_route_id'=>'مسیر تولید','production_section_id'=>'قسمت تولید','production_stage_id'=>'مرحله تولید','sequence'=>'ترتیب','standard_duration_minutes'=>'مدت استاندارد (دقیقه)','setup_duration_minutes'=>'زمان آماده‌سازی (دقیقه)','status'=>'وضعیت','number'=>'شماره','goods_id'=>'کالا','fiscal_year_id'=>'سال مالی','planned_quantity'=>'مقدار برنامه‌ریزی‌شده','planned_start_at'=>'شروع برنامه‌ریزی‌شده','planned_end_at'=>'پایان برنامه‌ریزی‌شده','description'=>'توضیحات','notes'=>'یادداشت'];
+$labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbol'=>'نماد','unit_type'=>'نوع واحد','national_id'=>'شناسه ملی','phone'=>'تلفن','email'=>'ایمیل','address'=>'آدرس','category_id'=>'دسته‌بندی','purchasable'=>'قابل خرید','producible'=>'قابل تولید','sellable'=>'قابل فروش','inventory_valuation_method'=>'روش بهای تمام‌شده','location_id'=>'محل / انبار','supervisor_personnel_id'=>'سرپرست','type'=>'نوع','production_route_id'=>'مسیر تولید','production_section_id'=>'قسمت تولید','production_stage_id'=>'مرحله تولید','sequence'=>'ترتیب','standard_duration_minutes'=>'مدت استاندارد (دقیقه)','setup_duration_minutes'=>'زمان آماده‌سازی (دقیقه)','status'=>'وضعیت','number'=>'شماره','goods_id'=>'کالا','fiscal_year_id'=>'سال مالی','planned_quantity'=>'مقدار برنامه‌ریزی‌شده','planned_start_at'=>'شروع برنامه‌ریزی‌شده','planned_end_at'=>'پایان برنامه‌ریزی‌شده','description'=>'توضیحات','notes'=>'یادداشت'];
 @endphp
 @if(in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true))
 <style>
@@ -163,6 +163,13 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 @if(($module ?? null) === 'production-sections')<p class="field-help">در صورت مشخص بودن مسئول این قسمت، سرپرست را انتخاب کنید؛ این فیلد اختیاری است.</p>@endif
 @elseif($f==='status')
 <select name="{{$f}}" class="form-select" required><option value="active" @selected((string)$value==='active')>فعال</option><option value="inactive" @selected((string)$value==='inactive')>غیرفعال</option></select>
+@elseif($f==='inventory_valuation_method')
+<select name="{{$f}}" class="form-select">
+<option value="" @selected($value===null || $value==='')>پیروی از تنظیم پیش‌فرض شرکت</option>
+<option value="fifo" @selected($value==='fifo')>FIFO — اولین ورودی، اولین خروجی</option>
+<option value="weighted_average" @selected($value==='weighted_average')>میانگین موزون</option>
+</select>
+<p class="field-help">روش این کالا؛ در صورت خالی بودن از روش پیش‌فرض شرکت استفاده می‌شود. تغییر روش بعد از ثبت خروجی ارزش‌گذاری‌شده نیازمند بررسی حسابداری است.</p>
 @elseif(in_array($f,['purchasable','producible','sellable']))
 <div class="form-check form-switch pt-2"><input type="checkbox" name="{{$f}}" value="1" class="form-check-input" @checked((bool)$value)><label class="form-check-label">فعال</label></div>
 @elseif(in_array($f,['sequence','standard_duration_minutes','setup_duration_minutes']))
