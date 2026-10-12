@@ -104,6 +104,23 @@ class OrderController extends Controller
         return view('sales.orders.show',compact('row','items','deliveries'));
     }
 
+    public function cancel(Request $request, int $order)
+    {
+        $companyId = CompanyAuthorization::authorize($request, 'order.create');
+
+        DB::transaction(function () use ($order, $companyId) {
+            $row = DB::table('orders')->where('id', $order)->where('company_id', $companyId)->lockForUpdate()->first();
+            abort_unless($row, 404);
+            abort_unless(in_array($row->status, ['checking_stock', 'production_required', 'awaiting_production', 'ready_for_delivery'], true), 422, 'این سفارش در وضعیت فعلی قابل لغو نیست.');
+            $hasDelivery = DB::table('delivery_requests')->where('order_id', $order)->exists();
+            abort_if($hasDelivery, 422, 'برای این سفارش سابقه درخواست تحویل وجود دارد؛ لغو از این مسیر مجاز نیست.');
+            DB::table('orders')->where('id', $order)->where('company_id', $companyId)->update(['status' => 'cancelled', 'updated_at' => now()]);
+        });
+
+        if ($request->expectsJson()) return response()->json(['data' => ['id' => $order, 'status' => 'cancelled']]);
+        return redirect()->route('sales.orders.index')->with('success', 'سفارش با موفقیت لغو شد.');
+    }
+
     public function refreshFulfillment(Request $request,int $order): JsonResponse
     {
         $companyId=CompanyAuthorization::authorize($request,'order.refresh');
