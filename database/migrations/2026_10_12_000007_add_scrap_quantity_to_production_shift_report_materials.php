@@ -17,7 +17,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (Schema::hasColumn('production_shift_report_materials', 'scrap_quantity')) {
+        if (Schema::hasTable('production_shift_report_materials') && Schema::hasColumn('production_shift_report_materials', 'scrap_quantity')) {
             Schema::table('production_shift_report_materials', function (Blueprint $table) {
                 $table->dropColumn('scrap_quantity');
             });
