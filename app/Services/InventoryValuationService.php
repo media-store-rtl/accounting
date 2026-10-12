@@ -16,6 +16,30 @@ final class InventoryValuationService
         return in_array($method, [self::FIFO, self::WEIGHTED_AVERAGE], true) ? $method : self::FIFO;
     }
 
+    public function methodForGoods(int $companyId, int $goodsId): string
+    {
+        $method = DB::table('goods')->where('id', $goodsId)->where('company_id', $companyId)->value('inventory_valuation_method');
+        return in_array($method, [self::FIFO, self::WEIGHTED_AVERAGE], true) ? $method : $this->methodForCompany($companyId);
+    }
+
+    public function setGoodsMethod(int $companyId, int $goodsId, ?string $method): void
+    {
+        if ($method !== null && !in_array($method, [self::FIFO, self::WEIGHTED_AVERAGE], true)) {
+            throw new RuntimeException('روش کالا باید FIFO، میانگین موزون یا پیروی از تنظیم شرکت باشد.');
+        }
+        $goods = DB::table('goods')->where('id', $goodsId)->where('company_id', $companyId)->first();
+        if (!$goods) throw new RuntimeException('کالا متعلق به شرکت نیست.');
+        $current = $this->methodForGoods($companyId, $goodsId);
+        $next = $method ?? $this->methodForCompany($companyId);
+        if ($current !== $next && DB::table('inventory_consumption_costs')->where('company_id', $companyId)->where('goods_id', $goodsId)->exists()) {
+            throw new RuntimeException('تغییر روش ارزش‌گذاری کالای دارای مصرف ثبت‌شده نیازمند فرآیند تغییر سیاست حسابداری و بازمحاسبه است.');
+        }
+        DB::table('goods')->where('id', $goodsId)->where('company_id', $companyId)->update([
+            'inventory_valuation_method' => $method,
+            'updated_at' => now(),
+        ]);
+    }
+
     public function setMethod(int $companyId, string $method): void
     {
         if (!in_array($method, [self::FIFO, self::WEIGHTED_AVERAGE], true)) {
@@ -98,15 +122,15 @@ final class InventoryValuationService
     public function valueInventoryMovement(int $movementId, int $fiscalYearId): array
     {
         $movement = DB::table('inventory_movements')->where('id', $movementId)->lockForUpdate()->firstOrFail();
+        $companyId = (int) $movement->company_id;
+        $goodsId = (int) $movement->goods_id;
+        $method = $this->methodForGoods($companyId, $goodsId);
         if ((float) $movement->quantity >= 0) {
-            return ['total_cost' => 0.0, 'unit_cost' => 0.0, 'method' => $this->methodForCompany((int) $movement->company_id)];
+            return ['total_cost' => 0.0, 'unit_cost' => 0.0, 'method' => $method];
         }
 
         $quantity = abs((float) $movement->quantity);
-        $companyId = (int) $movement->company_id;
         $locationId = (int) $movement->location_id;
-        $goodsId = (int) $movement->goods_id;
-        $method = $this->methodForCompany($companyId);
 
         $existing = DB::table('inventory_consumption_costs')->where('inventory_movement_id', $movementId)->first();
         if ($existing) {
