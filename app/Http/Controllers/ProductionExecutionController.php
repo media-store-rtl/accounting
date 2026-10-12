@@ -30,7 +30,7 @@ final class ProductionExecutionController extends Controller
             ->join('production_stage_runs as sr','sr.id','=','r.production_stage_run_id')
             ->join('production_operations as o','o.id','=','r.production_operation_id')
             ->join('productions as p','p.id','=','sr.production_id')
-            ->where('p.company_id',$companyId)->whereIn('r.status',['pending','in_progress'])
+            ->where('p.company_id',$companyId)->where('p.status','in_progress')->whereIn('r.status',['pending','in_progress'])
             ->select('r.id','p.number','o.name')->orderByDesc('r.id')->get();
         $goods=DB::table('goods')->where('company_id',$companyId)->where('is_active',true)->orderBy('name')->get(['id','code','name']);
         return view('production.execution.create',compact('runs','goods'));
