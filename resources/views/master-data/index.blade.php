@@ -19,8 +19,8 @@
     ];
     $valueLabels = [
         'active' => 'فعال', 'inactive' => 'غیرفعال', 'pending' => 'در انتظار',
-        'in_progress' => 'در حال اجرا', 'completed' => 'تکمیل‌شده', 'cancelled' => 'لغوشده',
-        'draft' => 'پیش‌نویس', 'pending_review' => 'در انتظار بررسی'
+        'in_progress' => 'در حال اجرا', 'paused' => 'متوقف موقت', 'completed' => 'تکمیل‌شده', 'cancelled' => 'لغوشده',
+        'draft' => 'پیش‌نویس', 'paused' => 'متوقف موقت', 'pending_review' => 'در انتظار بررسی'
     ];
 @endphp
 <style>
@@ -151,8 +151,8 @@
                             <td>{{ $row->production_route_name ?? 'مسیر نامشخص' }}</td>
                             <td>{{ $row->fiscal_year_name ?? 'سال مالی نامشخص' }}</td>
                             <td>{{ rtrim(rtrim(number_format((float)($row->planned_quantity ?? 0), 4, '.', ''), '0'), '.') }}</td>
-                            <td>{{ $row->planned_start_at ?? '—' }}</td>
-                            <td>{{ $row->planned_end_at ?? '—' }}</td>
+                            <td>@if($row->planned_start_at)<time class="production-jalali-date" datetime="{{ $row->planned_start_at }}">{{ $row->planned_start_at }}</time>@else—@endif</td>
+                            <td>@if($row->planned_end_at)<time class="production-jalali-date" datetime="{{ $row->planned_end_at }}">{{ $row->planned_end_at }}</time>@else—@endif</td>
                             <td>{{ $row->notes ?: '—' }}</td>
                             <td>{{ match((string)($row->status ?? '')) { 'draft' => 'پیش‌نویس', 'in_progress' => 'در حال اجرا', 'completed' => 'تکمیل‌شده', 'cancelled' => 'لغوشده', default => ($row->status ?? 'نامشخص') } }}</td>
                         @else
@@ -166,9 +166,17 @@
                             @endif
                         @endif
                         <td>
-                            <a class="btn" href="{{ route('master.edit', [$module, $row->id]) }}">ویرایش</a>
+                            @if ($module !== 'productions' || ($row->status ?? null) === 'draft')
+                                <a class="btn" href="{{ route('master.edit', [$module, $row->id]) }}">ویرایش</a>
+                            @else
+                                <span style="font-size:10px;color:#8198ac">ویرایش پس از شروع غیرفعال است</span>
+                            @endif
                             @if ($module === 'productions' && ($row->status ?? null) === 'draft')
-                                <form method="post" action="{{ route('master.production.start', $row->id) }}" onsubmit="return confirm('توجه: با ادامه، این دستور از وضعیت پیش‌نویس وارد مرحله اجرا می‌شود و مراحل و عملیات آن ایجاد می‌شوند. آیا مطمئن هستید؟')">@csrf<button class="btn" type="submit">شروع تولید</button></form>
+                                <form method="post" action="{{ route('master.production.start', $row->id) }}" onsubmit="return confirm('توجه: با شروع، دستور وارد اجرا می‌شود و دیگر به پیش‌نویس برنمی‌گردد. برای توقف موقت از «توقف» و سپس «ازسرگیری» استفاده کنید. آیا مطمئن هستید؟')">@csrf<button class="btn" type="submit">شروع تولید</button></form>
+                            @elseif ($module === 'productions' && ($row->status ?? null) === 'in_progress')
+                                <form method="post" action="{{ route('master.production.pause', $row->id) }}" onsubmit="return confirm('تولید موقتاً متوقف شود؟ تا زمان ازسرگیری، ثبت اجرای عملیات جدید مسدود می‌شود.')">@csrf<button class="btn" type="submit" style="background:#3b2528;border-color:#63343b;color:#ffb8a8">توقف موقت</button></form>
+                            @elseif ($module === 'productions' && ($row->status ?? null) === 'paused')
+                                <form method="post" action="{{ route('master.production.resume', $row->id) }}" onsubmit="return confirm('اجرای این دستور تولید از سر گرفته شود؟')">@csrf<button class="btn" type="submit">ازسرگیری تولید</button></form>
                             @endif
                             @if (isset($row->is_active) && $row->is_active)
                                 <form method="post" action="{{ route('master.deactivate', [$module, $row->id]) }}" onsubmit="return confirm('از غیرفعال کردن مطمئن هستید؟')">@csrf<button class="btn" type="submit" style="background:#3b2528;border-color:#63343b;color:#ffb8a8">غیرفعال</button></form>
@@ -214,4 +222,24 @@
     {{ $rows->links() }}
 </div>
 @endif
+
+@if ($module === 'productions')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.production-jalali-date[datetime]').forEach(function (element) {
+        const value = element.getAttribute('datetime');
+        const match = value && value.match(/^(\\d{4})-(\\d{2})-(\\d{2})(?:[ T](\\d{2}):(\\d{2}))?/);
+        if (!match) return;
+        const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4] || 12), Number(match[5] || 0));
+        element.textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: match[4] ? '2-digit' : undefined, minute: match[4] ? '2-digit' : undefined,
+            hourCycle: 'h23'
+        }).format(date);
+        element.title = value;
+    });
+});
+</script>
+@endif
+
 @endsection
