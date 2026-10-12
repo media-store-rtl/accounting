@@ -3,6 +3,15 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="google-site-verification" content="yf4KgEqBzZnkLBfYb3GV1xqN_M51SGulNqyKWj94sMA" />
+    <meta name="description" content="نرم‌افزار حسابداری صنعتی برای مدیریت خرید، انبار، مواد اولیه، تولید، دستمزد، سربار و محاسبه بهای تمام‌شده محصولات؛ مناسب کسب‌وکارهای تولیدی.">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="theme-color" content="#050b14">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="fa_IR">
+    <meta property="og:title" content="حسابداری صنعتی | کنترل تولید و بهای تمام‌شده">
+    <meta property="og:description" content="مدیریت یکپارچه خرید، انبار، مواد اولیه، تولید و بهای تمام‌شده برای کسب‌وکارهای تولیدی.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
