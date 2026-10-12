@@ -25,11 +25,13 @@ final class ProductionExecutionController extends Controller
             ->join('production_stage_runs as fsr','fsr.id','=','h.from_stage_run_id')
             ->join('production_stages as fs','fs.id','=','fsr.production_stage_id')
             ->leftJoin('production_sections as fsec','fsec.id','=','fs.production_section_id')
+            ->leftJoin('locations as fl','fl.id','=','fsec.location_id')
             ->join('production_stage_runs as tsr','tsr.id','=','h.to_stage_run_id')
             ->join('production_stages as ts','ts.id','=','tsr.production_stage_id')
             ->leftJoin('production_sections as tsec','tsec.id','=','ts.production_section_id')
+            ->leftJoin('locations as tl','tl.id','=','tsec.location_id')
             ->where('h.company_id',$companyId)
-            ->select('h.*','p.number as production_number','fsec.name as from_section_name','tsec.name as to_section_name','ts.name as to_stage_name')
+            ->select('h.*','p.number as production_number','fl.name as from_section_name','tl.name as to_section_name','ts.name as to_stage_name')
             ->latest('h.id')->limit(50)->get();
         return view('production.execution.index',compact('rows','handovers'));
     }
@@ -42,10 +44,11 @@ final class ProductionExecutionController extends Controller
             ->join('production_operations as o','o.id','=','r.production_operation_id')
             ->join('production_stages as s','s.id','=','sr.production_stage_id')
             ->leftJoin('production_sections as ps','ps.id','=','s.production_section_id')
+            ->leftJoin('locations as pl','pl.id','=','ps.location_id')
             ->join('productions as p','p.id','=','sr.production_id')
             ->where('p.company_id',$companyId)->where('p.status','in_progress')->whereIn('r.status',['pending','in_progress'])
             ->whereIn('sr.status',['pending','in_progress'])
-            ->select('r.id','p.number','o.name','s.name as stage_name','ps.name as section_name','sr.id as stage_run_id','sr.production_id')
+            ->select('r.id','p.number','o.name','s.name as stage_name','pl.name as section_name','sr.id as stage_run_id','sr.production_id')
             ->orderBy('sr.id')->orderBy('r.sequence')->get()
             ->filter(function($run) {
                 $previous=DB::table('production_stage_runs')->where('production_id',$run->production_id)->where('id','<',$run->stage_run_id)->orderByDesc('id')->first();
