@@ -132,6 +132,9 @@ final class ProductionExecutionService
                 $rej=(float)DB::table('production_operation_runs')->where('production_stage_run_id',$stageRun->id)->sum('rejected_quantity');
                 DB::table('production_stage_runs')->where('id',$stageRun->id)->update(['status'=>'completed','output_quantity'=>$out,'rejected_quantity'=>$rej,'completed_at'=>now(),'updated_at'=>now()]);
                 $nextStageRun=DB::table('production_stage_runs')->where('production_id',$context->production_id)->where('id','>',$stageRun->id)->orderBy('id')->first();
+                if ($nextStageRun && $out <= 0) {
+                    throw ValidationException::withMessages(['operation'=>'برای تحویل به مرحله بعد، مقدار محصول اصلی باید بیشتر از صفر باشد.']);
+                }
                 if ($nextStageRun && !DB::table('production_stage_handovers')->where('to_stage_run_id',$nextStageRun->id)->exists()) {
                     DB::table('production_stage_handovers')->insert([
                         'company_id'=>$companyId,'production_id'=>(int)$context->production_id,
