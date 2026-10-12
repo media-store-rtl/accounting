@@ -26,7 +26,7 @@ final class ProductionShiftReportController extends Controller
             ->latest('r.work_date')->latest('r.id')->paginate(30);
         $sections = DB::table('production_sections as s')
             ->leftJoin('locations as l', 'l.id', '=', 's.location_id')
-            ->where('s.company_id', $companyId)->orderBy('l.name')->get(['s.id', 'l.name']);
+            ->where('l.company_id', $companyId)->orderBy('l.name')->get(['s.id', 'l.name']);
         $goods = DB::table('goods')->where('company_id', $companyId)->where('is_active', true)->orderBy('name')->get(['id', 'code', 'name']);
         $canReview = $request->user()->hasCompanyPermission($companyId, 'production.operation.review');
         $canReceive = $request->user()->hasCompanyPermission($companyId, 'production.output.receive');
@@ -46,7 +46,7 @@ final class ProductionShiftReportController extends Controller
             'scrap_quantity' => ['nullable', 'numeric', 'gte:0'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
-        $section = DB::table('production_sections')->where('id', $data['production_section_id'])->where('company_id', $companyId)->exists();
+        $section = DB::table('production_sections as s')->join('locations as l', 'l.id', '=', 's.location_id')->where('s.id', $data['production_section_id'])->where('l.company_id', $companyId)->exists();
         $good = DB::table('goods')->where('id', $data['goods_id'])->where('company_id', $companyId)->where('is_active', true)->exists();
         if (!$section) throw ValidationException::withMessages(['production_section_id' => 'قسمت تولید معتبر نیست.']);
         if (!$good) throw ValidationException::withMessages(['goods_id' => 'کالا معتبر نیست.']);
