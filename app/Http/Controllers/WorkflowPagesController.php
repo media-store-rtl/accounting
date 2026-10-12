@@ -161,7 +161,7 @@ class WorkflowPagesController extends Controller {
   if($d['pay_basis']==='per_unit' && (float)$d['quantity_completed']<=0){
    return back()->withErrors(['quantity_completed'=>'برای دستمزد بر مبنای تعداد، مقدار تولید باید بیشتر از صفر باشد.'])->withInput();
   }
-  app(\\App\\Services\\LaborCostService::class)->recordShiftEntry(
+  app(\App\Services\LaborCostService::class)->recordShiftEntry(
    $cid,(int)$d['fiscal_year_id'],(int)$d['production_section_id'],(int)$d['goods_id'],
    (int)$d['personnel_id'],(float)$d['hours_worked'],(float)$d['quantity_completed'],
    $d['pay_basis'],$d['worked_at'],$d['shift_name']??null,(int)$r->user()->id,$d['notes']??null
