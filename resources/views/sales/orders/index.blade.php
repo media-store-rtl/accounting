@@ -21,6 +21,7 @@ $statusLabels = [
   </div>
 </div>
 <div class="panel">
+  @if(session('success'))<div class="alert success" role="status">{{ session('success') }}</div>@endif
   <div class="actions">
     <a class="btn primary" href="{{ route('sales.orders.create') }}">+ سفارش جدید</a>
     <a class="btn" href="{{ route('sales.deliveries.index') }}">تحویل‌ها</a>
@@ -47,7 +48,7 @@ $statusLabels = [
             </td>
           </tr>
         @empty
-          <tr><td colspan="6" style="text-align:center;color:#71879d;padding:28px">هنوز سفارشی ثبت نشده است.</td></tr>
+          <tr><td colspan="7" style="text-align:center;color:#71879d;padding:28px">هنوز سفارشی ثبت نشده است.</td></tr>
         @endforelse
       </tbody>
     </table>
