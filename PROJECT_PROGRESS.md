@@ -3,7 +3,7 @@
 - برای انبار، صفحه مستقل «درخواست‌های مواد برای بررسی» اضافه شد؛ انباردار می‌تواند موجودی را بررسی و درخواست را رد کند. رد درخواست با اعلان به تولید ارسال می‌شود.
 - تدارکات درخواست‌های دارای کسری تأییدشده را در صفحه خریدها می‌بیند و می‌تواند وضعیت را به «در حال خرید» و سپس «خریداری شده» تغییر دهد؛ خریداری‌شدن برای تولید اعلان می‌شود.
 - مسیرها و کنترل دسترسی سروری اضافه شدند. اجرای تست خودکار و Deploy زنده انجام نشده است.
-- فایل‌های تغییرکرده: `app/Http/Controllers/WorkflowPagesController.php`, `routes/web.php`, `resources/views/layouts/dashboard-shell.blade.php`, `resources/views/workflows/purchasing.blade.php`, `resources/views/workflows/warehouse-supply-requests.blade.php`, `app/Services/NotificationRecipientService.php`, `resources/views/notifications/index.blade.php`
+- فایل‌های تغییرکرده: `app/Http/Controllers/WorkflowPagesController.php`, `app/Http/Controllers/SupplyRequestController.php`, `routes/web.php`, `resources/views/layouts/dashboard-shell.blade.php`, `resources/views/workflows/supply.blade.php`, `resources/views/workflows/purchasing.blade.php`, `resources/views/workflows/handovers.blade.php`, `resources/views/workflows/warehouse-supply-requests.blade.php`, `app/Services/NotificationRecipientService.php`, `resources/views/notifications/index.blade.php`
 
 # 39. اصلاح گردش بررسی موجودی درخواست مواد و گیرندگان اعلان — 2026-10-12
 - درخواست مواد اولیه پس از ثبت در وضعیت «در انتظار بررسی انبار» قرار می‌گیرد و تا پیش از اقدام انباردار، موجودی/کسری آن محاسبه و به تدارکات ارجاع نمی‌شود.
