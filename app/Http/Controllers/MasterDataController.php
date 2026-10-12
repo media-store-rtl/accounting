@@ -47,7 +47,7 @@ class MasterDataController extends Controller {
  private function validateProductionDates(string $module,array $data):void{
   if($module!=='productions'||empty($data['planned_start_at'])||empty($data['planned_end_at']))return;
   if(strtotime($data['planned_end_at'])<=strtotime($data['planned_start_at'])){
-   throw \\Illuminate\\Validation\\ValidationException::withMessages(['planned_end_at'=>'پایان برنامه‌ریزی‌شده باید بعد از شروع برنامه‌ریزی‌شده باشد.']);
+   throw \Illuminate\Validation\ValidationException::withMessages(['planned_end_at'=>'پایان برنامه‌ریزی‌شده باید بعد از شروع برنامه‌ریزی‌شده باشد.']);
   }
  }
  private function companyScopedQuery(string $module,int $cid){if($module==='production-stages')return DB::table('production_stages')->join('production_routes','production_routes.id','=','production_stages.production_route_id')->where('production_routes.company_id',$cid)->select('production_stages.*');return DB::table('production_operations')->join('production_stages','production_stages.id','=','production_operations.production_stage_id')->join('production_routes','production_routes.id','=','production_stages.production_route_id')->where('production_routes.company_id',$cid)->select('production_operations.*');}
