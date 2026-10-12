@@ -49,6 +49,24 @@ class NotificationRecipientService
             ->pluck('u.id');
 
         $ids = $departmentUserIds->merge($directUserIds)->unique();
+
+        // Configured recipient rules must not cross the authorization boundary of the event's owning team.
+        $requiredPermission = match ($event) {
+            'order.production_required' => 'production.supervise',
+            'supply.stock_check_required' => 'supply_request.handover.create',
+            'supply.shortage' => 'supply.manage',
+            default => null,
+        };
+        if ($requiredPermission && $ids->isNotEmpty()) {
+            $authorizedIds = DB::table('company_user as cu')
+                ->join('role_permissions as rp', 'rp.role_id', '=', 'cu.role_id')
+                ->join('permissions as p', 'p.id', '=', 'rp.permission_id')
+                ->where('cu.company_id', $companyId)->where('cu.is_active', true)
+                ->where('p.slug', $requiredPermission)->whereIn('cu.user_id', $ids)
+                ->pluck('cu.user_id')->unique();
+            $ids = $ids->intersect($authorizedIds)->values();
+        }
+
         if ($rule->exclude_actor && $actorId) {
             $ids = $ids->reject(fn ($id) => (int) $id === $actorId);
         }
