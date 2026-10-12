@@ -163,6 +163,10 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 <input type="number" name="{{$f}}" value="{{$value}}" min="0" class="form-control">
 @elseif(str_contains($f,'quantity'))
 <input type="number" step="0.0001" min="0.0001" name="{{$f}}" value="{{$value}}" class="form-control" required>
+@elseif(str_contains($f,'_at') && ($module ?? null) === 'productions')
+<input type="text" id="field-{{$f}}-picker" class="form-control production-jalali-picker" placeholder="تاریخ و ساعت شمسی را انتخاب کنید" autocomplete="off" readonly>
+<input type="hidden" id="field-{{$f}}" name="{{$f}}" value="{{$value ? \Illuminate\Support\Carbon::parse($value)->format('Y-m-d H:i') : ''}}">
+<p class="field-help">تاریخ با تقویم شمسی انتخاب می‌شود؛ زمان را هم مشخص کنید.</p>
 @elseif(str_contains($f,'_at'))
 <input type="datetime-local" name="{{$f}}" value="{{$value ? \Illuminate\Support\Carbon::parse($value)->format('Y-m-d\\TH:i') : ''}}" class="form-control">
 @elseif(in_array($f,['description','notes','address']))
@@ -176,4 +180,37 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 </div>
 <div class="mt-4 form-actions"><button type="submit" class="btn btn-primary px-4">{{ ($editing ?? false) ? 'ذخیره تغییرات' : 'ثبت قسمت تولید' }}</button><a href="{{ route('master.index', $module) }}" class="btn btn-outline-secondary">انصراف و بازگشت</a></div>
 </form></div>
+
+@if(($module ?? null) === 'productions')
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.production-jalali-picker').forEach(function (picker) {
+        const hidden = document.getElementById(picker.id.replace('-picker', ''));
+        if (!hidden || !window.jQuery || !jQuery.fn.persianDatepicker) return;
+        const oldValue = hidden.value;
+        if (oldValue) picker.value = oldValue;
+        jQuery(picker).persianDatepicker({
+            calendarType: 'persian',
+            format: 'YYYY/MM/DD HH:mm',
+            initialValue: Boolean(oldValue),
+            initialValueType: 'gregorian',
+            altField: '#' + hidden.id,
+            altFormat: 'YYYY-MM-DD HH:mm',
+            altFieldFormatter: function (unixDate) {
+                const date = new Date(unixDate);
+                return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0') + ' ' + String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
+            },
+            timePicker: { enabled: true, meridiem: { enabled: false } },
+            calendar: { persian: { locale: 'fa' } },
+            toolbox: { calendarSwitch: { enabled: false }, todayButton: { enabled: true, text: { fa: 'امروز' } } }
+        });
+    });
+});
+</script>
+@endif
+
 @endsection
