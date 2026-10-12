@@ -35,6 +35,17 @@
 </div>
 @endif
 
+<div class="panel" style="margin-bottom:16px;border-color:#24536a;background:#0b2031">
+    <strong style="display:block;color:#6ee7d0;font-size:12px;margin-bottom:8px">راهنمای ثبت سفارش</strong>
+    <ol style="margin:0;padding-right:20px;color:#c4d6e4;font-size:11px;line-height:2.1">
+        <li>مشتری و شماره سفارش را انتخاب یا وارد کنید.</li>
+        <li>تاریخ ثبت و موعد درخواستی تحویل را مشخص کنید؛ موعد تحویل، تاریخ مورد انتظار مشتری است.</li>
+        <li>هر کالا را فقط یک بار به فهرست اقلام اضافه کنید و مقدار موردنیاز را بنویسید. برای کالای دیگر، «افزودن قلم» را بزنید.</li>
+        <li>پس از ثبت، موجودی بررسی می‌شود؛ سفارشِ دارای کسری برای پیگیری تأمین یا تولید مشخص خواهد شد.</li>
+        <li>توضیحات تکمیلی اختیاری است. پیش از ثبت نهایی، مشتری، کالاها، مقدارها و تاریخ‌ها را بازبینی کنید.</li>
+    </ol>
+</div>
+
 <div class="panel">
     <form method="POST" action="{{ route('sales.orders.store') }}" onsubmit="return submitOrder(event)">
         @csrf
@@ -55,12 +66,12 @@
             </div>
             <div class="order-field">
                 <label for="ordered_at">تاریخ ثبت *</label>
-                <input id="ordered_at" name="ordered_at" type="date" value="{{ old('ordered_at', now()->toDateString()) }}" required>
+                <input id="ordered_at" name="ordered_at" type="date" lang="fa-IR" value="{{ old('ordered_at', now()->toDateString()) }}" required>
                 @error('ordered_at')<div class="order-error">{{ $message }}</div>@enderror
             </div>
             <div class="order-field">
                 <label for="requested_delivery_at">موعد درخواستی تحویل *</label>
-                <input id="requested_delivery_at" name="requested_delivery_at" type="date" value="{{ old('requested_delivery_at') }}" required>
+                <input id="requested_delivery_at" name="requested_delivery_at" type="date" lang="fa-IR" value="{{ old('requested_delivery_at') }}" required>
                 @error('requested_delivery_at')<div class="order-error">{{ $message }}</div>@enderror
             </div>
             <div class="order-section">اقلام سفارش</div>
