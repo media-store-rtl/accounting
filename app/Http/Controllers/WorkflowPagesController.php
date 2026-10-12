@@ -2,7 +2,22 @@
 namespace App\Http\Controllers;
 use App\Support\CompanyAuthorization; use App\Http\Controllers\SupplyRequestController; use App\Http\Controllers\PurchaseController; use App\Http\Controllers\PurchaseReceiptController; use Illuminate\Http\Request; use Illuminate\Support\Facades\DB;
 class WorkflowPagesController extends Controller {
- public function supply(Request $r){$cid=CompanyAuthorization::authorize($r,'supply_request.view');return view('workflows.supply',['rows'=>DB::table('supply_requests')->where('company_id',$cid)->latest('id')->paginate(20),'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->get(),'years'=>DB::table('fiscal_years')->where('company_id',$cid)->where('is_closed',false)->get(),'productions'=>DB::table('productions')->where('company_id',$cid)->latest('id')->get(),'orders'=>DB::table('orders')->where('company_id',$cid)->latest('id')->get()]);}
+ public function supply(Request $r){
+  $cid=CompanyAuthorization::authorize($r,'supply_request.view');
+  $canReviewStock=$r->user()->hasCompanyPermission($cid,'supply_request.handover.create');
+  $rows=DB::table('supply_requests')->where('company_id',$cid)->latest('id')->paginate(20);
+  foreach($rows as $row){
+   $row->items=DB::table('supply_request_items as sri')->join('goods as g','g.id','=','sri.goods_id')
+    ->where('sri.supply_request_id',$row->id)->select('sri.*','g.name as goods_name','g.code as goods_code')->get();
+   if($canReviewStock){
+    foreach($row->items as $item){
+     $item->warehouse_quantity=(float)DB::table('inventory as i')->join('locations as l','l.id','=','i.location_id')
+      ->where('i.company_id',$cid)->where('i.goods_id',$item->goods_id)->where('l.company_id',$cid)->where('l.type','warehouse')->where('l.is_active',true)->sum('i.quantity');
+    }
+   }
+  }
+  return view('workflows.supply',['rows'=>$rows,'canReviewStock'=>$canReviewStock,'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->get(),'years'=>DB::table('fiscal_years')->where('company_id',$cid)->where('is_closed',false)->get(),'productions'=>DB::table('productions')->where('company_id',$cid)->latest('id')->get(),'orders'=>DB::table('orders')->where('company_id',$cid)->latest('id')->get()]);
+ }
  public function purchasing(Request $r){$cid=CompanyAuthorization::authorize($r,'purchase.view');return view('workflows.purchasing',['rows'=>DB::table('purchases')->where('company_id',$cid)->latest('id')->paginate(20),'goods'=>DB::table('goods')->where('company_id',$cid)->where('purchasable',true)->get(),'suppliers'=>DB::table('suppliers')->where('company_id',$cid)->where('is_active',true)->get(),'requests'=>DB::table('supply_requests')->where('company_id',$cid)->whereIn('status',['shortage_pending','partially_supplied'])->get(),'years'=>DB::table('fiscal_years')->where('company_id',$cid)->where('is_closed',false)->get()]);}
  public function handovers(Request $r){$cid=CompanyAuthorization::authorize($r,'supply_request.handover.view');return view('workflows.handovers',['rows'=>DB::table('material_handovers')->where('company_id',$cid)->latest('id')->paginate(20),'requests'=>DB::table('supply_requests')->where('company_id',$cid)->whereIn('status',['stock_available','partially_supplied'])->get(),'locations'=>DB::table('locations')->where('company_id',$cid)->where('type','warehouse')->where('is_active',true)->get(),'users'=>DB::table('company_user as cu')->join('users as u','u.id','=','cu.user_id')->where('cu.company_id',$cid)->where('cu.is_active',true)->select('u.id','u.name')->get(),'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->get()]);}
  public function storeHandover(Request $r){$cid=CompanyAuthorization::authorize($r,'supply_request.handover.create');$r->validate(['supply_request_id'=>'required|integer','warehouse_location_id'=>'required|integer','delivered_by_user_id'=>'required|integer','received_by_user_id'=>'required|integer','handed_over_at'=>'required|date','items'=>'required|array|min:1','items.*.goods_id'=>'required|integer','items.*.quantity'=>'required|numeric|gt:0']);app(MaterialHandoverController::class)->store($r,app(\App\Services\InventoryService::class));return back()->with('success','تحویل مواد ثبت شد.');}
