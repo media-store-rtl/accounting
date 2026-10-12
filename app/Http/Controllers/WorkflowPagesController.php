@@ -92,7 +92,28 @@ class WorkflowPagesController extends Controller {
  public function receipts(Request $r){$cid=CompanyAuthorization::authorize($r,'purchase.receipt.create');return view('workflows.receipts',['rows'=>DB::table('purchase_receipts')->where('company_id',$cid)->latest('id')->paginate(20),'purchases'=>DB::table('purchases')->where('company_id',$cid)->whereIn('status',['draft','partially_received'])->get(),'locations'=>DB::table('locations')->where('company_id',$cid)->where('type','warehouse')->where('is_active',true)->get(),'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->get()]);}
  public function approveReceipt(Request $r,int $id){$cid=CompanyAuthorization::authorize($r,'purchase.receipt.approve');app(PurchaseReceiptController::class)->approve($r,$id);return back()->with('success','رسید تأیید شد و موجودی به‌روزرسانی شد.');}
  public function storeReceipt(Request $r){$cid=CompanyAuthorization::authorize($r,'purchase.receipt.create');$d=$r->validate(['purchase_id'=>'required|integer','warehouse_location_id'=>'required|integer','received_at'=>'required|date','notes'=>'nullable|string','items'=>'required|array|min:1','items.*.goods_id'=>'required|integer','items.*.quantity'=>'required|numeric|gt:0']);app(PurchaseReceiptController::class)->store($r);return back()->with('success','رسید خرید ثبت شد.');}
- public function labor(Request $r){$cid=CompanyAuthorization::authorize($r,'production.labor.create');return view('workflows.labor',['rows'=>DB::table('production_labor_entries')->where('company_id',$cid)->latest('id')->paginate(20),'personnel'=>DB::table('personnel')->where('account_id',$r->user()->account_id)->where('is_active',true)->get(),'runs'=>DB::table('production_operation_runs as r')->join('production_stage_runs as sr','sr.id','=','r.production_stage_run_id')->join('productions as p','p.id','=','sr.production_id')->where('p.company_id',$cid)->select('r.id','p.number')->latest('r.id')->get()]);}
+ public function labor(Request $r){
+  $cid=CompanyAuthorization::authorize($r,'production.labor.create');
+  $rows=DB::table('production_labor_entries as e')
+   ->join('productions as p','p.id','=','e.production_id')
+   ->join('production_operation_runs as r','r.id','=','e.production_operation_run_id')
+   ->join('production_operations as o','o.id','=','r.production_operation_id')
+   ->join('production_stages as s','s.id','=','o.production_stage_id')
+   ->leftJoin('personnel as pe','pe.id','=','e.personnel_id')
+   ->where('e.company_id',$cid)
+   ->select('e.*','p.number as production_number','o.name as operation_name','s.name as stage_name','pe.name as personnel_name')
+   ->latest('e.id')->paginate(20);
+  $personnel=DB::table('personnel')->where('account_id',$r->user()->account_id)->where('is_active',true)->orderBy('name')->get();
+  $runs=DB::table('production_operation_runs as r')
+   ->join('production_stage_runs as sr','sr.id','=','r.production_stage_run_id')
+   ->join('productions as p','p.id','=','sr.production_id')
+   ->join('production_operations as o','o.id','=','r.production_operation_id')
+   ->join('production_stages as s','s.id','=','o.production_stage_id')
+   ->where('p.company_id',$cid)
+   ->select('r.id','p.number','o.name as operation_name','s.name as stage_name')
+   ->latest('r.id')->get();
+  return view('workflows.labor',compact('rows','personnel','runs'));
+ }
  public function warehouseSupplyRequests(Request $r){
   $cid=CompanyAuthorization::authorize($r,'supply_request.handover.create');
   $rows=DB::table('supply_requests')->where('company_id',$cid)->latest('id')->paginate(30);
@@ -126,7 +147,7 @@ class WorkflowPagesController extends Controller {
  }
  public function storeSupply(Request $r){app(SupplyRequestController::class)->store($r);return back()->with('success','درخواست تأمین ثبت شد.');}
  public function storePurchase(Request $r){app(PurchaseController::class)->store($r);return back()->with('success','خرید ثبت شد.');}
- public function storeLabor(Request $r){$cid=CompanyAuthorization::authorize($r,'production.labor.create');$d=$r->validate(['production_operation_run_id'=>'required|integer','personnel_id'=>'required|integer','measure_type'=>'required|in:hour,unit','measure_quantity'=>'required|numeric|gt:0','worked_at'=>'required|date','notes'=>'nullable|string']);$run=DB::table('production_operation_runs as r')->join('production_stage_runs as sr','sr.id','=','r.production_stage_run_id')->join('productions as p','p.id','=','sr.production_id')->where('r.id',$d['production_operation_run_id'])->where('p.company_id',$cid)->exists();abort_unless($run,422,'عملیات تولید نامعتبر است.');app(\App\Services\LaborCostService::class)->record($cid,(int)$d['production_operation_run_id'],(int)$d['personnel_id'],$d['measure_type'],(float)$d['measure_quantity'],$d['worked_at'],(int)$r->user()->id,$d['notes']??null);return back()->with('success','کارکرد ثبت شد.');}
+ public function storeLabor(Request $r){$cid=CompanyAuthorization::authorize($r,'production.labor.create');$d=$r->validate(['production_operation_run_id'=>'required|integer','personnel_id'=>'required|integer','measure_type'=>'required|in:hours,quantity','measure_quantity'=>'required|numeric|gt:0','worked_at'=>'required|date','notes'=>'nullable|string']);$run=DB::table('production_operation_runs as r')->join('production_stage_runs as sr','sr.id','=','r.production_stage_run_id')->join('productions as p','p.id','=','sr.production_id')->where('r.id',$d['production_operation_run_id'])->where('p.company_id',$cid)->exists();abort_unless($run,422,'عملیات تولید نامعتبر است.');app(\App\Services\LaborCostService::class)->record($cid,(int)$d['production_operation_run_id'],(int)$d['personnel_id'],$d['measure_type'],(float)$d['measure_quantity'],$d['worked_at'],(int)$r->user()->id,$d['notes']??null);return back()->with('success','کارکرد ثبت شد.');}
  public function adjustInventory(Request $r,int $inventoryId){$cid=CompanyAuthorization::authorize($r,'inventory.adjust');$data=$r->validate(['quantity'=>['required','numeric','min:0'],'reason'=>['required','string','max:1000']]);$row=DB::table('inventory')->where('id',$inventoryId)->where('company_id',$cid)->first();abort_unless($row,404);app(\App\Services\InventoryService::class)->adjust($cid,(int)$row->location_id,(int)$row->goods_id,(float)$data['quantity'],$data['reason'],(int)$r->user()->id);return back()->with('success','موجودی اصلاح شد.');}
  public function setReorderPoint(Request $r,int $inventoryId){$cid=CompanyAuthorization::authorize($r,'inventory.reorder_point.manage');$data=$r->validate(['reorder_point'=>['required','numeric','min:0']]);app(\App\Services\InventoryService::class)->setReorderPoint($cid,$inventoryId,(float)$data['reorder_point'],(int)$r->user()->id);return back()->with('success','نقطه سفارش ذخیره شد.');}
  public function inventory(Request $r){$cid=CompanyAuthorization::authorize($r,'inventory.view');$rows=DB::table('inventory as i')->join('goods as g','g.id','=','i.goods_id')->join('locations as l','l.id','=','i.location_id')->where('i.company_id',$cid)->select('i.*','g.name as goods_name','g.code as goods_code','l.name as location_name')->orderBy('g.name')->paginate(30);return view('workflows.inventory',compact('rows'));}
