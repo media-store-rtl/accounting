@@ -23,6 +23,7 @@ class DeliveryController extends Controller
     {
         $companyId=CompanyAuthorization::authorize($request,'delivery_request.issue');
         DB::transaction(function()use($companyId,$delivery,$request){
+            DB::table('companies')->where('id',$companyId)->lockForUpdate()->first();
             $d=DB::table('delivery_requests')->where('id',$delivery)->where('company_id',$companyId)->lockForUpdate()->first();
             abort_unless($d,404); abort_unless($d->status==='pending',422,'درخواست تحویل در وضعیت قابل خروج نیست.');
             $items=DB::table('delivery_request_items')->where('delivery_request_id',$delivery)->get();
