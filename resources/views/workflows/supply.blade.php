@@ -3,6 +3,9 @@
 @section('title', 'درخواست مواد اولیه')
 
 @section('content')
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
+@endpush
 <div class="page-heading">
     <div>
         <h1>درخواست مواد اولیه برای تولید</h1>
@@ -99,7 +102,9 @@
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">
                 تاریخ موردنیاز
                 <small style="color:#71879d;font-size:10px;font-weight:400">مواد باید حداکثر تا این تاریخ به تولید برسند.</small>
-                <input name="needed_at" type="date" value="{{ old('needed_at') }}" required style="width:100%;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit;color-scheme:dark">
+                <input id="needed_at_picker" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="" required aria-describedby="needed_at_help" style="width:100%;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
+                <input id="needed_at" name="needed_at" type="hidden" value="{{ old('needed_at') }}">
+                <small id="needed_at_help" style="color:#71879d;font-size:10px;font-weight:400">تاریخ را از تقویم شمسی انتخاب کنید.</small>
             </label>
         </div>
 
@@ -136,21 +141,21 @@
                         <td>#{{ $r->id }}</td>
                         <td>
                             @foreach($r->items as $item)
-                                <div style="margin-bottom:5px">{{ $item->goods_name }} — درخواست: {{ number_format((float)$item->requested_quantity, 4, '.', ',') }}</div>
+                                <div style="margin-bottom:5px">{{ $item->goods_name }} — درخواست: {{ rtrim(rtrim(number_format((float)$item->requested_quantity, 4, '.', ','), '0'), '.') ?: '0' }}</div>
                                 @if($canReviewStock && $r->status !== 'checking_stock')
-                                    <small style="color:#9eb2c4">قابل تأمین: {{ number_format((float)$item->available_quantity, 4, '.', ',') }} | کسری: {{ number_format((float)$item->shortage_quantity, 4, '.', ',') }}</small>
+                                    <small style="color:#9eb2c4">قابل تأمین: {{ rtrim(rtrim(number_format((float)$item->available_quantity, 4, '.', ','), '0'), '.') ?: '0' }} | کسری: {{ rtrim(rtrim(number_format((float)$item->shortage_quantity, 4, '.', ','), '0'), '.') ?: '0' }}</small>
                                 @endif
                             @endforeach
                         </td>
                         @if($canReviewStock)
                             <td>
                                 @foreach($r->items as $item)
-                                    <div style="margin-bottom:5px">{{ $item->goods_name }}: <strong>{{ number_format((float)($item->warehouse_quantity ?? 0), 4, '.', ',') }}</strong></div>
+                                    <div style="margin-bottom:5px">{{ $item->goods_name }}: <strong>{{ rtrim(rtrim(number_format((float)($item->warehouse_quantity ?? 0), 4, '.', ','), '0'), '.') ?: '0' }}</strong></div>
                                 @endforeach
                             </td>
                         @endif
                         <td><span class="status {{ in_array($r->status, ['stock_available', 'partially_supplied', 'supplied', 'fulfilled', 'completed'], true) ? 'active' : 'inactive' }}">{{ ['checking_stock'=>'در انتظار بررسی انبار','shortage_pending'=>'کسری تأییدشده؛ در انتظار تدارکات','stock_available'=>'موجودی کافی؛ آماده تحویل','rejected'=>'ردشده توسط انبار','purchasing'=>'در حال خرید','purchased'=>'خریداری شده','partially_supplied'=>'بخشی تحویل شده','fulfilled'=>'تحویل کامل','cancelled'=>'لغوشده'][$r->status] ?? $r->status }}</span></td>
-                        <td>{{ $r->needed_at }}</td>
+                        <td>{{ $r->needed_at ? \\Illuminate\\Support\\Carbon::parse($r->needed_at)->locale('fa')->translatedFormat('Y/m/d') : '—' }}</td>
                         @if($canReviewStock)
                             <td>
                                 @if($r->status === 'checking_stock')
@@ -177,4 +182,30 @@
         <div class="pagination">{{ $rows->links() }}</div>
     @endif
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const picker = document.getElementById('needed_at_picker');
+    const isoField = document.getElementById('needed_at');
+    if (!picker || !isoField || !window.jQuery || !jQuery.fn.persianDatepicker) return;
+    const oldIso = isoField.value;
+    if (oldIso && /^\\d{4}-\\d{2}-\\d{2}$/.test(oldIso)) {
+        const parts = oldIso.split('-').map(Number);
+        picker.value = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(parts[0],parts[1]-1,parts[2],12));
+    }
+    jQuery(picker).persianDatepicker({
+        calendarType:'persian', initialValue:Boolean(oldIso), initialValueType:'gregorian',
+        format:'YYYY/MM/DD', altField:'#needed_at', altFormat:'YYYY-MM-DD',
+        altFieldFormatter:function(unixDate) {
+            const date = new Date(unixDate);
+            return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
+        },
+        calendar:{persian:{locale:'fa'}},
+        toolbox:{calendarSwitch:{enabled:false},todayButton:{enabled:true,text:{fa:'امروز'}}}
+    });
+});
+</script>
 @endsection
