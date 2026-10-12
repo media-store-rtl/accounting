@@ -1,11 +1,11 @@
 @extends('layouts.dashboard-shell')
 
-@section('title', 'درخواست مواد اولیه از انبار')
+@section('title', 'درخواست مواد اولیه')
 
 @section('content')
 <div class="page-heading">
     <div>
-        <h1>درخواست مواد اولیه از انبار</h1>
+        <h1>درخواست مواد اولیه برای تولید</h1>
         <p>ثبت درخواست مواد اولیه برای انبار و مشاهده وضعیت درخواست‌ها</p>
     </div>
 </div>
@@ -149,7 +149,7 @@
                                 @endforeach
                             </td>
                         @endif
-                        <td><span class="status {{ in_array($r->status, ['stock_available', 'partially_supplied', 'supplied', 'fulfilled', 'completed'], true) ? 'active' : 'inactive' }}">{{ ['checking_stock'=>'در انتظار بررسی انبار','shortage_pending'=>'کسری تأییدشده؛ در انتظار تدارکات','stock_available'=>'موجودی کافی؛ آماده تحویل','partially_supplied'=>'بخشی تحویل شده','fulfilled'=>'تحویل کامل','cancelled'=>'لغوشده'][$r->status] ?? $r->status }}</span></td>
+                        <td><span class="status {{ in_array($r->status, ['stock_available', 'partially_supplied', 'supplied', 'fulfilled', 'completed'], true) ? 'active' : 'inactive' }}">{{ ['checking_stock'=>'در انتظار بررسی انبار','shortage_pending'=>'کسری تأییدشده؛ در انتظار تدارکات','stock_available'=>'موجودی کافی؛ آماده تحویل','rejected'=>'ردشده توسط انبار','purchasing'=>'در حال خرید','purchased'=>'خریداری شده','partially_supplied'=>'بخشی تحویل شده','fulfilled'=>'تحویل کامل','cancelled'=>'لغوشده'][$r->status] ?? $r->status }}</span></td>
                         <td>{{ $r->needed_at }}</td>
                         @if($canReviewStock)
                             <td>
