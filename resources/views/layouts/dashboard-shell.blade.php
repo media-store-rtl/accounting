@@ -77,6 +77,7 @@ $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifica
 @endif
 @if($can['supply'] || $can['purchasing'] || $can['receipts'] || $can['handovers'])
 <div class="nav-title">تأمین و خرید</div>
+@if($can['supply'])<a class="{{ request()->routeIs('workflows.supply*') ? 'active' : '' }}" href="{{ route('workflows.supply') }}">درخواست‌های تأمین (سوابق)</a>@endif
 @if($can['purchasing'])<a class="{{ request()->routeIs('workflows.purchasing*') ? 'active' : '' }}" href="{{ route('workflows.purchasing') }}">▤ خریدها</a>@endif
 @if($can['receipts'])<a class="{{ request()->routeIs('workflows.receipts*') ? 'active' : '' }}" href="{{ route('workflows.receipts') }}">⇣ رسیدهای خرید</a>@endif
 @if($can['handovers'])<a class="{{ request()->routeIs('workflows.handovers*') ? 'active' : '' }}" href="{{ route('workflows.handovers') }}">⇢ تحویل مواد</a>@endif
@@ -89,8 +90,8 @@ $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifica
 @endif
 @php
 $productionHome = null;
-if ($can['supply']) $productionHome = route('production.material-requests');
-elseif ($can['production_supervise'] ?? false) $productionHome = route('production.due-dates.index');
+if ($can['production_supervise'] ?? false) $productionHome = route('production.material-requests');
+elseif ($can['supply']) $productionHome = route('workflows.supply');
 elseif ($can['production_execution']) $productionHome = route('production.execution.index');
 elseif ($can['production_labor'] ?? false) $productionHome = route('workflows.labor');
 elseif ($can['production_outputs']) $productionHome = route('production.outputs.index');
@@ -104,7 +105,7 @@ elseif ($can['production_operations']) $productionHome = route('master.index', '
 <div class="sales-menu production-menu">
   <a class="sales-menu-heading {{ request()->routeIs('production.*') || request()->routeIs('workflows.supply*') || (request()->routeIs('master.*') && in_array(request()->route('module'), ['productions', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true)) ? 'active' : '' }}" href="{{ $productionHome }}">⚒ تولید <span aria-hidden="true">⌄</span></a>
   <div class="sales-submenu">
-    @if($can['supply'])<a class="{{ request()->routeIs('production.material-requests') || request()->routeIs('workflows.supply*') ? 'active' : '' }}" href="{{ route('production.material-requests') }}">درخواست مواد اولیه</a>@endif
+    @if(($can['production_supervise'] ?? false))<a class="{{ request()->routeIs('production.material-requests') ? 'active' : '' }}" href="{{ route('production.material-requests') }}">کسری سفارش‌های فروش</a>@endif
     @if(($can['production_supervise'] ?? false))<a class="{{ request()->routeIs('production.due-dates.*') ? 'active' : '' }}" href="{{ route('production.due-dates.index') }}">موعدهای تولید</a>@endif
     @if($can['production_execution'])<a class="{{ request()->routeIs('production.execution.*') ? 'active' : '' }}" href="{{ route('production.execution.index') }}">اجرای عملیات تولید</a>@endif
     @if($can['production_execution'])<a class="{{ request()->routeIs('production.shift-reports.*') ? 'active' : '' }}" href="{{ route('production.shift-reports.index') }}">ثبت تولید شیفت</a>@endif
