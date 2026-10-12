@@ -139,7 +139,7 @@
                     <strong style="font-size:13px;line-height:1.8;{{ $n->read_at ? 'color:#c2d1de' : 'color:#8ce8ce' }}">
                         {{ $presentation['title'] }}
                     </strong>
-                    <small style="font-size:10px;color:#8198ac">{{ \Illuminate\Support\Carbon::parse($n->created_at)->format('Y/m/d H:i') }}</small>
+                    <small style="font-size:10px;color:#8198ac"><time class="notification-jalali-datetime" datetime="{{ \Illuminate\Support\Carbon::parse($n->created_at)->toIso8601String() }}">{{ \Illuminate\Support\Carbon::parse($n->created_at)->format('Y/m/d H:i') }}</time></small>
                 </div>
 
                 <p style="margin:9px 0 0;color:#c2d1de;font-size:11px;line-height:2">{{ $presentation['message'] }}</p>
@@ -162,7 +162,19 @@
                             @if($k !== 'order_id')
                                 <div>
                                     <span style="color:#71879d">{{ $fieldLabels[$k] ?? 'جزئیات' }}:</span>
-                                    <strong style="color:#e9f3fb">{{ $k === 'goods_id' ? ($goodsName ?: 'کالای ثبت‌شده') : ($k === 'location_id' ? ($locationName ?: 'انبار ثبت‌شده') : ($k === 'production_due_at' && is_scalar($v) && $v !== '' ? \Illuminate\Support\Carbon::parse($v)->format('Y/m/d H:i') : (is_numeric($v) && in_array($k, ['purchase_total_amount', 'direct_cost_total'], true) ? number_format((float) $v, 0) . ' ریال' : (is_scalar($v) ? $v : '')))) }}</strong>
+                                    <strong style="color:#e9f3fb">
+                                        @if($k === 'goods_id')
+                                            {{ $goodsName ?: 'کالای ثبت‌شده' }}
+                                        @elseif($k === 'location_id')
+                                            {{ $locationName ?: 'انبار ثبت‌شده' }}
+                                        @elseif($k === 'production_due_at' && is_scalar($v) && $v !== '')
+                                            <time class="notification-jalali-datetime" datetime="{{ \Illuminate\Support\Carbon::parse($v)->toIso8601String() }}">{{ \Illuminate\Support\Carbon::parse($v)->format('Y/m/d H:i') }}</time>
+                                        @elseif(is_numeric($v) && in_array($k, ['purchase_total_amount', 'direct_cost_total'], true))
+                                            {{ number_format((float) $v, 0) . ' ریال' }}
+                                        @elseif(is_scalar($v))
+                                            {{ $v }}
+                                        @endif
+                                    </strong>
                                 </div>
                             @endif
                         @endforeach
@@ -176,7 +188,7 @@
                             @foreach($n->readers as $reader)
                                 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px">
                                     <span style="color:#d2e5ee">{{ $reader->username ?: $reader->user_name }}</span>
-                                    <small style="color:#8198ac">{{ \Illuminate\Support\Carbon::parse($reader->read_at)->format('Y/m/d H:i') }}</small>
+                                    <small style="color:#8198ac"><time class="notification-jalali-datetime" datetime="{{ \Illuminate\Support\Carbon::parse($reader->read_at)->toIso8601String() }}">{{ \Illuminate\Support\Carbon::parse($reader->read_at)->format('Y/m/d H:i') }}</time></small>
                                 </div>
                             @endforeach
                         </div>
@@ -205,4 +217,23 @@
         <div class="pagination">{{ $rows->links() }}</div>
     @endif
 </div>
+
+<script>
+document.querySelectorAll('.notification-jalali-datetime').forEach(function (element) {
+    const raw = element.getAttribute('datetime');
+    if (!raw) return;
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) return;
+
+    element.textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+    }).format(date);
+});
+</script>
+
 @endsection
