@@ -21,7 +21,7 @@
 .shift-tag{white-space:nowrap;border:1px solid #29465e;background:#0d2235;color:#9eb2c4;border-radius:20px;padding:5px 9px;font-size:10px}
 .shift-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
 .shift-field{display:flex;flex-direction:column;gap:7px;min-width:0;color:#cce0ef;font-size:11px}
-.shift-field.full{grid-column:1/-1}.shift-material-lines{display:grid;gap:9px}.shift-material-line{display:grid;grid-template-columns:minmax(0,2fr) minmax(100px,1fr) auto;gap:8px;align-items:center}.shift-material-remove{border:1px solid #63343b;background:#3b2528;color:#ffb8a8;border-radius:8px;padding:9px 11px;cursor:pointer}.shift-add-material{border:1px solid #29465e;background:#12314a;color:#dcebf6;border-radius:9px;padding:9px 12px;cursor:pointer;font:inherit}.shift-material-help{font-size:10px;color:#71879d;line-height:1.8}
+.shift-field.full{grid-column:1/-1}.shift-material-lines{display:grid;gap:9px}.shift-material-line{display:grid;grid-template-columns:minmax(0,2fr) minmax(100px,1fr) minmax(100px,1fr) auto;gap:8px;align-items:center}.shift-material-remove{border:1px solid #63343b;background:#3b2528;color:#ffb8a8;border-radius:8px;padding:9px 11px;cursor:pointer}.shift-add-material{border:1px solid #29465e;background:#12314a;color:#dcebf6;border-radius:9px;padding:9px 12px;cursor:pointer;font:inherit}.shift-material-help{font-size:10px;color:#71879d;line-height:1.8}
 .shift-field input,.shift-field select,.shift-field textarea,.shift-action input,.shift-action select{width:100%;min-width:0;background:#071725;color:#e9f3fb;border:1px solid #29465e;border-radius:10px;padding:11px 12px;font:inherit;outline:none}
 .shift-field input:focus,.shift-field select:focus,.shift-field textarea:focus,.shift-action input:focus,.shift-action select:focus{border-color:#6ee7d0;box-shadow:0 0 0 3px rgba(110,231,208,.08)}
 .shift-field input::placeholder,.shift-field textarea::placeholder,.shift-action input::placeholder{color:#587087}
@@ -129,19 +129,21 @@
                 <option value="">انتخاب ماده اولیه</option>
                 @foreach($materials as $m)<option value="{{ $m->id }}" @selected((string)($line['goods_id'] ?? '')===(string)$m->id)>{{ $m->code ? $m->code.' — ' : '' }}{{ $m->name }}</option>@endforeach
               </select>
-              <input type="number" name="materials[{{ $i }}][quantity]" min="0.0001" step="0.0001" value="{{ $line['quantity'] ?? '' }}" placeholder="مقدار مصرف">
+              <input type="number" name="materials[{{ $i }}][quantity]" min="0.0001" step="0.0001" value="{{ $line['quantity'] ?? '' }}" placeholder="مقدار مصرف" aria-label="مقدار مصرف ماده اولیه">
+              <input type="number" name="materials[{{ $i }}][scrap_quantity]" min="0" step="0.0001" value="{{ $line['scrap_quantity'] ?? '0' }}" placeholder="ضایعات ماده" aria-label="ضایعات ماده اولیه">
               <button type="button" class="shift-material-remove" onclick="removeShiftMaterial(this)" aria-label="حذف ماده اولیه">حذف</button>
             </div>
           @empty
             <div class="shift-material-line">
               <select name="materials[0][goods_id]" aria-label="ماده اولیه"><option value="">انتخاب ماده اولیه</option>@foreach($materials as $m)<option value="{{ $m->id }}">{{ $m->code ? $m->code.' — ' : '' }}{{ $m->name }}</option>@endforeach</select>
-              <input type="number" name="materials[0][quantity]" min="0.0001" step="0.0001" placeholder="مقدار مصرف">
+              <input type="number" name="materials[0][quantity]" min="0.0001" step="0.0001" placeholder="مقدار مصرف" aria-label="مقدار مصرف ماده اولیه">
+              <input type="number" name="materials[0][scrap_quantity]" min="0" step="0.0001" value="0" placeholder="ضایعات ماده" aria-label="ضایعات ماده اولیه">
               <button type="button" class="shift-material-remove" onclick="removeShiftMaterial(this)">حذف</button>
             </div>
           @endforelse
         </div>
         <div><button type="button" class="shift-add-material" onclick="addShiftMaterial()">+ افزودن ماده اولیه</button></div>
-        <small class="shift-material-help">برای هر ماده اولیه، مقدار مصرف‌شده را وارد کنید. اگر مواد اولیه‌ای ثبت نمی‌کنید، ردیف را خالی بگذارید.</small>
+        <small class="shift-material-help">برای هر ماده اولیه، مقدار مصرف و ضایعات همان ماده را وارد کنید. ضایعات ماده نمی‌تواند از مقدار مصرف آن بیشتر باشد. اگر مواد اولیه‌ای ثبت نمی‌کنید، ردیف را خالی بگذارید.</small>
       </div>
       <label class="shift-field">تعداد تولیدشده *
         <input type="number" min="0.0001" step="0.0001" name="produced_quantity" value="{{ old('produced_quantity') }}" placeholder="مثلاً 250" required>
@@ -176,7 +178,7 @@
             <td>{{ $r->section_name ?: '—' }}</td>
             <td>{{ $r->worker_name ?: '—' }}</td>
             <td><span class="shift-primary-cell">{{ $r->goods_name }}</span>@if($r->goods_code)<span class="shift-secondary">{{ $r->goods_code }}</span>@endif
-              @foreach(($materialUsage[$r->id] ?? collect()) as $material)<span class="shift-secondary">ماده: {{ $material->name }} — {{ $material->quantity }}</span>@endforeach
+              @foreach(($materialUsage[$r->id] ?? collect()) as $material)<span class="shift-secondary">ماده: {{ $material->name }} — مصرف: {{ $material->quantity }} — ضایعات ماده: {{ $material->scrap_quantity ?? 0 }}</span>@endforeach
             </td>
             <td class="shift-number">{{ $r->produced_quantity }}</td>
             <td class="shift-number">{{ $r->scrap_quantity }}</td>
