@@ -198,5 +198,6 @@ elseif ($can['production_operations']) $productionHome = route('master.index', '
 @if($can['suppliers'])<a href="{{ route('master.index', 'suppliers') }}">♙ تأمین‌کنندگان</a>@endif
 @if($can['locations'])<a href="{{ route('master.index', 'locations') }}">▣ انبارها و محل‌ها</a>@endif
 </div></div></div>
+@stack('scripts')
 </body>
 </html>
