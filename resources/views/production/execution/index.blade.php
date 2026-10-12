@@ -15,6 +15,21 @@
 </div>
 @if(session('success'))<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #246451;border-radius:12px;background:#0c282b;color:#8ce8ce;font-size:12px">{{ session('success') }}</div>@endif
 @if($errors->any())<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #714448;border-radius:12px;background:#302126;color:#ffb8a8;font-size:12px">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
+<div class="panel" style="margin-bottom:16px">
+<h2 style="font-size:15px">تحویل بین قسمت‌های تولید</h2>
+<p style="font-size:12px;line-height:1.9">پس از تأیید آخرین عملیات هر مرحله، مقدار خروجی برای قسمت بعد ارسال می‌شود. قسمت بعد باید مقدار دریافتی را ثبت کند؛ تا آن زمان اجرای مرحله بعد مسدود است.</p>
+<div class="table-wrap"><table><thead><tr><th>دستور</th><th>از قسمت</th><th>به قسمت / مرحله</th><th>ارسالی</th><th>دریافتی</th><th>وضعیت / اقدام</th></tr></thead><tbody>
+@forelse($handovers as $h)
+<tr><td>{{ $h->production_number }}</td><td>{{ $h->from_section_name }}</td><td>{{ $h->to_section_name }} — {{ $h->to_stage_name }}</td><td>{{ $h->sent_quantity }}</td><td>{{ $h->received_quantity ?? '—' }}</td><td>
+@if($h->status === 'pending')
+<form method="POST" action="{{ route('production.execution.handover.receive',$h->id) }}">@csrf
+<input name="received_quantity" type="number" min="0.0001" max="{{ $h->sent_quantity }}" step="0.0001" value="{{ $h->sent_quantity }}" required>
+<button class="btn primary" type="submit">تأیید دریافت</button></form>
+@else دریافت تأیید شد @endif
+</td></tr>
+@empty<tr><td colspan="6">هنوز تحویلی بین قسمت‌ها ثبت نشده است.</td></tr>
+@endforelse
+</tbody></table></div></div>
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>تولید</th><th>مرحله</th><th>عملیات</th><th>ورودی</th><th>خروجی</th><th>ضایعات</th><th>وضعیت</th><th>اقدام</th></tr></thead><tbody>
 @forelse($rows as $x)
 <tr><td>{{ $x->production_number }}</td><td>{{ $x->stage_name }}</td><td>{{ $x->operation_name }}</td><td>{{ $x->input_quantity ?? '—' }}</td><td>{{ $x->output_quantity ?? '—' }}</td><td>{{ $x->rejected_quantity ?? 0 }}</td><td><span class="status {{ $x->status === 'completed' ? 'active' : 'inactive' }}">{{ $x->status }}</span></td><td>
