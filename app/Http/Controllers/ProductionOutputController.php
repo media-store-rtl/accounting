@@ -25,7 +25,9 @@ final class ProductionOutputController extends Controller
     public function create(Request $request)
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.output.create');
-        $productions = DB::table('productions')->where('company_id',$companyId)->where('status','completed')->orderByDesc('id')->get();
+        $productions = DB::table('productions as p')->join('goods as g','g.id','=','p.goods_id')
+            ->where('p.company_id',$companyId)->where('p.status','completed')
+            ->orderByDesc('p.id')->get(['p.id','p.number','p.goods_id','g.code as goods_code','g.name as goods_name']);
         $locations = DB::table('locations')->where('company_id',$companyId)->where('type','warehouse')->where('is_active',true)->orderBy('name')->get();
         return view('production.outputs.create', compact('productions','locations'));
     }
