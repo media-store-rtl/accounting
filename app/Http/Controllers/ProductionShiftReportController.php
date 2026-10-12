@@ -65,8 +65,8 @@ final class ProductionShiftReportController extends Controller
             'overtime_hours' => ['nullable', 'numeric', 'gte:0', 'lte:24'],
             'holiday_hours' => ['nullable', 'numeric', 'gte:0', 'lte:24'],
             'materials' => ['nullable', 'array'],
-            'materials.*.goods_id' => ['required', 'integer'],
-            'materials.*.quantity' => ['required', 'numeric', 'gt:0'],
+            'materials.*.goods_id' => ['nullable', 'integer'],
+            'materials.*.quantity' => ['nullable', 'numeric', 'gt:0'],
             'work_date' => ['required', 'date'],
             'produced_quantity' => ['required', 'numeric', 'gt:0'],
             'scrap_quantity' => ['nullable', 'numeric', 'gte:0'],
@@ -81,16 +81,21 @@ final class ProductionShiftReportController extends Controller
         if (!$worker) throw ValidationException::withMessages(['personnel_id' => 'فقط پرسنل فعال دارای نقش تولید را انتخاب کنید.']);
         $materialRows = [];
         foreach (($data['materials'] ?? []) as $line) {
-            $materialId = (int) $line['goods_id'];
+            $materialId = (int) ($line['goods_id'] ?? 0);
+            $materialQuantity = $line['quantity'] ?? null;
+            if ($materialId === 0 && ($materialQuantity === null || $materialQuantity === '')) continue;
+            if ($materialId === 0 || $materialQuantity === null || $materialQuantity === '') {
+                throw ValidationException::withMessages(['materials' => 'برای هر ماده اولیه، هم انتخاب ماده و هم مقدار مصرف را وارد کنید.']);
+            }
             $validMaterial = DB::table('goods')->where('id', $materialId)->where('company_id', $companyId)
                 ->where('is_active', true)->where('purchasable', true)->where('sellable', false)->exists();
             if (!$validMaterial) throw ValidationException::withMessages(['materials' => 'یکی از مواد اولیه انتخاب‌شده معتبر نیست.']);
-            $materialRows[] = ['goods_id' => $materialId, 'quantity' => (float) $line['quantity']];
+            $materialRows[] = ['goods_id' => $materialId, 'quantity' => (float) $materialQuantity];
         }
         $scrap = (float)($data['scrap_quantity'] ?? 0);
         if ($scrap > (float)$data['produced_quantity']) throw ValidationException::withMessages(['scrap_quantity' => 'ضایعات نمی‌تواند از کل مقدار ثبت‌شده بیشتر باشد.']);
 
-        DB::table('production_shift_reports')->insert([
+        $reportId = DB::table('production_shift_reports')->insertGetId([
             'company_id' => $companyId,
             'production_section_id' => (int)$data['production_section_id'],
             'goods_id' => (int)$data['goods_id'],
@@ -110,7 +115,7 @@ final class ProductionShiftReportController extends Controller
         foreach ($materialRows as $line) {
             DB::table('production_shift_report_materials')->insert([
                 'company_id' => $companyId,
-                'production_shift_report_id' => $id,
+                'production_shift_report_id' => $reportId,
                 'goods_id' => $line['goods_id'],
                 'quantity' => $line['quantity'],
                 'created_at' => now(), 'updated_at' => now(),
