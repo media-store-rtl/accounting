@@ -34,7 +34,7 @@
                 <td>{{ $r->pay_basis==='hourly' ? 'ساعتی' : ($r->pay_basis==='per_unit' ? 'تعدادی' : $r->measure_type) }}</td><td>{{ $r->status }}</td><td>{{ number_format((float)$r->total_cost, 2) }}</td>
                 @if($canReview)<td>@if($r->status==='pending')
                     <form method="post" action="{{ route('production.labor.review', $r->id) }}" class="d-inline">@csrf<input type="hidden" name="approve" value="1"><button class="btn btn-sm btn-success">تأیید</button></form>
-                    <form method="post" action="{{ route('production.labor.review', $r->id) }}" class="d-inline">@csrf<input type="hidden" name="approve" value="0"><input name="reason" class="form-control form-control-sm d-inline-block" style="width:130px" placeholder="دلیل رد"><button class="btn btn-sm btn-danger">رد</button></form>
+                    <form method="post" action="{{ route('production.labor.review', $r->id) }}" class="d-inline">@csrf<input type="hidden" name="approve" value="0"><input name="reason" required class="form-control form-control-sm d-inline-block" style="width:130px" placeholder="دلیل رد"><button class="btn btn-sm btn-danger">رد</button></form>
                 @else—@endif</td>@endif
             </tr>
         @empty<tr><td colspan="{{ $canReview ? 10 : 9 }}" class="text-center">کارکردی ثبت نشده است.</td></tr>@endforelse
