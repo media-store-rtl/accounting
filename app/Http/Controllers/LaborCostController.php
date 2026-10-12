@@ -13,13 +13,17 @@ final class LaborCostController
     public function store(StoreLaborEntryRequest $request, LaborCostService $service): JsonResponse
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.labor.create');
-        $id = $service->record(
+        $id = $service->recordShiftEntry(
             $companyId,
-            (int)$request->integer('production_operation_run_id'),
+            (int)$request->integer('fiscal_year_id'),
+            (int)$request->integer('production_section_id'),
+            (int)$request->integer('goods_id'),
             (int)$request->integer('personnel_id'),
-            (string)$request->input('measure_type'),
-            (float)$request->input('measure_quantity'),
+            (float)$request->input('hours_worked'),
+            (float)$request->input('quantity_completed'),
+            (string)$request->input('pay_basis'),
             (string)$request->input('worked_at'),
+            $request->input('shift_name'),
             (int)$request->user()->id,
             $request->input('notes')
         );
