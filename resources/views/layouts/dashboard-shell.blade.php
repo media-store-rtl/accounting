@@ -39,7 +39,7 @@ if (!isset($can) || !is_array($can)) {
         'deliveries' => 'delivery_request.view', 'personnel' => 'personnel.view', 'users' => 'user.view',
         'roles' => 'role.view', 'fiscal_years' => 'fiscal_year.view', 'costing' => 'costing.report.view',
         'backups' => 'backup.view', 'goods' => 'goods.view', 'goods_categories' => 'goods_category.view',
-        'units' => 'unit.view', 'notifications' => 'notification.view', 'supply' => 'supply_request.view',
+        'units' => 'unit.view', 'notifications' => 'notification.view', 'supply' => 'supply_request.view', 'warehouse_requests' => 'supply_request.handover.create',
         'purchasing' => 'purchase.view', 'inventory' => 'inventory.view',
         'production_execution' => 'production.operation.view', 'production_labor' => 'production.labor.create',
         'suppliers' => 'supplier.view', 'locations' => 'location.view', 'production_routes' => 'production_route.view',
@@ -70,18 +70,19 @@ $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifica
 @endif
 @if($can['supply'] || $can['purchasing'] || $can['receipts'] || $can['handovers'])
 <div class="nav-title">تأمین و خرید</div>
-@if($can['supply'])<a class="{{ request()->routeIs('workflows.supply*') ? 'active' : '' }}" href="{{ route('workflows.supply') }}">◈ درخواست مواد اولیه از انبار</a>@endif
 @if($can['purchasing'])<a class="{{ request()->routeIs('workflows.purchasing*') ? 'active' : '' }}" href="{{ route('workflows.purchasing') }}">▤ خریدها</a>@endif
 @if($can['receipts'])<a class="{{ request()->routeIs('workflows.receipts*') ? 'active' : '' }}" href="{{ route('workflows.receipts') }}">⇣ رسیدهای خرید</a>@endif
 @if($can['handovers'])<a class="{{ request()->routeIs('workflows.handovers*') ? 'active' : '' }}" href="{{ route('workflows.handovers') }}">⇢ تحویل مواد</a>@endif
 @endif
-@if($can['inventory'] || $can['locations'])
+@if($can['inventory'] || $can['locations'] || $can['warehouse_requests'])
 <div class="nav-title">انبار</div>
+@if($can['warehouse_requests'])<a class="{{ request()->routeIs('warehouse.supply-requests*') ? 'active' : '' }}" href="{{ route('warehouse.supply-requests') }}">◈ درخواست‌های مواد برای بررسی</a>@endif
 @if($can['inventory'])<a class="{{ request()->routeIs('inventory.*') ? 'active' : '' }}" href="{{ route('inventory.index') }}">▦ موجودی انبار</a>@endif
 @if($can['locations'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'locations' ? 'active' : '' }}" href="{{ route('master.index', 'locations') }}">▣ انبارها و محل‌ها</a>@endif
 @endif
-@if($can['productions'] || $can['production_execution'] || $can['production_outputs'])
+@if($can['productions'] || $can['production_execution'] || $can['production_outputs'] || $can['supply'])
 <div class="nav-title">تولید</div>
+@if($can['supply'])<a class="{{ request()->routeIs('production.material-requests') || request()->routeIs('workflows.supply*') ? 'active' : '' }}" href="{{ route('production.material-requests') }}">◈ درخواست مواد اولیه</a>@endif
 @if($can['productions'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'productions' ? 'active' : '' }}" href="{{ route('master.index', 'productions') }}">⚙ دستورهای تولید</a>@endif
 @if($can['production_execution'])<a class="{{ request()->routeIs('production.execution.*') ? 'active' : '' }}" href="{{ route('production.execution.index') }}">⚒ اجرای عملیات تولید</a>@endif
 @if($can['production_outputs'])<a class="{{ request()->routeIs('production.outputs.*') ? 'active' : '' }}" href="{{ route('production.outputs.index') }}">⇡ خروجی تولید</a>@endif
@@ -142,7 +143,7 @@ $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifica
 <nav class="mobile-nav" aria-label="ناوبری موبایل">
 <a class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><span>⌂</span>خانه</a>
 @if($can['orders'])<a class="{{ request()->routeIs('sales.orders.*') ? 'active' : '' }}" href="{{ route('sales.orders.index') }}"><span>▤</span>فروش</a>@endif
-@if($can['supply'])<a class="{{ request()->routeIs('workflows.supply*') ? 'active' : '' }}" href="{{ route('workflows.supply') }}"><span>◈</span>تأمین</a>@endif
+@if($can['supply'])<a class="{{ request()->routeIs('production.material-requests') ? 'active' : '' }}" href="{{ route('production.material-requests') }}"><span>◈</span>درخواست مواد</a>@endif
 @if($can['inventory'])<a class="{{ request()->routeIs('inventory.*') ? 'active' : '' }}" href="{{ route('inventory.index') }}"><span>▦</span>انبار</a>@endif
 @if($can['production_execution'])<a class="{{ request()->routeIs('production.execution.*') ? 'active' : '' }}" href="{{ route('production.execution.index') }}"><span>⚒</span>تولید</a>@endif
 @if($can['costing'])<a class="{{ request()->routeIs('reports.costing*') ? 'active' : '' }}" href="{{ route('reports.costing') }}"><span>◌</span>گزارشات</a>@endif
