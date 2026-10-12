@@ -20,7 +20,7 @@
     $valueLabels = [
         'active' => 'فعال', 'inactive' => 'غیرفعال', 'pending' => 'در انتظار',
         'in_progress' => 'در حال اجرا', 'paused' => 'متوقف موقت', 'completed' => 'تکمیل‌شده', 'cancelled' => 'لغوشده',
-        'draft' => 'پیش‌نویس', 'paused' => 'متوقف موقت', 'pending_review' => 'در انتظار بررسی'
+        'draft' => 'پیش‌نویس', 'pending_review' => 'در انتظار بررسی'
     ];
 @endphp
 <style>
@@ -55,20 +55,6 @@
 @endif
 @if ($errors->any())
     <div class="master-errors">@foreach ($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>
-@endif
-
-@if ($module === 'productions')
-    <div class="master-guide" role="note">
-        <strong>راهنمای دستورهای تولید</strong>
-        <div>تاریخ‌ها و ساعت‌ها در فهرست و فرم به تقویم شمسی نمایش داده می‌شوند؛ قبل از شروع، برنامه را بررسی کنید.</div>
-        <ul>
-            <li><strong>پیش‌نویس:</strong> هنوز شروع نشده و می‌توان مشخصات اصلی و زمان‌بندی را ویرایش کرد.</li>
-            <li><strong>شروع تولید:</strong> پس از تعیین زمان شروع و پایان و اطمینان از فعال بودن مراحل مسیر، اجرا را آغاز می‌کند. پایان برنامه باید بعد از شروع باشد.</li>
-            <li><strong>توقف موقت:</strong> اجرای جدید عملیات را مسدود می‌کند، اما اطلاعات ثبت‌شده را پاک نمی‌کند.</li>
-            <li><strong>ازسرگیری تولید:</strong> دستور متوقف‌شده را ادامه می‌دهد؛ اگر همه مراحل تمام شده باشند، وضعیت تکمیل‌شده ثبت می‌شود.</li>
-        </ul>
-        <div class="warning"><strong>مهم:</strong> پس از شروع، دستور به پیش‌نویس برگردانده نمی‌شود و مشخصات اصلی آن قابل ویرایش نیست. برای توقف، از «توقف موقت» استفاده کنید.</div>
-    </div>
 @endif
 
 @if ($module === 'production-routes')
@@ -134,6 +120,9 @@
         <div>این صفحه برای ثبت و مدیریت <strong>دستور تولید</strong> است. قبل از استفاده از گزینه «شروع تولید» موارد زیر را بررسی کنید:</div>
         <ul>
             <li><strong>شروع تولید به معنی انجام تولید فیزیکی نیست.</strong> با این گزینه فقط دستور از وضعیت پیش‌نویس وارد مرحله اجرا می‌شود.</li>
+            <li><strong>تاریخ و ساعت:</strong> در فرم و فهرست با تقویم شمسی نمایش داده می‌شوند؛ پایان برنامه باید بعد از شروع باشد و هر دو زمان پیش از شروع الزامی‌اند.</li>
+            <li><strong>توقف موقت / ازسرگیری:</strong> توقف، ثبت اجرای عملیات جدید را مسدود می‌کند؛ برای ادامه از «ازسرگیری تولید» استفاده کنید.</li>
+            <li><strong>ویرایش:</strong> مشخصات اصلی فقط در وضعیت پیش‌نویس قابل تغییرند. پس از شروع، دستور به پیش‌نویس برنمی‌گردد.</li>
             <li>با شروع دستور، مراحل و عملیات فعال مسیر تولید برای ثبت اجرای واقعی ایجاد می‌شوند.</li>
             <li><strong>هیچ ماده اولیه‌ای در این مرحله از انبار خارج نمی‌شود</strong> و محصول نهایی نیز به انبار تحویل نمی‌شود.</li>
             <li>پس از شروع، از بخش «ثبت اجرای عملیات تولید» باید مواد مصرف‌شده، محصول خروجی، ضایعات و اطلاعات اجرای واقعی را ثبت کنید.</li>
@@ -168,7 +157,7 @@
                             <td>@if($row->planned_start_at)<time class="production-jalali-date" datetime="{{ $row->planned_start_at }}">{{ $row->planned_start_at }}</time>@else—@endif</td>
                             <td>@if($row->planned_end_at)<time class="production-jalali-date" datetime="{{ $row->planned_end_at }}">{{ $row->planned_end_at }}</time>@else—@endif</td>
                             <td>{{ $row->notes ?: '—' }}</td>
-                            <td>{{ match((string)($row->status ?? '')) { 'draft' => 'پیش‌نویس', 'in_progress' => 'در حال اجرا', 'completed' => 'تکمیل‌شده', 'cancelled' => 'لغوشده', default => ($row->status ?? 'نامشخص') } }}</td>
+                            <td>{{ match((string)($row->status ?? '')) { 'draft' => 'پیش‌نویس', 'in_progress' => 'در حال اجرا', 'paused' => 'متوقف موقت', 'completed' => 'تکمیل‌شده', 'cancelled' => 'لغوشده', default => ($row->status ?? 'نامشخص') } }}</td>
                         @else
                             @if ($module === 'production-sections')
                                 <td>{{ $row->location_name ?? $row->location_id ?? '—' }}</td>
