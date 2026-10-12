@@ -24,10 +24,10 @@ final class ProductionExecutionController extends Controller
             ->join('productions as p','p.id','=','h.production_id')
             ->join('production_stage_runs as fsr','fsr.id','=','h.from_stage_run_id')
             ->join('production_stages as fs','fs.id','=','fsr.production_stage_id')
-            ->join('production_sections as fsec','fsec.id','=','fs.production_section_id')
+            ->leftJoin('production_sections as fsec','fsec.id','=','fs.production_section_id')
             ->join('production_stage_runs as tsr','tsr.id','=','h.to_stage_run_id')
             ->join('production_stages as ts','ts.id','=','tsr.production_stage_id')
-            ->join('production_sections as tsec','tsec.id','=','ts.production_section_id')
+            ->leftJoin('production_sections as tsec','tsec.id','=','ts.production_section_id')
             ->where('h.company_id',$companyId)
             ->select('h.*','p.number as production_number','fsec.name as from_section_name','tsec.name as to_section_name','ts.name as to_stage_name')
             ->latest('h.id')->limit(50)->get();
