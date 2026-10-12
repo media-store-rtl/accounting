@@ -124,6 +124,9 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 </div>
 @endif
 
+@if(($module ?? null) === 'productions' && ($row->status ?? null) === 'paused')
+<div class="alert alert-warning">این دستور متوقف موقت است؛ فقط تاریخ و ساعت برنامه‌ریزی‌شده قابل ویرایش است. کالا، مسیر و مقدار تولید قفل هستند.</div>
+@endif
 <form method="post" action="{{ ($editing ?? false) ? route('master.update',[$module,$row->id]) : route('master.store',$module) }}" class="{{ in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true) ? 'master-card' : 'card shadow-sm border-0 p-4' }} {{ ($module ?? null) === 'production-sections' ? 'section-form' : '' }}">
 @csrf @if($editing ?? false) @method('PUT') @endif
 @if(($module ?? null) === 'production-sections')
@@ -186,7 +189,6 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 </form></div>
 
 @if(($module ?? null) === 'productions')
-@if(($row->status ?? null) === 'paused')<div class="alert alert-warning">این دستور متوقف موقت است؛ فقط تاریخ و ساعت برنامه‌ریزی‌شده قابل ویرایش است. کالا، مسیر و مقدار تولید قفل هستند.</div>@endif
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
