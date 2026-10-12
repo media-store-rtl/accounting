@@ -17,6 +17,7 @@ final class ProductionShiftReportController extends Controller
             ->join('production_sections as s', 's.id', '=', 'r.production_section_id')
             ->leftJoin('locations as sec_location', 'sec_location.id', '=', 's.location_id')
             ->join('goods as g', 'g.id', '=', 'r.goods_id')
+            ->leftJoin('personnel as worker', 'worker.id', '=', 'r.personnel_id')
             ->join('users as reporter', 'reporter.id', '=', 'r.reported_by_user_id')
             ->leftJoin('users as reviewer', 'reviewer.id', '=', 'r.reviewed_by_user_id')
             ->leftJoin('locations as warehouse', 'warehouse.id', '=', 'r.warehouse_location_id')
