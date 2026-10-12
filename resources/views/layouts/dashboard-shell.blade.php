@@ -109,6 +109,7 @@ elseif ($can['production_operations']) $productionHome = route('master.index', '
     @if($can['productions'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'productions' ? 'active' : '' }}" href="{{ route('master.index', 'productions') }}">دستورهای تولید</a>@endif
     @if(($can['production_supervise'] ?? false))<a class="{{ request()->routeIs('production.due-dates.*') ? 'active' : '' }}" href="{{ route('production.due-dates.index') }}">موعدهای تولید</a>@endif
     @if($can['production_execution'])<a class="{{ request()->routeIs('production.execution.*') ? 'active' : '' }}" href="{{ route('production.execution.index') }}">اجرای عملیات تولید</a>@endif
+    @if($can['production_execution'])<a class="{{ request()->routeIs('production.shift-reports.*') ? 'active' : '' }}" href="{{ route('production.shift-reports.index') }}">ثبت تولید شیفت</a>@endif
     @if(($can['production_labor'] ?? false))<a class="{{ request()->routeIs('workflows.labor*') || request()->routeIs('production.labor.*') ? 'active' : '' }}" href="{{ route('workflows.labor') }}">ثبت کارکرد نیروی انسانی</a>@endif
     @if($can['production_outputs'])<a class="{{ request()->routeIs('production.outputs.*') ? 'active' : '' }}" href="{{ route('production.outputs.index') }}">خروجی تولید</a>@endif
     @if($can['production_routes'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-routes' ? 'active' : '' }}" href="{{ route('master.index', 'production-routes') }}">مسیرهای تولید</a>@endif
@@ -180,6 +181,7 @@ elseif ($can['production_operations']) $productionHome = route('master.index', '
 @if($can['productions'])<a href="{{ route('master.index', 'productions') }}">دستورهای تولید</a>@endif
 @if(($can['production_supervise'] ?? false))<a href="{{ route('production.due-dates.index') }}">موعدهای تولید</a>@endif
 @if($can['production_execution'])<a href="{{ route('production.execution.index') }}">اجرای عملیات تولید</a>@endif
+@if($can['production_execution'])<a href="{{ route('production.shift-reports.index') }}">ثبت تولید شیفت</a>@endif
 @if(($can['production_labor'] ?? false))<a href="{{ route('workflows.labor') }}">ثبت کارکرد نیروی انسانی</a>@endif
 @if($can['production_outputs'])<a href="{{ route('production.outputs.index') }}">خروجی تولید</a>@endif
 @if($can['production_routes'])<a href="{{ route('master.index', 'production-routes') }}">مسیرهای تولید</a>@endif
