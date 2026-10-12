@@ -18,6 +18,24 @@ class WorkflowPagesController extends Controller {
   }
   return view('workflows.supply',['rows'=>$rows,'canReviewStock'=>$canReviewStock,'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->get(),'years'=>DB::table('fiscal_years')->where('company_id',$cid)->where('is_closed',false)->get(),'productions'=>DB::table('productions')->where('company_id',$cid)->latest('id')->get(),'orders'=>DB::table('orders')->where('company_id',$cid)->latest('id')->get()]);
  }
+ public function productionSalesShortages(Request $r){
+  $cid=CompanyAuthorization::authorize($r,'production.supervise');
+  $rows=DB::table('orders as o')->join('customers as c','c.id','=','o.customer_id')
+   ->where('o.company_id',$cid)
+   ->whereIn('o.status',['production_required','awaiting_production'])
+   ->whereExists(function($q){$q->select(DB::raw(1))->from('order_items as oi')->whereColumn('oi.order_id','o.id')->where('oi.shortage_quantity','>',0);})
+   ->select('o.id','o.number','o.status','o.ordered_at','o.requested_delivery_at','o.production_due_at','c.name as customer_name')
+   ->orderByRaw("CASE WHEN o.production_due_at IS NULL THEN 0 ELSE 1 END")
+   ->orderBy('o.production_due_at')->orderByDesc('o.id')->paginate(30);
+  foreach($rows as $row){
+   $row->items=DB::table('order_items as oi')->join('goods as g','g.id','=','oi.goods_id')
+    ->where('oi.order_id',$row->id)->where('oi.shortage_quantity','>',0)
+    ->select('oi.quantity','oi.available_quantity','oi.shortage_quantity','oi.fulfillment_status','g.name as goods_name','g.code as goods_code')
+    ->orderBy('g.name')->get();
+   $row->total_shortage=(float)$row->items->sum('shortage_quantity');
+  }
+  return view('production.sales-shortages',compact('rows'));
+ }
  public function productionDue(Request $r){
   $cid=CompanyAuthorization::authorize($r,'production.supervise');
   $rows=DB::table('orders as o')->join('customers as c','c.id','=','o.customer_id')
