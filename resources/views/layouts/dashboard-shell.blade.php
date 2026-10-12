@@ -53,6 +53,7 @@ if (!isset($can) || !is_array($can)) {
         $can[$key] = (bool) ($company && $user->hasCompanyPermission((int) $company->id, $permission));
     }
 }
+$can['warehouse_requests'] = (bool) ($can['warehouse_requests'] ?? ($company && $user->hasCompanyPermission((int) $company->id, 'supply_request.handover.create')));
 $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifications()->count() : 0;
 @endphp
 <div class="app">
