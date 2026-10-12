@@ -130,7 +130,7 @@
                 @foreach($materials as $m)<option value="{{ $m->id }}" @selected((string)($line['goods_id'] ?? '')===(string)$m->id)>{{ $m->code ? $m->code.' — ' : '' }}{{ $m->name }}</option>@endforeach
               </select>
               <input type="number" name="materials[{{ $i }}][quantity]" min="0.0001" step="0.0001" value="{{ $line['quantity'] ?? '' }}" placeholder="مقدار مصرف" aria-label="مقدار مصرف ماده اولیه">
-              <input type="number" name="materials[{{ $i }}][scrap_quantity]" min="0" step="0.0001" value="{{ $line['scrap_quantity'] ?? '0' }}" placeholder="ضایعات ماده" aria-label="ضایعات ماده اولیه">
+              <input type="number" name="materials[{{ $i }}][scrap_quantity]" min="0" step="0.0001" value="{{ $line['scrap_quantity'] ?? '0' }}" placeholder="مقدار ضایعات مواد" aria-label="مقدار ضایعات مواد اولیه">
               <button type="button" class="shift-material-remove" onclick="removeShiftMaterial(this)" aria-label="حذف ماده اولیه">حذف</button>
             </div>
           @empty
@@ -143,15 +143,11 @@
           @endforelse
         </div>
         <div><button type="button" class="shift-add-material" onclick="addShiftMaterial()">+ افزودن ماده اولیه</button></div>
-        <small class="shift-material-help">برای هر ماده اولیه، مقدار مصرف و ضایعات همان ماده را وارد کنید. ضایعات ماده نمی‌تواند از مقدار مصرف آن بیشتر باشد. اگر مواد اولیه‌ای ثبت نمی‌کنید، ردیف را خالی بگذارید.</small>
+        <small class="shift-material-help">برای هر ماده اولیه، مقدار مصرف و مقدار ضایعات مواد همان ماده را وارد کنید. مقدار ضایعات مواد نمی‌تواند از مقدار مصرف آن بیشتر باشد. اگر مواد اولیه‌ای ثبت نمی‌کنید، ردیف را خالی بگذارید.</small>
       </div>
       <label class="shift-field">تعداد تولیدشده *
         <input type="number" min="0.0001" step="0.0001" name="produced_quantity" value="{{ old('produced_quantity') }}" placeholder="مثلاً 250" required>
         <small>کل تعداد تولیدشده در این شیفت</small>
-      </label>
-      <label class="shift-field">مقدار ضایعات
-        <input type="number" min="0" step="0.0001" name="scrap_quantity" value="{{ old('scrap_quantity', '0') }}" placeholder="اگر ضایعات ندارید صفر بماند">
-        <small>نمی‌تواند بیشتر از کل تولید باشد.</small>
       </label>
       <label class="shift-field full">توضیحات
         <textarea name="notes" rows="3" maxlength="2000" placeholder="توضیحات یا نکات مربوط به این شیفت (اختیاری)">{{ old('notes') }}</textarea>
@@ -170,7 +166,7 @@
     </div>
     <div class="table-wrap">
       <table class="shift-table">
-        <thead><tr><th>تاریخ / شیفت</th><th>قسمت</th><th>کارگر</th><th>محصول</th><th>تولید</th><th>ضایعات</th><th>ثبت‌کننده</th><th>وضعیت</th><th>اقدام</th></tr></thead>
+        <thead><tr><th>تاریخ / شیفت</th><th>قسمت</th><th>کارگر</th><th>محصول</th><th>تولید</th><th>ثبت‌کننده</th><th>وضعیت</th><th>اقدام</th></tr></thead>
         <tbody>
         @forelse($rows as $r)
           <tr>
@@ -181,7 +177,6 @@
               @foreach(($materialUsage[$r->id] ?? collect()) as $material)<span class="shift-secondary">ماده: {{ $material->name }} — مصرف: {{ $material->quantity }} — ضایعات ماده: {{ $material->scrap_quantity ?? 0 }}</span>@endforeach
             </td>
             <td class="shift-number">{{ $r->produced_quantity }}</td>
-            <td class="shift-number">{{ $r->scrap_quantity }}</td>
             <td>{{ $r->reporter_name }}</td>
             <td>
               @php($labels=['pending'=>'در انتظار تأیید','approved'=>'تأییدشده؛ آماده تحویل','rejected'=>'ردشده','received'=>'تحویل کامل به انبار'])
@@ -213,7 +208,7 @@
             </td>
           </tr>
         @empty
-          <tr><td colspan="9" class="shift-empty">هنوز گزارشی ثبت نشده است. از فرم بالا برای ثبت اولین شیفت استفاده کنید.</td></tr>
+          <tr><td colspan="8" class="shift-empty">هنوز گزارشی ثبت نشده است. از فرم بالا برای ثبت اولین شیفت استفاده کنید.</td></tr>
         @endforelse
         </tbody>
       </table>
