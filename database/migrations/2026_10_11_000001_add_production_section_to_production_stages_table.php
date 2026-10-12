@@ -7,9 +7,11 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::table('production_stages', function (Blueprint $table) {
-            $table->foreignId('production_section_id')->nullable()->after('production_route_id')->constrained('production_sections')->nullOnDelete();
-        });
+        if (!Schema::hasColumn('production_stages', 'production_section_id')) {
+            Schema::table('production_stages', function (Blueprint $table) {
+                $table->foreignId('production_section_id')->nullable()->after('production_route_id')->constrained('production_sections')->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void
