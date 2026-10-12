@@ -35,9 +35,10 @@ class OrderController extends Controller
         $data=$request->validate([
             'fiscal_year_id'=>'required|integer','customer_id'=>'required|integer','number'=>'required|string|max:100',
             'ordered_at'=>'required|date','requested_delivery_at'=>'required|date','notes'=>'nullable|string',
-            'items'=>'required|array|min:1','items.*.goods_id'=>'required|integer','items.*.quantity'=>'required|numeric|gt:0'
-        ]);
+            'items'=>'required|array|min:1','items.*.goods_id'=>'required|integer|distinct','items.*.quantity'=>'required|numeric|gt:0'
+        ], ['items.*.goods_id.distinct'=>'هر کالا را فقط یک‌بار در سفارش وارد کنید.']);
         $order=DB::transaction(function()use($data,$companyId){
+            DB::table('companies')->where('id',$companyId)->lockForUpdate()->first();
             abort_unless(DB::table('fiscal_years')->where('id',$data['fiscal_year_id'])->where('company_id',$companyId)->where('is_closed',false)->exists(),422,'سال مالی نامعتبر است.');
             abort_unless(DB::table('customers')->where('id',$data['customer_id'])->where('company_id',$companyId)->where('is_active',true)->exists(),422,'مشتری نامعتبر است.');
             $id=DB::table('orders')->insertGetId([
@@ -49,9 +50,7 @@ class OrderController extends Controller
             foreach($data['items'] as $item){
                 $goods=DB::table('goods')->where('id',$item['goods_id'])->where('company_id',$companyId)->where('is_active',true)->first();
                 abort_unless($goods&&$goods->sellable,422,'کالای سفارش معتبر یا قابل فروش نیست.');
-                $available=(float)DB::table('inventory as i')->join('locations as l','l.id','=','i.location_id')
-                    ->where('i.company_id',$companyId)->where('i.goods_id',$item['goods_id'])->where('l.company_id',$companyId)
-                    ->where('l.type','warehouse')->where('l.is_active',true)->sum('i.quantity');
+                $available=$this->availableForNewOrder($companyId,(int)$item['goods_id']);
                 $qty=(float)$item['quantity'];$shortage=max(0,$qty-$available);$needsProduction=$needsProduction||$shortage>0;
                 DB::table('order_items')->insert([
                     'order_id'=>$id,'goods_id'=>$item['goods_id'],'quantity'=>$qty,'available_quantity'=>min($qty,$available),
@@ -86,12 +85,13 @@ class OrderController extends Controller
     {
         $companyId=CompanyAuthorization::authorize($request,'order.refresh');
         $result=DB::transaction(function()use($order,$companyId){
+            DB::table('companies')->where('id',$companyId)->lockForUpdate()->first();
             $row=DB::table('orders')->where('id',$order)->where('company_id',$companyId)->lockForUpdate()->first();
             abort_unless($row,404);
             $items=DB::table('order_items')->where('order_id',$order)->lockForUpdate()->get();
             $ready=true;
             foreach($items as $item){
-                $available=(float)app(InventoryService::class)->available($companyId,$item->goods_id);
+                $available=$this->availableForNewOrder($companyId,(int)$item->goods_id,(int)$order);
                 $shortage=max(0,(float)$item->quantity-$available);
                 DB::table('order_items')->where('id',$item->id)->update([
                     'available_quantity'=>min((float)$item->quantity,$available),'shortage_quantity'=>$shortage,
@@ -132,6 +132,26 @@ class OrderController extends Controller
             }
         }
         return response()->json(['data'=>$result]);
+    }
+
+
+    /**
+     * Stock not already allocated to other open orders.
+     * available_quantity is the allocated amount while an order is awaiting production,
+     * ready for delivery, or has a pending delivery request.
+     */
+    private function availableForNewOrder(int $companyId, int $goodsId, ?int $excludeOrderId = null): float
+    {
+        $stock = (float) app(InventoryService::class)->available($companyId, $goodsId);
+        $reserved = DB::table('order_items as oi')
+            ->join('orders as o', 'o.id', '=', 'oi.order_id')
+            ->where('o.company_id', $companyId)
+            ->where('oi.goods_id', $goodsId)
+            ->whereIn('o.status', ['production_required', 'awaiting_production', 'ready_for_delivery', 'delivery_requested'])
+            ->when($excludeOrderId, fn ($query) => $query->where('o.id', '<>', $excludeOrderId))
+            ->sum('oi.available_quantity');
+
+        return max(0, $stock - (float) $reserved);
     }
 
     public function setProductionDue(Request $request,int $order): JsonResponse
