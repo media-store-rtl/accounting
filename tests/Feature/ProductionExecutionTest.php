@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Services\ProductionExecutionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class ProductionExecutionTest extends TestCase
@@ -28,6 +29,10 @@ class ProductionExecutionTest extends TestCase
         $production=DB::table('productions')->insertGetId(['company_id'=>$company,'fiscal_year_id'=>$fy,'goods_id'=>$goods,'production_route_id'=>$route,'number'=>'P'.uniqid(),'planned_quantity'=>10,'produced_quantity'=>0,'rejected_quantity'=>0,'status'=>'in_progress','created_at'=>now(),'updated_at'=>now()]);
         $stageRun=DB::table('production_stage_runs')->insertGetId(['production_id'=>$production,'production_stage_id'=>$stage,'sequence'=>1,'status'=>'pending','planned_quantity'=>10,'created_at'=>now(),'updated_at'=>now()]);
         $run=DB::table('production_operation_runs')->insertGetId(['production_stage_run_id'=>$stageRun,'production_operation_id'=>$operation,'sequence'=>1,'status'=>'pending','planned_quantity'=>10,'created_at'=>now(),'updated_at'=>now()]);
+        $stage2=DB::table('production_stages')->insertGetId(['production_route_id'=>$route,'production_section_id'=>$section,'code'=>'S2'.uniqid(),'name'=>'Stage 2','sequence'=>2,'status'=>'active','created_at'=>now(),'updated_at'=>now()]);
+        $operation2=DB::table('production_operations')->insertGetId(['production_stage_id'=>$stage2,'code'=>'O2'.uniqid(),'name'=>'Operation 2','sequence'=>1,'status'=>'active','created_at'=>now(),'updated_at'=>now()]);
+        $stageRun2=DB::table('production_stage_runs')->insertGetId(['production_id'=>$production,'production_stage_id'=>$stage2,'sequence'=>2,'status'=>'pending','planned_quantity'=>10,'created_at'=>now(),'updated_at'=>now()]);
+        $run2=DB::table('production_operation_runs')->insertGetId(['production_stage_run_id'=>$stageRun2,'production_operation_id'=>$operation2,'sequence'=>1,'status'=>'pending','planned_quantity'=>10,'created_at'=>now(),'updated_at'=>now()]);
 
         app(ProductionExecutionService::class)->submit($company,$run,
             [['goods_id'=>$goods,'quantity'=>10]],
@@ -45,6 +50,28 @@ class ProductionExecutionTest extends TestCase
 
         $this->assertSame('completed',DB::table('production_operation_runs')->where('id',$run)->value('status'));
         $this->assertSame('completed',DB::table('production_stage_runs')->where('id',$stageRun)->value('status'));
+        $this->assertSame('in_progress',DB::table('productions')->where('id',$production)->value('status'));
+        $handover=DB::table('production_stage_handovers')->where('from_stage_run_id',$stageRun)->where('to_stage_run_id',$stageRun2)->first();
+        $this->assertNotNull($handover);
+        $this->assertSame('pending',$handover->status);
+        try {
+            app(ProductionExecutionService::class)->submit($company,$run2,[['goods_id'=>$goods,'quantity'=>9]],[['goods_id'=>$goods,'quantity'=>8]],[],$user);
+            $this->fail('مرحله بعد نباید قبل از تأیید دریافت قابل اجرا باشد.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('operation',$exception->errors());
+        }
+        app(ProductionExecutionService::class)->receiveHandover($company,(int)$handover->id,$user,8,'دریافت با کسری یک واحد');
+        $this->assertSame('received',DB::table('production_stage_handovers')->where('id',$handover->id)->value('status'));
+        $this->assertSame('in_progress',DB::table('production_stage_runs')->where('id',$stageRun2)->value('status'));
+        app(ProductionExecutionService::class)->submit($company,$run2,
+            [['goods_id'=>$goods,'quantity'=>8]],
+            [['goods_id'=>$goods,'quantity'=>7,'output_type'=>'product']],
+            [['goods_id'=>$goods,'quantity'=>1,'reason'=>'کنترل کیفیت']],
+            $user
+        );
+        app(ProductionExecutionService::class)->review($company,$run2,$user,true);
+        $this->assertSame('completed',DB::table('production_operation_runs')->where('id',$run2)->value('status'));
+        $this->assertSame('completed',DB::table('production_stage_runs')->where('id',$stageRun2)->value('status'));
         $this->assertSame('completed',DB::table('productions')->where('id',$production)->value('status'));
         $this->assertDatabaseHas('audit_trails',['module'=>'production','action'=>'operation.approve','auditable_id'=>$run]);
     }
