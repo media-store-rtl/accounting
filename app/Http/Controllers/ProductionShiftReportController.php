@@ -30,11 +30,28 @@ final class ProductionShiftReportController extends Controller
             ->where('l.company_id', $companyId)->orderBy('l.name')->get(['s.id', 'l.name']);
         $goods = DB::table('goods')->where('company_id', $companyId)->where('is_active', true)->orderBy('name')->get(['id', 'code', 'name']);
         $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
-        $personnel = DB::table('personnel')->where('account_id', $accountId)->where('is_active', true)->orderBy('name')->get(['id', 'code', 'name']);
+        $personnel = DB::table('personnel as p')
+            ->join('company_user as cu', 'cu.user_id', '=', 'p.user_id')
+            ->join('roles as role', 'role.id', '=', 'cu.role_id')
+            ->where('p.account_id', $accountId)->where('p.is_active', true)
+            ->where('cu.company_id', $companyId)->where('cu.is_active', true)
+            ->where(function ($query) {
+                $query->whereIn('role.slug', ['production', 'production_worker', 'worker_production'])
+                    ->orWhereIn('role.name', ['تولید', 'کارگر تولید', 'کارگرِ تولید']);
+            })
+            ->orderBy('p.name')->distinct()->get(['p.id', 'p.code', 'p.name']);
+        $materials = DB::table('goods')->where('company_id', $companyId)->where('is_active', true)
+            ->where('purchasable', true)->where('sellable', false)->orderBy('name')->get(['id', 'code', 'name']);
         $canReview = $request->user()->hasCompanyPermission($companyId, 'production.operation.review');
         $canReceive = $request->user()->hasCompanyPermission($companyId, 'production.output.receive');
         $warehouses = $canReceive ? DB::table('locations')->where('company_id', $companyId)->where('type', 'warehouse')->where('is_active', true)->orderBy('name')->get(['id', 'name']) : collect();
-        return view('production.shift-reports.index', compact('rows', 'sections', 'goods', 'personnel', 'canReview', 'canReceive', 'warehouses'));
+        $materialUsage = DB::table('production_shift_report_materials as rm')
+            ->join('goods as mg', 'mg.id', '=', 'rm.goods_id')
+            ->where('rm.company_id', $companyId)
+            ->whereIn('rm.production_shift_report_id', $rows->getCollection()->pluck('id'))
+            ->get(['rm.production_shift_report_id', 'rm.quantity', 'mg.name', 'mg.code'])
+            ->groupBy('production_shift_report_id');
+        return view('production.shift-reports.index', compact('rows', 'sections', 'goods', 'personnel', 'materials', 'materialUsage', 'canReview', 'canReceive', 'warehouses'));
     }
 
     public function store(Request $request)
@@ -46,6 +63,10 @@ final class ProductionShiftReportController extends Controller
             'personnel_id' => ['required', 'integer'],
             'worked_hours' => ['required', 'numeric', 'gt:0', 'lte:24'],
             'overtime_hours' => ['nullable', 'numeric', 'gte:0', 'lte:24'],
+            'holiday_hours' => ['nullable', 'numeric', 'gte:0', 'lte:24'],
+            'materials' => ['nullable', 'array'],
+            'materials.*.goods_id' => ['required', 'integer'],
+            'materials.*.quantity' => ['required', 'numeric', 'gt:0'],
             'work_date' => ['required', 'date'],
             'produced_quantity' => ['required', 'numeric', 'gt:0'],
             'scrap_quantity' => ['nullable', 'numeric', 'gte:0'],
@@ -57,7 +78,15 @@ final class ProductionShiftReportController extends Controller
         $worker = DB::table('personnel')->where('id', $data['personnel_id'])->where('account_id', $accountId)->where('is_active', true)->exists();
         if (!$section) throw ValidationException::withMessages(['production_section_id' => 'قسمت تولید معتبر نیست.']);
         if (!$good) throw ValidationException::withMessages(['goods_id' => 'کالا معتبر نیست.']);
-        if (!$worker) throw ValidationException::withMessages(['personnel_id' => 'کارگر انتخاب‌شده معتبر یا فعال نیست.']);
+        if (!$worker) throw ValidationException::withMessages(['personnel_id' => 'فقط پرسنل فعال دارای نقش تولید را انتخاب کنید.']);
+        $materialRows = [];
+        foreach (($data['materials'] ?? []) as $line) {
+            $materialId = (int) $line['goods_id'];
+            $validMaterial = DB::table('goods')->where('id', $materialId)->where('company_id', $companyId)
+                ->where('is_active', true)->where('purchasable', true)->where('sellable', false)->exists();
+            if (!$validMaterial) throw ValidationException::withMessages(['materials' => 'یکی از مواد اولیه انتخاب‌شده معتبر نیست.']);
+            $materialRows[] = ['goods_id' => $materialId, 'quantity' => (float) $line['quantity']];
+        }
         $scrap = (float)($data['scrap_quantity'] ?? 0);
         if ($scrap > (float)$data['produced_quantity']) throw ValidationException::withMessages(['scrap_quantity' => 'ضایعات نمی‌تواند از کل مقدار ثبت‌شده بیشتر باشد.']);
 
@@ -70,6 +99,7 @@ final class ProductionShiftReportController extends Controller
             'shift_name' => 'کارکرد ' . (float)$data['worked_hours'] . ' ساعت',
             'worked_hours' => (float)$data['worked_hours'],
             'overtime_hours' => (float)($data['overtime_hours'] ?? 0),
+            'holiday_hours' => (float)($data['holiday_hours'] ?? 0),
             'work_date' => $data['work_date'],
             'produced_quantity' => (float)$data['produced_quantity'],
             'scrap_quantity' => $scrap,
@@ -77,6 +107,15 @@ final class ProductionShiftReportController extends Controller
             'notes' => $data['notes'] ?? null,
             'created_at' => now(), 'updated_at' => now(),
         ]);
+        foreach ($materialRows as $line) {
+            DB::table('production_shift_report_materials')->insert([
+                'company_id' => $companyId,
+                'production_shift_report_id' => $id,
+                'goods_id' => $line['goods_id'],
+                'quantity' => $line['quantity'],
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
         return redirect()->route('production.shift-reports.index')->with('success', 'گزارش شیفت ثبت شد و برای تأیید سرپرست ارسال شد.');
     }
 
