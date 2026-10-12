@@ -25,7 +25,7 @@
 <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">عملیات تولید
 <select name="production_operation_run_id" class="form-select" required style="background:#081522;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
 <option value="">انتخاب عملیات</option>
-@foreach($runs as $r)<option value="{{$r->id}}" @selected((string)old('production_operation_run_id')===(string)$r->id)>{{$r->number}} — {{$r->name}}</option>@endforeach
+@foreach($runs as $r)<option value="{{$r->id}}" @selected((string)old('production_operation_run_id')===(string)$r->id)>{{$r->number}} — {{ $r->section_name ?: 'قسمت تعریف‌نشده' }} / {{ $r->stage_name }} / {{$r->name}}</option>@endforeach
 </select></label>
 <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">زمان پایان
 <input name="completed_at" type="datetime-local" value="{{ old('completed_at') }}" style="background:#081522;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit;color-scheme:dark"></label>
