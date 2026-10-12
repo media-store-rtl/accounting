@@ -85,13 +85,18 @@
             @endif
           </td>
           <td>
-            <form onsubmit="submitProductionDue(event, {{ $row->id }})" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0">
-              <div style="display:flex;align-items:center;gap:5px">
-                <input id="production-due-display-{{ $row->id }}" class="jalali-picker-input" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" aria-label="موعد تولید شمسی سفارش {{ $row->number }}" value="{{ $row->production_due_at ? date('Y/m/d', strtotime($row->production_due_at)) : '' }}">
-                <input id="production-due-{{ $row->id }}" type="hidden" value="{{ $row->production_due_at ? date('Y-m-d', strtotime($row->production_due_at)) : '' }}">
-              </div>
-              <button class="btn primary" type="submit">{{ $row->production_due_at ? 'ذخیره موعد' : 'تعیین موعد' }}</button>
-            </form>
+            @if($row->production_due_at)
+              <time class="jalali-date" datetime="{{ $row->production_due_at }}">{{ $row->production_due_at }}</time>
+              <small style="display:block;color:#8198ac">موعد ثبت شده؛ قابل تغییر نیست</small>
+            @else
+              <form onsubmit="submitProductionDue(event, {{ $row->id }})" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0">
+                <div style="display:flex;align-items:center;gap:5px">
+                  <input id="production-due-display-{{ $row->id }}" class="jalali-picker-input" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" aria-label="موعد تولید شمسی سفارش {{ $row->number }}" value="">
+                  <input id="production-due-{{ $row->id }}" type="hidden" value="">
+                </div>
+                <button class="btn primary" type="submit">تعیین موعد</button>
+              </form>
+            @endif
           </td>
           <td><span class="status {{ $row->status === 'awaiting_production' ? 'active' : 'inactive' }}">{{ $row->status === 'awaiting_production' ? 'در انتظار تولید' : 'نیازمند تولید' }}</span></td>
         </tr>
