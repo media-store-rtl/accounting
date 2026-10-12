@@ -394,3 +394,12 @@
 - تنظیمات تقویم، نمایش شمسی، دکمه «امروز»، قالب تاریخ و جای‌گیری تقویم در صفحه‌نمایش‌های کوچک با صفحه ثبت سفارش هماهنگ شد.
 - مقدار انتخاب‌شده همچنان در فیلد مخفی به‌صورت تاریخ میلادی `YYYY-MM-DD` برای سازگاری با API ارسال می‌شود.
 - این تغییر در کد انجام شده است؛ تست مرورگر واقعی، تست خودکار و Deploy هنوز تأیید نشده‌اند.
+
+
+# 70. رفع مانع اجرای Migrationهای اجرای عملیات تولید — 2026-10-12
+- علت خطای صفحه «اجرای عملیات تولید» مشخص شد: جدول `production_stage_handovers` در Migration شماره `2026_10_12_000001_create_production_stage_handovers_table.php` ساخته می‌شود، اما اجرای Migrationها پیش از رسیدن به آن متوقف می‌شود.
+- اجرای واقعی GitHub Actions روی commit `ddea7e3dac36acbdc3cc886de3f38273a9a85996` در مرحله `php artisan migrate --force` شکست خورد؛ Migration `2026_10_11_000001_add_production_section_to_production_stages_table.php` دوباره ستون `production_section_id` را اضافه می‌کرد، درحالی‌که Migration قبلی `2026_10_08_000001_add_production_execution_traceability.php` آن را از قبل ایجاد کرده بود. در نتیجه تست‌ها اجرا نشدند و Migration جدول حواله نیز اجرا نشده است.
+- اصلاح پیشنهادی در شاخه `fix-production-stage-handover-migration`: افزودن شرط `Schema::hasColumn` به Migration تکراری و جلوگیری از حذف ستون متعلق به Migration قبلی هنگام rollback.
+- فایل تغییرکرده: `database/migrations/2026_10_11_000001_add_production_section_to_production_stages_table.php`.
+- وضعیت: اصلاح روی شاخه جداگانه commit شده؛ PR هنوز ایجاد/ادغام نشده و برای ادغام در `main` تأیید صریح کاربر لازم است. اجرای مجدد Migration و تست‌های خودکار پس از اصلاح هنوز تأیید نشده‌اند.
+- اقدام بعدی: بررسی CI روی PR؛ اگر Migrationها از ابتدا کامل اجرا شدند، نتایج تست‌ها را بررسی و سپس برای ادغام از کاربر تأیید بگیرید. پس از ادغام، روی سرور سایت باید کد Deploy و `php artisan migrate --force` اجرا شود؛ دسترسی اجرای این فرمان روی سرور زنده در این مرحله نداریم و رفع خطای سایت زنده هنوز تأیید نشده است.
