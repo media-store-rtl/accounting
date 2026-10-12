@@ -95,6 +95,13 @@ class SupplyRequestController extends Controller
                 'shortage_quantity' => $first?->shortage_quantity,
                 'warehouse_note' => $request->input('warehouse_note'),
             ], (int) $request->user()->id, 'supply.manage');
+        } else {
+            app(NotificationRecipientService::class)->send($companyId, 'supply.stock_available', [
+                'supply_request_id' => $supplyRequest,
+                'production_id' => $result['row']->production_id,
+                'order_id' => $result['row']->order_id,
+                'needed_at' => $result['row']->needed_at,
+            ], (int) $request->user()->id, 'supply_request.create');
         }
 
         return back()->with('success', $result['status'] === 'shortage_pending'
