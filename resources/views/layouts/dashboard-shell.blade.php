@@ -93,23 +93,6 @@ $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifica
 @if($can['production_execution'])<a class="{{ request()->routeIs('production.execution.*') ? 'active' : '' }}" href="{{ route('production.execution.index') }}">⚒ اجرای عملیات تولید</a>@endif
 @if($can['production_outputs'])<a class="{{ request()->routeIs('production.outputs.*') ? 'active' : '' }}" href="{{ route('production.outputs.index') }}">⇡ خروجی تولید</a>@endif
 @endif
-@if($can['customers'] || $can['goods'] || $can['suppliers'] || $can['goods_categories'] || $can['units'] || $can['locations'] || $can['production_routes'] || $can['production_sections'] || $can['production_stages'] || $can['production_operations'])
-<div class="desktop-base-menu">
-<div class="nav-title">اطلاعات پایه</div>
-<div class="base-menu" id="base-menu">
-@if($can['customers'])<a class="{{ request()->routeIs('sales.customers.*') ? 'active' : '' }}" href="{{ route('sales.customers.index') }}">♙ مشتریان</a>@endif
-@if($can['goods'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'goods' ? 'active' : '' }}" href="{{ route('master.index', 'goods') }}">▦ کالاها و کد کالا</a>@endif
-@if($can['goods_categories'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'goods-categories' ? 'active' : '' }}" href="{{ route('master.index', 'goods-categories') }}">▤ دسته‌بندی کالا</a>@endif
-@if($can['units'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'units' ? 'active' : '' }}" href="{{ route('master.index', 'units') }}">◫ واحدهای اندازه‌گیری</a>@endif
-@if($can['suppliers'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'suppliers' ? 'active' : '' }}" href="{{ route('master.index', 'suppliers') }}">♙ تأمین‌کنندگان</a>@endif
-@if($can['locations'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'locations' ? 'active' : '' }}" href="{{ route('master.index', 'locations') }}">▣ انبارها و محل‌ها</a>@endif
-@if($can['production_routes'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-routes' ? 'active' : '' }}" href="{{ route('master.index', 'production-routes') }}">⇢ مسیرهای تولید</a>@endif
-@if($can['production_sections'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-sections' ? 'active' : '' }}" href="{{ route('master.index', 'production-sections') }}">▣ قسمت‌های تولید</a>@endif
-@if($can['production_stages'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-stages' ? 'active' : '' }}" href="{{ route('master.index', 'production-stages') }}">▤ مراحل تولید</a>@endif
-@if($can['production_operations'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-operations' ? 'active' : '' }}" href="{{ route('master.index', 'production-operations') }}">⚒ تعاریف عملیات تولید</a>@endif
-</div>
-</div>
-@endif
 @if($can['company'] || $can['fiscal_years'] || $can['personnel'] || $can['users'] || $can['roles'])
 <div class="nav-title">مدیریت</div>
 @if($can['company'])<a class="{{ request()->routeIs('company.*') ? 'active' : '' }}" href="{{ route('company.edit') }}">▤ اطلاعات مجموعه</a>@endif
