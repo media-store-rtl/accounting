@@ -71,11 +71,10 @@
                 @error('number')<div class="order-error">{{ $message }}</div>@enderror
             </div>
             <div class="order-field">
-                <label for="ordered_at">تاریخ ثبت *</label>
-                <input id="ordered_at_picker" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="{{ old('ordered_at', now()->toDateString()) }}" required aria-describedby="ordered_at_help">
-                <input id="ordered_at" name="ordered_at" type="hidden" value="{{ old('ordered_at', now()->toDateString()) }}">
-                <small id="ordered_at_help" style="display:block;color:#71879d;font-size:10px;margin-top:5px">تاریخ را از تقویم شمسی انتخاب کنید.</small>
-                @error('ordered_at')<div class="order-error">{{ $message }}</div>@enderror
+                <label for="ordered_at_picker">تاریخ ثبت</label>
+                <input id="ordered_at_picker" type="text" readonly aria-readonly="true" value="" aria-describedby="ordered_at_help">
+                <input id="ordered_at" name="ordered_at" type="hidden" value="{{ now()->toDateString() }}">
+                <small id="ordered_at_help" style="display:block;color:#71879d;font-size:10px;margin-top:5px">تاریخ امروز به‌صورت خودکار ثبت می‌شود و قابل تغییر نیست.</small>
             </div>
             <div class="order-field">
                 <label for="requested_delivery_at">موعد درخواستی تحویل *</label>
@@ -140,7 +139,15 @@ document.addEventListener('DOMContentLoaded', function () {
             toolbox: { calendarSwitch: { enabled: false }, todayButton: { enabled: true, text: { fa: 'امروز' } } }
         });
     };
-    setupPersianDatepicker('#ordered_at_picker', '#ordered_at');
+    const orderedAtIso = document.querySelector('#ordered_at')?.value;
+    const orderedAtDisplay = document.querySelector('#ordered_at_picker');
+    if (orderedAtIso && orderedAtDisplay) {
+        const parts = orderedAtIso.split('-').map(Number);
+        const today = new Date(parts[0], parts[1] - 1, parts[2], 12);
+        orderedAtDisplay.value = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+            year: 'numeric', month: '2-digit', day: '2-digit'
+        }).format(today);
+    }
     setupPersianDatepicker('#requested_delivery_at_picker', '#requested_delivery_at');
 });
 let i = 1;
