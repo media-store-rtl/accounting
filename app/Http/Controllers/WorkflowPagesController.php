@@ -20,13 +20,54 @@ class WorkflowPagesController extends Controller {
  }
  public function productionSalesShortages(Request $r){
   $cid=CompanyAuthorization::authorize($r,'production.supervise');
-  $rows=DB::table('orders as o')->join('customers as c','c.id','=','o.customer_id')
+  $inventoryService=app(\App\Services\InventoryService::class);
+
+  // Reconcile open production-shortage orders against current allocatable stock.
+  // Orders that become fully available leave this list and return to ready_for_delivery.
+  $candidates=DB::table('orders')->where('company_id',$cid)
+   ->whereIn('status',['production_required','awaiting_production'])
+   ->whereExists(function($q){$q->select(DB::raw(1))->from('order_items as oi')->whereColumn('oi.order_id','orders.id')->where('oi.shortage_quantity','>',0);})
+   ->orderByDesc('id')->get(['id','status']);
+
+  foreach($candidates as $candidate){
+   $previousStatus=$candidate->status;
+   $newStatus=DB::transaction(function()use($candidate,$cid,$inventoryService){
+    $order=DB::table('orders')->where('company_id',$cid)->where('id',$candidate->id)->lockForUpdate()->first();
+    if(!$order || !in_array($order->status,['production_required','awaiting_production'],true)) return null;
+    $items=DB::table('order_items')->where('order_id',$order->id)->lockForUpdate()->get();
+    $allReady=$items->isNotEmpty();
+    foreach($items as $item){
+     $stock=(float)$inventoryService->available($cid,(int)$item->goods_id);
+     $reserved=DB::table('order_items as oi')->join('orders as other','other.id','=','oi.order_id')
+      ->where('other.company_id',$cid)->where('oi.goods_id',$item->goods_id)
+      ->whereIn('other.status',['production_required','awaiting_production','ready_for_delivery','delivery_requested'])
+      ->where('other.id','<>',$order->id)->sum('oi.available_quantity');
+     $available=max(0,$stock-(float)$reserved);
+     $shortage=max(0,(float)$item->quantity-$available);
+     DB::table('order_items')->where('id',$item->id)->update([
+      'available_quantity'=>min((float)$item->quantity,$available),
+      'shortage_quantity'=>$shortage,
+      'fulfillment_status'=>$shortage>0?'production_required':'ready_for_delivery',
+      'updated_at'=>now()
+     ]);
+     $allReady=$allReady&&$shortage<=0;
+    }
+    $status=$allReady?'ready_for_delivery':($order->production_due_at?'awaiting_production':'production_required');
+    DB::table('orders')->where('id',$order->id)->where('company_id',$cid)->update(['status'=>$status,'updated_at'=>now()]);
+    return $status;
+   });
+
+   if($newStatus==='ready_for_delivery' && $previousStatus!=='ready_for_delivery'){
+    app(\App\Services\NotificationRecipientService::class)->send($cid,'order.ready_for_delivery',['order_id'=>$candidate->id],(int)$r->user()->id,'order.view');
+   }
+  }
+
+  $rows=DB::table('orders as o')
    ->where('o.company_id',$cid)
    ->whereIn('o.status',['production_required','awaiting_production'])
    ->whereExists(function($q){$q->select(DB::raw(1))->from('order_items as oi')->whereColumn('oi.order_id','o.id')->where('oi.shortage_quantity','>',0);})
-   ->select('o.id','o.number','o.status','o.ordered_at','o.requested_delivery_at','o.production_due_at','c.name as customer_name')
-   ->orderByRaw("CASE WHEN o.production_due_at IS NULL THEN 0 ELSE 1 END")
-   ->orderBy('o.production_due_at')->orderByDesc('o.id')->paginate(30);
+   ->select('o.id','o.number','o.status','o.ordered_at','o.requested_delivery_at','o.production_due_at')
+   ->orderByDesc('o.id')->paginate(30);
   foreach($rows as $row){
    $row->items=DB::table('order_items as oi')->join('goods as g','g.id','=','oi.goods_id')
     ->where('oi.order_id',$row->id)->where('oi.shortage_quantity','>',0)
