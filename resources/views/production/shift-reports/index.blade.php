@@ -17,6 +17,8 @@
 <label>محصول / قطعه<select class="form-select" name="goods_id" required><option value="">انتخاب کالا</option>@foreach($goods as $g)<option value="{{ $g->id }}" @selected((string)old('goods_id')===(string)$g->id)>{{ $g->code ? $g->code.' — ' : '' }}{{ $g->name }}</option>@endforeach</select></label>
 <label>شیفت<input class="form-input" name="shift_name" maxlength="80" value="{{ old('shift_name') }}" placeholder="مثلاً صبح، عصر یا شب" required></label>
 <label>تاریخ شیفت<input class="form-input" type="date" name="work_date" value="{{ old('work_date', now()->toDateString()) }}" required></label>
+<label>ساعت کار<input class="form-input" type="number" min="0.0001" step="0.0001" name="worked_hours" value="{{ old('worked_hours') }}" required></label>
+<label>مبنای دستمزد<select class="form-select" name="labor_rate_type" required><option value="hourly" @selected(old('labor_rate_type', 'hourly')==='hourly')>ساعتی</option><option value="per_unit" @selected(old('labor_rate_type')==='per_unit')>تعداد تولید</option></select><small>نرخ دستمزد باید قبلاً برای کارگر تعریف شده باشد.</small></label>
 <label>تعداد تولیدشده<input class="form-input" type="number" min="0.0001" step="0.0001" name="produced_quantity" value="{{ old('produced_quantity') }}" required></label>
 <label>ضایعات<input class="form-input" type="number" min="0" step="0.0001" name="scrap_quantity" value="{{ old('scrap_quantity', '0') }}"></label>
 <label style="grid-column:1/-1">توضیحات<textarea class="form-input" name="notes" rows="2" maxlength="2000">{{ old('notes') }}</textarea></label>
@@ -24,9 +26,9 @@
 </form></div>
 
 <div class="panel"><h2 style="font-size:15px">گزارش‌های ثبت‌شده</h2>
-<div class="table-wrap"><table><thead><tr><th>تاریخ / شیفت</th><th>قسمت</th><th>کارگر</th><th>محصول</th><th>تولید</th><th>ضایعات</th><th>ثبت‌کننده</th><th>وضعیت</th><th>اقدام</th></tr></thead><tbody>
+<div class="table-wrap"><table><thead><tr><th>تاریخ / شیفت</th><th>قسمت</th><th>کارگر</th><th>محصول</th><th>ساعت کار</th><th>تولید</th><th>ضایعات</th><th>هزینه دستمزد</th><th>ثبت‌کننده</th><th>وضعیت</th><th>اقدام</th></tr></thead><tbody>
 @forelse($rows as $r)
-<tr><td>{{ $r->work_date }}<br>{{ $r->shift_name }}</td><td>{{ $r->section_name ?: '—' }}</td><td>{{ $r->worker_name ?: '—' }}</td><td>{{ $r->goods_code ? $r->goods_code.' — ' : '' }}{{ $r->goods_name }}</td><td>{{ $r->produced_quantity }}</td><td>{{ $r->scrap_quantity }}</td><td>{{ $r->reporter_name }}</td><td>
+<tr><td>{{ $r->work_date }}<br>{{ $r->shift_name }}</td><td>{{ $r->section_name ?: '—' }}</td><td>{{ $r->worker_name ?: '—' }}</td><td>{{ $r->goods_code ? $r->goods_code.' — ' : '' }}{{ $r->goods_name }}</td><td>{{ $r->worked_hours ?? '—' }}</td><td>{{ $r->produced_quantity }}</td><td>{{ $r->scrap_quantity }}</td><td>{{ (float)($r->labor_total_cost ?? 0) > 0 ? number_format((float)$r->labor_total_cost, 0) : '—' }}</td><td>{{ $r->reporter_name }}</td><td>
 @php($labels=['pending'=>'در انتظار تأیید','approved'=>'تأییدشده؛ آماده تحویل','rejected'=>'ردشده','received'=>'تحویل انبار شد'])
 <span class="status {{ in_array($r->status,['approved','received'],true) ? 'active' : 'inactive' }}">{{ $labels[$r->status] ?? $r->status }}</span>
 @if($r->review_notes)<div style="font-size:11px;margin-top:5px">{{ $r->review_notes }}</div>@endif
@@ -44,7 +46,7 @@
 <button class="btn primary" type="submit">ثبت ورود به انبار</button></form>
 @else—@endif
 </td></tr>
-@empty<tr><td colspan="9" style="text-align:center;padding:24px;color:#8198ac">هنوز گزارش شیفتی ثبت نشده است.</td></tr>@endforelse
+@empty<tr><td colspan="11" style="text-align:center;padding:24px;color:#8198ac">هنوز گزارش شیفتی ثبت نشده است.</td></tr>@endforelse
 </tbody></table></div>
 @if(method_exists($rows,'links'))<div class="pagination">{{ $rows->links() }}</div>@endif
 </div>
