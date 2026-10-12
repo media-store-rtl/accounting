@@ -22,6 +22,9 @@ final class ProductionExecutionService
     ): void {
         DB::transaction(function () use ($companyId,$operationRunId,$inputs,$outputs,$scraps,$userId,$completedAt,$notes) {
             $context=$this->context($companyId,$operationRunId,true);
+            if ($context->production_status!=='in_progress') {
+                throw ValidationException::withMessages(['operation'=>'دستور تولید متوقف یا تکمیل شده است؛ ثبت اجرای عملیات ممکن نیست.']);
+            }
             if ($context->status!=='pending' && $context->status!=='in_progress') {
                 throw ValidationException::withMessages(['operation'=>'این عملیات در وضعیت قابل ثبت نیست.']);
             }
@@ -128,7 +131,7 @@ final class ProductionExecutionService
 
             $productionId=(int)$context->production_id;
             $unfinished=DB::table('production_stage_runs')->where('production_id',$productionId)->where('status','!=','completed')->exists();
-            if(!$unfinished){
+            if(!$unfinished && $context->production_status!=='paused'){
                 DB::table('productions')->where('id',$productionId)->update(['status'=>'completed','completed_at'=>now(),'updated_at'=>now()]);
             }
         });
@@ -147,7 +150,7 @@ final class ProductionExecutionService
             ->join('production_routes as pr','pr.id','=','s.production_route_id')
             ->join('productions as p','p.id','=','sr.production_id')
             ->where('r.id',$operationRunId)->where('p.company_id',$companyId)
-            ->select('r.*','sr.production_id','sr.id as production_stage_run_id','s.id as production_stage_id','s.production_section_id');
+            ->select('r.*','sr.production_id','sr.id as production_stage_run_id','s.id as production_stage_id','s.production_section_id','p.status as production_status');
         if($lock)$q->lockForUpdate();
         $row=$q->first();
         if(!$row) throw ValidationException::withMessages(['operation_run_id'=>'عملیات تولید متعلق به شرکت نیست.']);
