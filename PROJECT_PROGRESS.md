@@ -3,7 +3,7 @@
 - قسمت دریافت‌کننده مقدار واقعی دریافتی را ثبت می‌کند؛ مقدار دریافتی نمی‌تواند بیشتر از مقدار ارسالی باشد و در مرحله بعد به‌عنوان مقدار ورودی/برنامه‌ریزی‌شده ثبت می‌شود.
 - صفحه «اجرای عملیات تولید» اکنون حواله‌های بین قسمت‌ها و وضعیت دریافت را نمایش می‌دهد؛ فهرست عملیات قابل اجرا نیز به مرحله مجاز محدود شده است.
 - تست Feature برای ترتیب مراحل، جلوگیری از اجرای زودهنگام و ادامه تولید پس از دریافت اضافه شد.
-- فایل‌های تغییرکرده: `database/migrations/2026_10_12_000001_create_production_stage_handovers_table.php`, `app/Services/ProductionExecutionService.php`, `app/Http/Controllers/ProductionExecutionController.php`, `resources/views/production/execution/index.blade.php`, `routes/web.php`, `tests/Feature/ProductionExecutionTest.php`
+- فایل‌های تغییرکرده: `database/migrations/2026_10_12_000001_create_production_stage_handovers_table.php`, `app/Services/ProductionExecutionService.php`, `app/Http/Controllers/ProductionExecutionController.php`, `app/Http/Controllers/MasterDataController.php`, `resources/views/production/execution/index.blade.php`, `resources/views/production/execution/create.blade.php`, `routes/web.php`, `tests/Feature/ProductionExecutionTest.php`
 - تست خودکار، بررسی مرورگر و Deploy اجرا نشده است؛ مهاجرت جدید باید هنگام انتشار اجرا شود.
 
 # 55. پیام قابل‌فهم برای توقف و ویرایش امن دستور متوقف‌شده — 2026-10-12
