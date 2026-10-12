@@ -258,3 +258,12 @@
 - صفحه مرکز اعلان‌ها متن و عنوان جداگانه برای کمبود محصول نهایی و ماده اولیه نمایش می‌دهد.
 - فایل‌های تغییرکرده: `app/Services/InventoryService.php`, `app/Services/NotificationRecipientService.php`, `resources/views/notifications/index.blade.php`, `database/migrations/2026_10_12_000005_add_inventory_reorder_alert_state.php`
 - تست خودکار، اجرای migration روی پایگاه داده، بررسی مرورگر و Deploy انجام نشده است.
+
+
+# 60. نمایش کسری سفارش‌های فروش در بخش تولید — 2026-10-12
+- مسیر `/production/material-requests` به‌جای فرم ثبت دستی درخواست مواد، فهرست سفارش‌های فروش دارای کسری محصول نهایی را نمایش می‌دهد.
+- اطلاعات از سفارش‌ها و اقلام فروش خوانده می‌شود: مشتری، شماره سفارش، محصول، مقدار سفارش، موجودی تخصیص‌یافته، کسری و موعدها.
+- دسترسی صفحه با مجوز `production.supervise` کنترل می‌شود؛ جریان‌های مستقل `/supply`، خرید، تحویل انبار و داده‌های تاریخی `SupplyRequest` حذف یا تغییر داده نشده‌اند.
+- نمایش کسری به‌خودی‌خود درخواست مواد، خرید یا دستور تولید ایجاد نمی‌کند.
+- فایل‌های تغییرکرده: `WorkflowPagesController.php`, `routes/web.php`, `resources/views/production/sales-shortages.blade.php`, `resources/views/layouts/dashboard-shell.blade.php`, `PROJECT_DEFINITION.md`.
+- تست خودکار، مرورگر و Deploy در این تغییر اجرا نشده‌اند.
