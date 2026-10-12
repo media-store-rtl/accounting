@@ -29,7 +29,7 @@
 @php($labels=['pending'=>'در انتظار تأیید','approved'=>'تأییدشده؛ آماده تحویل','rejected'=>'ردشده','received'=>'تحویل انبار شد'])
 <span class="status {{ in_array($r->status,['approved','received'],true) ? 'active' : 'inactive' }}">{{ $labels[$r->status] ?? $r->status }}</span>
 @if($r->review_notes)<div style="font-size:11px;margin-top:5px">{{ $r->review_notes }}</div>@endif
-@if($r->status==='received')<div style="font-size:11px;margin-top:5px">تحویل: {{ $r->warehouse_quantity }} — {{ $r->warehouse_name ?: 'انبار' }}</div>@endif
+@if((float)($r->warehouse_quantity ?? 0)>0)<div style="font-size:11px;margin-top:5px">تحویل انبار تا این لحظه: {{ $r->warehouse_quantity }} — {{ $r->warehouse_name ?: 'انبار' }}</div>@endif
 </td><td style="min-width:190px">
 @if($r->status==='pending' && $canReview)
 <form method="POST" action="{{ route('production.shift-reports.review',$r->id) }}" style="display:grid;gap:6px;margin-bottom:6px">@csrf
@@ -39,7 +39,7 @@
 @elseif($r->status==='approved' && $canReceive)
 <form method="POST" action="{{ route('production.shift-reports.receive',$r->id) }}" style="display:grid;gap:6px">@csrf
 <select class="form-select" name="warehouse_location_id" required><option value="">انتخاب انبار</option>@foreach($warehouses as $w)<option value="{{ $w->id }}">{{ $w->name }}</option>@endforeach</select>
-<input class="form-input" name="warehouse_quantity" type="number" min="0.0001" max="{{ max(0,(float)$r->produced_quantity-(float)$r->scrap_quantity) }}" step="0.0001" placeholder="مقدار تحویلی" required>
+<input class="form-input" name="warehouse_quantity" type="number" min="0.0001" max="{{ max(0,(float)$r->produced_quantity-(float)$r->scrap_quantity-(float)($r->warehouse_quantity ?? 0)) }}" step="0.0001" placeholder="مقدار تحویل این‌بار" required>
 <button class="btn primary" type="submit">ثبت ورود به انبار</button></form>
 @else—@endif
 </td></tr>
