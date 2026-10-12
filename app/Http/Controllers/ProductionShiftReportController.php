@@ -106,14 +106,17 @@ final class ProductionShiftReportController extends Controller
             if (!$row || $row->status !== 'approved') throw ValidationException::withMessages(['report' => 'فقط گزارش تأییدشده با مقدار باقی‌مانده قابل تحویل به انبار است.']);
             $quantity = (float)$data['warehouse_quantity'];
             $available = max(0, (float)$row->produced_quantity - (float)$row->scrap_quantity);
-            $alreadyReceived = (float)($row->warehouse_quantity ?? 0);\n            if ($quantity > ($available - $alreadyReceived) + 0.0000001) throw ValidationException::withMessages(['warehouse_quantity' => 'مقدار تحویل از باقیمانده تولید سالم بیشتر است.']);\n            if ($alreadyReceived > 0 && (int)$row->warehouse_location_id !== (int)$data['warehouse_location_id']) throw ValidationException::withMessages(['warehouse_location_id' => 'برای تحویل‌های یک گزارش، همان انبار قبلی را انتخاب کنید.']);
+            $alreadyReceived = (float)($row->warehouse_quantity ?? 0);
+            if ($quantity > ($available - $alreadyReceived) + 0.0000001) throw ValidationException::withMessages(['warehouse_quantity' => 'مقدار تحویل از باقیمانده تولید سالم بیشتر است.']);
+            if ($alreadyReceived > 0 && (int)$row->warehouse_location_id !== (int)$data['warehouse_location_id']) throw ValidationException::withMessages(['warehouse_location_id' => 'برای تحویل‌های یک گزارش، همان انبار قبلی را انتخاب کنید.']);
             $warehouse = DB::table('locations')->where('id', (int)$data['warehouse_location_id'])->where('company_id', $companyId)->where('type', 'warehouse')->where('is_active', true)->exists();
             if (!$warehouse) throw ValidationException::withMessages(['warehouse_location_id' => 'انبار معتبر نیست.']);
             $inventory->receiveFinishedGoods($companyId, (int)$data['warehouse_location_id'], (int)$row->goods_id, $quantity,
                 'production_shift_reports', $report, ['production_section_id' => (int)$row->production_section_id, 'shift_name' => $row->shift_name, 'work_date' => $row->work_date, 'reported_by_user_id' => (int)$row->reported_by_user_id]);
             DB::table('production_shift_reports')->where('id', $report)->where('company_id', $companyId)->update([
-                'warehouse_location_id' => (int)$data['warehouse_location_id'], 'warehouse_quantity' => $quantity,
-                'status' => 'received', 'warehouse_received_at' => now(), 'updated_at' => now(),
+                'warehouse_location_id' => (int)$data['warehouse_location_id'], 'warehouse_quantity' => $alreadyReceived + $quantity,
+                'status' => ($alreadyReceived + $quantity >= $available - 0.0000001) ? 'received' : 'approved',
+                'warehouse_received_at' => now(), 'updated_at' => now(),
             ]);
             DB::table('audit_trails')->insert([
                 'company_id' => $companyId, 'user_id' => (int)$request->user()->id, 'module' => 'production',
