@@ -129,6 +129,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/receipts', [WorkflowPagesController::class,'storeReceipt'])->middleware('company.permission:purchase.receipt.create')->name('workflows.receipts.store');
     Route::post('/receipts/{id}/approve', [WorkflowPagesController::class,'approveReceipt'])->middleware('company.permission:purchase.receipt.approve')->name('workflows.receipts.approve');
 
+    Route::get('/production/shift-reports', [\\App\\Http\\Controllers\\ProductionShiftReportController::class,'index'])->middleware('company.permission:production.operation.view')->name('production.shift-reports.index');
+    Route::post('/production/shift-reports', [\\App\\Http\\Controllers\\ProductionShiftReportController::class,'store'])->middleware('company.permission:production.operation.create')->name('production.shift-reports.store');
+    Route::post('/production/shift-reports/{report}/review', [\\App\\Http\\Controllers\\ProductionShiftReportController::class,'review'])->middleware('company.permission:production.operation.review')->whereNumber('report')->name('production.shift-reports.review');
+    Route::post('/production/shift-reports/{report}/receive', [\\App\\Http\\Controllers\\ProductionShiftReportController::class,'receive'])->middleware('company.permission:production.output.receive')->whereNumber('report')->name('production.shift-reports.receive');
+
     Route::get('/production/execution', [\App\Http\Controllers\ProductionExecutionController::class,'index'])->middleware('company.permission:production.operation.view')->name('production.execution.index');
     Route::get('/production/execution/create', [\App\Http\Controllers\ProductionExecutionController::class,'create'])->middleware('company.permission:production.operation.create')->name('production.execution.create');
     Route::post('/production/execution', [\App\Http\Controllers\ProductionExecutionController::class,'store'])->middleware('company.permission:production.operation.create')->name('production.execution.store');
