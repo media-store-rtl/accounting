@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   document.querySelectorAll('.shift-date-display[data-iso-date]').forEach(el => {
     const raw = (el.dataset.isoDate || '').slice(0, 10);
-    const match = raw.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (!match) return;
     const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
     el.textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {year:'numeric',month:'2-digit',day:'2-digit'}).format(date);
