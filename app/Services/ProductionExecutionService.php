@@ -25,6 +25,10 @@ final class ProductionExecutionService
             if ($context->production_status!=='in_progress') {
                 throw ValidationException::withMessages(['operation'=>'دستور تولید متوقف یا تکمیل شده است؛ ثبت اجرای عملیات ممکن نیست.']);
             }
+            $previousStage=DB::table('production_stage_runs')->where('production_id',$context->production_id)->where('id','<',$context->production_stage_run_id)->orderByDesc('id')->first();
+            if ($previousStage && !DB::table('production_stage_handovers')->where('from_stage_run_id',$previousStage->id)->where('to_stage_run_id',$context->production_stage_run_id)->where('status','received')->exists()) {
+                throw ValidationException::withMessages(['operation'=>'تا زمانی که قسمت فعلی دریافت مرحله قبل را تأیید نکند، ثبت عملیات این مرحله مجاز نیست.']);
+            }
             if ($context->status!=='pending' && $context->status!=='in_progress') {
                 throw ValidationException::withMessages(['operation'=>'این عملیات در وضعیت قابل ثبت نیست.']);
             }
@@ -127,6 +131,16 @@ final class ProductionExecutionService
                 $out=(float)DB::table('production_operation_runs')->where('production_stage_run_id',$stageRun->id)->sum('output_quantity');
                 $rej=(float)DB::table('production_operation_runs')->where('production_stage_run_id',$stageRun->id)->sum('rejected_quantity');
                 DB::table('production_stage_runs')->where('id',$stageRun->id)->update(['status'=>'completed','output_quantity'=>$out,'rejected_quantity'=>$rej,'completed_at'=>now(),'updated_at'=>now()]);
+                $nextStageRun=DB::table('production_stage_runs')->where('production_id',$context->production_id)->where('id','>',$stageRun->id)->orderBy('id')->first();
+                if ($nextStageRun && !DB::table('production_stage_handovers')->where('to_stage_run_id',$nextStageRun->id)->exists()) {
+                    DB::table('production_stage_handovers')->insert([
+                        'company_id'=>$companyId,'production_id'=>(int)$context->production_id,
+                        'from_stage_run_id'=>(int)$stageRun->id,'to_stage_run_id'=>(int)$nextStageRun->id,
+                        'sent_quantity'=>max(0,$out),'received_quantity'=>null,'status'=>'pending',
+                        'sent_by_user_id'=>$reviewerId,'received_by_user_id'=>null,'sent_at'=>now(),
+                        'received_at'=>null,'notes'=>null,'created_at'=>now(),'updated_at'=>now()
+                    ]);
+                }
             }
 
             $productionId=(int)$context->production_id;
@@ -134,6 +148,45 @@ final class ProductionExecutionService
             if(!$unfinished && $context->production_status!=='paused'){
                 DB::table('productions')->where('id',$productionId)->update(['status'=>'completed','completed_at'=>now(),'updated_at'=>now()]);
             }
+        });
+    }
+
+    public function receiveHandover(int $companyId,int $handoverId,int $userId,float $receivedQuantity,?string $notes=null): void
+    {
+        DB::transaction(function () use ($companyId,$handoverId,$userId,$receivedQuantity,$notes) {
+            if ($receivedQuantity <= 0) {
+                throw ValidationException::withMessages(['received_quantity'=>'مقدار دریافتی باید بیشتر از صفر باشد.']);
+            }
+            $handover=DB::table('production_stage_handovers')->where('id',$handoverId)->where('company_id',$companyId)->lockForUpdate()->first();
+            if (!$handover || $handover->status!=='pending') {
+                throw ValidationException::withMessages(['handover'=>'این حواله بین قسمت‌ها در وضعیت قابل دریافت نیست.']);
+            }
+            $production=DB::table('productions')->where('id',$handover->production_id)->where('company_id',$companyId)->lockForUpdate()->first();
+            if (!$production || $production->status!=='in_progress') {
+                throw ValidationException::withMessages(['handover'=>'دستور تولید باید در حال اجرا باشد تا دریافت ثبت شود.']);
+            }
+            if ($receivedQuantity > (float)$handover->sent_quantity + 0.0000001) {
+                throw ValidationException::withMessages(['received_quantity'=>'مقدار دریافتی نمی‌تواند بیشتر از مقدار ارسال‌شده باشد.']);
+            }
+            $prior=DB::table('production_stage_runs')->where('production_id',$handover->production_id)->where('id','<',$handover->to_stage_run_id)->orderByDesc('id')->first();
+            if (!$prior || (int)$prior->id !== (int)$handover->from_stage_run_id || $prior->status !== 'completed') {
+                throw ValidationException::withMessages(['handover'=>'مرحله قبلی هنوز تکمیل و تأیید نشده است.']);
+            }
+            DB::table('production_stage_handovers')->where('id',$handoverId)->update([
+                'received_quantity'=>$receivedQuantity,'status'=>'received','received_by_user_id'=>$userId,
+                'received_at'=>now(),'notes'=>$notes,'updated_at'=>now()
+            ]);
+            DB::table('production_stage_runs')->where('id',$handover->to_stage_run_id)->update([
+                'status'=>'in_progress','planned_quantity'=>$receivedQuantity,'input_quantity'=>$receivedQuantity,
+                'started_at'=>now(),'updated_at'=>now()
+            ]);
+            DB::table('audit_trails')->insert([
+                'company_id'=>$companyId,'user_id'=>$userId,'module'=>'production','action'=>'stage_handover.receive',
+                'auditable_type'=>'production_stage_handovers','auditable_id'=>$handoverId,
+                'before'=>json_encode((array)$handover),
+                'after'=>json_encode((array)DB::table('production_stage_handovers')->where('id',$handoverId)->first()),
+                'method'=>'SERVICE','status_code'=>200,'created_at'=>now(),'updated_at'=>now()
+            ]);
         });
     }
 
