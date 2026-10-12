@@ -115,18 +115,50 @@ class InventoryService
 
     private function notifyIfReorderPointReached(int $companyId,int $locationId,int $goodsId,float $previous,float $current,float $reorderPoint): void
     {
-        if ($reorderPoint <= 0 || !($previous > $reorderPoint && $current <= $reorderPoint)) return;
+        if ($reorderPoint <= 0) return;
+
+        $inventory = DB::table('inventory')
+            ->where('company_id', $companyId)->where('location_id', $locationId)->where('goods_id', $goodsId)
+            ->lockForUpdate()->first();
+        if (!$inventory) return;
+
+        if ($current > $reorderPoint) {
+            if ((bool) ($inventory->reorder_alert_active ?? false)) {
+                DB::table('inventory')->where('id', $inventory->id)->update(['reorder_alert_active' => false, 'updated_at' => now()]);
+            }
+            return;
+        }
+
+        if ((bool) ($inventory->reorder_alert_active ?? false)) return;
+
+        $goods = DB::table('goods')->where('company_id', $companyId)->where('id', $goodsId)
+            ->select('name', 'purchasable', 'producible', 'sellable')->first();
+        if (!$goods) return;
+
+        if ((bool) $goods->producible && (bool) $goods->sellable) {
+            $event = 'inventory.finished_goods_low';
+            $permission = 'production.supervise';
+        } elseif ((bool) $goods->purchasable && !(bool) $goods->sellable) {
+            $event = 'inventory.raw_material_low';
+            $permission = 'supply.manage';
+        } else {
+            $event = 'inventory_reorder_point_reached';
+            $permission = 'supply.manage';
+        }
+
+        DB::table('inventory')->where('id', $inventory->id)->update(['reorder_alert_active' => true, 'updated_at' => now()]);
         app(NotificationRecipientService::class)->send(
             $companyId,
-            'inventory_reorder_point_reached',
+            $event,
             [
-                'location_id'=>$locationId,
-                'goods_id'=>$goodsId,
-                'current_quantity'=>$current,
-                'reorder_point'=>$reorderPoint,
+                'location_id' => $locationId,
+                'goods_id' => $goodsId,
+                'goods_name' => $goods->name,
+                'current_quantity' => $current,
+                'reorder_point' => $reorderPoint,
             ],
             null,
-            'supply.manage'
+            $permission
         );
     }
 
