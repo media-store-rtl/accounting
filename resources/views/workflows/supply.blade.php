@@ -123,19 +123,51 @@
             <thead>
                 <tr>
                     <th>شناسه</th>
+                    <th>اقلام درخواست</th>
+                    @if($canReviewStock)<th>موجودی انبار</th>@endif
                     <th>وضعیت</th>
                     <th>تاریخ نیاز</th>
+                    @if($canReviewStock)<th>اقدام انبار</th>@endif
                 </tr>
             </thead>
             <tbody>
                 @forelse($rows as $r)
                     <tr>
                         <td>#{{ $r->id }}</td>
-                        <td><span class="status {{ in_array($r->status, ['approved', 'stock_available', 'partially_supplied', 'supplied', 'completed'], true) ? 'active' : 'inactive' }}">{{ $r->status }}</span></td>
+                        <td>
+                            @foreach($r->items as $item)
+                                <div style="margin-bottom:5px">{{ $item->goods_name }} — درخواست: {{ number_format((float)$item->requested_quantity, 4, '.', ',') }}</div>
+                                @if($canReviewStock && $r->status !== 'checking_stock')
+                                    <small style="color:#9eb2c4">قابل تأمین: {{ number_format((float)$item->available_quantity, 4, '.', ',') }} | کسری: {{ number_format((float)$item->shortage_quantity, 4, '.', ',') }}</small>
+                                @endif
+                            @endforeach
+                        </td>
+                        @if($canReviewStock)
+                            <td>
+                                @foreach($r->items as $item)
+                                    <div style="margin-bottom:5px">{{ $item->goods_name }}: <strong>{{ number_format((float)($item->warehouse_quantity ?? 0), 4, '.', ',') }}</strong></div>
+                                @endforeach
+                            </td>
+                        @endif
+                        <td><span class="status {{ in_array($r->status, ['stock_available', 'partially_supplied', 'supplied', 'fulfilled', 'completed'], true) ? 'active' : 'inactive' }}">{{ ['checking_stock'=>'در انتظار بررسی انبار','shortage_pending'=>'کسری تأییدشده؛ در انتظار تدارکات','stock_available'=>'موجودی کافی؛ آماده تحویل','partially_supplied'=>'بخشی تحویل شده','fulfilled'=>'تحویل کامل','cancelled'=>'لغوشده'][$r->status] ?? $r->status }}</span></td>
                         <td>{{ $r->needed_at }}</td>
+                        @if($canReviewStock)
+                            <td>
+                                @if($r->status === 'checking_stock')
+                                    <form method="POST" action="{{ route('workflows.supply.stock-review', $r->id) }}" style="min-width:190px">
+                                        @csrf
+                                        <label style="display:block;margin-bottom:7px;font-size:10px;color:#9eb2c4">یادداشت انباردار (اختیاری)</label>
+                                        <input name="warehouse_note" maxlength="1000" placeholder="توضیح بررسی موجودی" style="width:100%;box-sizing:border-box;margin-bottom:8px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:8px;padding:8px;font:inherit">
+                                        <button type="submit" class="btn primary" onclick="return confirm('موجودی انبار بررسی شده و نتیجه برای درخواست ثبت شود؟')">تأیید نتیجه بررسی</button>
+                                    </form>
+                                @else
+                                    <span style="color:#8198ac;font-size:10px">بررسی انجام شده</span>
+                                @endif
+                            </td>
+                        @endif
                     </tr>
                 @empty
-                    <tr><td colspan="3" style="text-align:center;padding:28px;color:#8198ac">درخواستی برای نمایش وجود ندارد.</td></tr>
+                    <tr><td colspan="{{ $canReviewStock ? 6 : 4 }}" style="text-align:center;padding:28px;color:#8198ac">درخواستی برای نمایش وجود ندارد.</td></tr>
                 @endforelse
             </tbody>
         </table>
