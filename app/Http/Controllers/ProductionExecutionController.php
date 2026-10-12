@@ -41,10 +41,11 @@ final class ProductionExecutionController extends Controller
             ->join('production_stage_runs as sr','sr.id','=','r.production_stage_run_id')
             ->join('production_operations as o','o.id','=','r.production_operation_id')
             ->join('production_stages as s','s.id','=','sr.production_stage_id')
+            ->leftJoin('production_sections as ps','ps.id','=','s.production_section_id')
             ->join('productions as p','p.id','=','sr.production_id')
             ->where('p.company_id',$companyId)->where('p.status','in_progress')->whereIn('r.status',['pending','in_progress'])
             ->whereIn('sr.status',['pending','in_progress'])
-            ->select('r.id','p.number','o.name','sr.id as stage_run_id','sr.production_id')
+            ->select('r.id','p.number','o.name','s.name as stage_name','ps.name as section_name','sr.id as stage_run_id','sr.production_id')
             ->orderBy('sr.id')->orderBy('r.sequence')->get()
             ->filter(function($run) {
                 $previous=DB::table('production_stage_runs')->where('production_id',$run->production_id)->where('id','<',$run->stage_run_id)->orderByDesc('id')->first();
