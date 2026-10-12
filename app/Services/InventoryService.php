@@ -36,6 +36,38 @@ class InventoryService
         ]);
     }
 
+    public function transferToProductionSection(int $companyId, int $warehouseLocationId, int $sectionId, int $goodsId, float $quantity, string $referenceType, int $referenceId, array $metadata = []): void
+    {
+        if ($quantity <= 0) throw new RuntimeException('مقدار انتقال باید بیشتر از صفر باشد.');
+        $section = DB::table('production_sections as s')
+            ->join('locations as target', 'target.id', '=', 's.location_id')
+            ->where('s.id', $sectionId)->where('target.company_id', $companyId)->where('target.is_active', true)
+            ->select('target.id as location_id')->first();
+        abort_unless($section, 422, 'قسمت تولید مقصد معتبر یا فعال نیست.');
+        abort_unless(DB::table('locations')->where('id', $warehouseLocationId)->where('company_id', $companyId)
+            ->where('type', 'warehouse')->where('is_active', true)->exists(), 422, 'انبار مبدأ معتبر نیست.');
+
+        $this->issue($companyId, $warehouseLocationId, $goodsId, $quantity, $referenceType, $referenceId,
+            $metadata + ['production_section_id' => $sectionId, 'movement_leg' => 'out']);
+        DB::table('inventory')->insertOrIgnore([
+            'company_id' => $companyId, 'location_id' => (int) $section->location_id, 'goods_id' => $goodsId,
+            'quantity' => 0, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $targetRow = DB::table('inventory')->where('company_id', $companyId)->where('location_id', (int) $section->location_id)
+            ->where('goods_id', $goodsId)->lockForUpdate()->first();
+        abort_unless($targetRow, 422, 'ثبت موجودی قسمت تولید ممکن نشد.');
+        DB::table('inventory')->where('id', $targetRow->id)->update([
+            'quantity' => DB::raw('quantity + '.(float) $quantity), 'updated_at' => now(),
+        ]);
+        DB::table('inventory_movements')->insert([
+            'company_id' => $companyId, 'goods_id' => $goodsId, 'location_id' => (int) $section->location_id,
+            'quantity' => $quantity, 'movement_type' => 'production_material_receipt',
+            'reference_type' => $referenceType, 'reference_id' => $referenceId, 'occurred_at' => now(),
+            'metadata' => json_encode($metadata + ['production_section_id' => $sectionId, 'movement_leg' => 'in']),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+    }
+
     public function receiveFinishedGoods(int $companyId,int $locationId,int $goodsId,float $quantity,string $referenceType,int $referenceId,array $metadata=[]): void
     {
         $this->receiveIntoInventory($companyId,$locationId,$goodsId,$quantity,'finished_goods_receipt',$referenceType,$referenceId,$metadata);
