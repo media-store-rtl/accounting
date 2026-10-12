@@ -12,7 +12,7 @@
 *{box-sizing:border-box}body{margin:0;background:#07111f;color:#e9f3fb}.app{min-height:100vh;display:grid;grid-template-columns:270px 1fr}
 .sidebar{background:#091725;border-left:1px solid #1c3348;padding:22px 16px;position:sticky;top:0;height:100vh;overflow-y:auto}
 .brand{display:flex;gap:11px;align-items:center;padding:0 8px 22px;border-bottom:1px solid #173047}.logo{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,#6ee7d0,#67b7ff);color:#04131b;font-weight:900}.brand b{display:block;font-size:14px}.brand span{font-size:9px;color:#6f879d}
-.nav{padding-top:20px}.nav-title{font-size:8px;color:#587087;margin:0 10px 8px}.nav a{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:11px;text-decoration:none;color:#8ba1b5;font-size:11px;margin-bottom:4px}.nav a.active,.nav a:hover{background:#10283c;color:#dcebf6}
+.nav{padding-top:20px}.base-menu{margin-bottom:10px}.base-menu a{font-size:10px;padding-top:9px;padding-bottom:9px}.nav-title{font-size:8px;color:#587087;margin:0 10px 8px}.nav a{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:11px;text-decoration:none;color:#8ba1b5;font-size:11px;margin-bottom:4px}.nav a.active,.nav a:hover{background:#10283c;color:#dcebf6}
 .main{min-width:0}.top{min-height:76px;border-bottom:1px solid #183047;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 34px;background:#081522}
 .company{display:flex;align-items:center;gap:12px;min-width:0}.company select{background:#0d2133;color:#dcebf5;border:1px solid #29465e;border-radius:10px;padding:9px 13px;font-family:inherit;font-size:11px;max-width:230px}
 .user{display:flex;align-items:center;gap:10px;flex-shrink:0}.notification-bell{position:relative;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border:1px solid #29465e;border-radius:12px;color:#cce0ef;text-decoration:none;font-size:19px;background:#0d2133}.notification-bell:hover{border-color:#6ee7d0;color:#6ee7d0}.notification-bell .count{position:absolute;top:-6px;left:-6px;min-width:17px;height:17px;padding:0 4px;border-radius:99px;display:grid;place-items:center;background:#ff826e;color:#07111f;font-size:9px;font-weight:900;line-height:1}.avatar{width:35px;height:35px;border-radius:50%;display:grid;place-items:center;background:#15334a;color:#6ee7d0;font-weight:800}.user small{display:block;color:#71889d;font-size:8px}.user strong{font-size:11px}.logout{border:0;background:none;color:#7f97aa;font-family:inherit;cursor:pointer;font-size:10px}
@@ -20,8 +20,8 @@
 .panel{background:#0a1b2b;border:1px solid #1b354b;border-radius:18px;padding:21px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:9px;background:#12314a;color:#e9f3fb;text-decoration:none;border:1px solid #29465e;font-size:11px;font-family:inherit}.btn.primary{background:#6ee7d0;color:#04131b;border-color:#6ee7d0;font-weight:800}
 .table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:11px;text-align:right;white-space:nowrap}th{color:#71879d;font-weight:600;background:#0d2235}th,td{padding:13px 12px;border-bottom:1px solid #1b354b}tbody tr:hover{background:#0d2235}.status{display:inline-block;border-radius:20px;padding:4px 9px;font-size:10px}.status.active{color:#6ee7d0;background:#12372f}.status.inactive{color:#ffb8a8;background:#3b2528}
 .pagination{margin-top:18px;color:#9eb2c4;font-size:11px}.pagination nav{display:flex;justify-content:space-between;gap:12px}.pagination a,.pagination span[aria-current]{color:#6ee7d0}
-.mobile-nav{display:none}
-@media(max-width:900px){.app{display:block}.sidebar{display:none}.top,.content{padding-left:18px;padding-right:18px}.mobile-nav{position:fixed;display:grid;grid-template-columns:repeat(5,1fr);bottom:0;right:0;left:0;height:68px;background:rgba(8,21,34,.97);border-top:1px solid #1b354b;z-index:50;padding-bottom:env(safe-area-inset-bottom)}.mobile-nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#7890a5;text-decoration:none;font-size:8px}.mobile-nav a span{font-size:18px;line-height:1}.mobile-nav a.active{color:#6ee7d0}.content{padding-bottom:90px}}
+.mobile-nav{display:none}.mobile-base-panel{display:none}.mobile-base-card{background:#0a1b2b;border:1px solid #29465e;border-radius:18px;padding:18px;width:min(92vw,430px);box-shadow:0 20px 60px rgba(0,0,0,.45)}.mobile-base-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.mobile-base-head strong{font-size:14px}.mobile-base-head button{border:0;background:none;color:#9eb2c4;font-size:24px;cursor:pointer}.mobile-base-card p{font-size:10px;color:#71879d;line-height:1.8;margin:8px 0 14px}.mobile-base-links{display:grid;grid-template-columns:1fr 1fr;gap:8px}.mobile-base-links a{display:flex;align-items:center;padding:10px;border:1px solid #1b354b;border-radius:10px;color:#cce0ef;text-decoration:none;font-size:10px;background:#0d2235}
+@media(max-width:900px){.app{display:block}.sidebar{display:none}.top,.content{padding-left:18px;padding-right:18px}.mobile-nav{position:fixed;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));bottom:0;right:0;left:0;height:68px;background:rgba(8,21,34,.97);border-top:1px solid #1b354b;z-index:50;padding-bottom:env(safe-area-inset-bottom)}.mobile-nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#7890a5;text-decoration:none;font-size:8px}.mobile-nav a span{font-size:18px;line-height:1}.mobile-nav a.active{color:#6ee7d0}.content{padding-bottom:90px}.mobile-base-panel{position:fixed;inset:0;z-index:100;background:rgba(4,13,22,.75);display:none;align-items:flex-end;justify-content:center;padding:18px 18px 82px}.mobile-base-panel.open{display:flex}}
 @media(max-width:560px){.top{min-height:70px;align-items:flex-start;padding-top:12px;padding-bottom:12px}.company{flex:1;flex-wrap:wrap}.company select{max-width:160px}.user>div:first-child{display:none}.content{padding-top:22px}.page-heading{align-items:flex-start}.page-heading h1{font-size:22px}.panel{padding:13px}.mobile-nav{height:64px}}
 </style>
 @stack('styles')
@@ -80,20 +80,25 @@ $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifica
 @if($can['inventory'])<a class="{{ request()->routeIs('inventory.*') ? 'active' : '' }}" href="{{ route('inventory.index') }}">▦ موجودی انبار</a>@endif
 @if($can['locations'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'locations' ? 'active' : '' }}" href="{{ route('master.index', 'locations') }}">▣ انبارها و محل‌ها</a>@endif
 @endif
-@if($can['productions'] || $can['production_execution'] || $can['production_outputs'] || $can['production_routes'] || $can['production_sections'] || $can['production_stages'] || $can['production_operations'])
+@if($can['productions'] || $can['production_execution'] || $can['production_outputs'])
 <div class="nav-title">تولید</div>
-@if($can['production_routes'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-routes' ? 'active' : '' }}" href="{{ route('master.index', 'production-routes') }}">⇢ مسیرهای تولید</a>@endif
-@if($can['production_sections'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-sections' ? 'active' : '' }}" href="{{ route('master.index', 'production-sections') }}">▣ قسمت‌های تولید</a>@endif
-@if($can['production_stages'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-stages' ? 'active' : '' }}" href="{{ route('master.index', 'production-stages') }}">▤ مراحل تولید</a>@endif
-@if($can['production_operations'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-operations' ? 'active' : '' }}" href="{{ route('master.index', 'production-operations') }}">⚒ تعاریف عملیات تولید</a>@endif
 @if($can['productions'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'productions' ? 'active' : '' }}" href="{{ route('master.index', 'productions') }}">⚙ دستورهای تولید</a>@endif
 @if($can['production_execution'])<a class="{{ request()->routeIs('production.execution.*') ? 'active' : '' }}" href="{{ route('production.execution.index') }}">⚒ اجرای عملیات تولید</a>@endif
 @if($can['production_outputs'])<a class="{{ request()->routeIs('production.outputs.*') ? 'active' : '' }}" href="{{ route('production.outputs.index') }}">⇡ خروجی تولید</a>@endif
 @endif
-@if($can['goods'] || $can['suppliers'] || $can['goods_categories'] || $can['units'])
-<div class="nav-title">تعاریف پایه</div>
+@if($can['goods'] || $can['suppliers'] || $can['goods_categories'] || $can['units'] || $can['locations'] || $can['production_routes'] || $can['production_sections'] || $can['production_stages'] || $can['production_operations'])
+<div class="nav-title">اطلاعات پایه</div>
+<div class="base-menu" id="base-menu">
 @if($can['goods'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'goods' ? 'active' : '' }}" href="{{ route('master.index', 'goods') }}">▦ کالاها و کد کالا</a>@endif
+@if($can['goods_categories'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'goods-categories' ? 'active' : '' }}" href="{{ route('master.index', 'goods-categories') }}">▤ دسته‌بندی کالا</a>@endif
+@if($can['units'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'units' ? 'active' : '' }}" href="{{ route('master.index', 'units') }}">◫ واحدهای اندازه‌گیری</a>@endif
 @if($can['suppliers'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'suppliers' ? 'active' : '' }}" href="{{ route('master.index', 'suppliers') }}">♙ تأمین‌کنندگان</a>@endif
+@if($can['locations'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'locations' ? 'active' : '' }}" href="{{ route('master.index', 'locations') }}">▣ انبارها و محل‌ها</a>@endif
+@if($can['production_routes'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-routes' ? 'active' : '' }}" href="{{ route('master.index', 'production-routes') }}">⇢ مسیرهای تولید</a>@endif
+@if($can['production_sections'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-sections' ? 'active' : '' }}" href="{{ route('master.index', 'production-sections') }}">▣ قسمت‌های تولید</a>@endif
+@if($can['production_stages'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-stages' ? 'active' : '' }}" href="{{ route('master.index', 'production-stages') }}">▤ مراحل تولید</a>@endif
+@if($can['production_operations'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-operations' ? 'active' : '' }}" href="{{ route('master.index', 'production-operations') }}">⚒ تعاریف عملیات تولید</a>@endif
+</div>
 @endif
 @if($can['company'] || $can['fiscal_years'] || $can['personnel'] || $can['users'] || $can['roles'])
 <div class="nav-title">مدیریت</div>
@@ -141,7 +146,22 @@ $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifica
 @if($can['inventory'])<a class="{{ request()->routeIs('inventory.*') ? 'active' : '' }}" href="{{ route('inventory.index') }}"><span>▦</span>انبار</a>@endif
 @if($can['production_execution'])<a class="{{ request()->routeIs('production.execution.*') ? 'active' : '' }}" href="{{ route('production.execution.index') }}"><span>⚒</span>تولید</a>@endif
 @if($can['costing'])<a class="{{ request()->routeIs('reports.costing*') ? 'active' : '' }}" href="{{ route('reports.costing') }}"><span>◌</span>گزارشات</a>@endif
-@if($can['users'])<a class="{{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}"><span>♙</span>کاربران</a>@endif
+@if($can['goods'] || $can['suppliers'] || $can['locations'] || $can['production_routes'] || $can['production_sections'] || $can['production_stages'] || $can['production_operations'])<a href="#" onclick="document.getElementById('mobile-base-panel')?.classList.add('open');return false;"><span>▦</span>اطلاعات پایه</a>@endif
 </nav>
+<div class="mobile-base-panel" id="mobile-base-panel" aria-label="مرکز اطلاعات پایه" onclick="if(event.target===this)this.classList.remove('open');">
+<div class="mobile-base-card">
+<div class="mobile-base-head"><strong>مرکز اطلاعات پایه</strong><button type="button" onclick="document.getElementById('mobile-base-panel')?.classList.remove('open');">×</button></div>
+<p>همه تعاریف پایه در یکجا؛ موارد اجرایی تولید جداگانه در منوی تولید قرار دارند.</p>
+<div class="mobile-base-links">
+@if($can['goods'])<a href="{{ route('master.index', 'goods') }}">▦ کالاها و کد کالا</a>@endif
+@if($can['goods_categories'])<a href="{{ route('master.index', 'goods-categories') }}">▤ دسته‌بندی کالا</a>@endif
+@if($can['units'])<a href="{{ route('master.index', 'units') }}">◫ واحدهای اندازه‌گیری</a>@endif
+@if($can['suppliers'])<a href="{{ route('master.index', 'suppliers') }}">♙ تأمین‌کنندگان</a>@endif
+@if($can['locations'])<a href="{{ route('master.index', 'locations') }}">▣ انبارها و محل‌ها</a>@endif
+@if($can['production_routes'])<a href="{{ route('master.index', 'production-routes') }}">⇢ مسیرهای تولید</a>@endif
+@if($can['production_sections'])<a href="{{ route('master.index', 'production-sections') }}">▣ قسمت‌های تولید</a>@endif
+@if($can['production_stages'])<a href="{{ route('master.index', 'production-stages') }}">▤ مراحل تولید</a>@endif
+@if($can['production_operations'])<a href="{{ route('master.index', 'production-operations') }}">⚒ تعاریف عملیات تولید</a>@endif
+</div></div></div>
 </body>
 </html>
