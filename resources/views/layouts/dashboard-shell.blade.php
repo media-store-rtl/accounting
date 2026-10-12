@@ -63,9 +63,8 @@ $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifica
 <div class="nav-title">نمای کلی</div>
 <a class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">⌂ داشبورد</a>
 @if($can['notifications'])<a class="{{ request()->routeIs('notifications.*') ? 'active' : '' }}" href="{{ route('notifications.index') }}">♢ اعلان‌ها</a>@endif
-@if($can['customers'] || $can['orders'] || $can['deliveries'])
+@if($can['orders'] || $can['deliveries'])
 <div class="nav-title">سفارش و فروش</div>
-@if($can['customers'])<a class="{{ request()->routeIs('sales.customers.*') ? 'active' : '' }}" href="{{ route('sales.customers.index') }}">♙ مشتریان</a>@endif
 @if($can['orders'])<a class="{{ request()->routeIs('sales.orders.*') ? 'active' : '' }}" href="{{ route('sales.orders.index') }}">▤ سفارش‌های فروش</a>@endif
 @if($can['deliveries'])<a class="{{ request()->routeIs('sales.deliveries.*') ? 'active' : '' }}" href="{{ route('sales.deliveries.index') }}">⇢ تحویل و ارسال</a>@endif
 @endif
@@ -88,9 +87,10 @@ $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifica
 @if($can['production_execution'])<a class="{{ request()->routeIs('production.execution.*') ? 'active' : '' }}" href="{{ route('production.execution.index') }}">⚒ اجرای عملیات تولید</a>@endif
 @if($can['production_outputs'])<a class="{{ request()->routeIs('production.outputs.*') ? 'active' : '' }}" href="{{ route('production.outputs.index') }}">⇡ خروجی تولید</a>@endif
 @endif
-@if($can['goods'] || $can['suppliers'] || $can['goods_categories'] || $can['units'] || $can['locations'] || $can['production_routes'] || $can['production_sections'] || $can['production_stages'] || $can['production_operations'])
+@if($can['customers'] || $can['goods'] || $can['suppliers'] || $can['goods_categories'] || $can['units'] || $can['locations'] || $can['production_routes'] || $can['production_sections'] || $can['production_stages'] || $can['production_operations'])
 <div class="nav-title">اطلاعات پایه</div>
 <div class="base-menu" id="base-menu">
+@if($can['customers'])<a class="{{ request()->routeIs('sales.customers.*') ? 'active' : '' }}" href="{{ route('sales.customers.index') }}">♙ مشتریان</a>@endif
 @if($can['goods'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'goods' ? 'active' : '' }}" href="{{ route('master.index', 'goods') }}">▦ کالاها و کد کالا</a>@endif
 @if($can['goods_categories'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'goods-categories' ? 'active' : '' }}" href="{{ route('master.index', 'goods-categories') }}">▤ دسته‌بندی کالا</a>@endif
 @if($can['units'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'units' ? 'active' : '' }}" href="{{ route('master.index', 'units') }}">◫ واحدهای اندازه‌گیری</a>@endif
@@ -148,13 +148,14 @@ $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifica
 @if($can['inventory'])<a class="{{ request()->routeIs('inventory.*') ? 'active' : '' }}" href="{{ route('inventory.index') }}"><span>▦</span>انبار</a>@endif
 @if($can['production_execution'])<a class="{{ request()->routeIs('production.execution.*') ? 'active' : '' }}" href="{{ route('production.execution.index') }}"><span>⚒</span>تولید</a>@endif
 @if($can['costing'])<a class="{{ request()->routeIs('reports.costing*') ? 'active' : '' }}" href="{{ route('reports.costing') }}"><span>◌</span>گزارشات</a>@endif
-@if($can['goods'] || $can['suppliers'] || $can['locations'] || $can['production_routes'] || $can['production_sections'] || $can['production_stages'] || $can['production_operations'])<a href="#" onclick="document.getElementById('mobile-base-panel')?.classList.add('open');return false;"><span>▦</span>اطلاعات پایه</a>@endif
+@if($can['customers'] || $can['goods'] || $can['suppliers'] || $can['locations'] || $can['production_routes'] || $can['production_sections'] || $can['production_stages'] || $can['production_operations'])<a href="#" onclick="document.getElementById('mobile-base-panel')?.classList.add('open');return false;"><span>▦</span>اطلاعات پایه</a>@endif
 </nav>
 <div class="mobile-base-panel" id="mobile-base-panel" aria-label="مرکز اطلاعات پایه" onclick="if(event.target===this)this.classList.remove('open');">
 <div class="mobile-base-card">
 <div class="mobile-base-head"><strong>مرکز اطلاعات پایه</strong><button type="button" onclick="document.getElementById('mobile-base-panel')?.classList.remove('open');">×</button></div>
 <p>همه تعاریف پایه در یکجا؛ موارد اجرایی تولید جداگانه در منوی تولید قرار دارند.</p>
 <div class="mobile-base-links">
+@if($can['customers'])<a href="{{ route('sales.customers.index') }}">♙ مشتریان</a>@endif
 @if($can['goods'])<a href="{{ route('master.index', 'goods') }}">▦ کالاها و کد کالا</a>@endif
 @if($can['goods_categories'])<a href="{{ route('master.index', 'goods-categories') }}">▤ دسته‌بندی کالا</a>@endif
 @if($can['units'])<a href="{{ route('master.index', 'units') }}">◫ واحدهای اندازه‌گیری</a>@endif
