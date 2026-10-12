@@ -67,7 +67,7 @@ class OrdersSupplyWorkflowTest extends TestCase
         $this->assertDatabaseHas('order_items',['order_id'=>$response->json('data.id'),'shortage_quantity'=>3]);
     }
 
-    public function test_production_due_date_can_be_updated_more_than_once(): void
+    public function test_production_due_date_can_only_be_set_once(): void
     {
         $c = $this->context();
         $order = $this->postJson('/api/orders', [
@@ -91,11 +91,12 @@ class OrdersSupplyWorkflowTest extends TestCase
 
         $this->postJson('/production/orders/'.$order.'/due-date', [
             'production_due_at' => '2026-10-25',
-        ])->assertOk();
+        ])->assertUnprocessable()
+            ->assertJsonPath('message', 'موعد تولید این سفارش قبلاً ثبت شده و قابل تغییر نیست.');
 
         $this->assertDatabaseHas('orders', [
             'id' => $order,
-            'production_due_at' => '2026-10-25',
+            'production_due_at' => '2026-10-22',
             'status' => 'awaiting_production',
         ]);
     }
