@@ -41,9 +41,17 @@
             'title' => 'کسری مواد اولیه توسط انبار تأیید شد',
             'message' => 'انبار موجودی را بررسی کرده و کسری زیر را تأیید کرده است. تدارکات باید مقدار کسری را برای تاریخ نیاز اعلام‌شده تأمین کند.',
         ],
+        'inventory.finished_goods_low' => [
+            'title' => 'موجودی محصول نهایی کم است',
+            'message' => 'موجودی محصول نهایی به نقطه سفارش رسیده یا از آن کمتر شده است. سرپرست تولید باید برنامه تولید و امکان جبران کمبود را بررسی کند.',
+        ],
+        'inventory.raw_material_low' => [
+            'title' => 'موجودی ماده اولیه کم است',
+            'message' => 'موجودی ماده اولیه به نقطه سفارش رسیده یا از آن کمتر شده است. واحد تدارکات باید تأمین مجدد را پیگیری کند.',
+        ],
         'inventory_reorder_point_reached' => [
             'title' => 'موجودی کالا به نقطه سفارش رسیده است',
-            'message' => 'موجودی این کالا به حد سفارش یا کمتر از آن رسیده است. واحد تدارکات باید نیاز به تأمین مجدد را بررسی کند.',
+            'message' => 'موجودی این کالا به حد سفارش یا کمتر از آن رسیده است. واحد مسئول تأمین باید نیاز به تأمین مجدد را بررسی کند.',
         ],
         'purchase.received_financial_value' => [
             'title' => 'اطلاعات مالی خرید برای پیگیری ثبت شد',
@@ -100,7 +108,9 @@
                     'delivery.requested' => ['order_id', 'delivery_request_id'],
                     'supply.stock_check_required' => ['supply_request_id'],
                     'supply.shortage' => ['supply_request_id', 'production_id', 'order_id', 'goods_name', 'requested_quantity', 'available_quantity', 'shortage_quantity', 'needed_at', 'warehouse_note'],
-                    'inventory_reorder_point_reached' => ['goods_id', 'location_id', 'current_quantity', 'reorder_point'],
+                    'inventory.finished_goods_low' => ['goods_name', 'goods_id', 'location_id', 'current_quantity', 'reorder_point'],
+                    'inventory.raw_material_low' => ['goods_name', 'goods_id', 'location_id', 'current_quantity', 'reorder_point'],
+                    'inventory_reorder_point_reached' => ['goods_name', 'goods_id', 'location_id', 'current_quantity', 'reorder_point'],
                     'purchase.received_financial_value' => ['purchase_id', 'receipt_id', 'purchase_total_amount', 'direct_cost_total'],
                 ];
                 $visibleKeys = $visibleFields[$event] ?? [];
@@ -109,7 +119,7 @@
                 $goodsName = null;
                 $locationName = null;
 
-                if ($event === 'inventory_reorder_point_reached' && $companyId > 0) {
+                if (in_array($event, ['inventory.finished_goods_low', 'inventory.raw_material_low', 'inventory_reorder_point_reached'], true) && $companyId > 0) {
                     if (!empty($data['goods_id'])) {
                         $goodsName = \Illuminate\Support\Facades\DB::table('goods')
                             ->where('company_id', $companyId)
