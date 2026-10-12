@@ -85,14 +85,42 @@ final class CostingReportService
 
     private function labor(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId): void
     {
+        // Legacy operation-based labor remains included for historical productions.
         $costs=DB::table('production_labor_costs')->where('company_id',$companyId)->when($fy,fn($q)=>$q->where('fiscal_year_id',$fy))->get(['production_id','total_cost']);
-        $pids=$costs->pluck('production_id')->unique()->values();if($pids->isEmpty())return;
-        $goods=DB::table('productions')->whereIn('id',$pids)->get(['id','goods_id'])->keyBy('id');$links=DB::table('production_order')->whereIn('production_id',$pids)->get(['production_id','order_id'])->groupBy('production_id');
-        foreach($costs as $c){
-            $p=$goods->get((int)$c->production_id);if(!$p||($goodsId!==null&&(int)$p->goods_id!==$goodsId))continue;
-            foreach($links->get((int)$c->production_id,collect()) as $link){
-                if($orderId!==null&&(int)$link->order_id!==$orderId)continue;$key=$this->key((int)$link->order_id,(int)$p->goods_id);$this->row($rows,$key,(int)$link->order_id,(int)$p->goods_id);$rows[$key]['labor_cost']+=(float)$c->total_cost;
+        $pids=$costs->pluck('production_id')->unique()->values();
+        if($pids->isNotEmpty()){
+            $goods=DB::table('productions')->whereIn('id',$pids)->get(['id','goods_id'])->keyBy('id');
+            $links=DB::table('production_order')->whereIn('production_id',$pids)->get(['production_id','order_id'])->groupBy('production_id');
+            foreach($costs as $c){
+                $p=$goods->get((int)$c->production_id);if(!$p||($goodsId!==null&&(int)$p->goods_id!==$goodsId))continue;
+                foreach($links->get((int)$c->production_id,collect()) as $link){
+                    if($orderId!==null&&(int)$link->order_id!==$orderId)continue;
+                    $key=$this->key((int)$link->order_id,(int)$p->goods_id);
+                    $this->row($rows,$key,(int)$link->order_id,(int)$p->goods_id);
+                    $rows[$key]['labor_cost']+=(float)$c->total_cost;
+                }
             }
+        }
+
+        // New shift-based labor is approved independently of production orders.
+        // Attribute it to the product and fiscal year matching the shift date.
+        if($orderId!==null)return;
+        $shiftCosts=DB::table('production_shift_reports as r')
+            ->join('fiscal_years as fy',function($join){
+                $join->on('fy.company_id','=','r.company_id')
+                    ->whereColumn('r.work_date','>=','fy.starts_at')
+                    ->whereColumn('r.work_date','<=','fy.ends_at');
+            })
+            ->where('r.company_id',$companyId)
+            ->whereIn('r.status',['approved','received'])
+            ->where('r.labor_total_cost','>',0)
+            ->when($fy,fn($q)=>$q->where('fy.id',$fy))
+            ->when($goodsId,fn($q)=>$q->where('r.goods_id',$goodsId))
+            ->get(['r.goods_id','r.labor_total_cost']);
+        foreach($shiftCosts as $c){
+            $key=$this->key(null,(int)$c->goods_id);
+            $this->row($rows,$key,null,(int)$c->goods_id);
+            $rows[$key]['labor_cost']+=(float)$c->labor_total_cost;
         }
     }
 
