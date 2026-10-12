@@ -79,9 +79,9 @@ $fulfillmentLabels = [
         @forelse($items as $i)
           <tr>
             <td>{{ $i->goods_name }}</td>
-            <td>{{ $i->quantity }}</td>
-            <td>{{ $i->available_quantity }}</td>
-            <td>{{ $i->shortage_quantity }}</td>
+            <td>{{ rtrim(rtrim(number_format((float) $i->quantity, 4, '.', ''), '0'), '.') ?: '0' }}</td>
+            <td>{{ rtrim(rtrim(number_format((float) $i->available_quantity, 4, '.', ''), '0'), '.') ?: '0' }}</td>
+            <td>{{ rtrim(rtrim(number_format((float) $i->shortage_quantity, 4, '.', ''), '0'), '.') ?: '0' }}</td>
             <td><span class="status">{{ $fulfillmentLabels[$i->fulfillment_status] ?? ($statusLabels[$i->fulfillment_status] ?? 'در حال بررسی') }}</span></td>
           </tr>
         @empty
