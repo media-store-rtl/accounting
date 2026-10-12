@@ -190,7 +190,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.jalali-date[datetime]').forEach(function (element) {
         const value = element.getAttribute('datetime');
-        const match = value && value.match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
+        const match = value && value.match(/^(\d{4})-(\d{2})-(\d{2})/);
         if (!match) return;
         const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12);
         element.textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
@@ -201,7 +201,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const isoField = document.getElementById('needed_at');
     if (!picker || !isoField || !window.jQuery || !jQuery.fn.persianDatepicker) return;
     const oldIso = isoField.value;
-    if (oldIso && /^\\d{4}-\\d{2}-\\d{2}$/.test(oldIso)) {
+    if (oldIso && /^\d{4}-\d{2}-\d{2}$/.test(oldIso)) {
         const parts = oldIso.split('-').map(Number);
         picker.value = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(parts[0],parts[1]-1,parts[2],12));
     }
