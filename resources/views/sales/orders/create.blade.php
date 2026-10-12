@@ -29,6 +29,8 @@
 .order-add{border:1px solid #29465e;border-radius:10px;padding:10px 14px;background:#12314a;color:#e9f3fb;font-family:inherit;font-size:11px;cursor:pointer}
 .order-cancel{color:#8ba1b5;text-decoration:none;font-size:11px}
 .order-error{color:#ff9d9d;font-size:10px;margin-top:6px}
+/* Keep the Jalali calendar visible and selectable on small screens instead of letting it fall below the form. */
+@media(max-width:650px){.datepicker-container{position:fixed!important;top:50%!important;left:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)!important;z-index:10000!important;max-width:calc(100vw - 20px)!important}.datepicker-plot-area{max-width:calc(100vw - 20px)!important;box-sizing:border-box!important}}
 @media(max-width:650px){.order-grid{grid-template-columns:1fr}.order-section,.order-field.full{grid-column:auto}.order-item{grid-template-columns:1fr}}
 </style>
 
