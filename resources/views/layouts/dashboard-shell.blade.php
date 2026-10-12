@@ -119,6 +119,15 @@ elseif ($can['production_operations']) $productionHome = route('master.index', '
   </div>
 </div>
 @endif
+@if(($can['customers'] ?? false) || $can['goods'] || $can['goods_categories'] || $can['units'] || $can['suppliers'] || $can['locations'])
+<div class="nav-title">اطلاعات پایه</div>
+@if($can['customers'] ?? false)<a class="{{ request()->routeIs('sales.customers.*') ? 'active' : '' }}" href="{{ route('sales.customers.index') }}">♙ مشتریان</a>@endif
+@if($can['goods'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'goods' ? 'active' : '' }}" href="{{ route('master.index', 'goods') }}">▦ کالاها و کد کالا</a>@endif
+@if($can['goods_categories'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'goods-categories' ? 'active' : '' }}" href="{{ route('master.index', 'goods-categories') }}">▤ دسته‌بندی کالا</a>@endif
+@if($can['units'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'units' ? 'active' : '' }}" href="{{ route('master.index', 'units') }}">◫ واحدهای اندازه‌گیری</a>@endif
+@if($can['suppliers'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'suppliers' ? 'active' : '' }}" href="{{ route('master.index', 'suppliers') }}">♙ تأمین‌کنندگان</a>@endif
+@if($can['locations'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'locations' ? 'active' : '' }}" href="{{ route('master.index', 'locations') }}">▣ انبارها و محل‌ها</a>@endif
+@endif
 @if($can['company'] || $can['fiscal_years'] || $can['personnel'] || $can['users'] || $can['roles'])
 <div class="nav-title">مدیریت</div>
 @if($can['company'])<a class="{{ request()->routeIs('company.*') ? 'active' : '' }}" href="{{ route('company.edit') }}">▤ اطلاعات مجموعه</a>@endif
