@@ -24,6 +24,7 @@
 .shift-field input,.shift-field select,.shift-field textarea,.shift-action input,.shift-action select{width:100%;min-width:0;background:#071725;color:#e9f3fb;border:1px solid #29465e;border-radius:10px;padding:11px 12px;font:inherit;outline:none}
 .shift-field input:focus,.shift-field select:focus,.shift-field textarea:focus,.shift-action input:focus,.shift-action select:focus{border-color:#6ee7d0;box-shadow:0 0 0 3px rgba(110,231,208,.08)}
 .shift-field input::placeholder,.shift-field textarea::placeholder,.shift-action input::placeholder{color:#587087}
+.shift-date-wrap{display:grid;gap:6px}.shift-date-hint{font-size:10px;color:#71879d}
 .shift-field small{font-size:10px;color:#71879d;line-height:1.7}
 .shift-form-footer{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-top:5px}
 .shift-form-footer p{font-size:10px;color:#71879d;line-height:1.8;margin:0}
@@ -65,13 +66,13 @@
     <div class="shift-panel-head">
       <div>
         <h2>راهنمای ثبت گزارش</h2>
-        <p>برای ثبت سریع و درست، این ترتیب را دنبال کنید.</p>
+        <p>ابتدا مشخصات تولید را وارد کنید؛ ساعات کارکرد و اضافه‌کاری جداگانه ثبت می‌شوند. تاریخ را به شمسی وارد کنید.</p>
       </div>
     </div>
     <div class="shift-guide">
-      <div class="shift-guide-item"><span class="shift-guide-num">۱</span><div><strong>مشخصات شیفت</strong><span>قسمت تولید، تاریخ و نام شیفت را انتخاب کنید.</span></div></div>
-      <div class="shift-guide-item"><span class="shift-guide-num">۲</span><div><strong>مقدار تولید</strong><span>کارگر، محصول، تعداد تولیدشده و ضایعات را وارد کنید.</span></div></div>
-      <div class="shift-guide-item"><span class="shift-guide-num">۳</span><div><strong>تأیید و تحویل</strong><span>بعد از تأیید سرپرست، محصول سالم را می‌توان به انبار تحویل داد.</span></div></div>
+      <div class="shift-guide-item"><span class="shift-guide-num">۱</span><div><strong>مشخصات تولید</strong><span>قسمت تولید، تاریخ شمسی، کارگر و محصول را انتخاب کنید.</span></div></div>
+      <div class="shift-guide-item"><span class="shift-guide-num">۲</span><div><strong>زمان کار</strong><span>ساعات کارکرد عادی و اضافه‌کاری را جداگانه وارد کنید.</span></div></div>
+      <div class="shift-guide-item"><span class="shift-guide-num">۳</span><div><strong>تولید و تحویل</strong><span>تعداد تولید و ضایعات را ثبت کنید؛ پس از تأیید سرپرست، محصول سالم قابل تحویل به انبار است.</span></div></div>
     </div>
   </div>
 
@@ -91,11 +92,16 @@
           @foreach($sections as $s)<option value="{{ $s->id }}" @selected((string)old('production_section_id')===(string)$s->id)>{{ $s->name ?: 'قسمت '.$s->id }}</option>@endforeach
         </select>
       </label>
-      <label class="shift-field">تاریخ شیفت *
-        <input type="date" name="work_date" value="{{ old('work_date', now()->toDateString()) }}" required>
+      <label class="shift-field">تاریخ تولید (شمسی) *
+        <span class="shift-date-wrap"><input type="text" id="shift-jalali-date" inputmode="numeric" autocomplete="off" placeholder="۱۴۰۵/۰۷/۲۰" aria-label="تاریخ تولید به شمسی" required><input type="hidden" id="shift-gregorian-date" name="work_date" value="{{ old('work_date', now()->toDateString()) }}"><small class="shift-date-hint">تاریخ را به شکل سال/ماه/روز وارد کنید.</small></span>
       </label>
-      <label class="shift-field">نام شیفت *
-        <input name="shift_name" maxlength="80" value="{{ old('shift_name') }}" placeholder="مثلاً صبح، عصر یا شب" required>
+      <label class="shift-field">ساعات کارکرد *
+        <input type="number" name="worked_hours" min="0.01" max="24" step="0.25" value="{{ old('worked_hours', 8) }}" placeholder="مثلاً ۸" required>
+        <small>ساعات کار عادی در این روز</small>
+      </label>
+      <label class="shift-field">اضافه‌کاری (ساعت)
+        <input type="number" name="overtime_hours" min="0" max="24" step="0.25" value="{{ old('overtime_hours', 0) }}" placeholder="مثلاً ۲">
+        <small>در صورت نداشتن اضافه‌کاری، صفر وارد کنید.</small>
       </label>
       <label class="shift-field">کارگر *
         <select name="personnel_id" required>
@@ -138,7 +144,7 @@
         <tbody>
         @forelse($rows as $r)
           <tr>
-            <td><span class="shift-primary-cell">{{ $r->work_date }}</span><span class="shift-secondary">{{ $r->shift_name }}</span></td>
+            <td><span class="shift-primary-cell shift-date-display" data-iso-date="{{ $r->work_date }}">{{ $r->work_date }}</span><span class="shift-secondary">کارکرد: {{ $r->worked_hours ?? '—' }} ساعت</span><span class="shift-secondary">اضافه‌کاری: {{ $r->overtime_hours ?? 0 }} ساعت</span></td>
             <td>{{ $r->section_name ?: '—' }}</td>
             <td>{{ $r->worker_name ?: '—' }}</td>
             <td><span class="shift-primary-cell">{{ $r->goods_name }}</span>@if($r->goods_code)<span class="shift-secondary">{{ $r->goods_code }}</span>@endif</td>
@@ -183,4 +189,48 @@
     @if(method_exists($rows,'links'))<div class="pagination">{{ $rows->links() }}</div>@endif
   </div>
 </div>
+@push('scripts')
+<script>
+(function () {
+  const input = document.getElementById('shift-jalali-date');
+  const hidden = document.getElementById('shift-gregorian-date');
+  if (!input || !hidden) return;
+
+  const faDigits = value => String(value).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+  const toJalali = iso => {
+    const match = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return '';
+    const date = new Date(Date.UTC(+match[1], +match[2] - 1, +match[3]));
+    const parts = new Intl.DateTimeFormat('en-u-ca-persian-nu-latn', {timeZone:'UTC',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
+    const get = type => parts.find(p => p.type === type)?.value || '';
+    return get('year') + '/' + get('month').padStart(2,'0') + '/' + get('day').padStart(2,'0');
+  };
+  const toGregorian = value => {
+    const m = faDigits(value).trim().match(/^(\d{3,4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
+    if (!m) return null;
+    const jy=+m[1], jm=+m[2], jd=+m[3];
+    if (jm<1 || jm>12 || jd<1 || jd>31) return null;
+    const d = new Date(Date.UTC( jy + 621, 2, 20 ));
+    d.setUTCDate(d.getUTCDate() + (jm <= 6 ? (jm-1)*31 + jd-1 : 186 + (jm-7)*30 + jd-1));
+    const iso = d.toISOString().slice(0,10);
+    if (toJalali(iso) !== [String(jy),String(jm).padStart(2,'0'),String(jd).padStart(2,'0')].join('/')) return null;
+    return iso;
+  };
+  if (!input.value) input.value = toJalali(hidden.value);
+  input.value = toJalali(hidden.value) || input.value;
+  const sync = () => {
+    const iso = toGregorian(input.value);
+    input.setCustomValidity(iso ? '' : 'تاریخ شمسی معتبر وارد کنید؛ مثال: ۱۴۰۵/۰۷/۲۰');
+    if (iso) hidden.value = iso;
+  };
+  input.addEventListener('input', sync);
+  input.addEventListener('change', sync);
+  input.form?.addEventListener('submit', sync);
+  document.querySelectorAll('.shift-date-display[data-iso-date]').forEach(el => {
+    const jalali = toJalali(el.dataset.isoDate);
+    if (jalali) el.textContent = jalali;
+  });
+})();
+</script>
+@endpush
 @endsection
