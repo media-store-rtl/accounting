@@ -42,7 +42,7 @@ final class ProductionShiftReportController extends Controller
             })
             ->orderBy('p.name')->distinct()->get(['p.id', 'p.code', 'p.name']);
         $materials = DB::table('goods')->where('company_id', $companyId)->where('is_active', true)
-            ->where('purchasable', true)->where('sellable', false)->orderBy('name')->get(['id', 'code', 'name']);
+            ->where('purchasable', true)->where('producible', false)->orderBy('name')->get(['id', 'code', 'name']);
         $canReview = $request->user()->hasCompanyPermission($companyId, 'production.operation.review');
         $canReceive = $request->user()->hasCompanyPermission($companyId, 'production.output.receive');
         $warehouses = $canReceive ? DB::table('locations')->where('company_id', $companyId)->where('type', 'warehouse')->where('is_active', true)->orderBy('name')->get(['id', 'name']) : collect();
@@ -95,7 +95,7 @@ final class ProductionShiftReportController extends Controller
                 throw ValidationException::withMessages(['materials' => 'برای هر ماده اولیه، هم انتخاب ماده و هم مقدار مصرف را وارد کنید.']);
             }
             $validMaterial = DB::table('goods')->where('id', $materialId)->where('company_id', $companyId)
-                ->where('is_active', true)->where('purchasable', true)->where('sellable', false)->exists();
+                ->where('is_active', true)->where('purchasable', true)->where('producible', false)->exists();
             if (!$validMaterial) throw ValidationException::withMessages(['materials' => 'یکی از مواد اولیه انتخاب‌شده معتبر نیست.']);
             $materialScrap = (float) ($line['scrap_quantity'] ?? 0);
             if ($materialScrap > (float) $materialQuantity) {
