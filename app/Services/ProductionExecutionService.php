@@ -54,7 +54,7 @@ final class ProductionExecutionService
 
             DB::table('production_operation_runs')->where('id',$operationRunId)->update([
                 'status'=>'pending_review','input_quantity'=>$this->sum($inputs),
-                'output_quantity'=>$this->sum($outputs),'rejected_quantity'=>$this->sum($scraps),
+                'output_quantity'=>array_sum(array_map(fn($line)=>(($line['output_type']??'product')==='product'?(float)$line['quantity']:0.0),$outputs)),'rejected_quantity'=>$this->sum($scraps),
                 'completed_at'=>$completedAt?now()->parse($completedAt):now(),'notes'=>$notes,'updated_at'=>now()
             ]);
 
