@@ -155,7 +155,7 @@
                             </td>
                         @endif
                         <td><span class="status {{ in_array($r->status, ['stock_available', 'partially_supplied', 'supplied', 'fulfilled', 'completed'], true) ? 'active' : 'inactive' }}">{{ ['checking_stock'=>'در انتظار بررسی انبار','shortage_pending'=>'کسری تأییدشده؛ در انتظار تدارکات','stock_available'=>'موجودی کافی؛ آماده تحویل','rejected'=>'ردشده توسط انبار','purchasing'=>'در حال خرید','purchased'=>'خریداری شده','partially_supplied'=>'بخشی تحویل شده','fulfilled'=>'تحویل کامل','cancelled'=>'لغوشده'][$r->status] ?? $r->status }}</span></td>
-                        <td>{{ $r->needed_at ? \\Illuminate\\Support\\Carbon::parse($r->needed_at)->locale('fa')->translatedFormat('Y/m/d') : '—' }}</td>
+                        <td>@if($r->needed_at)<time class="jalali-date" datetime="{{ $r->needed_at }}">{{ $r->needed_at }}</time>@else—@endif</td>
                         @if($canReviewStock)
                             <td>
                                 @if($r->status === 'checking_stock')
@@ -188,6 +188,15 @@
 <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.jalali-date[datetime]').forEach(function (element) {
+        const value = element.getAttribute('datetime');
+        const match = value && value.match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
+        if (!match) return;
+        const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12);
+        element.textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+            year: 'numeric', month: '2-digit', day: '2-digit'
+        }).format(date);
+    });
     const picker = document.getElementById('needed_at_picker');
     const isoField = document.getElementById('needed_at');
     if (!picker || !isoField || !window.jQuery || !jQuery.fn.persianDatepicker) return;
