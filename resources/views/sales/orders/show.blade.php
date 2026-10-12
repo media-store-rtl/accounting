@@ -67,10 +67,6 @@ $fulfillmentLabels = [
       <span>موعد درخواستی مشتری</span>
       <strong>@if($row->requested_delivery_at)<time class="jalali-date" datetime="{{ $row->requested_delivery_at }}">{{ $row->requested_delivery_at }}</time>@else ثبت نشده @endif</strong>
     </div>
-    <div class="order-fact">
-      <span>موعد تولید</span>
-      <strong>@if($row->production_due_at)<time class="jalali-date" datetime="{{ $row->production_due_at }}">{{ $row->production_due_at }}</time>@else ثبت نشده @endif</strong>
-    </div>
   </div>
 
   <h2 class="order-section-title">اقلام سفارش</h2>
@@ -102,15 +98,6 @@ $fulfillmentLabels = [
   </div>
 
   <div class="order-forms">
-    @if(in_array($row->status, ['production_required', 'awaiting_production']))
-      <form class="order-form" onsubmit="setDue(event)">
-        <h3>ثبت موعد تولید</h3>
-        <label for="due">موعد قابل تحویل تولید</label>
-        <input id="due" type="date" lang="fa-IR" required>
-        <button class="btn primary" type="submit">ثبت موعد تولید</button>
-      </form>
-    @endif
-
     @if($row->status === 'ready_for_delivery')
       <form class="order-form" onsubmit="requestDelivery(event)">
         <h3>درخواست تحویل سفارش</h3>
@@ -149,13 +136,6 @@ async function call(url, data = {}) {
 async function refreshOrder() {
   try {
     await call('{{ route('sales.orders.refresh', $row->id) }}');
-    location.reload();
-  } catch (error) { alert(error.message); }
-}
-async function setDue(event) {
-  event.preventDefault();
-  try {
-    await call('{{ route('sales.orders.production-due', $row->id) }}', {production_due_at:document.getElementById('due').value});
     location.reload();
   } catch (error) { alert(error.message); }
 }
