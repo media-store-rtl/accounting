@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\InventoryService;
 use App\Services\NotificationRecipientService;
 use App\Support\CompanyAuthorization;
 use Illuminate\Support\Facades\Schema;
@@ -433,7 +432,7 @@ final class ProductionShiftReportController extends Controller
             : 'گزارش شیفت رد شد.');
     }
 
-    public function receive(Request $request, int $report, InventoryService $inventory)
+    public function receive(Request $request, int $report)
     {
         abort(410, 'ثبت ورود این گزارش فقط از صفحه خروجی تولید و پس از تأیید سرپرست انبار مجاز است.');
     }
