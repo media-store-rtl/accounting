@@ -83,6 +83,7 @@
         'requested_quantity' => 'مقدار درخواستی',
         'available_quantity' => 'مقدار قابل تأمین از انبار',
         'warehouse_name' => 'انبار مقصد',
+        'prepared_quantity' => 'مقدار آماده تحویل',
         'shortage_quantity' => 'مقدار کسری تأییدشده',
         'needed_at' => 'تاریخ موردنیاز',
         'warehouse_note' => 'یادداشت انباردار',
@@ -122,7 +123,7 @@
                 $canViewOrder = $orderId && auth()->user()->hasCompanyPermission((int) session('company_id'), 'order.view');
                 $visibleFields = [
                     'production.shift_report_pending' => ['report_id', 'work_date', 'section_name', 'worker_name', 'goods_name', 'produced_quantity', 'scrap_quantity'],
-                    'production.shift_report_warehouse_receipt' => ['report_id', 'work_date', 'goods_name', 'available_quantity', 'warehouse_name'],
+                    'production.shift_report_warehouse_receipt' => ['report_id', 'work_date', 'goods_name', 'prepared_quantity', 'warehouse_name'],
                     'order.production_required' => ['order_id'],
                     'order.ready_for_delivery' => ['order_id'],
                     'order.production_due_set' => ['order_id', 'production_due_at'],
