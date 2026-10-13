@@ -8,7 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasColumn('production_shift_reports', 'holiday_hours')) {
+        // This migration can run before the report table is created on a fresh install.
+        // The creation migration includes holiday_hours; keep material-table creation independent.
+        if (Schema::hasTable('production_shift_reports') && !Schema::hasColumn('production_shift_reports', 'holiday_hours')) {
             Schema::table('production_shift_reports', function (Blueprint $table) {
                 $table->decimal('holiday_hours', 6, 2)->default(0)->after('overtime_hours');
             });
@@ -31,7 +33,7 @@ return new class extends Migration
     {
         Schema::dropIfExists('production_shift_report_materials');
 
-        if (Schema::hasColumn('production_shift_reports', 'holiday_hours')) {
+        if (Schema::hasTable('production_shift_reports') && Schema::hasColumn('production_shift_reports', 'holiday_hours')) {
             Schema::table('production_shift_reports', function (Blueprint $table) {
                 $table->dropColumn('holiday_hours');
             });

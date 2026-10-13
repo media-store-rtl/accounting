@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\InventoryService;
+use App\Services\NotificationRecipientService;
 use App\Support\CompanyAuthorization;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
@@ -14,7 +15,7 @@ final class ProductionShiftReportController extends Controller
     public function index(Request $request)
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.operation.view');
-        $rows = DB::table('production_shift_reports as r')
+        $query = DB::table('production_shift_reports as r')
             ->join('production_sections as s', 's.id', '=', 'r.production_section_id')
             ->leftJoin('locations as sec_location', 'sec_location.id', '=', 's.location_id')
             ->join('goods as g', 'g.id', '=', 'r.goods_id')
@@ -22,43 +23,75 @@ final class ProductionShiftReportController extends Controller
             ->join('users as reporter', 'reporter.id', '=', 'r.reported_by_user_id')
             ->leftJoin('users as reviewer', 'reviewer.id', '=', 'r.reviewed_by_user_id')
             ->leftJoin('locations as warehouse', 'warehouse.id', '=', 'r.warehouse_location_id')
-            ->where('r.company_id', $companyId)
-            ->select('r.*', 'sec_location.name as section_name', 'g.name as goods_name', 'g.code as goods_code',
+            ->where('r.company_id', $companyId);
+        if ($request->filled('status') && in_array($request->input('status'), ['pending', 'approved', 'rejected', 'received'], true)) $query->where('r.status', $request->input('status'));
+        if ($request->filled('section_id') && is_numeric($request->input('section_id'))) $query->where('r.production_section_id', (int) $request->input('section_id'));
+        if ($request->filled('personnel_id') && is_numeric($request->input('personnel_id'))) $query->where('r.personnel_id', (int) $request->input('personnel_id'));
+        if ($request->filled('from')) $query->whereDate('r.work_date', '>=', $request->input('from'));
+        if ($request->filled('to')) $query->whereDate('r.work_date', '<=', $request->input('to'));
+        if ($request->filled('q')) {
+            $term = trim((string) $request->input('q'));
+            $query->where(function ($sub) use ($term) {
+                if (ctype_digit($term)) $sub->orWhere('r.id', (int) $term);
+                $sub->orWhere('g.name', 'like', '%' . $term . '%')
+                    ->orWhere('worker.name', 'like', '%' . $term . '%')
+                    ->orWhere('sec_location.name', 'like', '%' . $term . '%')
+                    ->orWhere('reporter.name', 'like', '%' . $term . '%');
+            });
+        }
+        $rows = $query->select('r.*', 'sec_location.name as section_name', 'g.name as goods_name', 'g.code as goods_code',
                 'reporter.name as reporter_name', 'worker.name as worker_name', 'reviewer.name as reviewer_name', 'warehouse.name as warehouse_name')
-            ->latest('r.work_date')->latest('r.id')->paginate(30);
-        $sections = DB::table('production_sections as s')
-            ->leftJoin('locations as l', 'l.id', '=', 's.location_id')
+            ->latest('r.work_date')->latest('r.id')->paginate(30)->withQueryString();
+        $sections = DB::table('production_sections as s')->leftJoin('locations as l', 'l.id', '=', 's.location_id')
+            ->where('l.company_id', $companyId)->orderBy('l.name')->get(['s.id', 'l.name']);
+        $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
+        $personnel = DB::table('personnel')->where('account_id', $accountId)->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        return view('production.shift-reports.index', compact('rows', 'sections', 'personnel'));
+    }
+
+    public function create(Request $request)
+    {
+        $companyId = CompanyAuthorization::authorize($request, 'production.operation.create');
+        $sections = DB::table('production_sections as s')->leftJoin('locations as l', 'l.id', '=', 's.location_id')
             ->where('l.company_id', $companyId)->orderBy('l.name')->get(['s.id', 'l.name']);
         $goods = DB::table('goods')->where('company_id', $companyId)->where('is_active', true)->where('producible', true)->orderBy('name')->get(['id', 'code', 'name']);
         $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
-        $personnel = DB::table('personnel as p')
-            ->join('company_user as cu', 'cu.user_id', '=', 'p.user_id')
-            ->join('roles as role', 'role.id', '=', 'cu.role_id')
-            ->where('p.account_id', $accountId)->where('p.is_active', true)
+        $personnel = DB::table('personnel as p')->join('company_user as cu', 'cu.user_id', '=', 'p.user_id')
+            ->join('roles as role', 'role.id', '=', 'cu.role_id')->where('p.account_id', $accountId)->where('p.is_active', true)
             ->where('cu.company_id', $companyId)->where('cu.is_active', true)
             ->where(function ($query) {
                 $query->whereIn('role.slug', ['production', 'production_worker', 'worker_production'])
                     ->orWhereIn('role.name', ['تولید', 'کارگر تولید', 'کارگرِ تولید']);
-            })
-            ->orderBy('p.name')->distinct()->get(['p.id', 'p.code', 'p.name']);
-        $materials = DB::table('goods')->where('company_id', $companyId)->where('is_active', true)
-            ->where('producible', true)->orderBy('name')->get(['id', 'code', 'name']);
+            })->orderBy('p.name')->distinct()->get(['p.id', 'p.code', 'p.name']);
+        $materials = DB::table('goods')->where('company_id', $companyId)->where('is_active', true)->where('producible', true)->orderBy('name')->get(['id', 'code', 'name']);
+        return view('production.shift-reports.create', compact('sections', 'goods', 'personnel', 'materials'));
+    }
+
+    public function show(Request $request, int $report)
+    {
+        $companyId = CompanyAuthorization::authorize($request, 'production.operation.view');
+        $row = DB::table('production_shift_reports as r')
+            ->join('production_sections as s', 's.id', '=', 'r.production_section_id')
+            ->leftJoin('locations as sec_location', 'sec_location.id', '=', 's.location_id')
+            ->join('goods as g', 'g.id', '=', 'r.goods_id')
+            ->leftJoin('personnel as worker', 'worker.id', '=', 'r.personnel_id')
+            ->join('users as reporter', 'reporter.id', '=', 'r.reported_by_user_id')
+            ->leftJoin('users as reviewer', 'reviewer.id', '=', 'r.reviewed_by_user_id')
+            ->leftJoin('locations as warehouse', 'warehouse.id', '=', 'r.warehouse_location_id')
+            ->where('r.company_id', $companyId)->where('r.id', $report)
+            ->first(['r.*', 'sec_location.name as section_name', 'g.name as goods_name', 'g.code as goods_code',
+                'reporter.name as reporter_name', 'worker.name as worker_name', 'reviewer.name as reviewer_name', 'warehouse.name as warehouse_name']);
+        abort_unless($row, 404);
+        $materialUsage = collect();
+        if (Schema::hasTable('production_shift_report_materials')) {
+            $materialUsage = DB::table('production_shift_report_materials as rm')->join('goods as mg', 'mg.id', '=', 'rm.goods_id')
+                ->where('rm.company_id', $companyId)->where('rm.production_shift_report_id', $report)
+                ->get(['rm.quantity', 'rm.scrap_quantity', 'mg.name', 'mg.code']);
+        }
         $canReview = $request->user()->hasCompanyPermission($companyId, 'production.operation.review');
         $canReceive = $request->user()->hasCompanyPermission($companyId, 'production.output.receive');
         $warehouses = $canReceive ? DB::table('locations')->where('company_id', $companyId)->where('type', 'warehouse')->where('is_active', true)->orderBy('name')->get(['id', 'name']) : collect();
-        $materialUsage = collect();
-        if (Schema::hasTable('production_shift_report_materials')) {
-            $reportIds = $rows->getCollection()->pluck('id');
-            if ($reportIds->isNotEmpty()) {
-                $materialUsage = DB::table('production_shift_report_materials as rm')
-                    ->join('goods as mg', 'mg.id', '=', 'rm.goods_id')
-                    ->where('rm.company_id', $companyId)
-                    ->whereIn('rm.production_shift_report_id', $reportIds)
-                    ->get(['rm.production_shift_report_id', 'rm.quantity', 'rm.scrap_quantity', 'mg.name', 'mg.code'])
-                    ->groupBy('production_shift_report_id');
-            }
-        }
-        return view('production.shift-reports.index', compact('rows', 'sections', 'goods', 'personnel', 'materials', 'materialUsage', 'canReview', 'canReceive', 'warehouses'));
+        return view('production.shift-reports.show', compact('row', 'materialUsage', 'canReview', 'canReceive', 'warehouses'));
     }
 
     public function store(Request $request)
@@ -136,6 +169,32 @@ final class ProductionShiftReportController extends Controller
                 'created_at' => now(), 'updated_at' => now(),
             ]);
         }
+
+        $reportDetails = DB::table('production_shift_reports as r')
+            ->join('production_sections as s', 's.id', '=', 'r.production_section_id')
+            ->leftJoin('locations as l', 'l.id', '=', 's.location_id')
+            ->join('goods as g', 'g.id', '=', 'r.goods_id')
+            ->leftJoin('personnel as p', 'p.id', '=', 'r.personnel_id')
+            ->where('r.company_id', $companyId)->where('r.id', $reportId)
+            ->first(['r.id', 'r.work_date', 'r.produced_quantity', 'r.scrap_quantity',
+                'l.name as section_name', 'g.name as goods_name', 'p.name as worker_name']);
+
+        app(NotificationRecipientService::class)->send(
+            $companyId,
+            'production.shift_report_pending',
+            [
+                'report_id' => $reportId,
+                'work_date' => $reportDetails->work_date ?? $data['work_date'],
+                'section_name' => $reportDetails->section_name ?? '',
+                'worker_name' => $reportDetails->worker_name ?? '',
+                'goods_name' => $reportDetails->goods_name ?? '',
+                'produced_quantity' => (float) ($reportDetails->produced_quantity ?? $data['produced_quantity']),
+                'scrap_quantity' => (float) ($reportDetails->scrap_quantity ?? $scrap),
+            ],
+            (int) $request->user()->id,
+            'production.operation.review'
+        );
+
         return redirect()->route('production.shift-reports.index')->with('success', 'گزارش شیفت ثبت شد و برای تأیید سرپرست ارسال شد.');
     }
 
@@ -143,6 +202,9 @@ final class ProductionShiftReportController extends Controller
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.operation.review');
         $data = $request->validate(['approve' => ['required', 'boolean'], 'review_notes' => ['nullable', 'string', 'max:1000']]);
+        if (!(bool) $data['approve'] && blank($data['review_notes'] ?? null)) {
+            throw ValidationException::withMessages(['review_notes' => 'برای رد گزارش، دلیل رد را وارد کنید.']);
+        }
         DB::transaction(function () use ($companyId, $report, $data, $request) {
             $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
             if (!$row || $row->status !== 'pending') throw ValidationException::withMessages(['report' => 'این گزارش دیگر در انتظار بررسی نیست.']);

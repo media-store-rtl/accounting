@@ -53,6 +53,7 @@ class NotificationRecipientService
         // Configured recipient rules must not cross the authorization boundary of the event's owning team.
         $requiredPermission = match ($event) {
             'order.production_required' => 'production.supervise',
+            'production.shift_report_pending' => 'production.operation.review',
             'supply.stock_check_required' => 'supply_request.handover.create',
             'supply.shortage' => 'supply.manage',
             'supply.stock_rejected' => 'supply_request.create',
