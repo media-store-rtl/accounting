@@ -107,7 +107,7 @@ elseif ($can['production_operations']) $productionHome = route('master.index', '
   <div class="sales-submenu">
     {{-- عملیات جاری تولید --}}
     @if(($can['production_supervise'] ?? false))<a class="{{ request()->routeIs('production.material-requests') ? 'active' : '' }}" href="{{ route('production.material-requests') }}">کسری سفارش‌های فروش</a>@endif
-    @if($can['production_execution'])<a class="{{ request()->routeIs('production.shift-reports.*') ? 'active' : '' }}" href="{{ route('production.shift-reports.index') }}">ثبت تولید شیفت</a>@endif
+    @if($can['production_execution'])<a class="{{ request()->routeIs('production.shift-reports.create') ? 'active' : '' }}" href="{{ route('production.shift-reports.create') }}">ثبت تولید شیفت</a><a class="{{ request()->routeIs('production.shift-reports.index') || request()->routeIs('production.shift-reports.show') ? 'active' : '' }}" href="{{ route('production.shift-reports.index') }}">گزارش‌های تولید</a>@endif
     @if($can['production_outputs'])<a class="{{ request()->routeIs('production.outputs.*') ? 'active' : '' }}" href="{{ route('production.outputs.index') }}">خروجی تولید</a>@endif
     {{-- تعاریف پایه تولید --}}
     @if($can['production_sections'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-sections' ? 'active' : '' }}" href="{{ route('master.index', 'production-sections') }}">قسمت‌های تولید</a>@endif
@@ -187,7 +187,7 @@ elseif ($can['production_operations']) $productionHome = route('master.index', '
 <div class="mobile-base-head"><strong>بخش تولید</strong><button type="button" aria-label="بستن منوی تولید" onclick="document.getElementById('mobile-production-panel')?.classList.remove('open');">×</button></div>
 <div class="mobile-sales-links">
 @if(($can['production_supervise'] ?? false))<a class="{{ request()->routeIs('production.material-requests') ? 'active' : '' }}" href="{{ route('production.material-requests') }}">کسری سفارش‌های فروش</a>@endif
-@if($can['production_execution'])<a class="{{ request()->routeIs('production.shift-reports.*') ? 'active' : '' }}" href="{{ route('production.shift-reports.index') }}">ثبت تولید شیفت</a>@endif
+@if($can['production_execution'])<a class="{{ request()->routeIs('production.shift-reports.create') ? 'active' : '' }}" href="{{ route('production.shift-reports.create') }}">ثبت تولید شیفت</a><a class="{{ request()->routeIs('production.shift-reports.index') || request()->routeIs('production.shift-reports.show') ? 'active' : '' }}" href="{{ route('production.shift-reports.index') }}">گزارش‌های تولید</a>@endif
 @if($can['production_outputs'])<a class="{{ request()->routeIs('production.outputs.*') ? 'active' : '' }}" href="{{ route('production.outputs.index') }}">خروجی تولید</a>@endif
 @if($can['production_sections'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-sections' ? 'active' : '' }}" href="{{ route('master.index', 'production-sections') }}">قسمت‌های تولید</a>@endif
 @if($can['production_routes'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-routes' ? 'active' : '' }}" href="{{ route('master.index', 'production-routes') }}">مسیرهای تولید</a>@endif
