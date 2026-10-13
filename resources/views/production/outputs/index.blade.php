@@ -18,4 +18,27 @@
 </td></tr>
 @empty<tr><td colspan="5" style="text-align:center;padding:28px;color:#8198ac">خروجی‌ای برای نمایش ثبت نشده است.</td></tr>@endforelse
 </tbody></table></div>@if(method_exists($rows, 'links'))<div class="pagination">{{ $rows->links() }}</div>@endif</div>
+
+<div class="panel" style="margin-top:20px">
+    <div style="padding:16px 18px 0"><h2 style="margin:0 0 6px;font-size:16px">تحویل‌های ثبت‌شده از گزارش شیفت</h2><p style="margin:0 0 14px;color:#8198ac;font-size:12px">این مقادیر قبلاً به موجودی انبار منتقل شده‌اند؛ برای جلوگیری از ثبت تکراری، عملیات ورود مجدد ندارند.</p></div>
+    <div class="table-wrap"><table>
+        <thead><tr><th>شماره گزارش</th><th>تاریخ کار</th><th>قسمت تولید</th><th>کالا</th><th>مقدار تحویل‌شده</th><th>انبار</th><th>وضعیت گزارش</th></tr></thead>
+        <tbody>
+        @forelse($shiftRows as $r)
+            <tr>
+                <td><a href="{{ route('production.shift-reports.show', $r->report_id) }}">#{{ $r->report_id }}</a></td>
+                <td>{{ $r->work_date }}</td>
+                <td>{{ $r->section_name ?? '—' }}</td>
+                <td>{{ $r->goods_name }}</td>
+                <td>{{ $r->quantity }}</td>
+                <td>{{ $r->location_name ?? '—' }}</td>
+                <td><span class="status {{ $r->status === 'received' ? 'active' : 'inactive' }}">{{ $r->status === 'received' ? 'تحویل کامل' : 'تحویل بخشی' }}</span></td>
+            </tr>
+        @empty
+            <tr><td colspan="7" style="text-align:center;padding:24px;color:#8198ac">تحویلی از گزارش شیفت ثبت نشده است.</td></tr>
+        @endforelse
+        </tbody>
+    </table></div>
+    @if(method_exists($shiftRows, 'links'))<div class="pagination">{{ $shiftRows->links() }}</div>@endif
+</div>
 @endsection
