@@ -116,30 +116,14 @@
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+<script type="module">
+import { setupProductionReportDatePicker } from '/js/production-report-date-filters.js';
+document.addEventListener('DOMContentLoaded', function () {
+    setupProductionReportDatePicker('#requested_delivery_at_picker', '#requested_delivery_at');
+});
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const setupPersianDatepicker = (pickerSelector, isoSelector) => {
-        const picker = document.querySelector(pickerSelector);
-        const isoField = document.querySelector(isoSelector);
-        if (!picker || !isoField || !window.jQuery || !jQuery.fn.persianDatepicker) return;
-        jQuery(picker).persianDatepicker({
-            calendarType: 'persian',
-            initialValue: Boolean(picker.value),
-            initialValueType: 'gregorian',
-            format: 'YYYY/MM/DD',
-            altField: isoSelector,
-            altFormat: 'YYYY-MM-DD',
-            altFieldFormatter: function (unixDate) {
-                const date = new Date(unixDate);
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return year + '-' + month + '-' + day;
-            },
-            calendar: { persian: { locale: 'fa' } },
-            toolbox: { calendarSwitch: { enabled: false }, todayButton: { enabled: true, text: { fa: 'امروز' } } }
-        });
-    };
     const orderedAtIso = document.querySelector('#ordered_at')?.value;
     const orderedAtDisplay = document.querySelector('#ordered_at_picker');
     if (orderedAtIso && orderedAtDisplay) {
@@ -149,7 +133,6 @@ document.addEventListener('DOMContentLoaded', function () {
             year: 'numeric', month: '2-digit', day: '2-digit'
         }).format(today);
     }
-    setupPersianDatepicker('#requested_delivery_at_picker', '#requested_delivery_at');
 });
 let i = 1;
 function addItem() {
