@@ -73,8 +73,9 @@ class UserAccessTest extends TestCase
             $account->update(['owner_user_id' => null]);
         } else {
             $permission = Permission::create(['name' => 'View Users', 'slug' => 'user.view', 'module' => 'users']);
+            $createPermission = Permission::create(['name' => 'Create Users', 'slug' => 'user.create', 'module' => 'users']);
             $role = Role::create(['company_id' => $company->id, 'name' => 'Viewer', 'slug' => 'viewer']);
-            $role->permissions()->attach($permission->id);
+            $role->permissions()->attach([$permission->id, $createPermission->id]);
             $company->users()->updateExistingPivot($user->id, ['role_id' => $role->id]);
         }
 
