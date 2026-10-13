@@ -42,10 +42,20 @@ test('initialises from the hidden Gregorian value and submits the ISO value via 
         },
     };
 
+    class FakePersianDate {
+        constructor(timestamp) { this.timestamp = timestamp; }
+        toCalendar(calendar) { assert.equal(calendar, 'gregorian'); return this; }
+        format(pattern) {
+            assert.equal(pattern, 'YYYY-MM-DD');
+            assert.equal(this.timestamp, 1791763200000);
+            return '2026-10-12';
+        }
+    }
+
     assert.equal(setupProductionReportDatePicker('#from_picker', '#from', {
         documentRef,
         jQueryRef: jquery,
-        PersianDateCtor: class {},
+        PersianDateCtor: FakePersianDate,
     }), true);
     assert.equal(picker.value, '2026/10/12');
     assert.equal(hidden.value, '2026-10-12');
