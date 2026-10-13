@@ -39,7 +39,7 @@ final class ProductionShiftReportController extends Controller
                     ->orWhere('reporter.name', 'like', '%' . $term . '%');
             });
         }
-        $rows = $query->select('r.*', 'sec_location.name as section_name', 'g.name as goods_name', 'g.code as goods_code',
+        $rows = $query->select('r.*', 'sec_location.name as section_name', 'g.name as goods_name', 'g.code as goods_code', 'g.sellable as goods_sellable',
                 'reporter.name as reporter_name', 'worker.name as worker_name', 'reviewer.name as reviewer_name', 'warehouse.name as warehouse_name')
             ->latest('r.work_date')->latest('r.id')->paginate(30)->withQueryString();
         $sections = DB::table('production_sections as s')->leftJoin('locations as l', 'l.id', '=', 's.location_id')
@@ -409,6 +409,10 @@ final class ProductionShiftReportController extends Controller
         DB::transaction(function () use ($companyId, $report, $data, $request, $inventory) {
             $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
             if (!$row || $row->status !== 'approved') throw ValidationException::withMessages(['report' => 'فقط گزارش تأییدشده با مقدار باقی‌مانده قابل تحویل به انبار است.']);
+            $goods = DB::table('goods')->where('company_id', $companyId)->where('id', $row->goods_id)->first(['sellable']);
+            if (!$goods || !(bool) $goods->sellable) {
+                throw ValidationException::withMessages(['report' => 'این کالا به‌عنوان کالای قابل فروش/محصول نهایی تعریف نشده است؛ آن را از مسیر تحویل محصول نهایی به انبار ثبت نکنید.']);
+            }
             $quantity = (float)$data['warehouse_quantity'];
             $available = max(0, (float)$row->produced_quantity - (float)$row->scrap_quantity);
             $alreadyReceived = (float)($row->warehouse_quantity ?? 0);
