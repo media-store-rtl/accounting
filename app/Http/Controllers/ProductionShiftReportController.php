@@ -420,12 +420,14 @@ final class ProductionShiftReportController extends Controller
             $details = DB::table('production_shift_reports as r')->join('goods as g', 'g.id', '=', 'r.goods_id')
                 ->leftJoin('locations as l', 'l.id', '=', 'r.warehouse_location_id')
                 ->where('r.company_id', $companyId)->where('r.id', $report)
-                ->first(['r.id', 'r.work_date', 'r.produced_quantity', 'r.scrap_quantity', 'g.name as goods_name', 'l.name as warehouse_name']);
-            app(NotificationRecipientService::class)->send($companyId, 'production.shift_report_warehouse_receipt', [
-                'report_id' => $report, 'work_date' => $details->work_date ?? '', 'goods_name' => $details->goods_name ?? '',
-                'available_quantity' => max(0, (float) ($details->produced_quantity ?? 0) - (float) ($details->scrap_quantity ?? 0)),
-                'warehouse_name' => $details->warehouse_name ?? '', 'url' => route('production.outputs.index'),
-            ], (int) $request->user()->id, 'production.output.receive');
+                ->first(['r.id', 'r.work_date', 'r.produced_quantity', 'r.scrap_quantity', 'g.name as goods_name', 'g.sellable', 'l.name as warehouse_name']);
+            if ($details && (bool) $details->sellable) {
+                app(NotificationRecipientService::class)->send($companyId, 'production.shift_report_warehouse_receipt', [
+                    'report_id' => $report, 'work_date' => $details->work_date ?? '', 'goods_name' => $details->goods_name ?? '',
+                    'prepared_quantity' => max(0, (float) ($details->produced_quantity ?? 0) - (float) ($details->scrap_quantity ?? 0)),
+                    'warehouse_name' => $details->warehouse_name ?? '', 'url' => route('production.outputs.index'),
+                ], (int) $request->user()->id, 'production.output.receive');
+            }
         }
         return back()->with('success', $data['approve']
             ? 'گزارش تولید تأیید شد و برای تأیید دریافت به سرپرست انبار اعلان ارسال شد.'
