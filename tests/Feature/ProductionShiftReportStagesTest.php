@@ -271,6 +271,28 @@ class ProductionShiftReportStagesTest extends TestCase
         ])->assertRedirect(route('production.shift-reports.show', $reportId))
             ->assertSessionHas('success');
         $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'rejected']);
+
+        // A supervisor without warehouse-receipt permission must still be able to approve the report.
+        DB::table('production_shift_reports')->where('id', $reportId)->update(['status' => 'pending']);
+        $receivePermissionId = DB::table('permissions')->where('slug', 'production.output.receive')->value('id');
+        DB::table('role_permissions')->where('role_id', $role)->where('permission_id', $receivePermissionId)->delete();
+
+        $this->get(route('production.shift-reports.show', $reportId))
+            ->assertOk()
+            ->assertSee('تأیید گزارش')
+            ->assertSee('انتقال محصول نهایی به انبار باید بعداً');
+
+        $this->post(route('production.shift-reports.review', $reportId), [
+            'approve' => '1',
+            'review_notes' => '',
+        ])->assertRedirect(route('production.shift-reports.show', $reportId))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'approved']);
+        $this->assertDatabaseMissing('inventory_movements', [
+            'reference_type' => 'production_shift_reports',
+            'reference_id' => $reportId,
+        ]);
     }
 
 }
