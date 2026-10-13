@@ -94,7 +94,7 @@ final class ProductionShiftReportController extends Controller
                 ->get(['rm.goods_id', 'rm.quantity', 'rm.scrap_quantity', 'mg.name', 'mg.code']);
         }
         $canReview = $request->user()->hasCompanyPermission($companyId, 'production.operation.review');
-        $canEdit = $canReview && in_array($row->status, ['pending', 'rejected'], true);
+        $canEdit = $canReview && (in_array($row->status, ['pending', 'rejected'], true) || ($row->status === 'approved' && (float) ($row->warehouse_quantity ?? 0) <= 0));
         $canReceive = $request->user()->hasCompanyPermission($companyId, 'production.output.receive');
         $warehouses = $canReceive ? DB::table('locations')->where('company_id', $companyId)->where('type', 'warehouse')->where('is_active', true)->orderBy('name')->get(['id', 'name']) : collect();
         $sections = DB::table('production_sections as s')->leftJoin('locations as l', 'l.id', '=', 's.location_id')
