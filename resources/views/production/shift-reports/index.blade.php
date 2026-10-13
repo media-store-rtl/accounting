@@ -114,12 +114,7 @@
           @foreach($personnel as $p)<option value="{{ $p->id }}" @selected((string)old('personnel_id')===(string)$p->id)>{{ $p->code ? $p->code.' — ' : '' }}{{ $p->name }}</option>@endforeach
         </select>
       </label>
-      <label class="shift-field">محصول / قطعه *
-        <select name="goods_id" required>
-          <option value="">انتخاب محصول</option>
-          @foreach($goods as $g)<option value="{{ $g->id }}" @selected((string)old('goods_id')===(string)$g->id)>{{ $g->code ? $g->code.' — ' : '' }}{{ $g->name }}</option>@endforeach
-        </select>
-      </label>
+
       <div class="shift-field full">
         <span>مواد اولیه مصرف‌شده</span>
         <div id="shift-material-lines" class="shift-material-lines">
@@ -145,9 +140,20 @@
         <div><button type="button" class="shift-add-material" onclick="addShiftMaterial()">+ افزودن ماده اولیه</button></div>
         <small class="shift-material-help">برای هر ماده اولیه، مقدار مصرف و مقدار ضایعات مواد همان ماده را وارد کنید. مقدار ضایعات مواد نمی‌تواند از مقدار مصرف آن بیشتر باشد. اگر مواد اولیه‌ای ثبت نمی‌کنید، ردیف را خالی بگذارید.</small>
       </div>
+
+      <label class="shift-field">محصول / قطعه *
+        <select name="goods_id" required>
+          <option value="">انتخاب محصول</option>
+          @foreach($goods as $g)<option value="{{ $g->id }}" @selected((string)old('goods_id')===(string)$g->id)>{{ $g->code ? $g->code.' — ' : '' }}{{ $g->name }}</option>@endforeach
+        </select>
+      </label>
       <label class="shift-field">تعداد تولیدشده *
         <input type="number" min="0.0001" step="0.0001" name="produced_quantity" value="{{ old('produced_quantity') }}" placeholder="مثلاً 250" required>
         <small>کل تعداد تولیدشده در این شیفت</small>
+      </label>
+      <label class="shift-field">ضایعات محصول
+        <input type="number" min="0" step="0.0001" name="scrap_quantity" value="{{ old('scrap_quantity', 0) }}" placeholder="مثلاً 5">
+        <small>مقدار ضایعات محصول؛ نمی‌تواند از تعداد تولیدشده بیشتر باشد.</small>
       </label>
       <label class="shift-field full">توضیحات
         <textarea name="notes" rows="3" maxlength="2000" placeholder="توضیحات یا نکات مربوط به این شیفت (اختیاری)">{{ old('notes') }}</textarea>
@@ -166,15 +172,18 @@
     </div>
     <div class="table-wrap">
       <table class="shift-table">
-        <thead><tr><th>تاریخ / شیفت</th><th>قسمت</th><th>کارگر</th><th>محصول</th><th>تولید</th><th>ثبت‌کننده</th><th>وضعیت</th><th>اقدام</th></tr></thead>
+        <thead><tr><th>تاریخ / شیفت</th><th>قسمت</th><th>کارگر</th><th>مواد اولیه / محصول</th><th>تولید</th><th>ثبت‌کننده</th><th>وضعیت</th><th>اقدام</th></tr></thead>
         <tbody>
         @forelse($rows as $r)
           <tr>
             <td><span class="shift-primary-cell shift-date-display" data-iso-date="{{ $r->work_date }}">{{ $r->work_date }}</span><span class="shift-secondary">کارکرد: {{ $r->worked_hours ?? '—' }} ساعت</span><span class="shift-secondary">اضافه‌کاری: {{ $r->overtime_hours ?? 0 }} ساعت</span><span class="shift-secondary">تعطیل‌کاری: {{ $r->holiday_hours ?? 0 }} ساعت</span></td>
             <td>{{ $r->section_name ?: '—' }}</td>
             <td>{{ $r->worker_name ?: '—' }}</td>
-            <td><span class="shift-primary-cell">{{ $r->goods_name }}</span>@if($r->goods_code)<span class="shift-secondary">{{ $r->goods_code }}</span>@endif
+            <td>
               @foreach(($materialUsage[$r->id] ?? collect()) as $material)<span class="shift-secondary">ماده: {{ $material->name }} — مصرف: {{ $material->quantity }} — ضایعات ماده: {{ $material->scrap_quantity ?? 0 }}</span>@endforeach
+              <span class="shift-primary-cell" style="display:block;margin-top:7px">محصول: {{ $r->goods_name }}</span>
+              @if($r->goods_code)<span class="shift-secondary">{{ $r->goods_code }}</span>@endif
+              <span class="shift-secondary">تولید: {{ $r->produced_quantity }} — ضایعات محصول: {{ $r->scrap_quantity ?? 0 }}</span>
             </td>
             <td class="shift-number">{{ $r->produced_quantity }}</td>
             <td>{{ $r->reporter_name }}</td>
