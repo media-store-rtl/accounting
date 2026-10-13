@@ -70,7 +70,7 @@ class InventoryService
 
     public function receiveFinishedGoods(int $companyId,int $locationId,int $goodsId,float $quantity,string $referenceType,int $referenceId,array $metadata=[]): void
     {
-        $this->receiveIntoInventory($companyId,$locationId,$goodsId,$quantity,'finished_goods_receipt',$referenceType,$referenceId,$metadata);
+        $this->receiveIntoInventory($companyId,$locationId,$goodsId,$quantity,'finished_goods_receipt',$referenceType,$referenceId,$metadata,true);
     }
 
     public function adjust(int $companyId,int $locationId,int $goodsId,float $newQuantity,string $reason,int $userId): void
@@ -162,10 +162,19 @@ class InventoryService
         );
     }
 
-    private function receiveIntoInventory(int $companyId,int $locationId,int $goodsId,float $quantity,string $movementType,string $referenceType,int $referenceId,array $metadata=[]): void
+    private function receiveIntoInventory(int $companyId,int $locationId,int $goodsId,float $quantity,string $movementType,string $referenceType,int $referenceId,array $metadata=[],bool $allowProductionReceiptLocationTypes=false): void
     {
         if($quantity<=0) throw new RuntimeException('مقدار ورود کالا باید بیشتر از صفر باشد.');
-        abort_unless(DB::table('locations')->where('id',$locationId)->where('company_id',$companyId)->where('type','warehouse')->where('is_active',true)->exists(),422,'انبار معتبر نیست.');
+                $locationQuery = DB::table('locations')->where('id',$locationId)->where('company_id',$companyId)->where('is_active',true);
+        if ($allowProductionReceiptLocationTypes) {
+            $locationQuery->where(function ($query) {
+                $query->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])
+                    ->orWhereIn(DB::raw('TRIM(type)'), ['مواد', 'محصول', 'ضایعات']);
+            });
+        } else {
+            $locationQuery->where('type','warehouse');
+        }
+        abort_unless($locationQuery->exists(),422,'انبار معتبر نیست.');
         $row=DB::table('inventory')->where('location_id',$locationId)->where('goods_id',$goodsId)->lockForUpdate()->first();
         if($row) {
             $previousQuantity=(float)$row->quantity;
