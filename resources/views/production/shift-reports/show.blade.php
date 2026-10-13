@@ -77,10 +77,13 @@
 @if($row->status==='approved' && $canReceive && (bool)($row->goods_sellable ?? false) && max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0)) > 0)
 <div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">تحویل محصول به انبار</h2>
 <p class="detail-note">این گزارش تأیید شده اما هنوز بخشی از تولید سالم به انبار تحویل نشده است. انبار و مقدار تحویل را مشخص کنید. ثبت ورود، موجودی انبار را افزایش می‌دهد.</p>
+@if($warehouses->isEmpty())
+<p class="detail-note">انبار فعالی برای این شرکت پیدا نشد. در بخش «انبارها و محل‌ها» یک انبار فعال ثبت کنید یا نوع محل موجود را «انبار» قرار دهید.</p>
+@endif
 <form class="detail-form" method="POST" action="{{ route('production.shift-reports.receive',$row->id) }}">@csrf
 <input type="hidden" name="receipt_token" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
-<label>انبار مقصد<select name="warehouse_location_id" required>
-<option value="">انتخاب انبار</option>
+<label>انبار مقصد<select name="warehouse_location_id" required @disabled($warehouses->isEmpty())>
+<option value="">{{ $warehouses->isEmpty() ? 'انبار فعالی موجود نیست' : 'انتخاب انبار' }}</option>
 @foreach($warehouses as $warehouse)
 @if((float)($row->warehouse_quantity ?? 0) <= 0 || (int)$row->warehouse_location_id === (int)$warehouse->id)
 <option value="{{ $warehouse->id }}" @selected((int)($row->warehouse_location_id ?? 0)===(int)$warehouse->id)>{{ $warehouse->name }}</option>
@@ -88,7 +91,7 @@
 @endforeach
 </select></label>
 <label>مقدار تحویل به انبار<input name="warehouse_quantity" type="number" min="0.0001" max="{{ max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0)) }}" step="0.0001" value="{{ max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0)) }}" required></label>
-<button class="btn primary" type="submit" onclick="return confirm('ثبت ورود محصول به انبار و افزایش موجودی انجام شود؟');">ثبت ورود به انبار</button>
+<button class="btn primary" type="submit" @disabled($warehouses->isEmpty()) onclick="return confirm('ثبت ورود محصول به انبار و افزایش موجودی انجام شود؟');">ثبت ورود به انبار</button>
 </form></div>
 @endif
 @if($row->status==='pending' && $canReview)
