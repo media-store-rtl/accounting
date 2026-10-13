@@ -170,6 +170,20 @@ class ProductionShiftReportStagesTest extends TestCase
             'action' => 'production_shift_report.update',
         ]);
 
+        // Leaving every stage checkbox untouched should preserve the existing stage list.
+        $this->put(route('production.shift-reports.update', $reportId), [
+            'production_section_id' => $section,
+            'goods_id' => $goods,
+            'personnel_id' => $worker,
+            'worked_hours' => 7.5,
+            'work_date' => '2026-10-13',
+            'produced_quantity' => 18,
+            'scrap_quantity' => 2,
+        ])->assertRedirect(route('production.shift-reports.show', $reportId))
+            ->assertSessionHas('success');
+        $this->assertSame(1, DB::table('production_shift_report_stages')
+            ->where('production_shift_report_id', $reportId)->count());
+
         DB::table('production_shift_reports')->where('id', $reportId)->update(['status' => 'approved']);
         $this->put(route('production.shift-reports.update', $reportId), [
             'production_section_id' => $section,
@@ -180,7 +194,9 @@ class ProductionShiftReportStagesTest extends TestCase
             'produced_quantity' => 18,
             'scrap_quantity' => 2,
             'stages' => [['production_stage_id' => $stageTwo]],
-        ])->assertSessionHasErrors('report');
+        ])->assertRedirect(route('production.shift-reports.show', $reportId))
+            ->assertSessionHas('success');
+        $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'pending']);
 
         DB::table('production_shift_reports')->where('id', $reportId)->update(['status' => 'pending']);
         $this->from(route('production.shift-reports.show', $reportId))
