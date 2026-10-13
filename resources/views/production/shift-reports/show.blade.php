@@ -92,22 +92,10 @@
 </form></div>
 @endif
 @if($row->status==='pending' && $canReview)
-<div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">بررسی سرپرست</h2><p class="detail-note">پس از بررسی مقدار تولید، ضایعات و مواد مصرفی، گزارش را تأیید یا رد کنید.</p>
+<div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">بررسی سرپرست</h2><p class="detail-note">پس از بررسی مقدار تولید، ضایعات و مواد مصرفی، گزارش را تأیید یا رد کنید. تأیید گزارش فقط وضعیت آن را تغییر می‌دهد؛ گزینه «تحویل محصول به انبار» بعد از تأیید و در بخش جداگانه نمایش داده می‌شود.</p>
 <form class="detail-form" method="POST" action="{{ route('production.shift-reports.review',$row->id) }}">@csrf
-@if((bool)($row->goods_sellable ?? false))
-@if($canReceive)
-<p class="detail-note">این محصول نهاییِ قابل‌فروش است؛ با تأیید گزارش، مقدار سالم به انبار انتخاب‌شده منتقل می‌شود.</p>
-<input type="hidden" name="receipt_token" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
-<label>انبار مقصد<select name="warehouse_location_id" required><option value="">انتخاب انبار</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>@endforeach</select></label>
-<label>مقدار انتقال به انبار<input name="warehouse_quantity" type="number" min="0.0001" max="{{ max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)) }}" step="0.0001" value="{{ max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)) }}" readonly required></label>
-@else
-<p class="detail-note">شما می‌توانید گزارش را تأیید کنید؛ انتقال محصول نهایی به انبار باید بعداً توسط کاربری با دسترسی ثبت ورود انجام شود.</p>
-@endif
-@else
-<p class="detail-note">این کالا نیمه‌ساخته است؛ گزارش تأیید می‌شود اما موجودی به انبار محصول نهایی منتقل نخواهد شد.</p>
-@endif
 <label>یادداشت بررسی (برای رد گزارش الزامی است)<textarea id="review-notes" name="review_notes" rows="3" maxlength="1000" placeholder="یادداشت یا دلیل رد گزارش"></textarea></label>
-<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="submit" name="approve" value="1">تأیید گزارش{{ (bool)($row->goods_sellable ?? false) && $canReceive ? ' و انتقال موجودی' : '' }}</button><button class="btn" type="submit" name="approve" value="0" formnovalidate onclick="return confirm('گزارش رد شود؟');">رد گزارش</button></div></form></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="submit" name="approve" value="1">تأیید گزارش</button><button class="btn" type="submit" name="approve" value="0" formnovalidate onclick="return confirm('گزارش رد شود؟');">رد گزارش</button></div></form></div>
 @endif
 </div>
 @push('scripts')<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script><script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script><script>
