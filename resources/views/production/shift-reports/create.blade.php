@@ -21,7 +21,7 @@
 .shift-tag{white-space:nowrap;border:1px solid #29465e;background:#0d2235;color:#9eb2c4;border-radius:20px;padding:5px 9px;font-size:10px}
 .shift-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
 .shift-field{display:flex;flex-direction:column;gap:7px;min-width:0;color:#cce0ef;font-size:11px}
-.shift-field.full{grid-column:1/-1}.shift-material-lines{display:grid;gap:9px}.shift-material-line{display:grid;grid-template-columns:minmax(0,2fr) minmax(100px,1fr) minmax(100px,1fr) auto;gap:8px;align-items:center}.shift-material-remove{border:1px solid #63343b;background:#3b2528;color:#ffb8a8;border-radius:8px;padding:9px 11px;cursor:pointer}.shift-add-material{border:1px solid #29465e;background:#12314a;color:#dcebf6;border-radius:9px;padding:9px 12px;cursor:pointer;font:inherit}.shift-material-help{font-size:10px;color:#71879d;line-height:1.8}
+.shift-field.full{grid-column:1/-1}.shift-material-lines{display:grid;gap:9px}.shift-material-line{display:grid;grid-template-columns:minmax(0,2fr) minmax(100px,1fr) minmax(100px,1fr) auto;gap:8px;align-items:center}.shift-material-remove{border:1px solid #63343b;background:#3b2528;color:#ffb8a8;border-radius:8px;padding:9px 11px;cursor:pointer}.shift-add-material{border:1px solid #29465e;background:#12314a;color:#dcebf6;border-radius:9px;padding:9px 12px;cursor:pointer;font:inherit}.shift-material-help{font-size:10px;color:#71879d;line-height:1.8}.shift-stage-lines{display:grid;gap:9px}.shift-stage-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}.shift-add-stage{border:1px solid #29465e;background:#12314a;color:#dcebf6;border-radius:9px;padding:9px 12px;cursor:pointer;font:inherit}
 .shift-field input,.shift-field select,.shift-field textarea,.shift-action input,.shift-action select{width:100%;min-width:0;background:#071725;color:#e9f3fb;border:1px solid #29465e;border-radius:10px;padding:11px 12px;font:inherit;outline:none}
 .shift-field input:focus,.shift-field select:focus,.shift-field textarea:focus,.shift-action input:focus,.shift-action select:focus{border-color:#6ee7d0;box-shadow:0 0 0 3px rgba(110,231,208,.08)}
 .shift-field input::placeholder,.shift-field textarea::placeholder,.shift-action input::placeholder{color:#587087}
@@ -93,6 +93,22 @@
           @foreach($sections as $s)<option value="{{ $s->id }}" @selected((string)old('production_section_id')===(string)$s->id)>{{ $s->name ?: 'قسمت '.$s->id }}</option>@endforeach
         </select>
       </label>
+      <div class="shift-field full">
+        <span>مراحل تولید *</span>
+        <div id="shift-stage-lines" class="shift-stage-lines">
+          @foreach(old('stages', [['production_stage_id' => '']]) as $i => $line)
+            <div class="shift-stage-line">
+              <select name="stages[{{ $i }}][production_stage_id]" aria-label="مرحله تولید" required>
+                <option value="">انتخاب مرحله تولید</option>
+                @foreach($stages as $stage)<option value="{{ $stage->id }}" @selected((string)($line['production_stage_id'] ?? '')===(string)$stage->id)>{{ $stage->code ? $stage->code.' — ' : '' }}{{ $stage->name }}</option>@endforeach
+              </select>
+              <button type="button" class="shift-material-remove" onclick="removeShiftStage(this)" aria-label="حذف مرحله">حذف</button>
+            </div>
+          @endforeach
+        </div>
+        <div><button type="button" class="shift-add-stage" onclick="addShiftStage()">+ افزودن مرحله</button></div>
+        <small class="shift-material-help">مرحله‌ها مستقل از قسمت تولید تعریف می‌شوند. هر تعداد مرحلهٔ لازم را انتخاب کنید؛ ارتباط اجباری بین قسمت و مرحله وجود ندارد.</small>
+      </div>
       <label class="shift-field">تاریخ تولید (شمسی) *
         <span class="shift-date-wrap"><input type="text" id="shift-jalali-date" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="{{ old('work_date', now()->toDateString()) }}" aria-label="تاریخ تولید به شمسی" required><input type="hidden" id="shift-gregorian-date" name="work_date" value="{{ old('work_date', now()->toDateString()) }}"><small class="shift-date-hint">تاریخ را به شکل سال/ماه/روز وارد کنید.</small></span>
       </label>
@@ -168,6 +184,29 @@
 </div>
 @push('scripts')
 <script>
+let shiftStageIndex = document.querySelectorAll('#shift-stage-lines .shift-stage-line').length;
+function addShiftStage() {
+  const lines = document.getElementById('shift-stage-lines');
+  const source = lines && lines.querySelector('.shift-stage-line');
+  if (!source) return;
+  const row = source.cloneNode(true);
+  row.querySelectorAll('select').forEach(field => {
+    field.name = field.name.replace(/stages\\[\\d+\\]/, 'stages[' + shiftStageIndex + ']');
+    field.selectedIndex = 0;
+  });
+  lines.appendChild(row);
+  shiftStageIndex++;
+}
+function removeShiftStage(button) {
+  const lines = document.getElementById('shift-stage-lines');
+  const row = button.closest('.shift-stage-line');
+  if (!lines || !row) return;
+  if (lines.querySelectorAll('.shift-stage-line').length === 1) {
+    row.querySelector('select').selectedIndex = 0;
+    return;
+  }
+  row.remove();
+}
 let shiftMaterialIndex = document.querySelectorAll('#shift-material-lines .shift-material-line').length;
 function addShiftMaterial() {
   const lines = document.getElementById('shift-material-lines');
