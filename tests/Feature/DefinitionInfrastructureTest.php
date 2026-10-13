@@ -16,6 +16,7 @@ class DefinitionInfrastructureTest extends TestCase
             'inventory.adjust',
             'inventory.reorder-point',
             'backups.index',
+            'production.outputs.shift-reports.receive',
         ] as $name) {
             $this->assertTrue(Route::has($name), "Missing route: {$name}");
         }
