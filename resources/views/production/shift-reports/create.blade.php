@@ -96,7 +96,7 @@
       <div class="shift-field full">
         <span>مراحل تولید *</span>
         <div id="shift-stage-lines" class="shift-stage-lines">
-          @foreach(old('stages', [['production_stage_id' => '']]) as $i => $line)
+          @foreach((old('stages') ?: [['production_stage_id' => '']]) as $i => $line)
             <div class="shift-stage-line">
               <select name="stages[{{ $i }}][production_stage_id]" aria-label="مرحله تولید" required>
                 <option value="">انتخاب مرحله تولید</option>
