@@ -1,11 +1,11 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Services\\ProductionOutputService;
-use App\\Support\\CompanyAuthorization;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\DB;
+use App\Services\ProductionOutputService;
+use App\Support\CompanyAuthorization;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 final class ProductionOutputController extends Controller
 {
