@@ -9,17 +9,17 @@
 <div class="detail-head"><div><h1>جزئیات گزارش تولید #{{ $row->id }}</h1><p>اطلاعات ثبت‌شده، مواد مصرفی، ضایعات و وضعیت تحویل به انبار.</p></div><a class="detail-btn" href="{{ route('production.shift-reports.index') }}">← بازگشت به گزارش‌ها</a></div>
 @if(session('success'))<div class="detail-flash">{{ session('success') }}</div>@endif
 @if($errors->any())<div class="detail-flash" style="background:#3b2528;color:#ffb8a8">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
-@php($labels=['pending'=>'در انتظار تأیید','approved'=>'تأییدشده؛ آماده تحویل','rejected'=>'ردشده','received'=>'تحویل کامل به انبار'])
+@php($labels=['pending'=>'در انتظار تأیید','approved'=>((bool)($row->goods_sellable ?? false) ? 'تأییدشده' : 'تأییدشده؛ نیازمند تعیین مسیر انتقال'),'rejected'=>'ردشده','received'=>'تحویل کامل به انبار'])
 <div class="panel" style="padding:16px"><div class="detail-grid">
 <div class="detail-item"><span>تاریخ تولید</span><strong class="shift-date-display" data-iso-date="{{ $row->work_date }}">{{ $row->work_date }}</strong></div>
 <div class="detail-item"><span>قسمت تولید</span><strong>{{ $row->section_name ?: '—' }}</strong></div><div class="detail-item"><span>کارگر</span><strong>{{ $row->worker_name ?: '—' }}</strong></div>
 <div class="detail-item"><span>محصول / قطعه</span><strong>{{ $row->goods_name }} @if($row->goods_code)({{ $row->goods_code }})@endif</strong></div>
-<div class="detail-item"><span>تعداد تولیدشده</span><strong>{{ $row->produced_quantity }}</strong></div><div class="detail-item"><span>ضایعات محصول</span><strong>{{ $row->scrap_quantity ?? 0 }}</strong></div>
-<div class="detail-item"><span>تولید سالم قابل تحویل</span><strong>{{ max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)) }}</strong></div><div class="detail-item"><span>ساعات کارکرد</span><strong>{{ $row->worked_hours ?? '—' }}</strong></div>
-<div class="detail-item"><span>اضافه‌کاری / تعطیل‌کاری</span><strong>{{ $row->overtime_hours ?? 0 }} / {{ $row->holiday_hours ?? 0 }}</strong></div>
+<div class="detail-item"><span>تعداد تولیدشده</span><strong>{{ \\App\\Support\\PersianQuantityFormatter::format($row->produced_quantity) }}</strong></div><div class="detail-item"><span>ضایعات محصول</span><strong>{{ \\App\\Support\\PersianQuantityFormatter::format($row->scrap_quantity ?? 0) }}</strong></div>
+<div class="detail-item"><span>تولید سالم قابل تحویل</span><strong>{{ \\App\\Support\\PersianQuantityFormatter::format(max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0))) }}</strong></div><div class="detail-item"><span>ساعات کارکرد</span><strong>{{ $row->worked_hours !== null ? \\App\\Support\\PersianQuantityFormatter::format($row->worked_hours) : '—' }}</strong></div>
+<div class="detail-item"><span>اضافه‌کاری / تعطیل‌کاری</span><strong>{{ \\App\\Support\\PersianQuantityFormatter::format($row->overtime_hours ?? 0) }} / {{ \\App\\Support\\PersianQuantityFormatter::format($row->holiday_hours ?? 0) }}</strong></div>
 <div class="detail-item"><span>ثبت‌کننده</span><strong>{{ $row->reporter_name }}</strong></div><div class="detail-item"><span>بررسی‌کننده</span><strong>{{ $row->reviewer_name ?: '—' }}</strong></div>
 <div class="detail-item"><span>وضعیت</span><strong><span class="detail-status {{ in_array($row->status,['approved','received'],true) ? 'good' : ($row->status==='rejected' ? 'bad' : '') }}">{{ $labels[$row->status] ?? $row->status }}</span></strong></div>
-@if($row->warehouse_quantity !== null)<div class="detail-item"><span>تحویل‌شده به انبار</span><strong>{{ $row->warehouse_quantity }} — {{ $row->warehouse_name ?: '—' }}</strong></div>@endif
+@if($row->warehouse_quantity !== null)<div class="detail-item"><span>تحویل‌شده به انبار</span><strong>{{ \\App\\Support\\PersianQuantityFormatter::format($row->warehouse_quantity) }} — {{ $row->warehouse_name ?: '—' }}</strong></div>@endif
 @if($row->review_notes)<div class="detail-item"><span>یادداشت بررسی</span><strong>{{ $row->review_notes }}</strong></div>@endif
 @if($row->notes)<div class="detail-item"><span>توضیحات ثبت‌کننده</span><strong>{{ $row->notes }}</strong></div>@endif
 </div></div>
@@ -71,14 +71,16 @@
 @if($reportedStages->isEmpty())<p class="detail-note">برای این گزارش مرحله‌ای ثبت نشده است.</p>@else<div style="display:flex;gap:8px;flex-wrap:wrap">@foreach($reportedStages as $stage)<span class="detail-status good">{{ $stage->code ? $stage->code.' — ' : '' }}{{ $stage->name }}</span>@endforeach</div>@endif
 </div>
 <div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">مواد اولیه مصرف‌شده</h2>
-@if($materialUsage->isEmpty())<p class="detail-note">برای این گزارش ماده اولیه‌ای ثبت نشده است.</p>@else<div style="overflow:auto"><table class="detail-table"><thead><tr><th>ماده اولیه</th><th>مقدار مصرف</th><th>ضایعات ماده</th></tr></thead><tbody>@foreach($materialUsage as $material)<tr><td>{{ $material->name }} @if($material->code)({{ $material->code }})@endif</td><td>{{ $material->quantity }}</td><td>{{ $material->scrap_quantity ?? 0 }}</td></tr>@endforeach</tbody></table></div>@endif
+@if($materialUsage->isEmpty())<p class="detail-note">برای این گزارش ماده اولیه‌ای ثبت نشده است.</p>@else<div style="overflow:auto"><table class="detail-table"><thead><tr><th>ماده اولیه</th><th>مقدار مصرف</th><th>ضایعات ماده</th></tr></thead><tbody>@foreach($materialUsage as $material)<tr><td>{{ $material->name }} @if($material->code)({{ $material->code }})@endif</td><td>{{ \\App\\Support\\PersianQuantityFormatter::format($material->quantity) }}</td><td>{{ \\App\\Support\\PersianQuantityFormatter::format($material->scrap_quantity ?? 0) }}</td></tr>@endforeach</tbody></table></div>@endif
 </div>
 @if($row->status==='pending' && $canReview)
 <div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">بررسی سرپرست</h2><p class="detail-note">پس از بررسی مقدار تولید، ضایعات و مواد مصرفی، گزارش را تأیید یا رد کنید.</p>
 <form class="detail-form" method="POST" action="{{ route('production.shift-reports.review',$row->id) }}">@csrf
-<label>یادداشت بررسی (برای رد گزارش الزامی است)<textarea name="review_notes" rows="3" maxlength="1000" placeholder="یادداشت یا دلیل رد گزارش"></textarea></label>
+<label>یادداشت بررسی (برای رد گزارش الزامی است)<textarea id="review-notes" name="review_notes" rows="3" maxlength="1000" placeholder="یادداشت یا دلیل رد گزارش"></textarea></label>
 <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="submit" name="approve" value="1">تأیید گزارش</button><button class="btn" type="submit" name="approve" value="0" onclick="return confirm('گزارش رد شود؟');">رد گزارش</button></div></form></div>
-@elseif($row->status==='approved' && $canReceive)
+@elseif($row->status==='approved' && !(bool)($row->goods_sellable ?? false))
+<div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">تعیین مسیر کالای تأییدشده</h2><p class="detail-note">این کالا در تنظیمات، قابل فروش علامت نخورده است. برای جلوگیری از ثبت اشتباه آن به‌عنوان محصول نهاییِ آماده تحویل، گزینهٔ تحویل به انبار محصول نهایی غیرفعال است. مسیر انتقال به مرحلهٔ بعد باید جداگانه مشخص شود.</p></div>
+@elseif($row->status==='approved' && $canReceive && (bool)($row->goods_sellable ?? false))
 <div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">تحویل محصول به انبار</h2><p class="detail-note">مقدار سالم باقیمانده: {{ max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0)) }}</p>
 <form class="detail-form" method="POST" action="{{ route('production.shift-reports.receive',$row->id) }}">@csrf
 <label>انبار مقصد<select name="warehouse_location_id" required><option value="">انتخاب انبار</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}" @selected((int)($row->warehouse_location_id ?? 0)===(int)$warehouse->id)>{{ $warehouse->name }}</option>@endforeach</select></label>
@@ -88,6 +90,20 @@
 </div>
 @push('scripts')<script>
 document.querySelectorAll('.shift-date-display[data-iso-date]').forEach(el=>{const raw=(el.dataset.isoDate||'').slice(0,10),m=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return;const date=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));el.textContent=new Intl.DateTimeFormat('fa-IR-u-ca-persian',{year:'numeric',month:'2-digit',day:'2-digit'}).format(date);});
+const reviewForm=document.querySelector('form[action*="/review"]');
+if(reviewForm){
+  reviewForm.addEventListener('submit',event=>{
+    const submitter=event.submitter;
+    if(submitter && submitter.value==='0'){
+      const note=document.getElementById('review-notes');
+      if(!note || !note.value.trim()){
+        event.preventDefault();
+        alert('برای رد گزارش، لطفاً دلیل رد را وارد کنید.');
+        note?.focus();
+      }
+    }
+  });
+}
 const addMaterial=document.getElementById('detail-add-material');
 if(addMaterial){
   addMaterial.addEventListener('click',()=>{
