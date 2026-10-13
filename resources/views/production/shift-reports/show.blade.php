@@ -27,7 +27,7 @@
 <div class="panel" style="padding:16px">
 <details class="detail-edit">
 <summary>✎ ویرایش اطلاعات این گزارش</summary>
-<p class="detail-note">مشخصات، مقادیر تولید، ساعات، مراحل و مواد مصرفی را اصلاح کنید. پس از ذخیره، گزارش دوباره در وضعیت «در انتظار تأیید» قرار می‌گیرد و تغییرات در سوابق ثبت می‌شوند.</p>
+<p class="detail-note">مشخصات، مقادیر تولید، ساعات، مراحل و مواد مصرفی را اصلاح کنید. پس از ذخیره، گزارش دوباره در وضعیت «در انتظار تأیید» قرار می‌گیرد و تغییرات در سوابق ثبت می‌شوند. اگر مراحل را تغییر نمی‌دهید، تیک‌ها را دست‌کاری نکنید. گزارش تأییدشده نیز تا پیش از هرگونه تحویل به انبار قابل اصلاح است؛ پس از ورود حتی بخشی از مقدار به انبار، ویرایش بسته می‌شود تا موجودی انبار دچار مغایرت نشود.</p>
 <form class="detail-form" style="max-width:none" method="POST" action="{{ route('production.shift-reports.update',$row->id) }}">@csrf @method('PUT')
 <div class="detail-edit-grid">
 <label class="shift-field">تاریخ تولید (شمسی)<span class="detail-date-wrap"><input type="text" id="edit-jalali-date" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="" required><input type="hidden" id="edit-gregorian-date" name="work_date" value="{{ old('work_date', $row->work_date) }}"><small class="detail-date-hint">تاریخ را از تقویم شمسی انتخاب کنید.</small></span></label>
