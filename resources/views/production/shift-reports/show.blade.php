@@ -88,7 +88,37 @@
 <button class="btn primary" type="submit">ثبت ورود به انبار</button></form></div>
 @endif
 </div>
-@push('scripts')<script>
+@push('scripts')<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script><script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script><script>
+const editDatePicker=document.querySelector('#edit-jalali-date');
+const editIsoDate=document.querySelector('#edit-gregorian-date');
+const editDateForm=document.querySelector('#report-edit-form');
+if(editDatePicker && editIsoDate && window.jQuery && jQuery.fn.persianDatepicker && typeof window.persianDate==='function'){
+  const isoMatch=(editIsoDate.value||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  editDatePicker.value=isoMatch ? isoMatch[1]+'/'+isoMatch[2]+'/'+isoMatch[3] : '';
+  jQuery(editDatePicker).persianDatepicker({
+    calendarType:'persian', initialValue:Boolean(editIsoDate.value), initialValueType:'gregorian',
+    format:'YYYY/MM/DD', altField:'#edit-gregorian-date', altFormat:'YYYY-MM-DD',
+    altFieldFormatter:unixDate=>{
+      const date=new window.persianDate(unixDate).toCalendar('gregorian');
+      const value=date.format('YYYY-MM-DD');
+      return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : '';
+    },
+    calendar:{persian:{locale:'fa'}},
+    toolbox:{calendarSwitch:{enabled:false},todayButton:{enabled:true,text:{fa:'امروز'}}}
+  });
+}
+if(editDateForm){
+  editDateForm.addEventListener('submit',event=>{
+    if(!editIsoDate || !/^\d{4}-\d{2}-\d{2}$/.test(editIsoDate.value||'')){
+      event.preventDefault();
+      alert('لطفاً تاریخ تولید را از تقویم شمسی انتخاب کنید.');
+      editDatePicker?.focus();
+    }
+  });
+}
+document.querySelectorAll('#report-edit-form input[type="number"]').forEach(field=>{
+  if(field.value && field.value.includes('.')) field.value=field.value.replace(/(\.\d*?[1-9])0+$|\.0+$/,'$1');
+});
 document.querySelectorAll('.shift-date-display[data-iso-date]').forEach(el=>{const raw=(el.dataset.isoDate||'').slice(0,10),m=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return;const date=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));el.textContent=new Intl.DateTimeFormat('fa-IR-u-ca-persian',{year:'numeric',month:'2-digit',day:'2-digit'}).format(date);});
 const reviewForm=document.querySelector('form[action*="/review"]');
 if(reviewForm){
