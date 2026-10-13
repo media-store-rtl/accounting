@@ -63,8 +63,10 @@ final class ProductionShiftReportController extends Controller
                 $query->whereIn('role.slug', ['production', 'production_worker', 'worker_production'])
                     ->orWhereIn('role.name', ['تولید', 'کارگر تولید', 'کارگرِ تولید']);
             })->orderBy('p.name')->distinct()->get(['p.id', 'p.code', 'p.name']);
+        $stages = DB::table('production_stages as ps')->join('production_routes as pr', 'pr.id', '=', 'ps.production_route_id')
+            ->where('pr.company_id', $companyId)->where('ps.status', 'active')->orderBy('ps.name')->get(['ps.id', 'ps.code', 'ps.name']);
         $materials = DB::table('goods')->where('company_id', $companyId)->where('is_active', true)->where('producible', true)->orderBy('name')->get(['id', 'code', 'name']);
-        return view('production.shift-reports.create', compact('sections', 'goods', 'personnel', 'materials'));
+        return view('production.shift-reports.create', compact('sections', 'goods', 'personnel', 'materials', 'stages'));
     }
 
     public function show(Request $request, int $report)
@@ -82,6 +84,9 @@ final class ProductionShiftReportController extends Controller
             ->first(['r.*', 'sec_location.name as section_name', 'g.name as goods_name', 'g.code as goods_code',
                 'reporter.name as reporter_name', 'worker.name as worker_name', 'reviewer.name as reviewer_name', 'warehouse.name as warehouse_name']);
         abort_unless($row, 404);
+        $reportedStages = DB::table('production_shift_report_stages as rs')->join('production_stages as ps', 'ps.id', '=', 'rs.production_stage_id')
+            ->where('rs.company_id', $companyId)->where('rs.production_shift_report_id', $report)
+            ->orderBy('rs.id')->get(['ps.code', 'ps.name']);
         $materialUsage = collect();
         if (Schema::hasTable('production_shift_report_materials')) {
             $materialUsage = DB::table('production_shift_report_materials as rm')->join('goods as mg', 'mg.id', '=', 'rm.goods_id')
@@ -91,7 +96,7 @@ final class ProductionShiftReportController extends Controller
         $canReview = $request->user()->hasCompanyPermission($companyId, 'production.operation.review');
         $canReceive = $request->user()->hasCompanyPermission($companyId, 'production.output.receive');
         $warehouses = $canReceive ? DB::table('locations')->where('company_id', $companyId)->where('type', 'warehouse')->where('is_active', true)->orderBy('name')->get(['id', 'name']) : collect();
-        return view('production.shift-reports.show', compact('row', 'materialUsage', 'canReview', 'canReceive', 'warehouses'));
+        return view('production.shift-reports.show', compact('row', 'materialUsage', 'reportedStages', 'canReview', 'canReceive', 'warehouses'));
     }
 
     public function store(Request $request)
@@ -104,6 +109,8 @@ final class ProductionShiftReportController extends Controller
             'worked_hours' => ['required', 'numeric', 'gt:0', 'lte:24'],
             'overtime_hours' => ['nullable', 'numeric', 'gte:0', 'lte:24'],
             'holiday_hours' => ['nullable', 'numeric', 'gte:0', 'lte:24'],
+            'stages' => ['required', 'array', 'min:1'],
+            'stages.*.production_stage_id' => ['required', 'integer'],
             'materials' => ['nullable', 'array'],
             'materials.*.goods_id' => ['nullable', 'integer'],
             'materials.*.quantity' => ['nullable', 'numeric', 'gt:0'],
@@ -120,6 +127,17 @@ final class ProductionShiftReportController extends Controller
         if (!$section) throw ValidationException::withMessages(['production_section_id' => 'قسمت تولید معتبر نیست.']);
         if (!$good) throw ValidationException::withMessages(['goods_id' => 'کالا معتبر نیست.']);
         if (!$worker) throw ValidationException::withMessages(['personnel_id' => 'فقط پرسنل فعال دارای نقش تولید را انتخاب کنید.']);
+        $stageRows = [];
+        foreach ($data['stages'] as $line) {
+            $stageId = (int) ($line['production_stage_id'] ?? 0);
+            $validStage = DB::table('production_stages as ps')->join('production_routes as pr', 'pr.id', '=', 'ps.production_route_id')
+                ->where('ps.id', $stageId)->where('pr.company_id', $companyId)->where('ps.status', 'active')->exists();
+            if (!$validStage) throw ValidationException::withMessages(['stages' => 'یکی از مراحل انتخاب‌شده معتبر یا فعال نیست.']);
+            $stageRows[] = $stageId;
+        }
+        if (count($stageRows) !== count(array_unique($stageRows))) {
+            throw ValidationException::withMessages(['stages' => 'یک مرحله را در یک گزارش بیش از یک بار انتخاب نکنید.']);
+        }
         $materialRows = [];
         foreach (($data['materials'] ?? []) as $line) {
             $materialId = (int) ($line['goods_id'] ?? 0);
@@ -159,6 +177,14 @@ final class ProductionShiftReportController extends Controller
             'notes' => $data['notes'] ?? null,
             'created_at' => now(), 'updated_at' => now(),
         ]);
+        foreach ($stageRows as $stageId) {
+            DB::table('production_shift_report_stages')->insert([
+                'company_id' => $companyId,
+                'production_shift_report_id' => $reportId,
+                'production_stage_id' => $stageId,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
         foreach ($materialRows as $line) {
             DB::table('production_shift_report_materials')->insert([
                 'company_id' => $companyId,
