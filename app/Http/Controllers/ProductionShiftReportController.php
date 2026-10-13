@@ -94,7 +94,7 @@ final class ProductionShiftReportController extends Controller
                 ->get(['rm.goods_id', 'rm.quantity', 'rm.scrap_quantity', 'mg.name', 'mg.code']);
         }
         $canReview = $request->user()->hasCompanyPermission($companyId, 'production.operation.review');
-        $canEdit = $canReview && in_array($row->status, ['pending', 'rejected'], true);
+        $canEdit = $canReview && (in_array($row->status, ['pending', 'rejected'], true) || ($row->status === 'approved' && (float) ($row->warehouse_quantity ?? 0) <= 0));
         $canReceive = $request->user()->hasCompanyPermission($companyId, 'production.output.receive');
         $warehouses = $canReceive ? DB::table('locations')->where('company_id', $companyId)->where('type', 'warehouse')->where('is_active', true)->orderBy('name')->get(['id', 'name']) : collect();
         $sections = DB::table('production_sections as s')->leftJoin('locations as l', 'l.id', '=', 's.location_id')
@@ -256,7 +256,7 @@ final class ProductionShiftReportController extends Controller
             'produced_quantity' => ['required', 'numeric', 'gt:0'],
             'scrap_quantity' => ['nullable', 'numeric', 'gte:0'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'stages' => ['required', 'array', 'min:1'],
+            'stages' => ['sometimes', 'array', 'min:1'],
             'stages.*.production_stage_id' => ['required', 'integer'],
             'materials' => ['nullable', 'array'],
             'materials.*.goods_id' => ['nullable', 'integer'],
@@ -274,13 +274,22 @@ final class ProductionShiftReportController extends Controller
         if (!$goodValid) throw ValidationException::withMessages(['goods_id' => 'محصول انتخاب‌شده معتبر نیست.']);
         if (!$workerValid) throw ValidationException::withMessages(['personnel_id' => 'کارگر انتخاب‌شده معتبر نیست.']);
 
-        $stageIds = [];
-        foreach ($data['stages'] as $line) {
+        $stagesSubmitted = $request->has('stages');
+        $stageIds = $stagesSubmitted ? [] : DB::table('production_shift_report_stages')
+            ->where('company_id', $companyId)->where('production_shift_report_id', $report)
+            ->orderBy('id')->pluck('production_stage_id')->map(fn ($id) => (int) $id)->all();
+        if ($stagesSubmitted && empty($data['stages'])) {
+            throw ValidationException::withMessages(['stages' => 'حداقل یک مرحله باید انتخاب شود؛ اگر قصد تغییر مراحل را ندارید، تیک‌ها را دست‌کاری نکنید.']);
+        }
+        foreach (($data['stages'] ?? []) as $line) {
             $stageId = (int) ($line['production_stage_id'] ?? 0);
             $valid = DB::table('production_stages as ps')->join('production_routes as pr', 'pr.id', '=', 'ps.production_route_id')
                 ->where('ps.id', $stageId)->where('pr.company_id', $companyId)->where('ps.status', 'active')->exists();
             if (!$valid) throw ValidationException::withMessages(['stages' => 'یکی از مراحل انتخاب‌شده معتبر یا فعال نیست.']);
             $stageIds[] = $stageId;
+        }
+        if (count($stageIds) < 1) {
+            throw ValidationException::withMessages(['stages' => 'حداقل یک مرحله باید در گزارش ثبت شده باشد.']);
         }
         if (count($stageIds) !== count(array_unique($stageIds))) {
             throw ValidationException::withMessages(['stages' => 'یک مرحله را در یک گزارش بیش از یک بار انتخاب نکنید.']);
@@ -311,8 +320,8 @@ final class ProductionShiftReportController extends Controller
 
         DB::transaction(function () use ($companyId, $report, $data, $request, $stageIds, $materialRows, $scrap) {
             $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
-            if (!$row || !in_array($row->status, ['pending', 'rejected'], true)) {
-                throw ValidationException::withMessages(['report' => 'فقط گزارش در انتظار تأیید یا ردشده قابل ویرایش است؛ گزارش تأییدشده یا تحویل‌شده قابل تغییر نیست.']);
+            if (!$row || !(in_array($row->status, ['pending', 'rejected'], true) || ($row->status === 'approved' && (float) ($row->warehouse_quantity ?? 0) <= 0))) {
+                throw ValidationException::withMessages(['report' => 'گزارش در انتظار تأیید یا ردشده قابل ویرایش است. گزارش تأییدشده فقط تا قبل از هرگونه تحویل به انبار قابل اصلاح است؛ پس از ثبت ورود به انبار، برای جلوگیری از مغایرت موجودی باید اصلاح جداگانه انجام شود.']);
             }
 
             $before = [
