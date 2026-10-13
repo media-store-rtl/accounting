@@ -225,10 +225,24 @@ class ProductionShiftReportStagesTest extends TestCase
 
         DB::table('production_shift_reports')->where('id', $reportId)->update(['status' => 'approved']);
         DB::table('goods')->where('id', $goods)->update(['sellable' => false]);
+        $warehouse = DB::table('locations')->insertGetId([
+            'company_id' => $company, 'code' => 'WH' . uniqid(), 'name' => 'Intermediate Warehouse',
+            'type' => 'warehouse', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
         $this->post(route('production.shift-reports.receive', $reportId), [
-            'warehouse_location_id' => 1,
+            'warehouse_location_id' => $warehouse,
             'warehouse_quantity' => 1,
-        ])->assertSessionHasErrors('report');
+            'receipt_token' => (string) \Illuminate\Support\Str::uuid(),
+        ])->assertRedirect(route('production.shift-reports.show', $reportId))
+            ->assertSessionHas('success');
+        $this->assertDatabaseHas('inventory_movements', [
+            'company_id' => $company,
+            'location_id' => $warehouse,
+            'reference_type' => 'production_shift_reports',
+            'reference_id' => $reportId,
+            'movement_type' => 'production_intermediate_receipt',
+            'quantity' => 1,
+        ]);
         $this->assertDatabaseMissing('inventory_movements', [
             'reference_type' => 'production_shift_reports',
             'reference_id' => $reportId,
