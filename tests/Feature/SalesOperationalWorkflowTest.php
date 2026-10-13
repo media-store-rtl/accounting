@@ -79,7 +79,7 @@ class SalesOperationalWorkflowTest extends TestCase
 
         $service->confirm($c['company'],$output->id,$c['user']);
 
-        $this->assertDatabaseHas('production_outputs',['id'=>$output->id,'status'=>'confirmed','order_id'=>$order]);
+        $this->assertDatabaseHas('production_outputs',['id'=>$output->id,'status'=>'received','order_id'=>$order]);
         $this->assertDatabaseHas('finished_goods_receipts',['production_output_id'=>$output->id,'status'=>'approved']);
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>4]);
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'finished_goods_receipt','reference_type'=>'production_outputs','reference_id'=>$output->id,'quantity'=>4]);
@@ -101,9 +101,13 @@ class SalesOperationalWorkflowTest extends TestCase
     public function test_shortage_enters_production_path_and_due_date_can_return_to_sales(): void
     {
         Notification::fake(); $c=$this->context(2);
+        // The notification service excludes the actor, so provide a separate active production supervisor.
+        $supervisorId=DB::table('users')->insertGetId(['account_id'=>DB::table('companies')->where('id',$c['company'])->value('account_id'),'name'=>'Supervisor','username'=>'supervisor'.uniqid(),'email'=>uniqid().'@test.local','password'=>bcrypt('secret'),'created_at'=>now(),'updated_at'=>now()]);
+        $roleId=DB::table('roles')->where('company_id',$c['company'])->where('slug','sales-ops')->value('id');
+        DB::table('company_user')->insert(['company_id'=>$c['company'],'user_id'=>$supervisorId,'role_id'=>$roleId,'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $response=$this->postJson('/api/orders',['fiscal_year_id'=>$c['fy'],'customer_id'=>$c['customer'],'number'=>'SO-2','ordered_at'=>'2026-10-07','requested_delivery_at'=>'2026-10-20','items'=>[['goods_id'=>$c['goods'],'quantity'=>5]]]);
         $response->assertCreated()->assertJsonPath('data.status','production_required');
-        Notification::assertSentTo(User::find($c['user']), \App\Notifications\WorkflowNotification::class);
+        Notification::assertSentTo(User::find($supervisorId), \App\Notifications\WorkflowNotification::class);
         $order=$response->json('data.id');
         $this->postJson('/api/orders/'.$order.'/production-due',['production_due_at'=>'2026-10-18'])->assertOk()->assertJsonPath('data.status','awaiting_production');
         DB::table('inventory')->where('location_id',$c['warehouse'])->where('goods_id',$c['goods'])->update(['quantity'=>5]);
