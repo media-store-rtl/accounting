@@ -488,3 +488,6 @@
 
 - نتیجه CI پس از اصلاح تست‌ها: هر دو اجرای تازه، migration و route-list را با موفقیت گذراندند و تست‌های گردش فروش اکنون سبز شدند. تنها شکست باقی‌مانده در `UserAccessTest` نشان داد که فرم وب هنگام `ValidationException` به‌درستی با 302 redirect و خطای session برمی‌گردد، نه پاسخ JSON با 422. انتظار تست به `assertRedirect()->assertSessionHasErrors('capacity')` تغییر کرد تا رفتار واقعی فرم را بررسی کند.
 - این اصلاح نهایی نیز در شاخه همین PR ثبت شده و اجرای CI جدید باید نتیجه نهایی را تأیید کند؛ اجرای محلی تست‌ها انجام نشده است.
+
+- نتیجه نهایی اجرای CI پس از اصلاحات: [GitHub Actions / PHPUnit](https://github.com/media-store-rtl/accounting/actions/runs/38353930367/job/115152347579) موفق شد؛ `php artisan migrate --force`، `migrate:status` و `route:list` نیز موفق بودند. PHPUnit: **32 passed (178 assertions)**. سه شکست اولیه دیگر بازتولید نشدند.
+- PR #54 در پایان بررسی باز و ادغام‌نشده است. اجرای CI روی commit مستندشده موفق بوده؛ به‌روزرسانی همین گزارش یک commit مستنداتی تازه ایجاد می‌کند و وضعیت checks مربوط به آن commit جداگانه بررسی می‌شود. تست مرورگر موبایل و Deploy انجام نشده‌اند.
