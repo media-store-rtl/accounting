@@ -1,28 +1,27 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\\Http\\Controllers;
 
-use App\Services\ProductionOutputService;
-use App\Support\CompanyAuthorization;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use App\\Services\\ProductionOutputService;
+use App\\Support\\CompanyAuthorization;
+use Illuminate\\Http\\Request;
+use Illuminate\\Support\\Facades\\DB;
 
 final class ProductionOutputController extends Controller
 {
     public function index(Request $request)
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.output.view');
-        $rows = DB::table('production_outputs as po')
-            ->join('productions as p','p.id','=','po.production_id')
-            ->join('goods as g','g.id','=','po.goods_id')
-            ->join('locations as l','l.id','=','po.warehouse_location_id')
-            ->where('po.company_id',$companyId)
-            ->select('po.*','p.number as production_number','g.name as goods_name','l.name as location_name')
-            ->latest('po.id')->paginate(20);
 
-        // Include quantities received directly from production shift reports.
-        // These are already posted to inventory, so they are displayed separately
-        // and must not be processed again through production_outputs.
+        $outputRows = DB::table('production_outputs as po')
+            ->join('productions as p', 'p.id', '=', 'po.production_id')
+            ->join('goods as g', 'g.id', '=', 'po.goods_id')
+            ->join('locations as l', 'l.id', '=', 'po.warehouse_location_id')
+            ->where('po.company_id', $companyId)
+            ->selectRaw("'output' as row_type, po.id as row_id, po.id as output_id, NULL as report_id, p.number as production_number, po.produced_at as row_date, NULL as section_name, g.name as goods_name, po.quantity, po.status, l.name as location_name");
+
+        // Shift-report quantities have already been posted to inventory.
+        // Include them in the same display list, but never expose output actions for them.
         $shiftRows = DB::table('production_shift_reports as r')
             ->join('goods as g', 'g.id', '=', 'r.goods_id')
             ->leftJoin('production_sections as s', 's.id', '=', 'r.production_section_id')
@@ -30,20 +29,18 @@ final class ProductionOutputController extends Controller
             ->leftJoin('locations as l', 'l.id', '=', 'r.warehouse_location_id')
             ->where('r.company_id', $companyId)
             ->where('r.warehouse_quantity', '>', 0)
-            ->select(
-                'r.id as report_id',
-                'r.work_date',
-                'r.status',
-                'r.warehouse_quantity as quantity',
-                'g.name as goods_name',
-                'section_location.name as section_name',
-                'l.name as location_name'
-            )
-            ->latest('r.warehouse_received_at')
-            ->latest('r.id')
-            ->paginate(20, ['*'], 'shift_page');
+            ->selectRaw("'shift' as row_type, r.id as row_id, NULL as output_id, r.id as report_id, CONCAT('گزارش شیفت #', r.id) as production_number, COALESCE(r.warehouse_received_at, r.work_date) as row_date, section_location.name as section_name, g.name as goods_name, r.warehouse_quantity as quantity, r.status, l.name as location_name");
 
-        return view('production.outputs.index', compact('rows', 'shiftRows'));
+        $combinedRows = $outputRows->unionAll($shiftRows);
+
+        $rows = DB::query()
+            ->fromSub($combinedRows, 'combined_outputs')
+            ->orderByDesc('row_date')
+            ->orderByDesc('row_id')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('production.outputs.index', compact('rows'));
     }
 
     public function create(Request $request)
