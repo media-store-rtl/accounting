@@ -78,7 +78,7 @@
 <div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">تحویل محصول به انبار</h2>
 <p class="detail-note">این گزارش تأیید شده اما هنوز بخشی از تولید سالم به انبار تحویل نشده است. انبار و مقدار تحویل را مشخص کنید. ثبت ورود، موجودی انبار را افزایش می‌دهد.</p>
 <form class="detail-form" method="POST" action="{{ route('production.shift-reports.receive',$row->id) }}">@csrf
-<input type="hidden" name="receipt_token" value="{{ (string) \\Illuminate\\Support\\Str::uuid() }}">
+<input type="hidden" name="receipt_token" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
 <label>انبار مقصد<select name="warehouse_location_id" required>
 <option value="">انتخاب انبار</option>
 @foreach($warehouses as $warehouse)
