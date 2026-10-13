@@ -191,7 +191,7 @@ function addShiftStage() {
   if (!source) return;
   const row = source.cloneNode(true);
   row.querySelectorAll('select').forEach(field => {
-    field.name = field.name.replace(/stages\\[\\d+\\]/, 'stages[' + shiftStageIndex + ']');
+    field.name = field.name.replace(/stages\[\d+\]/, 'stages[' + shiftStageIndex + ']');
     field.selectedIndex = 0;
   });
   lines.appendChild(row);
