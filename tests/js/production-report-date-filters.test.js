@@ -4,7 +4,7 @@ import {
     formatGregorianIsoDate,
     normalizeIsoDateForPicker,
     setupProductionReportDatePicker,
-} from '../../resources/js/production-report-date-filters.js';
+} from '../../public/js/production-report-date-filters.js';
 
 test('converts an ISO Gregorian date to the matching picker input format', () => {
     assert.equal(normalizeIsoDateForPicker('2026-10-12'), '2026/10/12');
