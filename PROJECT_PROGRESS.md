@@ -444,4 +444,4 @@
 - صفحه جزئیات مستقل برای هر گزارش ایجاد شد و مواد مصرفی، ضایعات، ساعات کار، وضعیت بررسی و تحویل به انبار را نشان می‌دهد؛ تأیید/رد و تحویل به انبار از همان صفحه انجام می‌شود.
 - لینک اعلان سرپرست مستقیماً به جزئیات گزارش مربوط هدایت می‌شود. منوی تولید دسکتاپ و موبایل بین «ثبت تولید شیفت» و «گزارش‌های تولید» تفکیک شد.
 - فایل‌های تغییرکرده: `app/Http/Controllers/ProductionShiftReportController.php`, `routes/web.php`, `resources/views/layouts/dashboard-shell.blade.php`, `resources/views/notifications/index.blade.php`, `resources/views/production/shift-reports/create.blade.php`, `resources/views/production/shift-reports/index.blade.php`, `resources/views/production/shift-reports/show.blade.php`, `PROJECT_PROGRESS.md`.
-- این تغییر در شاخه `feat/production-shift-reports-pages` بر پایه شاخه اعلان‌ها آماده PR شده است؛ تست خودکار، بررسی مرورگر و Deploy سایت زنده هنوز انجام نشده‌اند.
+- تغییرات در شاخه `feat/production-shift-reports-pages` ثبت و در PR [#53](https://github.com/media-store-rtl/accounting/pull/53) برای ادغام به `main` پیشنهاد شده‌اند؛ PR باز است. تست خودکار GitHub Actions هنوز در حال اجراست؛ بررسی مرورگر و Deploy سایت زنده انجام نشده‌اند.
