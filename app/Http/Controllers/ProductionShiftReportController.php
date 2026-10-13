@@ -414,6 +414,7 @@ final class ProductionShiftReportController extends Controller
         $data = $request->validate([
             'warehouse_location_id' => ['required', 'integer'],
             'warehouse_quantity' => ['required', 'numeric', 'gt:0'],
+            'receipt_token' => ['required', 'uuid'],
         ]);
         DB::transaction(function () use ($companyId, $report, $data, $request, $inventory) {
             $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
@@ -429,7 +430,12 @@ final class ProductionShiftReportController extends Controller
             if ($alreadyReceived > 0 && (int)$row->warehouse_location_id !== (int)$data['warehouse_location_id']) throw ValidationException::withMessages(['warehouse_location_id' => 'برای تحویل‌های یک گزارش، همان انبار قبلی را انتخاب کنید.']);
             $warehouse = DB::table('locations')->where('id', (int)$data['warehouse_location_id'])->where('company_id', $companyId)->where('type', 'warehouse')->where('is_active', true)->exists();
             if (!$warehouse) throw ValidationException::withMessages(['warehouse_location_id' => 'انبار معتبر نیست.']);
-            $metadata = ['production_section_id' => (int)$row->production_section_id, 'shift_name' => $row->shift_name, 'work_date' => $row->work_date, 'reported_by_user_id' => (int)$row->reported_by_user_id];
+            $movementType = (bool) $goods->sellable ? 'finished_goods_receipt' : 'production_intermediate_receipt';
+            $duplicate = DB::table('inventory_movements')->where('company_id', $companyId)
+                ->where('reference_type', 'production_shift_reports')->where('reference_id', $report)
+                ->where('movement_type', $movementType)->whereJsonContains('metadata->receipt_token', $data['receipt_token'])->exists();
+            if ($duplicate) throw ValidationException::withMessages(['report' => 'این ثبت ورود قبلاً ارسال شده است؛ صفحه را تازه‌سازی کنید.']);
+            $metadata = ['production_section_id' => (int)$row->production_section_id, 'shift_name' => $row->shift_name, 'work_date' => $row->work_date, 'reported_by_user_id' => (int)$row->reported_by_user_id, 'receipt_token' => $data['receipt_token']];
             if ((bool) $goods->sellable) {
                 $inventory->receiveFinishedGoods($companyId, (int)$data['warehouse_location_id'], (int)$row->goods_id, $quantity,
                     'production_shift_reports', $report, $metadata);
