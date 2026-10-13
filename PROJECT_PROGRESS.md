@@ -445,3 +445,11 @@
 - لینک اعلان سرپرست مستقیماً به جزئیات گزارش مربوط هدایت می‌شود. منوی تولید دسکتاپ و موبایل بین «ثبت تولید شیفت» و «گزارش‌های تولید» تفکیک شد.
 - فایل‌های تغییرکرده: `app/Http/Controllers/ProductionShiftReportController.php`, `routes/web.php`, `resources/views/layouts/dashboard-shell.blade.php`, `resources/views/notifications/index.blade.php`, `resources/views/production/shift-reports/create.blade.php`, `resources/views/production/shift-reports/index.blade.php`, `resources/views/production/shift-reports/show.blade.php`, `PROJECT_PROGRESS.md`.
 - تغییرات در شاخه `feat/production-shift-reports-pages` ثبت و در PR [#53](https://github.com/media-store-rtl/accounting/pull/53) برای ادغام به `main` پیشنهاد شده‌اند؛ PR باز است. تست خودکار GitHub Actions هنوز در حال اجراست؛ بررسی مرورگر و Deploy سایت زنده انجام نشده‌اند.
+
+
+# 76. بهبود نمایش موبایل گزارش‌های تولید — 2026-10-13
+- صفحه `/production/shift-reports` در عرض موبایل اکنون گزارش‌ها را به‌صورت کارت‌های مستقل نشان می‌دهد؛ جدول فعلی فقط در نمایشگرهای بزرگ‌تر باقی می‌ماند تا تجربه دسکتاپ حفظ شود.
+- فیلترها در موبایل داخل بخش جمع‌شونده قرار گرفتند؛ در دسکتاپ باز می‌مانند. کنترل‌های فرم و دکمه مشاهده جزئیات حداقل ارتفاع مناسب لمس دارند و کارت‌ها تاریخ، محصول، قسمت، کارگر، مقدار تولید سالم، ضایعات، وضعیت و ثبت‌کننده را نمایش می‌دهند.
+- فایل‌های تغییرکرده: `resources/views/production/shift-reports/index.blade.php` و `PROJECT_PROGRESS.md`.
+- تغییر در شاخه `feat/production-shift-reports-mobile-cards` و PR وابسته به PR #53 ارائه می‌شود؛ PR #53 هنوز ادغام نشده است.
+- بررسی خودکار قالب/تست PHPUnit، بررسی واقعی مرورگر موبایل و Deploy سایت زنده انجام نشده‌اند؛ وضعیت CI پس از ایجاد PR باید بررسی شود. این تغییر عمداً به `main` ادغام نشده است.
