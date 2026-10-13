@@ -112,6 +112,68 @@ class ProductionShiftReportStagesTest extends TestCase
         ]);
         $this->assertSame(2, DB::table('production_shift_report_stages')
             ->where('production_shift_report_id', $reportId)->count());
+
+        $this->put(route('production.shift-reports.update', $reportId), [
+            'production_section_id' => $section,
+            'goods_id' => $goods,
+            'personnel_id' => $worker,
+            'worked_hours' => 7.5,
+            'overtime_hours' => 1,
+            'holiday_hours' => 0,
+            'work_date' => '2026-10-13',
+            'produced_quantity' => 18,
+            'scrap_quantity' => 2,
+            'notes' => 'اصلاح‌شده توسط سرپرست',
+            'stages' => [['production_stage_id' => $stageTwo]],
+            'materials' => [[
+                'goods_id' => $goods,
+                'quantity' => 4,
+                'scrap_quantity' => 1,
+            ]],
+        ])->assertRedirect(route('production.shift-reports.show', $reportId))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('production_shift_reports', [
+            'id' => $reportId,
+            'work_date' => '2026-10-13',
+            'produced_quantity' => 18,
+            'scrap_quantity' => 2,
+            'worked_hours' => 7.5,
+            'overtime_hours' => 1,
+            'notes' => 'اصلاح‌شده توسط سرپرست',
+            'status' => 'pending',
+            'reviewed_by_user_id' => null,
+        ]);
+        $this->assertSame(1, DB::table('production_shift_report_stages')
+            ->where('production_shift_report_id', $reportId)->count());
+        $this->assertDatabaseHas('production_shift_report_stages', [
+            'production_shift_report_id' => $reportId,
+            'production_stage_id' => $stageTwo,
+        ]);
+        $this->assertDatabaseHas('production_shift_report_materials', [
+            'production_shift_report_id' => $reportId,
+            'goods_id' => $goods,
+            'quantity' => 4,
+            'scrap_quantity' => 1,
+        ]);
+        $this->assertDatabaseHas('audit_trails', [
+            'company_id' => $company,
+            'auditable_type' => 'production_shift_reports',
+            'auditable_id' => $reportId,
+            'action' => 'production_shift_report.update',
+        ]);
+
+        DB::table('production_shift_reports')->where('id', $reportId)->update(['status' => 'approved']);
+        $this->put(route('production.shift-reports.update', $reportId), [
+            'production_section_id' => $section,
+            'goods_id' => $goods,
+            'personnel_id' => $worker,
+            'worked_hours' => 8,
+            'work_date' => '2026-10-13',
+            'produced_quantity' => 18,
+            'scrap_quantity' => 2,
+            'stages' => [['production_stage_id' => $stageTwo]],
+        ])->assertSessionHasErrors('report');
     }
 
 }
