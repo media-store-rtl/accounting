@@ -445,3 +445,11 @@
 - لینک اعلان سرپرست مستقیماً به جزئیات گزارش مربوط هدایت می‌شود. منوی تولید دسکتاپ و موبایل بین «ثبت تولید شیفت» و «گزارش‌های تولید» تفکیک شد.
 - فایل‌های تغییرکرده: `app/Http/Controllers/ProductionShiftReportController.php`, `routes/web.php`, `resources/views/layouts/dashboard-shell.blade.php`, `resources/views/notifications/index.blade.php`, `resources/views/production/shift-reports/create.blade.php`, `resources/views/production/shift-reports/index.blade.php`, `resources/views/production/shift-reports/show.blade.php`, `PROJECT_PROGRESS.md`.
 - تغییرات در شاخه `feat/production-shift-reports-pages` ثبت و در PR [#53](https://github.com/media-store-rtl/accounting/pull/53) برای ادغام به `main` پیشنهاد شده‌اند؛ PR باز است. تست خودکار GitHub Actions هنوز در حال اجراست؛ بررسی مرورگر و Deploy سایت زنده انجام نشده‌اند.
+
+
+# 76. اصلاح ترتیب اجرای مهاجرت‌های گزارش تولید شیفت — 2026-10-13
+- علت خطای CI در نصب تازه این بود که مهاجرت‌های افزودن `worked_hours`، `overtime_hours` و `holiday_hours` قبل از ساخته‌شدن جدول `production_shift_reports` اجرا می‌شدند.
+- مهاجرت‌های افزودن ستون اکنون نبود جدول را مدیریت می‌کنند؛ مهاجرت ساخت جدول نیز سه ستون ساعت را مستقیماً ایجاد می‌کند تا نصب تازه و ارتقای پایگاه داده‌های موجود پوشش داده شوند.
+- در `down()` نیز بررسی وجود جدول اضافه شد تا rollback در صورت نبود جدول خطا ندهد. جدول مواد مصرفی همچنان مستقل و با `hasTable`/`dropIfExists` مدیریت می‌شود.
+- فایل‌های تغییرکرده: `database/migrations/2026_10_12_000001_add_work_hours_to_production_shift_reports_table.php`, `database/migrations/2026_10_12_000002_add_holiday_hours_and_shift_materials.php`, `database/migrations/2026_10_12_000002_create_production_shift_reports_table.php`, `PROJECT_PROGRESS.md`.
+- تغییرات در شاخه `feat/production-shift-reports-pages` و PR [#53](https://github.com/media-store-rtl/accounting/pull/53) ثبت می‌شوند. اجرای محلی تست‌ها و مهاجرت‌ها، نتیجه CI جدید، بررسی مرورگر و Deploy سایت زنده تا زمان ثبت نتیجه GitHub Actions تأیید نشده‌اند؛ PR ادغام نشده است.
