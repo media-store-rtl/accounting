@@ -32,7 +32,7 @@ class ProductionShiftReportStagesTest extends TestCase
             'company_id' => $company, 'name' => 'Production', 'slug' => 'production-test',
             'is_system' => false, 'created_at' => now(), 'updated_at' => now(),
         ]);
-        foreach (['production.operation.create', 'production.operation.view', 'production.operation.review'] as $slug) {
+        foreach (['production.operation.create', 'production.operation.view', 'production.operation.review', 'production.output.receive'] as $slug) {
             $permission = DB::table('permissions')->where('slug', $slug)->first();
             $permissionId = $permission?->id ?? DB::table('permissions')->insertGetId([
                 'name' => $slug, 'slug' => $slug, 'module' => 'production',
@@ -206,6 +206,18 @@ class ProductionShiftReportStagesTest extends TestCase
         $this->get(route('production.shift-reports.show', $reportId))
             ->assertSee('ردشده')
             ->assertSee('مقدار تولید با برگه کار مطابقت ندارد');
+
+        DB::table('production_shift_reports')->where('id', $reportId)->update(['status' => 'approved']);
+        DB::table('goods')->where('id', $goods)->update(['sellable' => false]);
+        $this->post(route('production.shift-reports.receive', $reportId), [
+            'warehouse_location_id' => 1,
+            'warehouse_quantity' => 1,
+        ])->assertSessionHasErrors('report');
+        $this->assertDatabaseMissing('inventory_movements', [
+            'reference_type' => 'production_shift_reports',
+            'reference_id' => $reportId,
+            'movement_type' => 'finished_goods_receipt',
+        ]);
     }
 
 }
