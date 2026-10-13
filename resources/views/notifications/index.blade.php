@@ -5,6 +5,10 @@
 @section('content')
 @php
     $eventLabels = [
+        'production.shift_report_pending' => [
+            'title' => 'گزارش تولید شیفت در انتظار تأیید سرپرست است',
+            'message' => 'گزارش جدید تولید ثبت شده است. مشخصات گزارش را بررسی کنید و در صفحه ثبت تولید شیفت آن را تأیید یا رد کنید.',
+        ],
         'order.production_required' => [
             'title' => 'این سفارش به بررسی و برنامه‌ریزی تولید نیاز دارد',
             'message' => 'موجودی انبار برای تأمین کامل سفارش کافی نیست. سرپرست تولید باید امکان تولید و زمان‌بندی آن را بررسی کند.',
@@ -60,6 +64,13 @@
     ];
 
     $fieldLabels = [
+        'report_id' => 'شماره گزارش تولید',
+        'work_date' => 'تاریخ تولید',
+        'section_name' => 'قسمت تولید',
+        'worker_name' => 'کارگر',
+        'goods_name' => 'محصول / قطعه',
+        'produced_quantity' => 'تعداد تولیدشده',
+        'scrap_quantity' => 'ضایعات محصول',
         'order_id' => 'شماره سفارش',
         'delivery_request_id' => 'شماره درخواست تحویل',
         'supply_request_id' => 'شماره درخواست مواد اولیه',
@@ -99,9 +110,12 @@
                     'title' => 'اعلان جدید',
                     'message' => 'رویدادی در مجموعه ثبت شده است. برای اطلاع از جزئیات، از مسئول مربوط به این فرآیند راهنمایی بگیرید.',
                 ];
+                $reportId = isset($data['report_id']) && is_numeric($data['report_id']) ? (int) $data['report_id'] : null;
+                $canReviewProduction = $reportId && auth()->user()->hasCompanyPermission((int) session('company_id'), 'production.operation.review');
                 $orderId = isset($data['order_id']) && is_numeric($data['order_id']) ? (int) $data['order_id'] : null;
                 $canViewOrder = $orderId && auth()->user()->hasCompanyPermission((int) session('company_id'), 'order.view');
                 $visibleFields = [
+                    'production.shift_report_pending' => ['report_id', 'work_date', 'section_name', 'worker_name', 'goods_name', 'produced_quantity', 'scrap_quantity'],
                     'order.production_required' => ['order_id'],
                     'order.ready_for_delivery' => ['order_id'],
                     'order.production_due_set' => ['order_id', 'production_due_at'],
@@ -144,6 +158,12 @@
 
                 <p style="margin:9px 0 0;color:#c2d1de;font-size:11px;line-height:2">{{ $presentation['message'] }}</p>
 
+                @if($reportId && $canReviewProduction)
+                    <div style="margin-top:10px;color:#9eb2c4;font-size:11px">
+                        شماره گزارش تولید: <strong style="color:#e9f3fb">#{{ $reportId }}</strong>
+                        <a href="{{ route('production.shift-reports.index') }}#shift-report-{{ $reportId }}" style="margin-right:10px;color:#6ee7d0;text-decoration:none">بررسی گزارش تولید ←</a>
+                    </div>
+                @endif
                 @if($orderId)
                     <div style="margin-top:10px;color:#9eb2c4;font-size:11px">
                         شماره سفارش: <strong style="color:#e9f3fb">#{{ $orderId }}</strong>

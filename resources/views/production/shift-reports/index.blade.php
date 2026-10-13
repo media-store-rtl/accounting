@@ -175,7 +175,7 @@
         <thead><tr><th>تاریخ / شیفت</th><th>قسمت</th><th>کارگر</th><th>مواد اولیه / محصول</th><th>تولید</th><th>ثبت‌کننده</th><th>وضعیت</th><th>اقدام</th></tr></thead>
         <tbody>
         @forelse($rows as $r)
-          <tr>
+          <tr id="shift-report-{{ $r->id }}">
             <td><span class="shift-primary-cell shift-date-display" data-iso-date="{{ $r->work_date }}">{{ $r->work_date }}</span><span class="shift-secondary">کارکرد: {{ $r->worked_hours ?? '—' }} ساعت</span><span class="shift-secondary">اضافه‌کاری: {{ $r->overtime_hours ?? 0 }} ساعت</span><span class="shift-secondary">تعطیل‌کاری: {{ $r->holiday_hours ?? 0 }} ساعت</span></td>
             <td>{{ $r->section_name ?: '—' }}</td>
             <td>{{ $r->worker_name ?: '—' }}</td>
