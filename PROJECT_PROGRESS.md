@@ -1,3 +1,15 @@
+# پیگیری نهایی اصلاح فیلترهای تاریخ شمسی گزارش تولید — 2026-10-13
+
+- وضعیت زندهٔ PR #59 در زمان این ثبت: باز و ادغام‌نشده؛ شاخهٔ `fix/production-report-jalali-date-filters`، سرشاخهٔ بررسی‌شده `f50e4f1e1d369bfc0d2f0cc441ac12861fb6da8d`، پایهٔ `main` برابر `1df66f306b91cdfe61fa2785d80eaaf17ba57548`. مقایسهٔ GitHub: ۱۵ commit جلوتر، صفر commit عقب‌تر؛ این شمارش شامل تاریخچهٔ موجود شاخه است، نه ۱۵ تغییر جدید این پیگیری.
+- منطق فیلتر: ورودی نمایشی مقدار ISO میلادی را با جداکنندهٔ `YYYY/MM/DD` برای datepicker آماده می‌کند؛ مقدار مخفیِ دارای `name` همچنان `YYYY-MM-DD` میلادی را ارسال می‌کند. تبدیل timestamp انتخاب‌شده با API تقویم Gregorian کتابخانهٔ `persian-date` انجام می‌شود. helper مشترک در فیلترهای گزارش تولید و فرم ثبت سفارش فروش استفاده می‌شود.
+- CI اجرای GitHub Actions با شناسهٔ `38364591339` برای commit `f50e4f1e1d369bfc0d2f0cc441ac12861fb6da8d` موفق بود. مراحل `npm test`، نصب Composer، Migration و `migrate:status`، `route:list` و `php artisan test` همگی با نتیجهٔ موفق ثبت شده‌اند. این نتیجه به همان SHA مربوط است و باید پس از commit به‌روزرسانی این یادداشت، CI جدید نیز بررسی شود.
+- تست محلی در این محیط اجرا نشد: تلاش برای دریافت checkout از GitHub با خطای DNS/عدم دسترسی به `github.com` متوقف شد. بنابراین ادعای اجرای محلی جدید نداریم؛ نتیجهٔ تأییدشده مربوط به CI است.
+- تست مرورگر واقعی، بارگذاری CDN در مرورگر، سایت زنده و Deploy بررسی نشده‌اند. اجرای Migration در CI فقط روی دیتابیس SQLite موقتِ CI بوده و به معنی اجرای Migration روی دیتابیس زنده نیست.
+- فایل‌های عملکردی PR: `resources/views/production/shift-reports/index.blade.php`, `resources/views/sales/orders/create.blade.php`, `public/js/production-report-date-filters.js`, `tests/js/production-report-date-filters.test.js`, `package.json`, `.github/workflows/tests.yml`. این ثبت فقط وضعیت CI/راستی‌آزمایی را شفاف می‌کند.
+- وضعیت ادغام: **ادغام نشده است**؛ هیچ تلاش تازه‌ای برای ادغام انجام نشد. طبق `AGENTS.md`، ادغام فقط پس از ارائهٔ نتایج تازه و تأیید صریح کاربر برای PR #59 مجاز است.
+
+---
+
 # اصلاح مقدار اولیه و تبدیل تاریخ فیلترهای شمسی گزارش تولید — 2026-10-13
 
 - بررسی مجدد PR #59 نشان داد فیلد نمایشی تاریخ مقدار میلادی با جداکننده خط تیره می‌گرفت، در حالی که datepicker با قالب `YYYY/MM/DD` مقدار را parse می‌کرد؛ همچنین تبدیل timestamp با `new Date(unixDate)` می‌توانست به منطقه زمانی مرورگر وابسته باشد.
