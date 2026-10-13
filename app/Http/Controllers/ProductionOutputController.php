@@ -19,7 +19,30 @@ final class ProductionOutputController extends Controller
             ->where('po.company_id',$companyId)
             ->select('po.*','p.number as production_number','g.name as goods_name','l.name as location_name')
             ->latest('po.id')->paginate(20);
-        return view('production.outputs.index', compact('rows'));
+
+        // Include quantities received directly from production shift reports.
+        // These are already posted to inventory, so they are displayed separately
+        // and must not be processed again through production_outputs.
+        $shiftRows = DB::table('production_shift_reports as r')
+            ->join('goods as g', 'g.id', '=', 'r.goods_id')
+            ->leftJoin('production_sections as s', 's.id', '=', 'r.production_section_id')
+            ->leftJoin('locations as l', 'l.id', '=', 'r.warehouse_location_id')
+            ->where('r.company_id', $companyId)
+            ->where('r.warehouse_quantity', '>', 0)
+            ->select(
+                'r.id as report_id',
+                'r.work_date',
+                'r.status',
+                'r.warehouse_quantity as quantity',
+                'g.name as goods_name',
+                's.name as section_name',
+                'l.name as location_name'
+            )
+            ->latest('r.warehouse_received_at')
+            ->latest('r.id')
+            ->paginate(20, ['*'], 'shift_page');
+
+        return view('production.outputs.index', compact('rows', 'shiftRows'));
     }
 
     public function create(Request $request)
