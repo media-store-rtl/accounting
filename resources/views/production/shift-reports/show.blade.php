@@ -81,7 +81,7 @@
 <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="submit" name="approve" value="1">تأیید گزارش</button><button class="btn" type="submit" name="approve" value="0" onclick="return confirm('گزارش رد شود؟');">رد گزارش</button></div></form></div>
 @elseif($row->status==='approved' && $canReceive)
 <div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">ثبت ورود فیزیکی کالا به انبار</h2><p class="detail-note">ثبت ورود فیزیکی برای کالای نیمه‌ساخته نیز مجاز است؛ نوع ثبت موجودی بر اساس قابل‌فروش بودن کالا تعیین می‌شود. مقدار سالم باقیمانده: {{ max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0)) }}</p>
-<form class="detail-form" method="POST" action="{{ route('production.shift-reports.receive',$row->id) }}">@csrf
+<form class="detail-form" method="POST" action="{{ route('production.shift-reports.receive',$row->id) }}">@csrf<input type="hidden" name="receipt_token" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
 <label>انبار مقصد<select name="warehouse_location_id" required><option value="">انتخاب انبار</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}" @selected((int)($row->warehouse_location_id ?? 0)===(int)$warehouse->id)>{{ $warehouse->name }}</option>@endforeach</select></label>
 <label>مقدار تحویل این‌بار<input name="warehouse_quantity" type="number" min="0.0001" max="{{ max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0)) }}" step="0.0001" required></label>
 <button class="btn primary" type="submit">ثبت ورود به انبار</button></form></div>
