@@ -42,3 +42,12 @@ If the user asks to inspect the project/status first and says not to make change
 ## Progress log is mandatory
 
 Every code or documentation change must be accompanied by an update to `PROJECT_PROGRESS.md` in the same branch/PR. Do not wait for the user to remind you. Explicitly mark tests, browser checks, migrations, and deployment as not run/not verified when applicable.
+
+
+## Explicit user approval is required for every merge
+
+- Do not merge any pull request on your own, even if it is small, documentation-only, has passing CI, is marked ready, or the user has approved implementation or PR creation.
+- Before merging, explain which PR will be merged and provide a concise summary of its changes and the actual verification/CI results, then wait for the user's explicit approval to merge that specific PR.
+- A clear instruction such as “merge PR #56” is explicit approval for that named PR only; it does not authorize merging other PRs. Do not infer permission from earlier approvals, urgency, silence, or general project instructions.
+- Never close a PR without explicit user permission either. Preserve any PR-specific restrictions, including the restriction on PR #52.
+- After an explicitly approved merge, verify the merged state and merge commit on GitHub and update PROJECT_PROGRESS.md in a follow-up branch/PR if needed; do not commit directly to main.
