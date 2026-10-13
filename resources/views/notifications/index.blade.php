@@ -161,7 +161,7 @@
                 @if($reportId && $canReviewProduction)
                     <div style="margin-top:10px;color:#9eb2c4;font-size:11px">
                         شماره گزارش تولید: <strong style="color:#e9f3fb">#{{ $reportId }}</strong>
-                        <a href="{{ route('production.shift-reports.index') }}#shift-report-{{ $reportId }}" style="margin-right:10px;color:#6ee7d0;text-decoration:none">بررسی گزارش تولید ←</a>
+                        <a href="{{ route('production.shift-reports.show', $reportId) }}" style="margin-right:10px;color:#6ee7d0;text-decoration:none">بررسی گزارش تولید ←</a>
                     </div>
                 @endif
                 @if($orderId)
