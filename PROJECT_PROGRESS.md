@@ -437,3 +437,11 @@
 - مرکز اعلان‌ها عنوان و جزئیات گزارش (شماره، تاریخ، قسمت، کارگر، محصول، مقدار تولید و ضایعات) را نشان می‌دهد و پیوند بررسی، ردیف گزارش مربوط را باز می‌کند.
 - فایل‌های تغییرکرده: `app/Http/Controllers/ProductionShiftReportController.php`, `app/Services/NotificationRecipientService.php`, `app/Http/Controllers/NotificationRecipientController.php`, `resources/views/notifications/index.blade.php`, `resources/views/production/shift-reports/index.blade.php`, `PROJECT_PROGRESS.md`.
 - تغییرات در شاخه `fix/production-shift-report-notifications` ثبت و در PR [#52](https://github.com/media-store-rtl/accounting/pull/52) برای بازبینی به `main` پیشنهاد شده‌اند؛ PR باز است و ادغام نشده است. تست خودکار، بررسی مرورگر، اجرای مهاجرت و Deploy سایت زنده انجام نشده‌اند.
+
+
+# 75. جداسازی فرم ثبت تولید از فهرست و جزئیات گزارش‌ها — 2026-10-13
+- مسیر ثبت تولید شیفت به صفحه مستقل `/production/shift-reports/create` منتقل شد؛ صفحه اصلی `/production/shift-reports` فهرست گزارش‌ها را با فیلتر وضعیت، قسمت، کارگر، بازه تاریخ و جست‌وجوی شماره/محصول/کارگر/قسمت نمایش می‌دهد.
+- صفحه جزئیات مستقل برای هر گزارش ایجاد شد و مواد مصرفی، ضایعات، ساعات کار، وضعیت بررسی و تحویل به انبار را نشان می‌دهد؛ تأیید/رد و تحویل به انبار از همان صفحه انجام می‌شود.
+- لینک اعلان سرپرست مستقیماً به جزئیات گزارش مربوط هدایت می‌شود. منوی تولید دسکتاپ و موبایل بین «ثبت تولید شیفت» و «گزارش‌های تولید» تفکیک شد.
+- فایل‌های تغییرکرده: `app/Http/Controllers/ProductionShiftReportController.php`, `routes/web.php`, `resources/views/layouts/dashboard-shell.blade.php`, `resources/views/notifications/index.blade.php`, `resources/views/production/shift-reports/create.blade.php`, `resources/views/production/shift-reports/index.blade.php`, `resources/views/production/shift-reports/show.blade.php`, `PROJECT_PROGRESS.md`.
+- این تغییر در شاخه `feat/production-shift-reports-pages` بر پایه شاخه اعلان‌ها آماده PR شده است؛ تست خودکار، بررسی مرورگر و Deploy سایت زنده هنوز انجام نشده‌اند.
