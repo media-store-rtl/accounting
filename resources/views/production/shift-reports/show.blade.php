@@ -2,7 +2,7 @@
 @section('title', 'جزئیات گزارش تولید')
 @section('content')
 <style>
-.detail-page{display:grid;gap:18px}.detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}.detail-head h1{margin:0;font-size:24px}.detail-head p{margin:7px 0 0;color:#8ba1b5;font-size:12px;line-height:1.9}.detail-btn{display:inline-flex;padding:10px 13px;border-radius:9px;border:1px solid #29465e;background:#12314a;color:#e9f3fb;text-decoration:none;font-size:12px}.detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.detail-item{padding:13px;border:1px solid #20384c;border-radius:10px;background:#0b1e2e}.detail-item span{display:block;color:#8ba1b5;font-size:10px;margin-bottom:7px}.detail-item strong{font-size:13px;overflow-wrap:anywhere}.detail-table{width:100%;border-collapse:collapse}.detail-table th,.detail-table td{text-align:right;padding:11px;border-bottom:1px solid #20384c;font-size:12px}.detail-table th{color:#8ba1b5}.detail-status{display:inline-block;padding:6px 10px;border-radius:18px;background:#302b20;color:#f3d58c;font-size:11px}.detail-status.good{background:#12372f;color:#6ee7d0}.detail-status.bad{background:#3b2528;color:#ffb8a8}.detail-form{display:grid;gap:12px;max-width:700px}.detail-form input,.detail-form select,.detail-form textarea{width:100%;background:#071725;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:10px;font:inherit}.detail-form label{display:grid;gap:6px;color:#cce0ef;font-size:12px}.detail-note{color:#8ba1b5;font-size:12px;line-height:1.9}.detail-flash{padding:12px 14px;border-radius:10px;background:#12372f;color:#b8f5df;font-size:12px}
+.detail-page{display:grid;gap:18px}.detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}.detail-head h1{margin:0;font-size:24px}.detail-head p{margin:7px 0 0;color:#8ba1b5;font-size:12px;line-height:1.9}.detail-btn{display:inline-flex;padding:10px 13px;border-radius:9px;border:1px solid #29465e;background:#12314a;color:#e9f3fb;text-decoration:none;font-size:12px}.detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.detail-item{padding:13px;border:1px solid #20384c;border-radius:10px;background:#0b1e2e}.detail-item span{display:block;color:#8ba1b5;font-size:10px;margin-bottom:7px}.detail-item strong{font-size:13px;overflow-wrap:anywhere}.detail-table{width:100%;border-collapse:collapse}.detail-table th,.detail-table td{text-align:right;padding:11px;border-bottom:1px solid #20384c;font-size:12px}.detail-table th{color:#8ba1b5}.detail-status{display:inline-block;padding:6px 10px;border-radius:18px;background:#302b20;color:#f3d58c;font-size:11px}.detail-status.good{background:#12372f;color:#6ee7d0}.detail-status.bad{background:#3b2528;color:#ffb8a8}.detail-form{display:grid;gap:12px;max-width:700px}.detail-form input,.detail-form select,.detail-form textarea{width:100%;background:#071725;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:10px;font:inherit}.detail-form label{display:grid;gap:6px;color:#cce0ef;font-size:12px}.detail-note{color:#8ba1b5;font-size:12px;line-height:1.9}.detail-flash{padding:12px 14px;border-radius:10px;background:#12372f;color:#b8f5df;font-size:12px}.detail-edit{border:1px solid #29465e;border-radius:10px;padding:14px}.detail-edit summary{cursor:pointer;color:#9ee8db;font-size:13px;font-weight:700}.detail-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}.detail-material-line{display:grid;grid-template-columns:minmax(0,2fr) minmax(90px,1fr) minmax(90px,1fr);gap:8px;margin:8px 0}.detail-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.detail-check{display:flex!important;align-items:center;gap:8px!important;border:1px solid #20384c;border-radius:8px;padding:9px}.detail-check input{width:auto!important}.detail-edit-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}@media(max-width:650px){.detail-edit-grid,.detail-checks{grid-template-columns:1fr}.detail-material-line{grid-template-columns:1fr 1fr}.detail-material-line select{grid-column:1/-1}}
 @media(max-width:650px){.detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.detail-head h1{font-size:21px}}@media(max-width:420px){.detail-grid{grid-template-columns:1fr}}
 </style>
 <div class="detail-page">
@@ -23,6 +23,50 @@
 @if($row->review_notes)<div class="detail-item"><span>یادداشت بررسی</span><strong>{{ $row->review_notes }}</strong></div>@endif
 @if($row->notes)<div class="detail-item"><span>توضیحات ثبت‌کننده</span><strong>{{ $row->notes }}</strong></div>@endif
 </div></div>
+@if($canEdit)
+<div class="panel" style="padding:16px">
+<details class="detail-edit">
+<summary>✎ ویرایش اطلاعات این گزارش</summary>
+<p class="detail-note">مشخصات، مقادیر تولید، ساعات، مراحل و مواد مصرفی را اصلاح کنید. پس از ذخیره، گزارش دوباره در وضعیت «در انتظار تأیید» قرار می‌گیرد و تغییرات در سوابق ثبت می‌شوند.</p>
+<form class="detail-form" style="max-width:none" method="POST" action="{{ route('production.shift-reports.update',$row->id) }}">@csrf @method('PUT')
+<div class="detail-edit-grid">
+<label>تاریخ تولید<input type="date" name="work_date" value="{{ old('work_date', $row->work_date) }}" required></label>
+<label>قسمت تولید<select name="production_section_id" required>@foreach($sections as $section)<option value="{{ $section->id }}" @selected((int)old('production_section_id',$row->production_section_id)===(int)$section->id)>{{ $section->name }}</option>@endforeach</select></label>
+<label>کارگر<select name="personnel_id" required>@foreach($personnel as $worker)<option value="{{ $worker->id }}" @selected((int)old('personnel_id',$row->personnel_id)===(int)$worker->id)>{{ $worker->name }}</option>@endforeach</select></label>
+<label>محصول / قطعه<select name="goods_id" required>@foreach($goods as $good)<option value="{{ $good->id }}" @selected((int)old('goods_id',$row->goods_id)===(int)$good->id)>{{ $good->name }}{{ $good->code ? ' ('.$good->code.')' : '' }}</option>@endforeach</select></label>
+<label>تعداد تولیدشده<input name="produced_quantity" type="number" min="0.0001" step="0.0001" value="{{ old('produced_quantity',$row->produced_quantity) }}" required></label>
+<label>ضایعات محصول<input name="scrap_quantity" type="number" min="0" step="0.0001" value="{{ old('scrap_quantity',$row->scrap_quantity ?? 0) }}" required></label>
+<label>ساعات کارکرد<input name="worked_hours" type="number" min="0.01" max="24" step="0.01" value="{{ old('worked_hours',$row->worked_hours ?? 8) }}" required></label>
+<label>اضافه‌کاری (ساعت)<input name="overtime_hours" type="number" min="0" max="24" step="0.01" value="{{ old('overtime_hours',$row->overtime_hours ?? 0) }}"></label>
+<label>تعطیل‌کاری (ساعت)<input name="holiday_hours" type="number" min="0" max="24" step="0.01" value="{{ old('holiday_hours',$row->holiday_hours ?? 0) }}"></label>
+<label style="grid-column:1/-1">توضیحات ثبت‌کننده<textarea name="notes" rows="3" maxlength="2000">{{ old('notes',$row->notes) }}</textarea></label>
+</div>
+<div style="margin-top:16px"><strong style="font-size:12px">مراحل انجام‌شده</strong><div class="detail-checks" style="margin-top:9px">
+@foreach($stages as $stage)<label class="detail-check"><input type="checkbox" name="stages[{{ $loop->index }}][production_stage_id]" value="{{ $stage->id }}" @checked($reportedStages->contains('id',$stage->id))><span>{{ $stage->code ? $stage->code.' — ' : '' }}{{ $stage->name }}</span></label>@endforeach
+</div></div>
+<div style="margin-top:16px"><strong style="font-size:12px">مواد اولیه مصرف‌شده</strong>
+<div id="detail-material-lines">
+@if($materialUsage->isNotEmpty())
+@foreach($materialUsage as $material)
+<div class="detail-material-line">
+<select name="materials[{{ $loop->index }}][goods_id]"><option value="">انتخاب ماده اولیه</option>@foreach($materials as $option)<option value="{{ $option->id }}" @selected((int)$material->goods_id===(int)$option->id)>{{ $option->name }}{{ $option->code ? ' ('.$option->code.')' : '' }}</option>@endforeach</select>
+<input name="materials[{{ $loop->index }}][quantity]" type="number" min="0.0001" step="0.0001" placeholder="مقدار مصرف" value="{{ $material->quantity }}">
+<input name="materials[{{ $loop->index }}][scrap_quantity]" type="number" min="0" step="0.0001" placeholder="ضایعات ماده" value="{{ $material->scrap_quantity ?? 0 }}">
+</div>
+@endforeach
+@else
+<div class="detail-material-line"><select name="materials[0][goods_id]"><option value="">انتخاب ماده اولیه</option>@foreach($materials as $option)<option value="{{ $option->id }}">{{ $option->name }}{{ $option->code ? ' ('.$option->code.')' : '' }}</option>@endforeach</select><input name="materials[0][quantity]" type="number" min="0.0001" step="0.0001" placeholder="مقدار مصرف"><input name="materials[0][scrap_quantity]" type="number" min="0" step="0.0001" placeholder="ضایعات ماده" value="0"></div>
+@endif
+</div>
+<template id="detail-material-template"><div class="detail-material-line"><select name="materials[__INDEX__][goods_id]"><option value="">انتخاب ماده اولیه</option>@foreach($materials as $option)<option value="{{ $option->id }}">{{ $option->name }}{{ $option->code ? ' ('.$option->code.')' : '' }}</option>@endforeach</select><input name="materials[__INDEX__][quantity]" type="number" min="0.0001" step="0.0001" placeholder="مقدار مصرف"><input name="materials[__INDEX__][scrap_quantity]" type="number" min="0" step="0.0001" placeholder="ضایعات ماده" value="0"></div></template>
+<button class="detail-btn" type="button" id="detail-add-material" style="margin-top:8px;cursor:pointer">+ افزودن ماده اولیه</button>
+<p class="detail-note">برای حذف یک ماده از گزارش، گزینهٔ ماده و مقدار مصرف آن ردیف را خالی بگذارید.</p>
+</div>
+<div class="detail-edit-actions"><button class="btn primary" type="submit">ذخیره اصلاحات و ارسال برای تأیید</button></div>
+</form>
+</details>
+</div>
+@endif
 <div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">مراحل ثبت‌شده</h2>
 @if($reportedStages->isEmpty())<p class="detail-note">برای این گزارش مرحله‌ای ثبت نشده است.</p>@else<div style="display:flex;gap:8px;flex-wrap:wrap">@foreach($reportedStages as $stage)<span class="detail-status good">{{ $stage->code ? $stage->code.' — ' : '' }}{{ $stage->name }}</span>@endforeach</div>@endif
 </div>
@@ -44,5 +88,14 @@
 </div>
 @push('scripts')<script>
 document.querySelectorAll('.shift-date-display[data-iso-date]').forEach(el=>{const raw=(el.dataset.isoDate||'').slice(0,10),m=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return;const date=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));el.textContent=new Intl.DateTimeFormat('fa-IR-u-ca-persian',{year:'numeric',month:'2-digit',day:'2-digit'}).format(date);});
+const addMaterial=document.getElementById('detail-add-material');
+if(addMaterial){
+  addMaterial.addEventListener('click',()=>{
+    const container=document.getElementById('detail-material-lines');
+    const template=document.getElementById('detail-material-template');
+    const index=container.querySelectorAll('.detail-material-line').length;
+    container.insertAdjacentHTML('beforeend',template.innerHTML.replaceAll('__INDEX__',String(index)));
+  });
+}
 </script>@endpush
 @endsection
