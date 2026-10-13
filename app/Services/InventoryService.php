@@ -73,11 +73,6 @@ class InventoryService
         $this->receiveIntoInventory($companyId,$locationId,$goodsId,$quantity,'finished_goods_receipt',$referenceType,$referenceId,$metadata);
     }
 
-    public function receiveIntermediateGoods(int $companyId,int $locationId,int $goodsId,float $quantity,string $referenceType,int $referenceId,array $metadata=[]): void
-    {
-        $this->receiveIntoInventory($companyId,$locationId,$goodsId,$quantity,'production_intermediate_receipt',$referenceType,$referenceId,$metadata);
-    }
-
     public function adjust(int $companyId,int $locationId,int $goodsId,float $newQuantity,string $reason,int $userId): void
     {
         if ($newQuantity < 0) throw new RuntimeException('موجودی نهایی نمی‌تواند منفی باشد.');
