@@ -54,6 +54,7 @@ class NotificationRecipientService
         $requiredPermission = match ($event) {
             'order.production_required' => 'production.supervise',
             'production.shift_report_pending' => 'production.operation.review',
+            'production.shift_report_warehouse_receipt' => 'production.output.receive',
             'supply.stock_check_required' => 'supply_request.handover.create',
             'supply.shortage' => 'supply.manage',
             'supply.stock_rejected' => 'supply_request.create',
