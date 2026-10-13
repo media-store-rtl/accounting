@@ -114,8 +114,4 @@ class ProductionShiftReportStagesTest extends TestCase
             ->where('production_shift_report_id', $reportId)->count());
     }
 
-    public function test_shift_report_rejects_duplicate_stage_selection(): void
-    {
-        $this->markTestSkipped('Covered by server-side duplicate validation; integration fixture is exercised by the multi-stage persistence test.');
-    }
 }
