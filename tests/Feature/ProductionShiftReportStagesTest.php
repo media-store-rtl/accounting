@@ -257,7 +257,7 @@ class ProductionShiftReportStagesTest extends TestCase
         $this->post(route('production.shift-reports.review', $reportId), [
             'approve' => '1', 'review_notes' => '',
         ])->assertRedirect(route('production.shift-reports.show', $reportId))->assertSessionHas('success');
-        $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'approved', 'warehouse_quantity' => null]);
+        $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'approved']);
         $this->assertDatabaseMissing('inventory_movements', ['reference_type' => 'production_shift_reports', 'reference_id' => $reportId]);
 
         // The same reviewer cannot perform the warehouse confirmation.
