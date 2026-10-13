@@ -116,6 +116,9 @@ class ProductionShiftReportStagesTest extends TestCase
         $this->get(route('production.shift-reports.show', $reportId))
             ->assertOk()
             ->assertSee('ویرایش اطلاعات این گزارش');
+        $this->get(route('production.shift-reports.show', $reportId))
+            ->assertSee('۲۰')
+            ->assertDontSee('20.0000');
 
         $this->put(route('production.shift-reports.update', $reportId), [
             'production_section_id' => $section,
@@ -178,6 +181,31 @@ class ProductionShiftReportStagesTest extends TestCase
             'scrap_quantity' => 2,
             'stages' => [['production_stage_id' => $stageTwo]],
         ])->assertSessionHasErrors('report');
+
+        DB::table('production_shift_reports')->where('id', $reportId)->update(['status' => 'pending']);
+        $this->from(route('production.shift-reports.show', $reportId))
+            ->post(route('production.shift-reports.review', $reportId), [
+                'approve' => '0',
+                'review_notes' => '',
+            ])->assertSessionHasErrors('review_notes');
+        $this->assertDatabaseHas('production_shift_reports', [
+            'id' => $reportId,
+            'status' => 'pending',
+        ]);
+
+        $this->from(route('production.shift-reports.show', $reportId))
+            ->post(route('production.shift-reports.review', $reportId), [
+                'approve' => '0',
+                'review_notes' => 'مقدار تولید با برگه کار مطابقت ندارد',
+            ])->assertSessionHas('success');
+        $this->assertDatabaseHas('production_shift_reports', [
+            'id' => $reportId,
+            'status' => 'rejected',
+            'review_notes' => 'مقدار تولید با برگه کار مطابقت ندارد',
+        ]);
+        $this->get(route('production.shift-reports.show', $reportId))
+            ->assertSee('ردشده')
+            ->assertSee('مقدار تولید با برگه کار مطابقت ندارد');
     }
 
 }
