@@ -82,7 +82,7 @@ final class ProductionShiftReportController extends Controller
             ->leftJoin('locations as warehouse', 'warehouse.id', '=', 'r.warehouse_location_id')
             ->where('r.company_id', $companyId)->where('r.id', $report)
             ->first(['r.*', 'sec_location.name as section_name', 'g.name as goods_name', 'g.code as goods_code',
-                'reporter.name as reporter_name', 'worker.name as worker_name', 'reviewer.name as reviewer_name', 'warehouse.name as warehouse_name']);
+                'reporter.name as reporter_name', 'worker.name as worker_name', 'reviewer.name as reviewer_name', 'warehouse.name as warehouse_name', 'g.sellable as goods_sellable']);
         abort_unless($row, 404);
         $reportedStages = DB::table('production_shift_report_stages as rs')->join('production_stages as ps', 'ps.id', '=', 'rs.production_stage_id')
             ->where('rs.company_id', $companyId)->where('rs.production_shift_report_id', $report)
