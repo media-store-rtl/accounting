@@ -23,7 +23,7 @@
                 <td><span class="production-output-date" data-iso-date="{{ $r->row_date }}">{{ $r->row_date }}</span></td>
                 <td>{{ $r->section_name ?? '—' }}</td>
                 <td>{{ $r->goods_name }}</td>
-                <td><span class="production-output-quantity" data-quantity="{{ $r->quantity }}">{{ $r->quantity }}</span></td>
+                <td><span class="production-output-quantity" data-quantity="{{ $r->quantity }}">{{ \\App\\Support\\PersianQuantityFormatter::format($r->quantity) }}</span></td>
                 <td>{{ $r->location_name ?? '—' }}</td>
                 <td>
                     @if($r->row_type === 'shift')
