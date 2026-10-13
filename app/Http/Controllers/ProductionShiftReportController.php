@@ -393,7 +393,8 @@ final class ProductionShiftReportController extends Controller
         if (!(bool) $data['approve'] && blank($data['review_notes'] ?? null)) {
             throw ValidationException::withMessages(['review_notes' => 'برای رد گزارش، دلیل رد را وارد کنید.']);
         }
-        DB::transaction(function () use ($companyId, $report, $data, $request, $inventory) {
+        $transferredToWarehouse = false;
+        DB::transaction(function () use ($companyId, $report, $data, $request, $inventory, &$transferredToWarehouse) {
             $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
             if (!$row || $row->status !== 'pending') throw ValidationException::withMessages(['report' => 'این گزارش دیگر در انتظار بررسی نیست.']);
 
@@ -436,6 +437,7 @@ final class ProductionShiftReportController extends Controller
                         ]
                     );
                     $nextStatus = 'received';
+                    $transferredToWarehouse = true;
                     DB::table('production_shift_reports')->where('id', $report)->where('company_id', $companyId)->update([
                         'warehouse_location_id' => (int) $data['warehouse_location_id'],
                         'warehouse_quantity' => $quantity,
@@ -460,7 +462,7 @@ final class ProductionShiftReportController extends Controller
             ]);
         });
         return back()->with('success', $data['approve']
-            ? ((bool) $request->input('warehouse_location_id') ? 'گزارش تأیید شد و موجودی محصول نهایی به انبار منتقل شد.' : 'گزارش تولید کالای نیمه‌ساخته تأیید شد؛ انتقال به انبار انجام نشد.')
+            ? ($transferredToWarehouse ? 'گزارش تأیید شد و موجودی محصول نهایی به انبار منتقل شد.' : 'گزارش تولید کالای نیمه‌ساخته تأیید شد؛ انتقال به انبار انجام نشد.')
             : 'گزارش شیفت رد شد.');
     }
 
