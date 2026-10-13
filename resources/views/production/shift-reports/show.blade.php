@@ -75,26 +75,18 @@
 <div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">مواد اولیه مصرف‌شده</h2>
 @if($materialUsage->isEmpty())<p class="detail-note">برای این گزارش ماده اولیه‌ای ثبت نشده است.</p>@else<div style="overflow:auto"><table class="detail-table"><thead><tr><th>ماده اولیه</th><th>مقدار مصرف</th><th>ضایعات ماده</th></tr></thead><tbody>@foreach($materialUsage as $material)<tr><td>{{ $material->name }} @if($material->code)({{ $material->code }})@endif</td><td>{{ \App\Support\PersianQuantityFormatter::format($material->quantity) }}</td><td>{{ \App\Support\PersianQuantityFormatter::format($material->scrap_quantity ?? 0) }}</td></tr>@endforeach</tbody></table></div>@endif
 </div>
-@if($row->status==='approved' && $canReceive && (bool)($row->goods_sellable ?? false) && max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0)) > 0)
-<div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">تحویل محصول به انبار</h2>
-<p class="detail-note">این گزارش تأیید شده اما هنوز بخشی از تولید سالم به انبار تحویل نشده است. انبار و مقدار تحویل را مشخص کنید. ثبت ورود، موجودی انبار را افزایش می‌دهد.</p>
-@if($warehouses->isEmpty())
-<p class="detail-note">انبار فعالی برای این شرکت پیدا نشد. در بخش «انبارها و محل‌ها» یک انبار فعال ثبت کنید یا نوع محل موجود را «انبار» قرار دهید.</p>
+@if($canRequestHandover && $row->status==='approved' && (bool)($row->goods_sellable ?? false) && max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0)) > 0)
+<div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">ثبت تحویل محصول به انبار</h2><p class="detail-note">شما به‌عنوان ایجادکننده گزارش، تحویل‌دهنده هستید. موجودی فقط پس از تأیید تحویل‌گیرنده افزایش می‌یابد.</p>
+@if($warehouseReceivers->isEmpty())<p class="detail-note">کاربر فعالی با مجوز «دریافت کالای ساخته‌شده» پیدا نشد. مدیر باید این مجوز را به نقش کاربر انبار بدهد.</p>@endif
+<form class="detail-form" method="POST" action="{{ route('production.shift-reports.receive',$row->id) }}">@csrf<input type="hidden" name="receipt_token" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
+<label>انبار مقصد<select name="warehouse_location_id" required @disabled($warehouses->isEmpty())><option value="">انتخاب انبار</option>@foreach($warehouses as $warehouse)@if((float)($row->warehouse_quantity ?? 0) <= 0 || (int)$row->warehouse_location_id === (int)$warehouse->id)<option value="{{ $warehouse->id }}" @selected((int)($row->warehouse_location_id ?? 0)===(int)$warehouse->id)>{{ $warehouse->name }}</option>@endif @endforeach</select></label>
+<label>تحویل‌گیرنده انبار<select name="warehouse_receiver_user_id" required @disabled($warehouseReceivers->isEmpty())><option value="">انتخاب کاربر انبار</option>@foreach($warehouseReceivers as $receiver)<option value="{{ $receiver->id }}">{{ $receiver->name }}</option>@endforeach</select></label>
+<label>مقدار تحویل<input name="warehouse_quantity" type="number" min="0.0001" max="{{ max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0)) }}" step="0.0001" value="{{ max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0)) }}" required></label>
+<button class="btn primary receive-inventory-submit" type="submit" @disabled($warehouses->isEmpty() || $warehouseReceivers->isEmpty()) onclick="return confirm('درخواست تحویل برای تأیید تحویل‌گیرنده ثبت شود؟ تا تأیید او موجودی تغییر نمی‌کند.');">ثبت درخواست تحویل</button></form></div>
 @endif
-<form class="detail-form" method="POST" action="{{ route('production.shift-reports.receive',$row->id) }}">@csrf
-<input type="hidden" name="receipt_token" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
-<label>انبار مقصد<select name="warehouse_location_id" required @disabled($warehouses->isEmpty())>
-<option value="">{{ $warehouses->isEmpty() ? 'انبار فعالی موجود نیست' : 'انتخاب انبار' }}</option>
-@foreach($warehouses as $warehouse)
-@if((float)($row->warehouse_quantity ?? 0) <= 0 || (int)$row->warehouse_location_id === (int)$warehouse->id)
-<option value="{{ $warehouse->id }}" @selected((int)($row->warehouse_location_id ?? 0)===(int)$warehouse->id)>{{ $warehouse->name }}</option>
-@endif
-@endforeach
-</select></label>
-<label>مقدار تحویل به انبار<input name="warehouse_quantity" type="number" min="0.0001" max="{{ max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0)) }}" step="0.0001" value="{{ max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0)) }}" required></label>
-<button class="btn primary receive-inventory-submit" type="submit" @disabled($warehouses->isEmpty()) onclick="return confirm('ثبت ورود محصول به انبار و افزایش موجودی انجام شود؟');">ثبت ورود به انبار</button>
-</form></div>
-@endif
+@if($warehouseHandovers->isNotEmpty())<div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">سوابق تحویل محصول به انبار</h2><div style="overflow:auto"><table class="detail-table"><thead><tr><th>مقدار</th><th>انبار</th><th>تحویل‌دهنده</th><th>تحویل‌گیرنده</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
+@foreach($warehouseHandovers as $handover)<tr><td>{{ \App\Support\PersianQuantityFormatter::format($handover->quantity) }}</td><td>{{ $handover->warehouse_name ?: '—' }}</td><td>{{ $handover->deliverer_name }}</td><td>{{ $handover->receiver_name ?: '—' }}</td><td>{{ $handover->status === 'received' ? 'تأیید و وارد موجودی شده' : 'در انتظار تأیید' }}</td><td>@if($handover->status==='pending' && $canReceive && (int)$handover->warehouse_receiver_user_id === (int)auth()->id())<form method="POST" action="{{ route('production.shift-reports.handover.confirm',[$row->id,$handover->id]) }}">@csrf<button class="btn primary" type="submit" onclick="return confirm('تحویل را تأیید می‌کنید؟ موجودی انبار پس از تأیید افزایش می‌یابد.');">تأیید دریافت</button></form>@elseif($handover->status==='pending')—@else{{ $handover->received_at ? \Illuminate\Support\Carbon::parse($handover->received_at)->format('Y/m/d H:i') : '—' }} @if($handover->confirmer_name)({{ $handover->confirmer_name }})@endif @endif</td></tr>@endforeach
+</tbody></table></div><p class="detail-note">درخواست‌های در انتظار تأیید هنوز در موجودی انبار محاسبه نشده‌اند.</p></div>@endif
 @if($row->status==='pending' && $canReview)
 <div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">بررسی سرپرست</h2><p class="detail-note">پس از بررسی مقدار تولید، ضایعات و مواد مصرفی، گزارش را تأیید یا رد کنید. تأیید گزارش فقط وضعیت آن را تغییر می‌دهد؛ گزینه «تحویل محصول به انبار» بعد از تأیید و در بخش جداگانه نمایش داده می‌شود.</p>
 <form class="detail-form" method="POST" action="{{ route('production.shift-reports.review',$row->id) }}">@csrf
