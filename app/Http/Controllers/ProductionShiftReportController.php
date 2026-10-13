@@ -418,10 +418,8 @@ final class ProductionShiftReportController extends Controller
         DB::transaction(function () use ($companyId, $report, $data, $request, $inventory) {
             $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
             if (!$row || $row->status !== 'approved') throw ValidationException::withMessages(['report' => 'فقط گزارش تأییدشده با مقدار باقی‌مانده قابل تحویل به انبار است.']);
-            $goods = DB::table('goods')->where('company_id', $companyId)->where('id', $row->goods_id)->first(['sellable']);
-            if (!$goods || !(bool) $goods->sellable) {
-                throw ValidationException::withMessages(['report' => 'این کالا به‌عنوان کالای قابل فروش/محصول نهایی تعریف نشده است؛ آن را از مسیر تحویل محصول نهایی به انبار ثبت نکنید.']);
-            }
+            $goods = DB::table('goods')->where('company_id', $companyId)->where('id', $row->goods_id)->first(['sellable', 'producible']);
+            if (!$goods) throw ValidationException::withMessages(['report' => 'کالای این گزارش در شرکت پیدا نشد.']);
             $quantity = (float)$data['warehouse_quantity'];
             $available = max(0, (float)$row->produced_quantity - (float)$row->scrap_quantity);
             $alreadyReceived = (float)($row->warehouse_quantity ?? 0);
@@ -429,8 +427,14 @@ final class ProductionShiftReportController extends Controller
             if ($alreadyReceived > 0 && (int)$row->warehouse_location_id !== (int)$data['warehouse_location_id']) throw ValidationException::withMessages(['warehouse_location_id' => 'برای تحویل‌های یک گزارش، همان انبار قبلی را انتخاب کنید.']);
             $warehouse = DB::table('locations')->where('id', (int)$data['warehouse_location_id'])->where('company_id', $companyId)->where('type', 'warehouse')->where('is_active', true)->exists();
             if (!$warehouse) throw ValidationException::withMessages(['warehouse_location_id' => 'انبار معتبر نیست.']);
-            $inventory->receiveFinishedGoods($companyId, (int)$data['warehouse_location_id'], (int)$row->goods_id, $quantity,
-                'production_shift_reports', $report, ['production_section_id' => (int)$row->production_section_id, 'shift_name' => $row->shift_name, 'work_date' => $row->work_date, 'reported_by_user_id' => (int)$row->reported_by_user_id]);
+            $metadata = ['production_section_id' => (int)$row->production_section_id, 'shift_name' => $row->shift_name, 'work_date' => $row->work_date, 'reported_by_user_id' => (int)$row->reported_by_user_id];
+            if ((bool) $goods->sellable) {
+                $inventory->receiveFinishedGoods($companyId, (int)$data['warehouse_location_id'], (int)$row->goods_id, $quantity,
+                    'production_shift_reports', $report, $metadata);
+            } else {
+                $inventory->receiveIntermediateGoods($companyId, (int)$data['warehouse_location_id'], (int)$row->goods_id, $quantity,
+                    'production_shift_reports', $report, $metadata);
+            }
             DB::table('production_shift_reports')->where('id', $report)->where('company_id', $companyId)->update([
                 'warehouse_location_id' => (int)$data['warehouse_location_id'], 'warehouse_quantity' => $alreadyReceived + $quantity,
                 'status' => ($alreadyReceived + $quantity >= $available - 0.0000001) ? 'received' : 'approved',
