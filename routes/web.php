@@ -134,6 +134,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/production/shift-reports/{report}', [\App\Http\Controllers\ProductionShiftReportController::class,'update'])->middleware('company.permission:production.operation.review')->whereNumber('report')->name('production.shift-reports.update');
     Route::post('/production/shift-reports/{report}/review', [\App\Http\Controllers\ProductionShiftReportController::class,'review'])->middleware('company.permission:production.operation.review')->whereNumber('report')->name('production.shift-reports.review');
     Route::post('/production/shift-reports/{report}/receive', [\App\Http\Controllers\ProductionShiftReportController::class,'receive'])->middleware('company.permission:production.output.receive')->whereNumber('report')->name('production.shift-reports.receive');
+    Route::post('/production/outputs/shift-reports/{report}/receive', [ProductionOutputController::class, 'receiveShiftReport'])->middleware('company.permission:production.output.receive')->whereNumber('report')->name('production.outputs.shift-reports.receive');
 
     Route::get('/production/execution', [\App\Http\Controllers\ProductionExecutionController::class,'index'])->middleware('company.permission:production.operation.view')->name('production.execution.index');
     Route::get('/production/execution/create', [\App\Http\Controllers\ProductionExecutionController::class,'create'])->middleware('company.permission:production.operation.create')->name('production.execution.create');
