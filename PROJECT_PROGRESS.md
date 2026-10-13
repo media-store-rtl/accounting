@@ -469,3 +469,10 @@
 - PR #54 همچنان باز است و ادغام نشده؛ هیچ PRی بدون تأیید کاربر ادغام نخواهد شد.
 
 - وضعیت CI پس از اصلاحات، در آخرین بررسی: دو اجرای جدید `phpunit` در حال اجرا هستند؛ اجرای تازه‌تر هنوز در `composer install` است و مرحله migration/تست‌ها هنوز به نتیجه نرسیده است. [اجرای تازه‌تر](https://github.com/media-store-rtl/accounting/actions/runs/38353483594/job/115150942555) · [اجرای دیگر](https://github.com/media-store-rtl/accounting/actions/runs/38353479305/job/115150928880).
+
+
+## نتیجه نهایی اجرای مجدد CI برای PR #54 — 2026-10-13
+- هر دو اجرای جدید پس از اصلاح migrationها کامل شدند، اما وضعیت نهایی هر دو `failure` است: [اجرای A](https://github.com/media-store-rtl/accounting/actions/runs/38353521092/job/115151063185) و [اجرای B](https://github.com/media-store-rtl/accounting/actions/runs/38353516022/job/115151046580).
+- نکته مهم: مرحله `php artisan migrate --force` در هر دو اجرا از خطای قبلی عبور کرد و تست‌ها اجرا شدند؛ خطای `no such table: production_shift_reports` تکرار نشد.
+- هر دو اجرای PHPUnit یکسان گزارش کردند: `3 failed, 29 passed (158 assertions)`. شکست‌ها در `SalesOperationalWorkflowTest` (وضعیت خروجی تولید به‌جای `confirmed` مقدار `received` دارد؛ و اعلان WorkflowNotification مورد انتظار ارسال نشده) و `UserAccessTest` (انتظار 422، دریافت 403) هستند. این موارد به خطای migration مربوط نیستند و در محدوده اصلاح migration درخواست‌شده قرار نداشتند؛ برای جلوگیری از تغییرات نامرتبط، در این مرحله دست‌نخورده ماندند.
+- PR #54 هنوز باز و ادغام‌نشده است. تغییرات migration و این گزارش در شاخه `feat/production-shift-reports-mobile-cards` هستند. تست موبایل واقعی و Deploy انجام نشده‌اند.
