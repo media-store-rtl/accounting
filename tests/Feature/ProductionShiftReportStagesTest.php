@@ -242,26 +242,43 @@ class ProductionShiftReportStagesTest extends TestCase
             'reference_id' => $reportId,
         ]);
 
-        // Approving a sellable finished good transfers its full good quantity in the same action.
+        // Approving a sellable finished good queues warehouse receipt but must not increase inventory.
         DB::table('production_shift_reports')->where('id', $reportId)->update(['status' => 'pending']);
         DB::table('goods')->where('id', $goods)->update(['sellable' => true]);
+        $warehouseUserId = DB::table('users')->insertGetId([
+            'account_id' => $account, 'name' => 'Warehouse Supervisor', 'username' => 'whs' . uniqid(),
+            'email' => uniqid() . '@test.local', 'password' => Hash::make('secret'),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('company_user')->insert([
+            'company_id' => $company, 'user_id' => $warehouseUserId, 'role_id' => $role,
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
         $this->post(route('production.shift-reports.review', $reportId), [
-            'approve' => '1',
-            'review_notes' => '',
-            'warehouse_location_id' => $warehouse,
-            'warehouse_quantity' => 16,
-            'receipt_token' => (string) \Illuminate\Support\Str::uuid(),
-        ])->assertRedirect(route('production.shift-reports.show', $reportId))
-            ->assertSessionHas('success');
+            'approve' => '1', 'review_notes' => '',
+        ])->assertRedirect(route('production.shift-reports.show', $reportId))->assertSessionHas('success');
+        $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'approved']);
+        $this->assertDatabaseMissing('inventory_movements', ['reference_type' => 'production_shift_reports', 'reference_id' => $reportId]);
+        $this->assertDatabaseHas('notifications', [
+            'notifiable_id' => $warehouseUserId,
+            'type' => 'production.shift_report_warehouse_receipt',
+        ]);
+
+        // The same reviewer cannot perform the warehouse confirmation.
+        $this->post(route('production.outputs.shift-reports.receive', $reportId), ['warehouse_location_id' => $warehouse])
+            ->assertSessionHasErrors('report');
+
+        // A separate warehouse user confirms the complete quantity and posts inventory once.
+        $this->actingAs(User::findOrFail($warehouseUserId));
+        $this->post(route('production.outputs.shift-reports.receive', $reportId), ['warehouse_location_id' => $warehouse])
+            ->assertRedirect()->assertSessionHas('success');
         $this->assertDatabaseHas('inventory_movements', [
-            'company_id' => $company,
-            'location_id' => $warehouse,
-            'reference_type' => 'production_shift_reports',
-            'reference_id' => $reportId,
-            'movement_type' => 'finished_goods_receipt',
-            'quantity' => 16,
+            'company_id' => $company, 'location_id' => $warehouse, 'reference_type' => 'production_shift_reports',
+            'reference_id' => $reportId, 'movement_type' => 'finished_goods_receipt', 'quantity' => 16,
         ]);
         $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'received', 'warehouse_quantity' => 16]);
+        $this->post(route('production.outputs.shift-reports.receive', $reportId), ['warehouse_location_id' => $warehouse])
+            ->assertSessionHasErrors('report');
 
         // Rejecting a report must not require warehouse-transfer fields, even for sellable goods.
         DB::table('production_shift_reports')->where('id', $reportId)->update(['status' => 'pending']);
@@ -273,6 +290,7 @@ class ProductionShiftReportStagesTest extends TestCase
         $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'rejected']);
 
         // A supervisor without warehouse-receipt permission must still be able to approve the report.
+        $movementCountBeforeFinalApproval = DB::table('inventory_movements')->where('reference_type', 'production_shift_reports')->where('reference_id', $reportId)->count();
         DB::table('production_shift_reports')->where('id', $reportId)->update(['status' => 'pending']);
         $receivePermissionId = DB::table('permissions')->where('slug', 'production.output.receive')->value('id');
         DB::table('role_permissions')->where('role_id', $role)->where('permission_id', $receivePermissionId)->delete();
@@ -280,7 +298,7 @@ class ProductionShiftReportStagesTest extends TestCase
         $this->get(route('production.shift-reports.show', $reportId))
             ->assertOk()
             ->assertSee('تأیید گزارش')
-            ->assertSee('انتقال محصول نهایی به انبار باید بعداً');
+            ->assertSee('تأیید گزارش فقط وضعیت آن را تغییر می‌دهد');
 
         $this->post(route('production.shift-reports.review', $reportId), [
             'approve' => '1',
@@ -289,10 +307,8 @@ class ProductionShiftReportStagesTest extends TestCase
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'approved']);
-        $this->assertDatabaseMissing('inventory_movements', [
-            'reference_type' => 'production_shift_reports',
-            'reference_id' => $reportId,
-        ]);
+        $this->assertSame($movementCountBeforeFinalApproval, DB::table('inventory_movements')
+            ->where('reference_type', 'production_shift_reports')->where('reference_id', $reportId)->count());
     }
 
 }
