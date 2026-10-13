@@ -33,33 +33,14 @@
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
-<script>
+<script type="module">
+import { setupProductionReportDatePicker } from '/js/production-report-date-filters.js';
 document.addEventListener('DOMContentLoaded', function () {
-  const setupPersianDatepicker = (pickerSelector, isoSelector) => {
-    const picker = document.querySelector(pickerSelector);
-    const isoField = document.querySelector(isoSelector);
-    if (!picker || !isoField || !window.jQuery || !jQuery.fn.persianDatepicker) return;
-    jQuery(picker).persianDatepicker({
-      calendarType: 'persian',
-      initialValue: Boolean(picker.value),
-      initialValueType: 'gregorian',
-      format: 'YYYY/MM/DD',
-      altField: isoSelector,
-      altFormat: 'YYYY-MM-DD',
-      altFieldFormatter: function (unixDate) {
-        const date = new Date(unixDate);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return year + '-' + month + '-' + day;
-      },
-      calendar: { persian: { locale: 'fa' } },
-      toolbox: { calendarSwitch: { enabled: false }, todayButton: { enabled: true, text: { fa: 'امروز' } } }
-    });
-  };
-  setupPersianDatepicker('#from_picker', '#from');
-  setupPersianDatepicker('#to_picker', '#to');
+  setupProductionReportDatePicker('#from_picker', '#from');
+  setupProductionReportDatePicker('#to_picker', '#to');
 });
+</script>
+<script>
 document.querySelectorAll('.production-quantity-display[data-quantity]').forEach(el=>{const value=Number(el.dataset.quantity);if(!Number.isFinite(value))return;el.textContent=new Intl.NumberFormat('fa-IR',{useGrouping:false,maximumFractionDigits:4}).format(value);});
 document.querySelectorAll('.shift-date-display[data-iso-date]').forEach(el=>{const raw=(el.dataset.isoDate||'').slice(0,10),m=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return;const date=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));el.textContent=new Intl.DateTimeFormat('fa-IR-u-ca-persian',{year:'numeric',month:'2-digit',day:'2-digit'}).format(date);});
 </script>@endpush
