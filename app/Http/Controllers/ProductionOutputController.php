@@ -35,7 +35,7 @@ final class ProductionOutputController extends Controller
                 'r.status',
                 'r.warehouse_quantity as quantity',
                 'g.name as goods_name',
-                's.name as section_name',
+                'section_location.name as section_name',
                 'l.name as location_name'
             )
             ->latest('r.warehouse_received_at')
