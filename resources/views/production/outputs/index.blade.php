@@ -20,10 +20,10 @@
                         {{ $r->production_number }}
                     @endif
                 </td>
-                <td>{{ $r->row_date }}</td>
+                <td><span class="production-output-date" data-iso-date="{{ $r->row_date }}">{{ $r->row_date }}</span></td>
                 <td>{{ $r->section_name ?? '—' }}</td>
                 <td>{{ $r->goods_name }}</td>
-                <td>{{ $r->quantity }}</td>
+                <td><span class="production-output-quantity" data-quantity="{{ $r->quantity }}">{{ $r->quantity }}</span></td>
                 <td>{{ $r->location_name ?? '—' }}</td>
                 <td>
                     @if($r->row_type === 'shift')
@@ -54,4 +54,22 @@
     </table></div>
     @if(method_exists($rows, 'links'))<div class="pagination">{{ $rows->links() }}</div>@endif
 </div>
+@push('scripts')
+<script>
+document.querySelectorAll('.production-output-quantity[data-quantity]').forEach(el => {
+    const value = Number(el.dataset.quantity);
+    if (!Number.isFinite(value)) return;
+    el.textContent = new Intl.NumberFormat('fa-IR', { useGrouping: false, maximumFractionDigits: 4 }).format(value);
+});
+document.querySelectorAll('.production-output-date[data-iso-date]').forEach(el => {
+    const raw = (el.dataset.isoDate || '').slice(0, 10);
+    const match = raw.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+    if (!match) return;
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    el.textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+        year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(date);
+});
+</script>
+@endpush
 @endsection
