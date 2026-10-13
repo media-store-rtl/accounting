@@ -113,6 +113,10 @@ class ProductionShiftReportStagesTest extends TestCase
         $this->assertSame(2, DB::table('production_shift_report_stages')
             ->where('production_shift_report_id', $reportId)->count());
 
+        $this->get(route('production.shift-reports.show', $reportId))
+            ->assertOk()
+            ->assertSee('ویرایش اطلاعات این گزارش');
+
         $this->put(route('production.shift-reports.update', $reportId), [
             'production_section_id' => $section,
             'goods_id' => $goods,
