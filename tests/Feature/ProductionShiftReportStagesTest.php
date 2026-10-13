@@ -250,7 +250,7 @@ class ProductionShiftReportStagesTest extends TestCase
             'review_notes' => '',
             'warehouse_location_id' => $warehouse,
             'warehouse_quantity' => 16,
-            'receipt_token' => (string) \\Illuminate\\Support\\Str::uuid(),
+            'receipt_token' => (string) \Illuminate\Support\Str::uuid(),
         ])->assertRedirect(route('production.shift-reports.show', $reportId))
             ->assertSessionHas('success');
         $this->assertDatabaseHas('inventory_movements', [
