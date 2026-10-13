@@ -97,9 +97,7 @@ final class ProductionShiftReportController extends Controller
         $canEdit = $canReview && (in_array($row->status, ['pending', 'rejected'], true) || ($row->status === 'approved' && (float) ($row->warehouse_quantity ?? 0) <= 0));
         $canReceive = $request->user()->hasCompanyPermission($companyId, 'production.output.receive');
         $warehouses = $canReceive ? DB::table('locations')->where('company_id', $companyId)->where('is_active', true)->where(function ($query) { $query->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])
-                ->orWhere('type', 'like', '%انبار%')
-                ->orWhere('type', 'like', '%مواد%')
-                ->orWhere('type', 'like', '%محصول%'); })->orderBy('name')->get(['id', 'name']) : collect();
+                ->orWhereIn(DB::raw('TRIM(type)'), ['انبار', 'انبار مواد', 'محصول', 'ضایعات']); })->orderBy('name')->get(['id', 'name']) : collect();
         $sections = DB::table('production_sections as s')->leftJoin('locations as l', 'l.id', '=', 's.location_id')
             ->where('l.company_id', $companyId)->orderBy('l.name')->get(['s.id', 'l.name']);
         $goods = DB::table('goods')->where('company_id', $companyId)->where('is_active', true)->where('producible', true)->orderBy('name')->get(['id', 'code', 'name']);
@@ -445,9 +443,7 @@ final class ProductionShiftReportController extends Controller
             if ($quantity > ($available - $alreadyReceived) + 0.0000001) throw ValidationException::withMessages(['warehouse_quantity' => 'مقدار تحویل از باقیمانده تولید سالم بیشتر است.']);
             if ($alreadyReceived > 0 && (int)$row->warehouse_location_id !== (int)$data['warehouse_location_id']) throw ValidationException::withMessages(['warehouse_location_id' => 'برای تحویل‌های یک گزارش، همان انبار قبلی را انتخاب کنید.']);
             $warehouse = DB::table('locations')->where('id', (int)$data['warehouse_location_id'])->where('company_id', $companyId)->where('is_active', true)->where(function ($query) { $query->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])
-                ->orWhere('type', 'like', '%انبار%')
-                ->orWhere('type', 'like', '%مواد%')
-                ->orWhere('type', 'like', '%محصول%'); })->exists();
+                ->orWhereIn(DB::raw('TRIM(type)'), ['انبار', 'انبار مواد', 'محصول', 'ضایعات']); })->exists();
             if (!$warehouse) throw ValidationException::withMessages(['warehouse_location_id' => 'انبار معتبر نیست.']);
             $duplicate = DB::table('inventory_movements')->where('company_id', $companyId)
                 ->where('reference_type', 'production_shift_reports')->where('reference_id', $report)
