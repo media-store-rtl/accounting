@@ -16,6 +16,9 @@ return new class extends Migration {
             $table->foreignId('reviewed_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('warehouse_location_id')->nullable()->constrained('locations')->nullOnDelete();
             $table->string('shift_name', 80);
+            $table->decimal('worked_hours', 6, 2)->default(8);
+            $table->decimal('overtime_hours', 6, 2)->default(0);
+            $table->decimal('holiday_hours', 6, 2)->default(0);
             $table->date('work_date');
             $table->decimal('produced_quantity', 18, 4);
             $table->decimal('scrap_quantity', 18, 4)->default(0);
