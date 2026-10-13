@@ -32,7 +32,7 @@ class ProductionShiftReportStagesTest extends TestCase
             'company_id' => $company, 'name' => 'Production', 'slug' => 'production-test',
             'is_system' => false, 'created_at' => now(), 'updated_at' => now(),
         ]);
-        foreach (['production.operation.create', 'production.operation.view', 'production.operation.review'] as $slug) {
+        foreach (['production.operation.create', 'production.operation.view', 'production.operation.review', 'production.output.receive'] as $slug) {
             $permission = DB::table('permissions')->where('slug', $slug)->first();
             $permissionId = $permission?->id ?? DB::table('permissions')->insertGetId([
                 'name' => $slug, 'slug' => $slug, 'module' => 'production',
@@ -112,6 +112,112 @@ class ProductionShiftReportStagesTest extends TestCase
         ]);
         $this->assertSame(2, DB::table('production_shift_report_stages')
             ->where('production_shift_report_id', $reportId)->count());
+
+        $this->get(route('production.shift-reports.show', $reportId))
+            ->assertOk()
+            ->assertSee('ویرایش اطلاعات این گزارش');
+        $this->get(route('production.shift-reports.show', $reportId))
+            ->assertSee('۲۰')
+            ->assertDontSee('20.0000');
+
+        $this->put(route('production.shift-reports.update', $reportId), [
+            'production_section_id' => $section,
+            'goods_id' => $goods,
+            'personnel_id' => $worker,
+            'worked_hours' => 7.5,
+            'overtime_hours' => 1,
+            'holiday_hours' => 0,
+            'work_date' => '2026-10-13',
+            'produced_quantity' => 18,
+            'scrap_quantity' => 2,
+            'notes' => 'اصلاح‌شده توسط سرپرست',
+            'stages' => [['production_stage_id' => $stageTwo]],
+            'materials' => [[
+                'goods_id' => $goods,
+                'quantity' => 4,
+                'scrap_quantity' => 1,
+            ]],
+        ])->assertRedirect(route('production.shift-reports.show', $reportId))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('production_shift_reports', [
+            'id' => $reportId,
+            'work_date' => '2026-10-13',
+            'produced_quantity' => 18,
+            'scrap_quantity' => 2,
+            'worked_hours' => 7.5,
+            'overtime_hours' => 1,
+            'notes' => 'اصلاح‌شده توسط سرپرست',
+            'status' => 'pending',
+            'reviewed_by_user_id' => null,
+        ]);
+        $this->assertSame(1, DB::table('production_shift_report_stages')
+            ->where('production_shift_report_id', $reportId)->count());
+        $this->assertDatabaseHas('production_shift_report_stages', [
+            'production_shift_report_id' => $reportId,
+            'production_stage_id' => $stageTwo,
+        ]);
+        $this->assertDatabaseHas('production_shift_report_materials', [
+            'production_shift_report_id' => $reportId,
+            'goods_id' => $goods,
+            'quantity' => 4,
+            'scrap_quantity' => 1,
+        ]);
+        $this->assertDatabaseHas('audit_trails', [
+            'company_id' => $company,
+            'auditable_type' => 'production_shift_reports',
+            'auditable_id' => $reportId,
+            'action' => 'production_shift_report.update',
+        ]);
+
+        DB::table('production_shift_reports')->where('id', $reportId)->update(['status' => 'approved']);
+        $this->put(route('production.shift-reports.update', $reportId), [
+            'production_section_id' => $section,
+            'goods_id' => $goods,
+            'personnel_id' => $worker,
+            'worked_hours' => 8,
+            'work_date' => '2026-10-13',
+            'produced_quantity' => 18,
+            'scrap_quantity' => 2,
+            'stages' => [['production_stage_id' => $stageTwo]],
+        ])->assertSessionHasErrors('report');
+
+        DB::table('production_shift_reports')->where('id', $reportId)->update(['status' => 'pending']);
+        $this->from(route('production.shift-reports.show', $reportId))
+            ->post(route('production.shift-reports.review', $reportId), [
+                'approve' => '0',
+                'review_notes' => '',
+            ])->assertSessionHasErrors('review_notes');
+        $this->assertDatabaseHas('production_shift_reports', [
+            'id' => $reportId,
+            'status' => 'pending',
+        ]);
+
+        $this->from(route('production.shift-reports.show', $reportId))
+            ->post(route('production.shift-reports.review', $reportId), [
+                'approve' => '0',
+                'review_notes' => 'مقدار تولید با برگه کار مطابقت ندارد',
+            ])->assertSessionHas('success');
+        $this->assertDatabaseHas('production_shift_reports', [
+            'id' => $reportId,
+            'status' => 'rejected',
+            'review_notes' => 'مقدار تولید با برگه کار مطابقت ندارد',
+        ]);
+        $this->get(route('production.shift-reports.show', $reportId))
+            ->assertSee('ردشده')
+            ->assertSee('مقدار تولید با برگه کار مطابقت ندارد');
+
+        DB::table('production_shift_reports')->where('id', $reportId)->update(['status' => 'approved']);
+        DB::table('goods')->where('id', $goods)->update(['sellable' => false]);
+        $this->post(route('production.shift-reports.receive', $reportId), [
+            'warehouse_location_id' => 1,
+            'warehouse_quantity' => 1,
+        ])->assertSessionHasErrors('report');
+        $this->assertDatabaseMissing('inventory_movements', [
+            'reference_type' => 'production_shift_reports',
+            'reference_id' => $reportId,
+            'movement_type' => 'finished_goods_receipt',
+        ]);
     }
 
 }
