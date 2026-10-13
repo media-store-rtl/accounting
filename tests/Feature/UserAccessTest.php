@@ -51,7 +51,7 @@ class UserAccessTest extends TestCase
             'username' => 'second',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-        ])->assertStatus(422);
+        ])->assertRedirect()->assertSessionHasErrors('capacity');
     }
 
     private function makeUserWithCompany(bool $withPermission): array
