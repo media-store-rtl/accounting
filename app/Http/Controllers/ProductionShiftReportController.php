@@ -162,40 +162,46 @@ final class ProductionShiftReportController extends Controller
 
         $reportId = DB::transaction(function () use ($companyId, $data, $request, $materialRows, $stageRows, $scrap) {
             $reportId = DB::table('production_shift_reports')->insertGetId([
-            'company_id' => $companyId,
-            'production_section_id' => (int)$data['production_section_id'],
-            'goods_id' => (int)$data['goods_id'],
-            'personnel_id' => (int)$data['personnel_id'],
-            'reported_by_user_id' => (int)$request->user()->id,
-            'shift_name' => 'کارکرد ' . (float)$data['worked_hours'] . ' ساعت',
-            'worked_hours' => (float)$data['worked_hours'],
-            'overtime_hours' => (float)($data['overtime_hours'] ?? 0),
-            'holiday_hours' => (float)($data['holiday_hours'] ?? 0),
-            'work_date' => $data['work_date'],
-            'produced_quantity' => (float)$data['produced_quantity'],
-            'scrap_quantity' => $scrap,
-            'status' => 'pending',
-            'notes' => $data['notes'] ?? null,
-            'created_at' => now(), 'updated_at' => now(),
-                ]);
+                'company_id' => $companyId,
+                'production_section_id' => (int) $data['production_section_id'],
+                'goods_id' => (int) $data['goods_id'],
+                'personnel_id' => (int) $data['personnel_id'],
+                'reported_by_user_id' => (int) $request->user()->id,
+                'shift_name' => 'کارکرد ' . (float) $data['worked_hours'] . ' ساعت',
+                'worked_hours' => (float) $data['worked_hours'],
+                'overtime_hours' => (float) ($data['overtime_hours'] ?? 0),
+                'holiday_hours' => (float) ($data['holiday_hours'] ?? 0),
+                'work_date' => $data['work_date'],
+                'produced_quantity' => (float) $data['produced_quantity'],
+                'scrap_quantity' => $scrap,
+                'status' => 'pending',
+                'notes' => $data['notes'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
             foreach ($stageRows as $stageId) {
                 DB::table('production_shift_report_stages')->insert([
                     'company_id' => $companyId,
                     'production_shift_report_id' => $reportId,
                     'production_stage_id' => $stageId,
-                    'created_at' => now(), 'updated_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
             }
+
             foreach ($materialRows as $line) {
                 DB::table('production_shift_report_materials')->insert([
-                'company_id' => $companyId,
-                'production_shift_report_id' => $reportId,
+                    'company_id' => $companyId,
+                    'production_shift_report_id' => $reportId,
                     'goods_id' => $line['goods_id'],
                     'quantity' => $line['quantity'],
                     'scrap_quantity' => $line['scrap_quantity'],
-                'created_at' => now(), 'updated_at' => now(),
-            ]);
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
             }
+
             return $reportId;
         });
 
