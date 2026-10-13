@@ -31,7 +31,7 @@
 <p class="detail-note">مشخصات، مقادیر تولید، ساعات، مراحل و مواد مصرفی را اصلاح کنید. پس از ذخیره، گزارش دوباره در وضعیت «در انتظار تأیید» قرار می‌گیرد و تغییرات در سوابق ثبت می‌شوند. اگر مراحل را تغییر نمی‌دهید، تیک‌ها را دست‌کاری نکنید. گزارش تأییدشده نیز تا پیش از هرگونه تحویل به انبار قابل اصلاح است؛ پس از ورود حتی بخشی از مقدار به انبار، ویرایش بسته می‌شود تا موجودی انبار دچار مغایرت نشود.</p>
 <form id="report-edit-form" class="detail-form" style="max-width:none" method="POST" action="{{ route('production.shift-reports.update',$row->id) }}">@csrf @method('PUT')
 <div class="detail-edit-grid">
-<label class="shift-field">تاریخ تولید (شمسی)<span class="detail-date-wrap"><input type="text" id="edit-jalali-date" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="" required><input type="hidden" id="edit-gregorian-date" name="work_date" value="{{ old('work_date', $row->work_date) }}"><small class="detail-date-hint">تاریخ را از تقویم شمسی انتخاب کنید.</small></span></label>
+<label class="shift-field">تاریخ تولید (شمسی)<span class="detail-date-wrap"><input type="text" id="edit-jalali-date" readonly inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="" required><input type="hidden" id="edit-gregorian-date" name="work_date" value="{{ old('work_date', $row->work_date) }}"><small class="detail-date-hint">تاریخ را از تقویم شمسی انتخاب کنید.</small></span></label>
 <label class="shift-field">قسمت تولید<select name="production_section_id" required>@foreach($sections as $section)<option value="{{ $section->id }}" @selected((int)old('production_section_id',$row->production_section_id)===(int)$section->id)>{{ $section->name }}</option>@endforeach</select></label>
 <label class="shift-field">کارگر<select name="personnel_id" required>@foreach($personnel as $worker)<option value="{{ $worker->id }}" @selected((int)old('personnel_id',$row->personnel_id)===(int)$worker->id)>{{ $worker->name }}</option>@endforeach</select></label>
 <label class="shift-field">محصول / قطعه<select name="goods_id" required>@foreach($goods as $good)<option value="{{ $good->id }}" @selected((int)old('goods_id',$row->goods_id)===(int)$good->id)>{{ $good->name }}{{ $good->code ? ' ('.$good->code.')' : '' }}</option>@endforeach</select></label>
@@ -99,14 +99,19 @@ const editIsoDate=document.querySelector('#edit-gregorian-date');
 const editDateForm=document.querySelector('#report-edit-form');
 if(editDatePicker && editIsoDate && window.jQuery && jQuery.fn.persianDatepicker && typeof window.persianDate==='function'){
   const isoMatch=(editIsoDate.value||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  editDatePicker.value=isoMatch ? isoMatch[1]+'/'+isoMatch[2]+'/'+isoMatch[3] : '';
+  if(isoMatch){
+    const gregorianDate=new Date(Number(isoMatch[1]),Number(isoMatch[2])-1,Number(isoMatch[3]));
+    editDatePicker.value=new window.persianDate(gregorianDate.getTime()).toCalendar('persian').format('YYYY/MM/DD');
+  } else {
+    editDatePicker.value='';
+  }
   jQuery(editDatePicker).persianDatepicker({
-    calendarType:'persian', initialValue:Boolean(editIsoDate.value), initialValueType:'gregorian',
-    format:'YYYY/MM/DD', altField:'#edit-gregorian-date', altFormat:'YYYY-MM-DD',
-    altFieldFormatter:unixDate=>{
+    calendarType:'persian', initialValue:Boolean(isoMatch), initialValueType:'persian',
+    format:'YYYY/MM/DD',
+    onSelect:unixDate=>{
       const date=new window.persianDate(unixDate).toCalendar('gregorian');
       const value=date.format('YYYY-MM-DD');
-      return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : '';
+      editIsoDate.value=/^\d{4}-\d{2}-\d{2}$/.test(value) ? value : '';
     },
     calendar:{persian:{locale:'fa'}},
     toolbox:{calendarSwitch:{enabled:false},todayButton:{enabled:true,text:{fa:'امروز'}}}
