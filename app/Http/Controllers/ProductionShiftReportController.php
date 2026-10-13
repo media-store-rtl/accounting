@@ -202,6 +202,9 @@ final class ProductionShiftReportController extends Controller
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.operation.review');
         $data = $request->validate(['approve' => ['required', 'boolean'], 'review_notes' => ['nullable', 'string', 'max:1000']]);
+        if (!(bool) $data['approve'] && blank($data['review_notes'] ?? null)) {
+            throw ValidationException::withMessages(['review_notes' => 'برای رد گزارش، دلیل رد را وارد کنید.']);
+        }
         DB::transaction(function () use ($companyId, $report, $data, $request) {
             $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
             if (!$row || $row->status !== 'pending') throw ValidationException::withMessages(['report' => 'این گزارش دیگر در انتظار بررسی نیست.']);
