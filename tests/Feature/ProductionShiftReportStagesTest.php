@@ -262,6 +262,15 @@ class ProductionShiftReportStagesTest extends TestCase
             'quantity' => 16,
         ]);
         $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'received', 'warehouse_quantity' => 16]);
+
+        // Rejecting a report must not require warehouse-transfer fields, even for sellable goods.
+        DB::table('production_shift_reports')->where('id', $reportId)->update(['status' => 'pending']);
+        $this->post(route('production.shift-reports.review', $reportId), [
+            'approve' => '0',
+            'review_notes' => 'اطلاعات گزارش نیاز به اصلاح دارد.',
+        ])->assertRedirect(route('production.shift-reports.show', $reportId))
+            ->assertSessionHas('success');
+        $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'rejected']);
     }
 
 }
