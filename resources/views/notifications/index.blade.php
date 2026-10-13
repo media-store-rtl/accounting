@@ -82,6 +82,7 @@
         'goods_name' => 'نام کالا',
         'requested_quantity' => 'مقدار درخواستی',
         'available_quantity' => 'مقدار قابل تأمین از انبار',
+        'warehouse_name' => 'انبار مقصد',
         'shortage_quantity' => 'مقدار کسری تأییدشده',
         'needed_at' => 'تاریخ موردنیاز',
         'warehouse_note' => 'یادداشت انباردار',
@@ -116,10 +117,12 @@
                 ];
                 $reportId = isset($data['report_id']) && is_numeric($data['report_id']) ? (int) $data['report_id'] : null;
                 $canReviewProduction = $reportId && auth()->user()->hasCompanyPermission((int) session('company_id'), 'production.operation.review');
+                $canReceiveShiftReport = $event === 'production.shift_report_warehouse_receipt' && auth()->user()->hasCompanyPermission((int) session('company_id'), 'production.output.receive');
                 $orderId = isset($data['order_id']) && is_numeric($data['order_id']) ? (int) $data['order_id'] : null;
                 $canViewOrder = $orderId && auth()->user()->hasCompanyPermission((int) session('company_id'), 'order.view');
                 $visibleFields = [
                     'production.shift_report_pending' => ['report_id', 'work_date', 'section_name', 'worker_name', 'goods_name', 'produced_quantity', 'scrap_quantity'],
+                    'production.shift_report_warehouse_receipt' => ['report_id', 'work_date', 'goods_name', 'available_quantity', 'warehouse_name'],
                     'order.production_required' => ['order_id'],
                     'order.ready_for_delivery' => ['order_id'],
                     'order.production_due_set' => ['order_id', 'production_due_at'],
@@ -167,6 +170,9 @@
                         شماره گزارش تولید: <strong style="color:#e9f3fb">#{{ $reportId }}</strong>
                         <a href="{{ route('production.shift-reports.show', $reportId) }}" style="margin-right:10px;color:#6ee7d0;text-decoration:none">بررسی گزارش تولید ←</a>
                     </div>
+                @endif
+                @if($canReceiveShiftReport)
+                    <div style="margin-top:10px"><a href="{{ route('production.outputs.index') }}" style="color:#6ee7d0;text-decoration:none;font-size:11px">رفتن به خروجی تولید و تأیید دریافت ←</a></div>
                 @endif
                 @if($orderId)
                     <div style="margin-top:10px;color:#9eb2c4;font-size:11px">
