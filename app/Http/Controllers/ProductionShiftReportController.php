@@ -160,7 +160,8 @@ final class ProductionShiftReportController extends Controller
             throw ValidationException::withMessages(['scrap_quantity' => 'ضایعات محصول نمی‌تواند از تعداد تولیدشده بیشتر باشد.']);
         }
 
-        $reportId = DB::table('production_shift_reports')->insertGetId([
+        $reportId = DB::transaction(function () use ($companyId, $data, $request, $materialRows, $stageRows, $scrap) {
+            $reportId = DB::table('production_shift_reports')->insertGetId([
             'company_id' => $companyId,
             'production_section_id' => (int)$data['production_section_id'],
             'goods_id' => (int)$data['goods_id'],
@@ -176,25 +177,27 @@ final class ProductionShiftReportController extends Controller
             'status' => 'pending',
             'notes' => $data['notes'] ?? null,
             'created_at' => now(), 'updated_at' => now(),
-        ]);
-        foreach ($stageRows as $stageId) {
-            DB::table('production_shift_report_stages')->insert([
+                ]);
+            foreach ($stageRows as $stageId) {
+                DB::table('production_shift_report_stages')->insert([
+                    'company_id' => $companyId,
+                    'production_shift_report_id' => $reportId,
+                    'production_stage_id' => $stageId,
+                    'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+            foreach ($materialRows as $line) {
+                DB::table('production_shift_report_materials')->insert([
                 'company_id' => $companyId,
                 'production_shift_report_id' => $reportId,
-                'production_stage_id' => $stageId,
+                    'goods_id' => $line['goods_id'],
+                    'quantity' => $line['quantity'],
+                    'scrap_quantity' => $line['scrap_quantity'],
                 'created_at' => now(), 'updated_at' => now(),
             ]);
-        }
-        foreach ($materialRows as $line) {
-            DB::table('production_shift_report_materials')->insert([
-                'company_id' => $companyId,
-                'production_shift_report_id' => $reportId,
-                'goods_id' => $line['goods_id'],
-                'quantity' => $line['quantity'],
-                'scrap_quantity' => $line['scrap_quantity'],
-                'created_at' => now(), 'updated_at' => now(),
-            ]);
-        }
+            }
+            return $reportId;
+        });
 
         $reportDetails = DB::table('production_shift_reports as r')
             ->join('production_sections as s', 's.id', '=', 'r.production_section_id')
