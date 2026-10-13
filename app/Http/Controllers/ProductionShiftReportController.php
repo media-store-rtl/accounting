@@ -86,17 +86,26 @@ final class ProductionShiftReportController extends Controller
         abort_unless($row, 404);
         $reportedStages = DB::table('production_shift_report_stages as rs')->join('production_stages as ps', 'ps.id', '=', 'rs.production_stage_id')
             ->where('rs.company_id', $companyId)->where('rs.production_shift_report_id', $report)
-            ->orderBy('rs.id')->get(['ps.code', 'ps.name']);
+            ->orderBy('rs.id')->get(['ps.id', 'ps.code', 'ps.name']);
         $materialUsage = collect();
         if (Schema::hasTable('production_shift_report_materials')) {
             $materialUsage = DB::table('production_shift_report_materials as rm')->join('goods as mg', 'mg.id', '=', 'rm.goods_id')
                 ->where('rm.company_id', $companyId)->where('rm.production_shift_report_id', $report)
-                ->get(['rm.quantity', 'rm.scrap_quantity', 'mg.name', 'mg.code']);
+                ->get(['rm.goods_id', 'rm.quantity', 'rm.scrap_quantity', 'mg.name', 'mg.code']);
         }
         $canReview = $request->user()->hasCompanyPermission($companyId, 'production.operation.review');
+        $canEdit = $canReview && in_array($row->status, ['pending', 'rejected'], true);
         $canReceive = $request->user()->hasCompanyPermission($companyId, 'production.output.receive');
         $warehouses = $canReceive ? DB::table('locations')->where('company_id', $companyId)->where('type', 'warehouse')->where('is_active', true)->orderBy('name')->get(['id', 'name']) : collect();
-        return view('production.shift-reports.show', compact('row', 'materialUsage', 'reportedStages', 'canReview', 'canReceive', 'warehouses'));
+        $sections = DB::table('production_sections as s')->leftJoin('locations as l', 'l.id', '=', 's.location_id')
+            ->where('l.company_id', $companyId)->orderBy('l.name')->get(['s.id', 'l.name']);
+        $goods = DB::table('goods')->where('company_id', $companyId)->where('is_active', true)->where('producible', true)->orderBy('name')->get(['id', 'code', 'name']);
+        $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
+        $personnel = DB::table('personnel')->where('account_id', $accountId)->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $stages = DB::table('production_stages as ps')->join('production_routes as pr', 'pr.id', '=', 'ps.production_route_id')
+            ->where('pr.company_id', $companyId)->where('ps.status', 'active')->orderBy('ps.name')->get(['ps.id', 'ps.code', 'ps.name']);
+        $materials = $goods;
+        return view('production.shift-reports.show', compact('row', 'materialUsage', 'reportedStages', 'canReview', 'canEdit', 'canReceive', 'warehouses', 'sections', 'goods', 'personnel', 'stages', 'materials'));
     }
 
     public function store(Request $request)
@@ -231,6 +240,135 @@ final class ProductionShiftReportController extends Controller
         );
 
         return redirect()->route('production.shift-reports.index')->with('success', 'گزارش شیفت ثبت شد و برای تأیید سرپرست ارسال شد.');
+    }
+
+    public function update(Request $request, int $report)
+    {
+        $companyId = CompanyAuthorization::authorize($request, 'production.operation.review');
+        $data = $request->validate([
+            'production_section_id' => ['required', 'integer'],
+            'goods_id' => ['required', 'integer'],
+            'personnel_id' => ['required', 'integer'],
+            'worked_hours' => ['required', 'numeric', 'gt:0', 'lte:24'],
+            'overtime_hours' => ['nullable', 'numeric', 'gte:0', 'lte:24'],
+            'holiday_hours' => ['nullable', 'numeric', 'gte:0', 'lte:24'],
+            'work_date' => ['required', 'date'],
+            'produced_quantity' => ['required', 'numeric', 'gt:0'],
+            'scrap_quantity' => ['nullable', 'numeric', 'gte:0'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+            'stages' => ['required', 'array', 'min:1'],
+            'stages.*.production_stage_id' => ['required', 'integer'],
+            'materials' => ['nullable', 'array'],
+            'materials.*.goods_id' => ['nullable', 'integer'],
+            'materials.*.quantity' => ['nullable', 'numeric', 'gt:0'],
+            'materials.*.scrap_quantity' => ['nullable', 'numeric', 'gte:0'],
+        ]);
+
+        $sectionValid = DB::table('production_sections as s')->join('locations as l', 'l.id', '=', 's.location_id')
+            ->where('s.id', $data['production_section_id'])->where('l.company_id', $companyId)->exists();
+        $goodValid = DB::table('goods')->where('id', $data['goods_id'])->where('company_id', $companyId)
+            ->where('is_active', true)->where('producible', true)->exists();
+        $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
+        $workerValid = DB::table('personnel')->where('id', $data['personnel_id'])->where('account_id', $accountId)->where('is_active', true)->exists();
+        if (!$sectionValid) throw ValidationException::withMessages(['production_section_id' => 'قسمت تولید معتبر نیست.']);
+        if (!$goodValid) throw ValidationException::withMessages(['goods_id' => 'محصول انتخاب‌شده معتبر نیست.']);
+        if (!$workerValid) throw ValidationException::withMessages(['personnel_id' => 'کارگر انتخاب‌شده معتبر نیست.']);
+
+        $stageIds = [];
+        foreach ($data['stages'] as $line) {
+            $stageId = (int) ($line['production_stage_id'] ?? 0);
+            $valid = DB::table('production_stages as ps')->join('production_routes as pr', 'pr.id', '=', 'ps.production_route_id')
+                ->where('ps.id', $stageId)->where('pr.company_id', $companyId)->where('ps.status', 'active')->exists();
+            if (!$valid) throw ValidationException::withMessages(['stages' => 'یکی از مراحل انتخاب‌شده معتبر یا فعال نیست.']);
+            $stageIds[] = $stageId;
+        }
+        if (count($stageIds) !== count(array_unique($stageIds))) {
+            throw ValidationException::withMessages(['stages' => 'یک مرحله را در یک گزارش بیش از یک بار انتخاب نکنید.']);
+        }
+
+        $materialRows = [];
+        foreach (($data['materials'] ?? []) as $line) {
+            $materialId = (int) ($line['goods_id'] ?? 0);
+            $quantity = $line['quantity'] ?? null;
+            if ($materialId === 0 && ($quantity === null || $quantity === '')) continue;
+            if ($materialId === 0 || $quantity === null || $quantity === '') {
+                throw ValidationException::withMessages(['materials' => 'برای هر ماده اولیه، هم ماده و هم مقدار مصرف را مشخص کنید.']);
+            }
+            $validMaterial = DB::table('goods')->where('id', $materialId)->where('company_id', $companyId)
+                ->where('is_active', true)->where('producible', true)->exists();
+            if (!$validMaterial) throw ValidationException::withMessages(['materials' => 'یکی از مواد اولیه انتخاب‌شده معتبر نیست.']);
+            $materialScrap = (float) ($line['scrap_quantity'] ?? 0);
+            if ($materialScrap > (float) $quantity) {
+                throw ValidationException::withMessages(['materials' => 'ضایعات ماده اولیه نمی‌تواند از مقدار مصرف آن بیشتر باشد.']);
+            }
+            $materialRows[] = ['goods_id' => $materialId, 'quantity' => (float) $quantity, 'scrap_quantity' => $materialScrap];
+        }
+
+        $scrap = (float) ($data['scrap_quantity'] ?? 0);
+        if ($scrap > (float) $data['produced_quantity']) {
+            throw ValidationException::withMessages(['scrap_quantity' => 'ضایعات محصول نمی‌تواند از تعداد تولیدشده بیشتر باشد.']);
+        }
+
+        DB::transaction(function () use ($companyId, $report, $data, $request, $stageIds, $materialRows, $scrap) {
+            $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
+            if (!$row || !in_array($row->status, ['pending', 'rejected'], true)) {
+                throw ValidationException::withMessages(['report' => 'فقط گزارش در انتظار تأیید یا ردشده قابل ویرایش است؛ گزارش تأییدشده یا تحویل‌شده قابل تغییر نیست.']);
+            }
+
+            $before = [
+                'report' => (array) $row,
+                'stages' => DB::table('production_shift_report_stages')->where('company_id', $companyId)->where('production_shift_report_id', $report)->get()->toArray(),
+                'materials' => DB::table('production_shift_report_materials')->where('company_id', $companyId)->where('production_shift_report_id', $report)->get()->toArray(),
+            ];
+            DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->update([
+                'production_section_id' => (int) $data['production_section_id'],
+                'goods_id' => (int) $data['goods_id'],
+                'personnel_id' => (int) $data['personnel_id'],
+                'shift_name' => 'کارکرد ' . (float) $data['worked_hours'] . ' ساعت',
+                'worked_hours' => (float) $data['worked_hours'],
+                'overtime_hours' => (float) ($data['overtime_hours'] ?? 0),
+                'holiday_hours' => (float) ($data['holiday_hours'] ?? 0),
+                'work_date' => $data['work_date'],
+                'produced_quantity' => (float) $data['produced_quantity'],
+                'scrap_quantity' => $scrap,
+                'notes' => $data['notes'] ?? null,
+                'status' => 'pending',
+                'reviewed_by_user_id' => null,
+                'review_notes' => null,
+                'reviewed_at' => null,
+                'updated_at' => now(),
+            ]);
+
+            DB::table('production_shift_report_stages')->where('company_id', $companyId)->where('production_shift_report_id', $report)->delete();
+            foreach ($stageIds as $stageId) {
+                DB::table('production_shift_report_stages')->insert([
+                    'company_id' => $companyId, 'production_shift_report_id' => $report,
+                    'production_stage_id' => $stageId, 'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+            DB::table('production_shift_report_materials')->where('company_id', $companyId)->where('production_shift_report_id', $report)->delete();
+            foreach ($materialRows as $line) {
+                DB::table('production_shift_report_materials')->insert([
+                    'company_id' => $companyId, 'production_shift_report_id' => $report,
+                    'goods_id' => $line['goods_id'], 'quantity' => $line['quantity'],
+                    'scrap_quantity' => $line['scrap_quantity'], 'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+
+            $after = [
+                'report' => (array) DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->first(),
+                'stages' => DB::table('production_shift_report_stages')->where('company_id', $companyId)->where('production_shift_report_id', $report)->get()->toArray(),
+                'materials' => DB::table('production_shift_report_materials')->where('company_id', $companyId)->where('production_shift_report_id', $report)->get()->toArray(),
+            ];
+            DB::table('audit_trails')->insert([
+                'company_id' => $companyId, 'user_id' => (int) $request->user()->id, 'module' => 'production',
+                'action' => 'production_shift_report.update', 'auditable_type' => 'production_shift_reports', 'auditable_id' => $report,
+                'before' => json_encode($before), 'after' => json_encode($after),
+                'method' => 'SERVICE', 'status_code' => 200, 'created_at' => now(), 'updated_at' => now(),
+            ]);
+        });
+
+        return redirect()->route('production.shift-reports.show', $report)->with('success', 'اطلاعات گزارش اصلاح شد و برای تأیید دوباره در صف بررسی قرار گرفت.');
     }
 
     public function review(Request $request, int $report)
