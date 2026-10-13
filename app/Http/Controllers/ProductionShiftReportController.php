@@ -405,10 +405,7 @@ final class ProductionShiftReportController extends Controller
                     throw ValidationException::withMessages(['report' => 'کالای این گزارش معتبر نیست یا به‌عنوان کالای تولیدشدنی تعریف نشده است.']);
                 }
                 // Intermediate goods are approved as production output, but are not transferred to the finished-goods warehouse.
-                if ((bool) $goods->sellable) {
-                    if (!$request->user()->hasCompanyPermission($companyId, 'production.output.receive')) {
-                        throw ValidationException::withMessages(['report' => 'برای تأیید محصول نهایی و انتقال موجودی، دسترسی ثبت ورود به انبار لازم است.']);
-                    }
+                if ((bool) $goods->sellable && $request->user()->hasCompanyPermission($companyId, 'production.output.receive')) {
                     if (empty($data['warehouse_location_id']) || empty($data['warehouse_quantity']) || empty($data['receipt_token'])) {
                         throw ValidationException::withMessages(['warehouse_location_id' => 'برای تأیید محصول نهایی، انبار مقصد و مقدار انتقال لازم است.']);
                     }
