@@ -90,7 +90,7 @@
 <p class="detail-note">این کالا نیمه‌ساخته است؛ گزارش تأیید می‌شود اما موجودی به انبار محصول نهایی منتقل نخواهد شد.</p>
 @endif
 <label>یادداشت بررسی (برای رد گزارش الزامی است)<textarea id="review-notes" name="review_notes" rows="3" maxlength="1000" placeholder="یادداشت یا دلیل رد گزارش"></textarea></label>
-<div style="display:flex;gap:8px;flex-wrap:wrap">@if(!(bool)($row->goods_sellable ?? false) || $canReceive)<button class="btn primary" type="submit" name="approve" value="1">تأیید گزارش{{ (bool)($row->goods_sellable ?? false) ? ' و انتقال موجودی' : '' }}</button>@endif<button class="btn" type="submit" name="approve" value="0" onclick="return confirm('گزارش رد شود؟');">رد گزارش</button></div></form></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">@if(!(bool)($row->goods_sellable ?? false) || $canReceive)<button class="btn primary" type="submit" name="approve" value="1">تأیید گزارش{{ (bool)($row->goods_sellable ?? false) ? ' و انتقال موجودی' : '' }}</button>@endif<button class="btn" type="submit" name="approve" value="0" formnovalidate onclick="return confirm('گزارش رد شود؟');">رد گزارش</button></div></form></div>
 @endif
 </div>
 @push('scripts')<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script><script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script><script>
