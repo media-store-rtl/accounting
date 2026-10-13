@@ -419,7 +419,9 @@ final class ProductionShiftReportController extends Controller
             $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
             if (!$row || $row->status !== 'approved') throw ValidationException::withMessages(['report' => 'فقط گزارش تأییدشده با مقدار باقی‌مانده قابل تحویل به انبار است.']);
             $goods = DB::table('goods')->where('company_id', $companyId)->where('id', $row->goods_id)->first(['sellable', 'producible']);
-            if (!$goods) throw ValidationException::withMessages(['report' => 'کالای این گزارش در شرکت پیدا نشد.']);
+            if (!$goods || !(bool) $goods->producible) {
+                throw ValidationException::withMessages(['report' => 'کالای این گزارش معتبر نیست یا به‌عنوان کالای تولیدشدنی تعریف نشده است.']);
+            }
             $quantity = (float)$data['warehouse_quantity'];
             $available = max(0, (float)$row->produced_quantity - (float)$row->scrap_quantity);
             $alreadyReceived = (float)($row->warehouse_quantity ?? 0);
