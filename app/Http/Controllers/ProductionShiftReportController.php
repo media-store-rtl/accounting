@@ -256,7 +256,7 @@ final class ProductionShiftReportController extends Controller
             'produced_quantity' => ['required', 'numeric', 'gt:0'],
             'scrap_quantity' => ['nullable', 'numeric', 'gte:0'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'stages' => ['required', 'array', 'min:1'],
+            'stages' => ['sometimes', 'array', 'min:1'],
             'stages.*.production_stage_id' => ['required', 'integer'],
             'materials' => ['nullable', 'array'],
             'materials.*.goods_id' => ['nullable', 'integer'],
