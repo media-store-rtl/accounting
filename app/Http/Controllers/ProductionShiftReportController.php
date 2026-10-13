@@ -118,7 +118,7 @@ final class ProductionShiftReportController extends Controller
             'worked_hours' => ['required', 'numeric', 'gt:0', 'lte:24'],
             'overtime_hours' => ['nullable', 'numeric', 'gte:0', 'lte:24'],
             'holiday_hours' => ['nullable', 'numeric', 'gte:0', 'lte:24'],
-            'stages' => ['nullable', 'array'],
+            'stages' => ['required', 'array', 'min:1'],
             'stages.*.production_stage_id' => ['required', 'integer'],
             'materials' => ['nullable', 'array'],
             'materials.*.goods_id' => ['nullable', 'integer'],
@@ -287,6 +287,9 @@ final class ProductionShiftReportController extends Controller
                 ->where('ps.id', $stageId)->where('pr.company_id', $companyId)->where('ps.status', 'active')->exists();
             if (!$valid) throw ValidationException::withMessages(['stages' => 'یکی از مراحل انتخاب‌شده معتبر یا فعال نیست.']);
             $stageIds[] = $stageId;
+        }
+        if (count($stageIds) < 1) {
+            throw ValidationException::withMessages(['stages' => 'حداقل یک مرحله باید در گزارش ثبت شده باشد.']);
         }
         if (count($stageIds) !== count(array_unique($stageIds))) {
             throw ValidationException::withMessages(['stages' => 'یک مرحله را در یک گزارش بیش از یک بار انتخاب نکنید.']);
