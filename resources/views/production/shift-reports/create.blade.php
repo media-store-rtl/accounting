@@ -184,7 +184,10 @@
 </div>
 @push('scripts')
 <script>
-let shiftStageIndex = document.querySelectorAll('#shift-stage-lines .shift-stage-line').length;
+let shiftStageIndex = Array.from(document.querySelectorAll('#shift-stage-lines select[name]')).reduce((nextIndex, field) => {
+  const match = field.name.match(/^stages\[(\d+)\]/);
+  return match ? Math.max(nextIndex, Number(match[1]) + 1) : nextIndex;
+}, 0);
 function addShiftStage() {
   const lines = document.getElementById('shift-stage-lines');
   const source = lines && lines.querySelector('.shift-stage-line');
