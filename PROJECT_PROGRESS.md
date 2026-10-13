@@ -429,3 +429,11 @@
 - این تغییر فقط متن قابل‌نمایش را قالب‌بندی می‌کند؛ ورودی‌های فرم، مقادیر ارسال‌شده به سرور، داده‌های ذخیره‌شده و محاسبات بک‌اند تغییر نمی‌کنند.
 - فایل تغییرکرده: `resources/views/layouts/dashboard-shell.blade.php`.
 - تست خودکار، بررسی مرورگر و Deploy سایت زنده انجام نشده‌اند؛ سازگاری نمایش اعداد در صفحات مختلف باید پس از استقرار بررسی شود.
+
+
+# 74. اعلان داخلی برای گزارش جدید تولید شیفت — 2026-10-12
+- پس از ثبت گزارش تولید با وضعیت «در انتظار تأیید»، رویداد `production.shift_report_pending` از طریق سازوکار موجود اعلان‌های پایگاه‌داده‌ای ارسال می‌شود.
+- گیرندگان باید عضو فعال همان شرکت و دارای مجوز `production.operation.review` باشند؛ ارسال از مسیر `NotificationRecipientService` انجام می‌شود تا تنظیمات گیرندگان اعلان موجود رعایت شود. رویداد جدید به صفحه تنظیم گیرندگان نیز افزوده شد.
+- مرکز اعلان‌ها عنوان و جزئیات گزارش (شماره، تاریخ، قسمت، کارگر، محصول، مقدار تولید و ضایعات) را نشان می‌دهد و پیوند بررسی، ردیف گزارش مربوط را باز می‌کند.
+- فایل‌های تغییرکرده: `app/Http/Controllers/ProductionShiftReportController.php`, `app/Services/NotificationRecipientService.php`, `app/Http/Controllers/NotificationRecipientController.php`, `resources/views/notifications/index.blade.php`, `resources/views/production/shift-reports/index.blade.php`, `PROJECT_PROGRESS.md`.
+- این تغییر در شاخه `fix/production-shift-report-notifications` آماده بازبینی است؛ PR هنوز ایجاد/ادغام نشده است. تست خودکار، بررسی مرورگر، اجرای مهاجرت و Deploy سایت زنده انجام نشده‌اند.
