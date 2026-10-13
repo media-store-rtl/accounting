@@ -107,7 +107,7 @@ class SalesOperationalWorkflowTest extends TestCase
         DB::table('company_user')->insert(['company_id'=>$c['company'],'user_id'=>$supervisorId,'role_id'=>$roleId,'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $response=$this->postJson('/api/orders',['fiscal_year_id'=>$c['fy'],'customer_id'=>$c['customer'],'number'=>'SO-2','ordered_at'=>'2026-10-07','requested_delivery_at'=>'2026-10-20','items'=>[['goods_id'=>$c['goods'],'quantity'=>5]]]);
         $response->assertCreated()->assertJsonPath('data.status','production_required');
-        Notification::assertSentTo(User::find($supervisorId), \\App\\Notifications\\WorkflowNotification::class, function ($notification) use ($supervisorId) { return $notification->toArray(User::findOrFail($supervisorId))['event'] === 'order.production_required'; });
+        Notification::assertSentTo(User::find($supervisorId), \App\Notifications\WorkflowNotification::class);
         $order=$response->json('data.id');
         $this->postJson('/api/orders/'.$order.'/production-due',['production_due_at'=>'2026-10-18'])->assertOk()->assertJsonPath('data.status','awaiting_production');
         DB::table('inventory')->where('location_id',$c['warehouse'])->where('goods_id',$c['goods'])->update(['quantity'=>5]);
