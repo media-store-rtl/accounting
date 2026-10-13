@@ -5,7 +5,7 @@
 - همین helper در فرم سفارش فروش نیز استفاده می‌شود تا مقدار اولیه، قالب و تبدیل تاریخ بین فرم فروش و فیلتر گزارش تولید یکسان باشند. فیلد نمایشی بدون `name` است و فیلد مخفی `from`/`to` با مقدار ISO به فرم GET ارسال می‌شود؛ منطق فیلتر سمت سرور تغییر نکرده است.
 - آزمون‌های Node افزوده شد: مقدار اولیهٔ ISO و فرمت ورودی، تبدیل به تقویم Gregorian، گزینه‌های datepicker، مقدار فیلد مخفی/ارسال فیلتر و حالت نبود وابستگی‌ها. اسکریپت `npm test` و مرحلهٔ Node 20 به CI افزوده شدند.
 - فایل‌های تغییرکرده: `resources/views/production/shift-reports/index.blade.php`، `resources/views/sales/orders/create.blade.php`، `public/js/production-report-date-filters.js`، `tests/js/production-report-date-filters.test.js`، `package.json`، `.github/workflows/tests.yml` و `PROJECT_PROGRESS.md`.
-- CI اجرای شمارهٔ ۱۵۱۲ برای commit کد `4b6966f71e4e1b592b211f43be540bd98e5f356d` موفق شد: **۴ تست Node موفق، ۰ ناموفق؛ PHPUnit نیز ۳۳ تست موفق با ۱۸۴ assertion**. اجرای Node در محیط محلی موقت نیز ۴ تست موفق داشت. تست واقعی مرورگر، بارگذاری CDN، سایت زنده و Deploy انجام/تأیید نشده‌اند.
+- CI اجرای شمارهٔ ۱۵۱۴ برای آخرین commit شاخه در زمان بررسی (`96f4c0c1bea85fa9b5a883e15c075976b1712f3a`) موفق شد؛ گام‌های `npm test` و `php artisan test` هر دو موفق‌اند. در اجرای ثبت‌شدهٔ قبلی، PHPUnit شامل ۳۳ تست موفق و ۱۸۴ assertion بود؛ مرورگر واقعی، بارگذاری CDN، سایت زنده و Deploy هنوز بررسی نشده‌اند. تست واقعی مرورگر، بارگذاری CDN، سایت زنده و Deploy انجام/تأیید نشده‌اند.
 - شاخهٔ کاری: `fix/production-report-jalali-date-filters`؛ PR [#59](https://github.com/media-store-rtl/accounting/pull/59) همچنان برای بازبینی است و **ادغام نشده است**.
 
 ---
