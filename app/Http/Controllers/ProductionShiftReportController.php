@@ -77,6 +77,7 @@ final class ProductionShiftReportController extends Controller
             'materials.*.scrap_quantity' => ['nullable', 'numeric', 'gte:0'],
             'work_date' => ['required', 'date'],
             'produced_quantity' => ['required', 'numeric', 'gt:0'],
+            'scrap_quantity' => ['nullable', 'numeric', 'gte:0'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
         $section = DB::table('production_sections as s')->join('locations as l', 'l.id', '=', 's.location_id')->where('s.id', $data['production_section_id'])->where('l.company_id', $companyId)->exists();
@@ -103,8 +104,10 @@ final class ProductionShiftReportController extends Controller
             }
             $materialRows[] = ['goods_id' => $materialId, 'quantity' => (float) $materialQuantity, 'scrap_quantity' => $materialScrap];
         }
-        // Product scrap is no longer entered on this form; only material scrap is tracked here.
-        $scrap = 0;
+        $scrap = (float) ($data['scrap_quantity'] ?? 0);
+        if ($scrap > (float) $data['produced_quantity']) {
+            throw ValidationException::withMessages(['scrap_quantity' => 'ضایعات محصول نمی‌تواند از تعداد تولیدشده بیشتر باشد.']);
+        }
 
         $reportId = DB::table('production_shift_reports')->insertGetId([
             'company_id' => $companyId,
