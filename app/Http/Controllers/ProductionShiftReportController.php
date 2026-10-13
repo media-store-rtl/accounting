@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\InventoryService;
+use App\Services\NotificationRecipientService;
 use App\Support\CompanyAuthorization;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
@@ -136,6 +137,32 @@ final class ProductionShiftReportController extends Controller
                 'created_at' => now(), 'updated_at' => now(),
             ]);
         }
+
+        $reportDetails = DB::table('production_shift_reports as r')
+            ->join('production_sections as s', 's.id', '=', 'r.production_section_id')
+            ->leftJoin('locations as l', 'l.id', '=', 's.location_id')
+            ->join('goods as g', 'g.id', '=', 'r.goods_id')
+            ->leftJoin('personnel as p', 'p.id', '=', 'r.personnel_id')
+            ->where('r.company_id', $companyId)->where('r.id', $reportId)
+            ->first(['r.id', 'r.work_date', 'r.produced_quantity', 'r.scrap_quantity',
+                'l.name as section_name', 'g.name as goods_name', 'p.name as worker_name']);
+
+        app(NotificationRecipientService::class)->send(
+            $companyId,
+            'production.shift_report_pending',
+            [
+                'report_id' => $reportId,
+                'work_date' => $reportDetails->work_date ?? $data['work_date'],
+                'section_name' => $reportDetails->section_name ?? '',
+                'worker_name' => $reportDetails->worker_name ?? '',
+                'goods_name' => $reportDetails->goods_name ?? '',
+                'produced_quantity' => (float) ($reportDetails->produced_quantity ?? $data['produced_quantity']),
+                'scrap_quantity' => (float) ($reportDetails->scrap_quantity ?? $scrap),
+            ],
+            (int) $request->user()->id,
+            'production.operation.review'
+        );
+
         return redirect()->route('production.shift-reports.index')->with('success', 'گزارش شیفت ثبت شد و برای تأیید سرپرست ارسال شد.');
     }
 
