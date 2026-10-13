@@ -445,3 +445,49 @@
 - لینک اعلان سرپرست مستقیماً به جزئیات گزارش مربوط هدایت می‌شود. منوی تولید دسکتاپ و موبایل بین «ثبت تولید شیفت» و «گزارش‌های تولید» تفکیک شد.
 - فایل‌های تغییرکرده: `app/Http/Controllers/ProductionShiftReportController.php`, `routes/web.php`, `resources/views/layouts/dashboard-shell.blade.php`, `resources/views/notifications/index.blade.php`, `resources/views/production/shift-reports/create.blade.php`, `resources/views/production/shift-reports/index.blade.php`, `resources/views/production/shift-reports/show.blade.php`, `PROJECT_PROGRESS.md`.
 - تغییرات در شاخه `feat/production-shift-reports-pages` ثبت و در PR [#53](https://github.com/media-store-rtl/accounting/pull/53) برای ادغام به `main` پیشنهاد شده‌اند؛ PR باز است. تست خودکار GitHub Actions هنوز در حال اجراست؛ بررسی مرورگر و Deploy سایت زنده انجام نشده‌اند.
+
+
+# 76. بهبود نمایش موبایل گزارش‌های تولید — 2026-10-13
+- صفحه `/production/shift-reports` در عرض موبایل اکنون گزارش‌ها را به‌صورت کارت‌های مستقل نشان می‌دهد؛ جدول فعلی فقط در نمایشگرهای بزرگ‌تر باقی می‌ماند تا تجربه دسکتاپ حفظ شود.
+- فیلترها در موبایل داخل بخش جمع‌شونده قرار گرفتند؛ در دسکتاپ باز می‌مانند. کنترل‌های فرم و دکمه مشاهده جزئیات حداقل ارتفاع مناسب لمس دارند و کارت‌ها تاریخ، محصول، قسمت، کارگر، مقدار تولید سالم، ضایعات، وضعیت و ثبت‌کننده را نمایش می‌دهند.
+- فایل‌های تغییرکرده: `resources/views/production/shift-reports/index.blade.php` و `PROJECT_PROGRESS.md`.
+- تغییر در شاخه `feat/production-shift-reports-mobile-cards` و PR وابسته به PR #53 ارائه می‌شود؛ PR #53 هنوز ادغام نشده است.
+- بررسی خودکار قالب/تست PHPUnit، بررسی واقعی مرورگر موبایل و Deploy سایت زنده انجام نشده‌اند؛ وضعیت CI پس از ایجاد PR باید بررسی شود. این تغییر عمداً به `main` ادغام نشده است.
+
+
+## به‌روزرسانی راستی‌آزمایی مرحله #76 — 2026-10-13
+- PR [#54](https://github.com/media-store-rtl/accounting/pull/54) ایجاد شد؛ شاخه مقصد آن `feat/production-shift-reports-pages` است تا وابستگی به PR #53 حفظ شود. PR #54 باز و ادغام‌نشده است.
+- وضعیت Actions روی commit `45638168d71cd72d0bf0e556ad0866606d613eda`: یک اجرای `phpunit` ناموفق شده و یک اجرای دیگر هنگام بررسی در حال اجرا بود. علت/گزارش خطای اجرای ناموفق هنوز در این مرحله تحلیل نشده؛ نتیجه نهایی اجرای دوم نیز تأیید نشده است.
+- بررسی واقعی مرورگر موبایل، اجرای محلی تست‌ها و Deploy سایت زنده همچنان انجام نشده‌اند.
+
+
+## بررسی و اصلاح خطای CI در PR #54 — 2026-10-13
+- هر دو اجرای اولیه `phpunit` در PR #54 نهایی شدند و شکست خوردند: [اجرای اول](https://github.com/media-store-rtl/accounting/actions/runs/38353296333/job/115150354307) و [اجرای دوم](https://github.com/media-store-rtl/accounting/actions/runs/38353314620/job/115150411854). هر دو پیش از PHPUnit واقعی، در مرحله `php artisan migrate --force` متوقف شدند؛ خطا `no such table: production_shift_reports` بود.
+- علت مشخص: دو migration مربوط به ساعت کار و ساعت تعطیل، از نظر نام فایل پیش از migration ایجاد جدول `production_shift_reports` اجرا می‌شدند. در نتیجه ستون‌افزایی روی جدولی اجرا می‌شد که هنوز وجود نداشت؛ اجرای دوم نیز همین خطا را تکرار کرد.
+- اصلاح در همین شاخه: migrationهای افزودن ساعت کار و ساعت تعطیل در نبود جدول از ستون‌افزایی عبور می‌کنند؛ migration ایجاد جدول اکنون ستون‌های `worked_hours`، `overtime_hours` و `holiday_hours` را برای نصب تازه تعریف می‌کند. ایجاد جدول مواد مستقل حفظ شده است.
+- پس از این اصلاح، GitHub Actions باید دوباره اجرا شود. هنوز موفقیت migrationها، PHPUnit یا route checks تأیید نشده است؛ تست محلی و مرورگر موبایل نیز اجرا نشده‌اند.
+- PR #54 همچنان باز است و ادغام نشده؛ هیچ PRی بدون تأیید کاربر ادغام نخواهد شد.
+
+- وضعیت CI پس از اصلاحات، در آخرین بررسی: دو اجرای جدید `phpunit` در حال اجرا هستند؛ اجرای تازه‌تر هنوز در `composer install` است و مرحله migration/تست‌ها هنوز به نتیجه نرسیده است. [اجرای تازه‌تر](https://github.com/media-store-rtl/accounting/actions/runs/38353483594/job/115150942555) · [اجرای دیگر](https://github.com/media-store-rtl/accounting/actions/runs/38353479305/job/115150928880).
+
+
+## نتیجه نهایی اجرای مجدد CI برای PR #54 — 2026-10-13
+- هر دو اجرای جدید پس از اصلاح migrationها کامل شدند، اما وضعیت نهایی هر دو `failure` است: [اجرای A](https://github.com/media-store-rtl/accounting/actions/runs/38353521092/job/115151063185) و [اجرای B](https://github.com/media-store-rtl/accounting/actions/runs/38353516022/job/115151046580).
+- نکته مهم: مرحله `php artisan migrate --force` در هر دو اجرا از خطای قبلی عبور کرد و تست‌ها اجرا شدند؛ خطای `no such table: production_shift_reports` تکرار نشد.
+- هر دو اجرای PHPUnit یکسان گزارش کردند: `3 failed, 29 passed (158 assertions)`. شکست‌ها در `SalesOperationalWorkflowTest` (وضعیت خروجی تولید به‌جای `confirmed` مقدار `received` دارد؛ و اعلان WorkflowNotification مورد انتظار ارسال نشده) و `UserAccessTest` (انتظار 422، دریافت 403) هستند. این موارد به خطای migration مربوط نیستند و در محدوده اصلاح migration درخواست‌شده قرار نداشتند؛ برای جلوگیری از تغییرات نامرتبط، در این مرحله دست‌نخورده ماندند.
+- PR #54 هنوز باز و ادغام‌نشده است. تغییرات migration و این گزارش در شاخه `feat/production-shift-reports-mobile-cards` هستند. تست موبایل واقعی و Deploy انجام نشده‌اند.
+
+
+## تحلیل و اصلاح سه شکست PHPUnit در PR #54 — 2026-10-13
+- تحلیل لاگ‌ها و کد شاخه نشان داد که migrationها موفق اجرا شده‌اند و سه شکست باقی‌مانده مربوط به آزمون‌های گردش کار بودند، نه migration یا قالب موبایل.
+- `tests/Feature/SalesOperationalWorkflowTest.php`: انتظار وضعیت نهایی خروجی تولید از `confirmed` به `received` اصلاح شد؛ سرویس `ProductionOutputService::confirm()` عمداً ابتدا خروجی را تأیید و سپس دریافت انبار را ثبت می‌کند و موجودی/رسید را به‌روزرسانی می‌کند.
+- همان تست: گیرنده اعلان کمبود موجودی اصلاح شد. `NotificationRecipientService` عامل عملیات را از گیرندگان حذف می‌کند؛ بنابراین تست اکنون یک کاربر جداگانه با نقش دارای مجوز `production.supervise` می‌سازد و اعلان را برای او بررسی می‌کند، به‌جای اینکه اعلان را از کاربر عامل انتظار داشته باشد.
+- `tests/Feature/UserAccessTest.php`: تست محدودیت تعداد کاربران اکنون مجوز `user.create` را نیز به نقش می‌دهد. پیش از اصلاح، نبود این مجوز درخواست را با 403 متوقف می‌کرد و مسیر اعتبارسنجی ظرفیت اشتراک هرگز اجرا نمی‌شد.
+- فقط تست‌ها و این گزارش روند تغییر کرده‌اند؛ منطق برنامه دست‌نخورده مانده است. اصلاحات در شاخه `feat/production-shift-reports-mobile-cards` ثبت شدند. CI پس از آخرین commit باید دوباره نتیجه نهایی بدهد؛ اجرای PHPUnit محلی در این محیط انجام نشده است.
+- PR #54 همچنان باز و ادغام‌نشده است. تست واقعی مرورگر موبایل و Deploy انجام نشده‌اند؛ هیچ PRی بدون تأیید صریح کاربر ادغام نمی‌شود.
+
+- نتیجه CI پس از اصلاح تست‌ها: هر دو اجرای تازه، migration و route-list را با موفقیت گذراندند و تست‌های گردش فروش اکنون سبز شدند. تنها شکست باقی‌مانده در `UserAccessTest` نشان داد که فرم وب هنگام `ValidationException` به‌درستی با 302 redirect و خطای session برمی‌گردد، نه پاسخ JSON با 422. انتظار تست به `assertRedirect()->assertSessionHasErrors('capacity')` تغییر کرد تا رفتار واقعی فرم را بررسی کند.
+- این اصلاح نهایی نیز در شاخه همین PR ثبت شده و اجرای CI جدید باید نتیجه نهایی را تأیید کند؛ اجرای محلی تست‌ها انجام نشده است.
+
+- نتیجه نهایی اجرای CI پس از اصلاحات: [GitHub Actions / PHPUnit](https://github.com/media-store-rtl/accounting/actions/runs/38353930367/job/115152347579) موفق شد؛ `php artisan migrate --force`، `migrate:status` و `route:list` نیز موفق بودند. PHPUnit: **32 passed (178 assertions)**. سه شکست اولیه دیگر بازتولید نشدند.
+- PR #54 در پایان بررسی باز و ادغام‌نشده است. اجرای CI روی commit مستندشده موفق بوده؛ به‌روزرسانی همین گزارش یک commit مستنداتی تازه ایجاد می‌کند و وضعیت checks مربوط به آن commit جداگانه بررسی می‌شود. تست مرورگر موبایل و Deploy انجام نشده‌اند.
