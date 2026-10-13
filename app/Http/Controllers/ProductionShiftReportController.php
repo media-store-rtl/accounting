@@ -417,54 +417,24 @@ final class ProductionShiftReportController extends Controller
                 'method' => 'SERVICE', 'status_code' => 200, 'created_at' => now(), 'updated_at' => now(),
             ]);
         });
+        if ((bool) $data['approve']) {
+            $details = DB::table('production_shift_reports as r')->join('goods as g', 'g.id', '=', 'r.goods_id')
+                ->leftJoin('locations as l', 'l.id', '=', 'r.warehouse_location_id')
+                ->where('r.company_id', $companyId)->where('r.id', $report)
+                ->first(['r.id', 'r.work_date', 'r.produced_quantity', 'r.scrap_quantity', 'g.name as goods_name', 'l.name as warehouse_name']);
+            app(NotificationRecipientService::class)->send($companyId, 'production.shift_report_warehouse_receipt', [
+                'report_id' => $report, 'work_date' => $details->work_date ?? '', 'goods_name' => $details->goods_name ?? '',
+                'available_quantity' => max(0, (float) ($details->produced_quantity ?? 0) - (float) ($details->scrap_quantity ?? 0)),
+                'warehouse_name' => $details->warehouse_name ?? '', 'url' => route('production.outputs.index'),
+            ], (int) $request->user()->id, 'production.output.receive');
+        }
         return back()->with('success', $data['approve']
-            ? 'گزارش تولید تأیید شد. برای افزایش موجودی، پس از تأیید از فرم جداگانه تحویل محصول به انبار استفاده کنید.'
+            ? 'گزارش تولید تأیید شد و برای تأیید دریافت به سرپرست انبار اعلان ارسال شد.'
             : 'گزارش شیفت رد شد.');
     }
 
     public function receive(Request $request, int $report, InventoryService $inventory)
     {
-        $companyId = CompanyAuthorization::authorize($request, 'production.output.receive');
-        $data = $request->validate([
-            'warehouse_location_id' => ['required', 'integer'],
-            'warehouse_quantity' => ['required', 'numeric', 'gt:0'],
-            'receipt_token' => ['required', 'uuid'],
-        ]);
-        DB::transaction(function () use ($companyId, $report, $data, $request, $inventory) {
-            $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
-            if (!$row || $row->status !== 'approved') throw ValidationException::withMessages(['report' => 'فقط گزارش تأییدشده با مقدار باقی‌مانده قابل تحویل به انبار است.']);
-            $goods = DB::table('goods')->where('company_id', $companyId)->where('id', $row->goods_id)->first(['sellable', 'producible']);
-            if (!$goods || !(bool) $goods->producible || !(bool) $goods->sellable) {
-                throw ValidationException::withMessages(['report' => 'انتقال به انبار محصول نهایی فقط برای کالای قابل‌فروش مجاز است.']);
-            }
-            $quantity = (float)$data['warehouse_quantity'];
-            $available = max(0, (float)$row->produced_quantity - (float)$row->scrap_quantity);
-            $alreadyReceived = (float)($row->warehouse_quantity ?? 0);
-            if ($quantity > ($available - $alreadyReceived) + 0.0000001) throw ValidationException::withMessages(['warehouse_quantity' => 'مقدار تحویل از باقیمانده تولید سالم بیشتر است.']);
-            if ($alreadyReceived > 0 && (int)$row->warehouse_location_id !== (int)$data['warehouse_location_id']) throw ValidationException::withMessages(['warehouse_location_id' => 'برای تحویل‌های یک گزارش، همان انبار قبلی را انتخاب کنید.']);
-            $warehouse = DB::table('locations')->where('id', (int)$data['warehouse_location_id'])->where('company_id', $companyId)->where('is_active', true)->where(function ($query) { $query->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])
-                ->orWhereIn(DB::raw('TRIM(type)'), ['مواد', 'محصول', 'ضایعات']); })->exists();
-            if (!$warehouse) throw ValidationException::withMessages(['warehouse_location_id' => 'انبار معتبر نیست.']);
-            $duplicate = DB::table('inventory_movements')->where('company_id', $companyId)
-                ->where('reference_type', 'production_shift_reports')->where('reference_id', $report)
-                ->whereJsonContains('metadata->receipt_token', $data['receipt_token'])->exists();
-            if ($duplicate) throw ValidationException::withMessages(['report' => 'این ثبت ورود قبلاً ارسال شده است؛ صفحه را تازه‌سازی کنید.']);
-            $metadata = ['production_section_id' => (int)$row->production_section_id, 'shift_name' => $row->shift_name, 'work_date' => $row->work_date, 'reported_by_user_id' => (int)$row->reported_by_user_id, 'receipt_token' => $data['receipt_token']];
-            $inventory->receiveFinishedGoods($companyId, (int)$data['warehouse_location_id'], (int)$row->goods_id, $quantity,
-                'production_shift_reports', $report, $metadata);
-            DB::table('production_shift_reports')->where('id', $report)->where('company_id', $companyId)->update([
-                'warehouse_location_id' => (int)$data['warehouse_location_id'], 'warehouse_quantity' => $alreadyReceived + $quantity,
-                'status' => ($alreadyReceived + $quantity >= $available - 0.0000001) ? 'received' : 'approved',
-                'warehouse_received_at' => now(), 'updated_at' => now(),
-            ]);
-            DB::table('audit_trails')->insert([
-                'company_id' => $companyId, 'user_id' => (int)$request->user()->id, 'module' => 'production',
-                'action' => 'production_shift_report.warehouse_receive', 'auditable_type' => 'production_shift_reports', 'auditable_id' => $report,
-                'before' => json_encode((array)$row),
-                'after' => json_encode((array)DB::table('production_shift_reports')->where('id', $report)->first()),
-                'method' => 'SERVICE', 'status_code' => 200, 'created_at' => now(), 'updated_at' => now(),
-            ]);
-        });
-        return back()->with('success', 'مقدار تحویلی ثبت شد و موجودی انبار افزایش یافت.');
+        abort(410, 'ثبت ورود این گزارش فقط از صفحه خروجی تولید و پس از تأیید سرپرست انبار مجاز است.');
     }
 }
