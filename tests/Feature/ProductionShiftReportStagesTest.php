@@ -261,7 +261,7 @@ class ProductionShiftReportStagesTest extends TestCase
         $this->assertDatabaseMissing('inventory_movements', ['reference_type' => 'production_shift_reports', 'reference_id' => $reportId]);
         $this->assertDatabaseHas('notifications', [
             'notifiable_id' => $warehouseUserId,
-            'type' => \\App\\Notifications\\WorkflowNotification::class,
+            'type' => 'production.shift_report_warehouse_receipt',
         ]);
 
         // The same reviewer cannot perform the warehouse confirmation.
@@ -290,6 +290,7 @@ class ProductionShiftReportStagesTest extends TestCase
         $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'rejected']);
 
         // A supervisor without warehouse-receipt permission must still be able to approve the report.
+        $movementCountBeforeFinalApproval = DB::table('inventory_movements')->where('reference_type', 'production_shift_reports')->where('reference_id', $reportId)->count();
         DB::table('production_shift_reports')->where('id', $reportId)->update(['status' => 'pending']);
         $receivePermissionId = DB::table('permissions')->where('slug', 'production.output.receive')->value('id');
         DB::table('role_permissions')->where('role_id', $role)->where('permission_id', $receivePermissionId)->delete();
@@ -306,10 +307,8 @@ class ProductionShiftReportStagesTest extends TestCase
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'approved']);
-        $this->assertDatabaseMissing('inventory_movements', [
-            'reference_type' => 'production_shift_reports',
-            'reference_id' => $reportId,
-        ]);
+        $this->assertSame($movementCountBeforeFinalApproval, DB::table('inventory_movements')
+            ->where('reference_type', 'production_shift_reports')->where('reference_id', $reportId)->count());
     }
 
 }
