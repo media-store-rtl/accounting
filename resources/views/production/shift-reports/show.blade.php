@@ -23,6 +23,9 @@
 @if($row->review_notes)<div class="detail-item"><span>یادداشت بررسی</span><strong>{{ $row->review_notes }}</strong></div>@endif
 @if($row->notes)<div class="detail-item"><span>توضیحات ثبت‌کننده</span><strong>{{ $row->notes }}</strong></div>@endif
 </div></div>
+<div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">مراحل ثبت‌شده</h2>
+@if($reportedStages->isEmpty())<p class="detail-note">برای این گزارش مرحله‌ای ثبت نشده است.</p>@else<div style="display:flex;gap:8px;flex-wrap:wrap">@foreach($reportedStages as $stage)<span class="detail-status good">{{ $stage->code ? $stage->code.' — ' : '' }}{{ $stage->name }}</span>@endforeach</div>@endif
+</div>
 <div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">مواد اولیه مصرف‌شده</h2>
 @if($materialUsage->isEmpty())<p class="detail-note">برای این گزارش ماده اولیه‌ای ثبت نشده است.</p>@else<div style="overflow:auto"><table class="detail-table"><thead><tr><th>ماده اولیه</th><th>مقدار مصرف</th><th>ضایعات ماده</th></tr></thead><tbody>@foreach($materialUsage as $material)<tr><td>{{ $material->name }} @if($material->code)({{ $material->code }})@endif</td><td>{{ $material->quantity }}</td><td>{{ $material->scrap_quantity ?? 0 }}</td></tr>@endforeach</tbody></table></div>@endif
 </div>
