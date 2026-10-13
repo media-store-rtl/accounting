@@ -26,6 +26,7 @@ final class ProductionOutputController extends Controller
         $shiftRows = DB::table('production_shift_reports as r')
             ->join('goods as g', 'g.id', '=', 'r.goods_id')
             ->leftJoin('production_sections as s', 's.id', '=', 'r.production_section_id')
+            ->leftJoin('locations as section_location', 'section_location.id', '=', 's.location_id')
             ->leftJoin('locations as l', 'l.id', '=', 'r.warehouse_location_id')
             ->where('r.company_id', $companyId)
             ->where('r.warehouse_quantity', '>', 0)
