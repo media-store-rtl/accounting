@@ -22,20 +22,19 @@ final class ProductionOutputController extends Controller
             ->select('po.*','p.number as production_number','g.name as goods_name','l.name as location_name')
             ->latest('po.id')->paginate(20);
 
-        // Include quantities received directly from production shift reports.
-        // These are already posted to inventory, so they are displayed separately
-        // and must not be processed again through production_outputs.
+        // Include approved/received shift reports in the report regardless of whether
+        // warehouse receipt was requested. The receipt controls themselves are shown
+        // only when the production supervisor explicitly requested warehouse receipt.
         $shiftRows = DB::table('production_shift_reports as r')
             ->join('goods as g', 'g.id', '=', 'r.goods_id')
             ->leftJoin('production_sections as s', 's.id', '=', 'r.production_section_id')
             ->leftJoin('locations as section_location', 'section_location.id', '=', 's.location_id')
             ->leftJoin('locations as l', 'l.id', '=', 'r.warehouse_location_id')
             ->where('r.company_id', $companyId)->whereIn('r.status', ['approved', 'received'])
-            ->where('r.warehouse_receipt_requested', true)->where('g.sellable', true)
             ->select('r.id as report_id', 'r.work_date', 'r.status', 'r.produced_quantity', 'r.scrap_quantity',
                 'r.warehouse_quantity as quantity', 'r.warehouse_location_id', 'r.reviewed_by_user_id',
-                'g.name as goods_name', 'g.producible as goods_producible',
-                'section_location.name as section_name', 'l.name as location_name')
+                'r.warehouse_receipt_requested', 'g.name as goods_name', 'g.producible as goods_producible',
+                'g.sellable as goods_sellable', 'section_location.name as section_name', 'l.name as location_name')
             ->latest('r.reviewed_at')->latest('r.id')->paginate(20, ['*'], 'shift_page');
         $shiftWarehouses = DB::table('locations')->where('company_id', $companyId)->where('is_active', true)
             ->where(function ($query) { $query->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])->orWhereIn(DB::raw('TRIM(type)'), ['مواد', 'محصول', 'ضایعات']); })
