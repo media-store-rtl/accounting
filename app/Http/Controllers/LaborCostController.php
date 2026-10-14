@@ -21,7 +21,8 @@ final class LaborCostController
             (float)$request->input('measure_quantity'),
             (string)$request->input('worked_at'),
             (int)$request->user()->id,
-            $request->input('notes')
+            $request->input('notes'),
+            (string)$request->input('labor_rate_type', 'regular')
         );
         return response()->json(['id'=>$id,'status'=>'pending'],201);
     }
@@ -38,7 +39,7 @@ final class LaborCostController
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.labor.rate.manage');
         $validated=$request->validate([
-            'personnel_id'=>['required','integer'],'rate_type'=>['required','in:hourly,per_unit'],
+            'personnel_id'=>['required','integer'],'rate_type'=>['required','in:regular,overtime,holiday,per_unit'],
             'rate'=>['required','numeric','min:0'],'effective_from'=>['required','date'],'effective_to'=>['nullable','date','after_or_equal:effective_from'],
         ]);
         $id=$service->setRate($companyId,(int)$validated['personnel_id'],(string)$validated['rate_type'],(float)$validated['rate'],$validated['effective_from'],$validated['effective_to']??null);
