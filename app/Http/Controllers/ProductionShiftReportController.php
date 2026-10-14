@@ -386,6 +386,7 @@ final class ProductionShiftReportController extends Controller
         $data = $request->validate([
             'approve' => ['required', 'boolean'],
             'review_notes' => ['nullable', 'string', 'max:1000'],
+            'warehouse_receipt_requested' => ['sometimes', 'boolean'],
         ]);
         if (!(bool) $data['approve'] && blank($data['review_notes'] ?? null)) {
             throw ValidationException::withMessages(['review_notes' => 'برای رد گزارش، دلیل رد را وارد کنید.']);
@@ -395,9 +396,12 @@ final class ProductionShiftReportController extends Controller
             if (!$row || $row->status !== 'pending') throw ValidationException::withMessages(['report' => 'این گزارش دیگر در انتظار بررسی نیست.']);
 
             if ((bool) $data['approve']) {
-                $goods = DB::table('goods')->where('company_id', $companyId)->where('id', $row->goods_id)->first(['producible']);
+                $goods = DB::table('goods')->where('company_id', $companyId)->where('id', $row->goods_id)->first(['producible', 'sellable']);
                 if (!$goods || !(bool) $goods->producible) {
                     throw ValidationException::withMessages(['report' => 'کالای این گزارش معتبر نیست یا به‌عنوان کالای تولیدشدنی تعریف نشده است.']);
+                }
+                if ((bool) ($data['warehouse_receipt_requested'] ?? false) && !(bool) $goods->sellable) {
+                    throw ValidationException::withMessages(['warehouse_receipt_requested' => 'فقط کالای قابل‌فروش را می‌توان برای تحویل به انبار نهایی انتخاب کرد.']);
                 }
             }
 
@@ -405,6 +409,7 @@ final class ProductionShiftReportController extends Controller
                 'status' => $data['approve'] ? 'approved' : 'rejected',
                 'reviewed_by_user_id' => (int) $request->user()->id,
                 'review_notes' => $data['review_notes'] ?? null,
+                'warehouse_receipt_requested' => (bool) ($data['approve'] && ($data['warehouse_receipt_requested'] ?? false)),
                 'reviewed_at' => now(), 'updated_at' => now(),
             ]);
             DB::table('audit_trails')->insert([
@@ -421,7 +426,7 @@ final class ProductionShiftReportController extends Controller
                 ->leftJoin('locations as l', 'l.id', '=', 'r.warehouse_location_id')
                 ->where('r.company_id', $companyId)->where('r.id', $report)
                 ->first(['r.id', 'r.work_date', 'r.produced_quantity', 'r.scrap_quantity', 'g.name as goods_name', 'g.sellable', 'l.name as warehouse_name']);
-            if ($details && (bool) $details->sellable) {
+            if ($details && (bool) $details->sellable && (bool) ($data['warehouse_receipt_requested'] ?? false)) {
                 app(NotificationRecipientService::class)->send($companyId, 'production.shift_report_warehouse_receipt', [
                     'report_id' => $report, 'work_date' => $details->work_date ?? '', 'goods_name' => $details->goods_name ?? '',
                     'prepared_quantity' => max(0, (float) ($details->produced_quantity ?? 0) - (float) ($details->scrap_quantity ?? 0)),
@@ -430,7 +435,9 @@ final class ProductionShiftReportController extends Controller
             }
         }
         return back()->with('success', $data['approve']
-            ? 'گزارش تولید تأیید شد و برای تأیید دریافت به سرپرست انبار اعلان ارسال شد.'
+            ? (((bool) ($data['warehouse_receipt_requested'] ?? false))
+                ? 'گزارش تولید تأیید شد و اعلان تحویل به سرپرست انبار ارسال شد.'
+                : 'گزارش تولید تأیید شد؛ اعلان تحویل به انبار ارسال نشد.')
             : 'گزارش شیفت رد شد.');
     }
 
