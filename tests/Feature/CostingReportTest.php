@@ -58,6 +58,7 @@ class CostingReportTest extends TestCase
         $customer=DB::table('customers')->insertGetId(['company_id'=>$company,'name'=>'Customer','code'=>'CUS'.uniqid(),'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $category=DB::table('goods_categories')->insertGetId(['company_id'=>$company,'name'=>'Goods','code'=>'GC'.uniqid(),'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $goods=DB::table('goods')->insertGetId(['company_id'=>$company,'category_id'=>$category,'code'=>'FG1','name'=>'Finished Good','purchasable'=>false,'producible'=>true,'sellable'=>true,'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
+        $rawMaterial=DB::table('goods')->insertGetId(['company_id'=>$company,'category_id'=>$category,'code'=>'RM1','name'=>'Raw Material','purchasable'=>true,'producible'=>false,'sellable'=>false,'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $route=DB::table('production_routes')->insertGetId(['company_id'=>$company,'goods_id'=>$goods,'code'=>'R'.uniqid(),'name'=>'Route','status'=>'active','created_at'=>now(),'updated_at'=>now()]);
         $stage=DB::table('production_stages')->insertGetId(['production_route_id'=>$route,'code'=>'S'.uniqid(),'name'=>'Stage','sequence'=>1,'status'=>'active','created_at'=>now(),'updated_at'=>now()]);
         $production=DB::table('productions')->insertGetId(['company_id'=>$company,'fiscal_year_id'=>$fy,'goods_id'=>$goods,'production_route_id'=>$route,'number'=>'P'.uniqid(),'planned_quantity'=>10,'produced_quantity'=>0,'rejected_quantity'=>0,'status'=>'completed','created_at'=>now(),'updated_at'=>now()]);
@@ -66,8 +67,8 @@ class CostingReportTest extends TestCase
 
         $supply=DB::table('supply_requests')->insertGetId(['company_id'=>$company,'fiscal_year_id'=>$fy,'production_id'=>$production,'order_id'=>$order,'requested_by_user_id'=>$user,'requested_at'=>now(),'needed_at'=>now(),'status'=>'fulfilled','notes'=>null,'created_at'=>now(),'updated_at'=>now()]);
         $location=DB::table('locations')->insertGetId(['company_id'=>$company,'code'=>'W'.uniqid(),'name'=>'Warehouse','type'=>'warehouse','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
-        $movement=DB::table('inventory_movements')->insertGetId(['company_id'=>$company,'goods_id'=>$goods,'location_id'=>$location,'quantity'=>-2,'movement_type'=>'material_handover','reference_type'=>'material_handovers','reference_id'=>1,'occurred_at'=>now(),'metadata'=>json_encode(['supply_request_id'=>$supply]),'created_at'=>now(),'updated_at'=>now()]);
-        DB::table('inventory_consumption_costs')->insert(['company_id'=>$company,'fiscal_year_id'=>$fy,'goods_id'=>$goods,'location_id'=>$location,'inventory_movement_id'=>$movement,'valuation_method'=>'fifo','quantity'=>2,'unit_cost'=>10,'total_cost'=>20,'consumed_at'=>now(),'created_at'=>now(),'updated_at'=>now()]);
+        $movement=DB::table('inventory_movements')->insertGetId(['company_id'=>$company,'goods_id'=>$rawMaterial,'location_id'=>$location,'quantity'=>-2,'movement_type'=>'material_handover','reference_type'=>'material_handovers','reference_id'=>1,'occurred_at'=>now(),'metadata'=>json_encode(['supply_request_id'=>$supply]),'created_at'=>now(),'updated_at'=>now()]);
+        DB::table('inventory_consumption_costs')->insert(['company_id'=>$company,'fiscal_year_id'=>$fy,'goods_id'=>$rawMaterial,'location_id'=>$location,'inventory_movement_id'=>$movement,'valuation_method'=>'fifo','quantity'=>2,'unit_cost'=>10,'total_cost'=>20,'consumed_at'=>now(),'created_at'=>now(),'updated_at'=>now()]);
         $purchase=DB::table('purchases')->insertGetId(['company_id'=>$company,'fiscal_year_id'=>$fy,'supplier_id'=>DB::table('suppliers')->insertGetId(['company_id'=>$company,'code'=>'SUP'.uniqid(),'name'=>'Supplier','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]),'supply_request_id'=>$supply,'invoice_number'=>'INV-1','invoice_date'=>'2026-10-07','purchased_at'=>'2026-10-07','subtotal'=>20,'direct_cost_total'=>10,'total_amount'=>30,'status'=>'received','created_at'=>now(),'updated_at'=>now()]);
         $pi=DB::table('purchase_items')->insertGetId(['purchase_id'=>$purchase,'goods_id'=>$goods,'quantity'=>2,'unit_price'=>10,'line_total'=>20,'created_at'=>now(),'updated_at'=>now()]);
         DB::table('purchase_direct_costs')->insert(['purchase_id'=>$purchase,'type'=>'freight','description'=>'حمل','amount'=>10,'created_at'=>now(),'updated_at'=>now()]);
@@ -101,6 +102,15 @@ class CostingReportTest extends TestCase
             ]);
         }
 
+        // Approved labor without a sales order must still appear under a null order.
+        DB::table('production_shift_reports')->insert([
+            'company_id'=>$company,'production_section_id'=>$section,'goods_id'=>$goods,
+            'order_id'=>null,'personnel_id'=>$personnel,'reported_by_user_id'=>$user,
+            'shift_name'=>'Day Shift','worked_hours'=>1,'overtime_hours'=>0,'holiday_hours'=>0,
+            'work_date'=>'2026-10-07','produced_quantity'=>1,'scrap_quantity'=>0,
+            'status'=>'approved','created_at'=>now(),'updated_at'=>now(),
+        ]);
+
         $report=app(CostingReportService::class)->generate($company,$fy,$order,$goods);
         $this->assertCount(1,$report['rows']);
         $this->assertSame(20.0,$report['rows'][0]['material_cost']);
@@ -109,6 +119,11 @@ class CostingReportTest extends TestCase
         $this->assertSame(90.0,$report['rows'][0]['total_cost']);
         $this->assertSame(['fifo'],$report['rows'][0]['valuation_methods']);
         $this->assertSame(0.0,$report['totals']['unvalued_material_quantity']);
+
+        $unassignedReport=app(CostingReportService::class)->generate($company,$fy,null,$goods);
+        $unassignedRows=array_values(array_filter($unassignedReport['rows'],fn($row)=>$row['order_id']===null&&$row['goods_id']===$goods));
+        $this->assertCount(1,$unassignedRows);
+        $this->assertSame(15.0,$unassignedRows[0]['labor_cost']);
 
         $calculation=app(\App\Services\CostCalculationService::class)->calculate($company,$user,$fy,$order,$goods);
         $this->assertSame(1,$calculation['count']);
