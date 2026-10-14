@@ -83,10 +83,77 @@ class ProductionOutputService
                 'produced_quantity'=>DB::raw('produced_quantity + '.(float)$output->quantity),'updated_at'=>now()
             ]);
             $this->audit($companyId,$userId,'finished_goods.receive',(int)$outputId,$output);
+            $this->refreshOrderShortagesAfterReceipt($companyId, (int) $output->goods_id, $userId);
             $salesUsers=DB::table('company_user as cu')->join('role_permissions as rp','rp.role_id','=','cu.role_id')->join('permissions as p','p.id','=','rp.permission_id')->where('cu.company_id',$companyId)->where('cu.is_active',true)->where('p.slug','order.view')->pluck('cu.user_id');
             if($salesUsers->isNotEmpty()) Notification::send(User::whereIn('id',$salesUsers)->get(),new WorkflowNotification('finished_goods_received',['production_output_id'=>(int)$outputId,'production_id'=>(int)$output->production_id,'goods_id'=>(int)$output->goods_id,'quantity'=>(float)$output->quantity]));
             return ProductionOutput::query()->findOrFail($outputId);
         });
+    }
+
+    /**
+     * Allocate newly received finished goods to older open orders with shortages.
+     * Notify sales only when every line of an order can be fulfilled.
+     */
+    private function refreshOrderShortagesAfterReceipt(int $companyId, int $goodsId, int $actorId): void
+    {
+        $stock = app(InventoryService::class)->available($companyId, $goodsId);
+        $reserved = (float) DB::table('order_items as oi')
+            ->join('orders as o', 'o.id', '=', 'oi.order_id')
+            ->where('o.company_id', $companyId)
+            ->where('oi.goods_id', $goodsId)
+            ->whereIn('o.status', ['production_required', 'awaiting_production', 'ready_for_delivery', 'delivery_requested'])
+            ->sum('oi.available_quantity');
+        $freeQuantity = max(0, $stock - $reserved);
+
+        $shortItems = DB::table('order_items as oi')
+            ->join('orders as o', 'o.id', '=', 'oi.order_id')
+            ->where('o.company_id', $companyId)
+            ->where('oi.goods_id', $goodsId)
+            ->where('oi.shortage_quantity', '>', 0)
+            ->whereIn('o.status', ['production_required', 'awaiting_production'])
+            ->orderBy('o.created_at')
+            ->orderBy('o.id')
+            ->select('oi.*', 'o.status as order_status')
+            ->lockForUpdate()
+            ->get();
+
+        foreach ($shortItems as $item) {
+            if ($freeQuantity <= 0.0000001) {
+                break;
+            }
+
+            $allocation = min($freeQuantity, (float) $item->shortage_quantity);
+            $newAvailable = (float) $item->available_quantity + $allocation;
+            $newShortage = max(0, (float) $item->shortage_quantity - $allocation);
+            $freeQuantity -= $allocation;
+
+            DB::table('order_items')->where('id', $item->id)->update([
+                'available_quantity' => $newAvailable,
+                'shortage_quantity' => $newShortage,
+                'fulfillment_status' => $newShortage > 0 ? 'production_required' : 'ready_for_delivery',
+                'updated_at' => now(),
+            ]);
+
+            if (DB::table('order_items')->where('order_id', $item->order_id)->where('shortage_quantity', '>', 0)->exists()) {
+                continue;
+            }
+
+            $wasReady = DB::table('orders')->where('id', $item->order_id)->value('status') === 'ready_for_delivery';
+            DB::table('orders')->where('id', $item->order_id)->update([
+                'status' => 'ready_for_delivery',
+                'updated_at' => now(),
+            ]);
+
+            if (! $wasReady) {
+                app(NotificationRecipientService::class)->send(
+                    $companyId,
+                    'order.ready_for_delivery',
+                    ['order_id' => (int) $item->order_id],
+                    $actorId,
+                    'order.view'
+                );
+            }
+        }
     }
 
     private function audit(int $companyId,int $userId,string $action,int $outputId,object $before): void
