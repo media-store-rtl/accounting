@@ -272,7 +272,7 @@ class SalesOperationalWorkflowTest extends TestCase
             'order_id' => $orderId, 'available_quantity' => 4, 'shortage_quantity' => 0,
             'fulfillment_status' => 'ready_for_delivery',
         ]);
-        Notification::assertSentTo($salesUser, \\App\\Notifications\\WorkflowNotification::class, function ($notification) use ($salesUser, $orderId) {
+        Notification::assertSentTo($salesUser, \App\Notifications\WorkflowNotification::class, function ($notification) use ($salesUser, $orderId) {
             $data = $notification->toArray($salesUser);
             return $data['event'] === 'order.ready_for_delivery' && (int) $data['order_id'] === (int) $orderId;
         });
