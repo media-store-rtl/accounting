@@ -39,14 +39,7 @@ class DeliveryController extends Controller
             ->select('o.id','o.number','c.name as customer_name')
             ->latest('o.id')->get();
 
-        $canCreateDeliveryRequest = DB::table('company_user as cu')
-            ->join('role_permissions as rp','rp.role_id','=','cu.role_id')
-            ->join('permissions as p','p.id','=','rp.permission_id')
-            ->where('cu.company_id',$companyId)
-            ->where('cu.user_id',$request->user()->id)
-            ->where('cu.is_active',true)
-            ->where('p.slug','delivery_request.create')
-            ->exists();
+        $canCreateDeliveryRequest = $request->user()->hasCompanyPermission($companyId, 'delivery_request.create');
 
         return view('sales.deliveries.index',compact('deliveries','eligibleOrders','canCreateDeliveryRequest'));
     }

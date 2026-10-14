@@ -22,7 +22,9 @@ class OrderController extends Controller
         ];
         $selectedStatus = (string) $request->query('status', '');
         $ordersQuery = DB::table('orders as o')->join('customers as c','c.id','=','o.customer_id')
-            ->where('o.company_id',$companyId)->select('o.*','c.name as customer_name');
+            ->where('o.company_id',$companyId)->select('o.*','c.name as customer_name')
+            ->addSelect(['delivery_request_id' => DB::table('delivery_requests')->select('id')->whereColumn('order_id','o.id')->latest('id')->limit(1)])
+            ->addSelect(['delivery_request_status' => DB::table('delivery_requests')->select('status')->whereColumn('order_id','o.id')->latest('id')->limit(1)]);
         if (isset($statusGroups[$selectedStatus])) {
             $ordersQuery->whereIn('o.status', $statusGroups[$selectedStatus]);
         }
@@ -35,7 +37,8 @@ class OrderController extends Controller
             'delivery' => (int) ($statusCounts['delivery_requested'] ?? 0) + (int) ($statusCounts['issued'] ?? 0),
             'completed' => (int) ($statusCounts['completed'] ?? 0),
         ];
-        return view('sales.orders.index',compact('orders','salesCounts','selectedStatus'));
+        $canApproveDeliveryRelease = $request->user()->hasCompanyPermission($companyId, 'delivery_request.sales_approve');
+        return view('sales.orders.index',compact('orders','salesCounts','selectedStatus','canApproveDeliveryRelease'));
     }
 
     public function create(Request $request)
@@ -229,6 +232,35 @@ class OrderController extends Controller
         return response()->json(['data'=>DB::table('orders')->find($order)]);
     }
 
+    public function approveDeliveryRelease(Request $request, int $delivery): JsonResponse|\Illuminate\Http\RedirectResponse
+    {
+        $companyId = CompanyAuthorization::authorize($request, 'delivery_request.sales_approve');
+
+        DB::transaction(function () use ($companyId, $delivery, $request) {
+            $row = DB::table('delivery_requests')
+                ->where('id', $delivery)
+                ->where('company_id', $companyId)
+                ->lockForUpdate()
+                ->first();
+
+            abort_unless($row, 404);
+            abort_unless($row->status === 'awaiting_sales_approval', 422, 'این درخواست قبلاً تأیید شده یا در وضعیت مجاز نیست.');
+
+            DB::table('delivery_requests')->where('id', $delivery)->update([
+                'status' => 'pending',
+                'sales_approved_by_user_id' => $request->user()->id,
+                'sales_approved_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        if ($request->expectsJson()) {
+            return response()->json(['data' => DB::table('delivery_requests')->find($delivery)]);
+        }
+
+        return redirect()->route('sales.orders.index')->with('success', 'مجوز خروج سفارش صادر شد؛ انبار می‌تواند خروج کالا را ثبت کند.');
+    }
+
     public function deliveryRequest(Request $request,int $order): JsonResponse
     {
         $companyId=CompanyAuthorization::authorize($request,'delivery_request.create');
@@ -243,7 +275,7 @@ class OrderController extends Controller
             $id=DB::table('delivery_requests')->insertGetId([
                 'company_id'=>$companyId,'order_id'=>$order,'customer_id'=>$row->customer_id,'requested_by_user_id'=>$request->user()->id,
                 'requested_at'=>now(),'scheduled_at'=>$data['scheduled_at'],'vehicle'=>$data['vehicle']??null,
-                'recipient_name'=>$data['recipient_name'],'status'=>'pending','notes'=>$data['notes']??null,'created_at'=>now(),'updated_at'=>now()
+                'recipient_name'=>$data['recipient_name'],'status'=>'awaiting_sales_approval','notes'=>$data['notes']??null,'created_at'=>now(),'updated_at'=>now()
             ]);
             foreach($items as $item) DB::table('delivery_request_items')->insert([
                 'delivery_request_id'=>$id,'goods_id'=>$item->goods_id,'quantity'=>$item->quantity,'created_at'=>now(),'updated_at'=>now()

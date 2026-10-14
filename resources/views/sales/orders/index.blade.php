@@ -40,6 +40,11 @@ $statusLabels = [
             <td>@if($o->production_due_at)<time class="jalali-date" datetime="{{ $o->production_due_at }}">{{ $o->production_due_at }}</time>@else — @endif</td>
             <td><span class="status">{{ $statusLabels[$o->status] ?? 'در حال بررسی' }}</span></td>
             <td style="white-space:nowrap"><a class="btn" href="{{ route('sales.orders.show', $o->id) }}">مشاهده جزئیات</a>
+              @if($canApproveDeliveryRelease && $o->status === 'delivery_requested' && $o->delivery_request_status === 'awaiting_sales_approval' && $o->delivery_request_id)
+                <form method="POST" action="{{ route('sales.delivery.sales-approve', $o->delivery_request_id) }}" style="display:inline" onsubmit="return confirm('مجوز خروج این سفارش از سمت فروش صادر شود؟');">@csrf
+                  <button class="btn primary" type="submit">مجوز خروج</button>
+                </form>
+              @endif
               @if(in_array($o->status, ['checking_stock','production_required','awaiting_production','ready_for_delivery'], true))
                 <form method="POST" action="{{ route('sales.orders.cancel', $o->id) }}" style="display:inline" onsubmit="return confirm('آیا از لغو این سفارش مطمئن هستید؟');">@csrf
                   <button class="btn" type="submit" style="border-color:#8d3e3e;color:#ffb8b8">لغو سفارش</button>
@@ -48,7 +53,7 @@ $statusLabels = [
             </td>
           </tr>
         @empty
-          <tr><td colspan="7" style="text-align:center;color:#71879d;padding:28px">هنوز سفارشی ثبت نشده است.</td></tr>
+          <tr><td colspan="6" style="text-align:center;color:#71879d;padding:28px">هنوز سفارشی ثبت نشده است.</td></tr>
         @endforelse
       </tbody>
     </table>
