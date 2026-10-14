@@ -2,6 +2,13 @@
 
 @section('title', 'تحویل و ارسال')
 
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
+<style>
+@media(max-width:650px){.datepicker-container{position:fixed!important;top:50%!important;left:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)!important;z-index:10000!important;max-width:calc(100vw - 20px)!important}.datepicker-plot-area{max-width:calc(100vw - 20px)!important;box-sizing:border-box!important}}
+</style>
+@endpush
+
 @section('content')
 <div class="page-heading"><div><h1>تحویل و ارسال</h1><p>ثبت درخواست تحویل، مدیریت خروج سفارش از انبار و ثبت رسید تحویل به مشتری</p></div><a class="btn" href="{{ route('sales.orders.index') }}">مشاهده سفارش‌های فروش</a></div>
 
@@ -13,7 +20,8 @@
       <strong>سفارش {{ $order->number }}</strong> — {{ $order->customer_name }}
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:12px">
         <label style="font-size:11px">تاریخ برنامه‌ریزی‌شده تحویل
-          <input name="scheduled_date" type="date" required style="display:block;width:100%;margin-top:5px">
+          <input id="scheduled_date_picker_{{ $order->id }}" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" required style="display:block;width:100%;margin-top:5px">
+          <input id="scheduled_date_iso_{{ $order->id }}" type="hidden">
         </label>
         <label style="font-size:11px">ساعت برنامه‌ریزی‌شده تحویل
           <input name="scheduled_time" type="time" required style="display:block;width:100%;margin-top:5px">
@@ -92,13 +100,25 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+<script type="module">
+import { setupProductionReportDatePicker } from '/js/production-report-date-filters.js';
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.delivery-request-form').forEach(form => {
+    const id = form.dataset.orderId;
+    setupProductionReportDatePicker('#scheduled_date_picker_' + id, '#scheduled_date_iso_' + id);
+  });
+});
+</script>
 <script>
 const token='{{ csrf_token() }}';
 document.querySelectorAll('.delivery-request-form').forEach(form=>form.addEventListener('submit',async event=>{
   event.preventDefault();
   const submit=form.querySelector('button[type="submit"]');
   const data=new FormData(form);
-  const date=data.get('scheduled_date'),time=data.get('scheduled_time');
+  const date=form.querySelector('[id^="scheduled_date_iso_"]').value,time=data.get('scheduled_time');
   if(!date||!time){alert('تاریخ و ساعت تحویل را وارد کنید.');return}
   submit.disabled=true;submit.textContent='در حال ثبت…';
   try{
