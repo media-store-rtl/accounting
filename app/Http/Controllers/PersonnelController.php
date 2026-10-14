@@ -131,6 +131,32 @@ class PersonnelController extends Controller
         return redirect()->route('personnel.labor-rates', $personnel)->with('success', 'نرخ دستمزد ثبت شد.');
     }
 
+    public function updateLaborRate(Request $request, Personnel $personnel, int $rate, LaborCostService $service): RedirectResponse
+    {
+        $this->assertSameAccount($request, $personnel);
+        $companyId = CompanyAuthorization::authorize($request, 'production.labor.rate.manage');
+        abort_unless((int) DB::table('companies')->where('id', $companyId)->value('account_id') === (int) $personnel->account_id, 404);
+
+        $data = $request->validate([
+            'rate_type' => ['required', 'in:regular,hourly,overtime,holiday,per_unit'],
+            'rate' => ['required', 'numeric', 'min:0'],
+            'effective_from' => ['required', 'date'],
+            'effective_to' => ['nullable', 'date', 'after_or_equal:effective_from'],
+        ]);
+
+        $service->updateRate(
+            $companyId,
+            (int) $personnel->id,
+            $rate,
+            $data['rate_type'],
+            (float) $data['rate'],
+            $data['effective_from'],
+            $data['effective_to'] ?? null
+        );
+
+        return redirect()->route('personnel.labor-rates', $personnel)->with('success', 'نرخ دستمزد ویرایش شد.');
+    }
+
     private function assertSameAccount(Request $request, Personnel $personnel): void
     {
         abort_unless((int) $personnel->account_id === (int) $request->user()->account_id, 404);
