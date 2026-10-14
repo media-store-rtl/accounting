@@ -1,3 +1,13 @@
+# 102. بازیابی قابلیت واحد پایه کالا و اصلاح خطای نحوی تست — 2026-10-14
+
+- CI پس از تغییر تست رابط انبار متوقف شد چون در اصلاح payload تست، یک نقل‌قول اشتباه وارد شده بود؛ خطای نحوی در `ProductionShiftReportStagesTest.php` اصلاح شد.
+- بازبینی تفاوت شاخه با `main` نشان داد چند فایل مرتبط با واحد پایه کالا و تست آن در شاخهٔ PR ناخواسته از نسخهٔ فعلی عقب مانده بودند. نسخه‌های فعلی `main` برای `MasterDataController.php`، فرم و فهرست کالاها، و `SalesOperationalWorkflowTest.php` بازیابی شدند؛ `tests/Feature/GoodsMeasurementUnitTest.php` نیز از `main` برگردانده شد تا قابلیت واحد اندازه‌گیری حذف نشود.
+- فایل‌های اصلاح/بازیابی‌شده: `app/Http/Controllers/MasterDataController.php`, `resources/views/master-data/form.blade.php`, `resources/views/master-data/index.blade.php`, `tests/Feature/GoodsMeasurementUnitTest.php`, `tests/Feature/SalesOperationalWorkflowTest.php`, `tests/Feature/ProductionShiftReportStagesTest.php`, `PROJECT_PROGRESS.md`.
+- کامیت‌ها: `203eea8ad59d0990ef438ce4da0602f9663f61eb`, `1a7d8beff81eaade3fe1232730b44d39f265aa05`, `1c2dfc48544f52937688670c57521664d9284c0c`, `0b774d89ba291ae7824d44709ed0133c59d13fd1`, `a9c9b37f0b46d456802aa9e60348106dedb87302`, `d8bacc0e46ad5ce51a159e632614032c399b9fd2`.
+- CI باید روی آخرین commit بررسی شود؛ تست محلی اجرا نشده است. هیچ Migration روی سرور، Deploy یا بررسی سایت زنده انجام نشده است. PR #91 هنوز ادغام نشده است.
+
+---
+
 # 101. همگام‌سازی رفتار مواد اولیه و تحویل انبار با آخرین main — 2026-10-14
 
 - بررسی CI نشان داد شاخهٔ PR از رابط فعلی خروجی تولید عقب است: نسخهٔ شاخه کنترل دریافت را بدون بررسی `warehouse_receipt_requested` و تفاوت کاربر بررسی‌کننده نمایش می‌داد. این با قاعدهٔ فعلی پروژه سازگار نبود.
