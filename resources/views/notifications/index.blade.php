@@ -202,6 +202,8 @@
                                             <time class="notification-jalali-datetime" datetime="{{ \Illuminate\Support\Carbon::parse($v)->toIso8601String() }}">{{ \Illuminate\Support\Carbon::parse($v)->format('Y/m/d H:i') }}</time>
                                         @elseif(is_numeric($v) && in_array($k, ['purchase_total_amount', 'direct_cost_total'], true))
                                             {{ number_format((float) $v, 0) . ' ریال' }}
+                                        @elseif($k === 'work_date' && is_scalar($v) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $v))
+                                            <time class="notification-jalali-date" datetime="{{ $v }}">{{ $v }}</time>
                                         @elseif(is_scalar($v))
                                             {{ $v }}
                                         @endif
@@ -209,6 +211,13 @@
                                 </div>
                             @endif
                         @endforeach
+                    </div>
+                @endif
+
+                @if($event === 'production.shift_report_warehouse_receipt' && empty($data['warehouse_name']))
+                    <div style="display:flex;gap:5px;margin-top:10px;color:#9eb2c4;font-size:11px;line-height:1.9">
+                        <span style="color:#71879d">انبار مقصد:</span>
+                        <strong style="color:#e9f3fb">هنوز انتخاب نشده؛ هنگام تأیید دریافت انتخاب می‌شود.</strong>
                     </div>
                 @endif
 
@@ -250,6 +259,16 @@
 </div>
 
 <script>
+document.querySelectorAll('.notification-jalali-date').forEach(function (element) {
+    const raw = element.getAttribute('datetime');
+    if (!raw || !/^\\d{4}-\\d{2}-\\d{2}$/.test(raw)) return;
+    const date = new Date(raw + 'T12:00:00Z');
+    if (Number.isNaN(date.getTime())) return;
+    element.textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+        year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'UTC'
+    }).format(date);
+});
+
 document.querySelectorAll('.notification-jalali-datetime').forEach(function (element) {
     const raw = element.getAttribute('datetime');
     if (!raw) return;
