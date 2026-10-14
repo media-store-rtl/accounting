@@ -29,8 +29,20 @@
         <label style="font-size:11px">شخص تحویل‌گیرنده
           <input name="recipient_name" required maxlength="255" placeholder="نام تحویل‌گیرنده" style="display:block;width:100%;margin-top:5px">
         </label>
-        <label style="font-size:11px">وسیله حمل
-          <input name="vehicle" maxlength="255" placeholder="اختیاری" style="display:block;width:100%;margin-top:5px">
+        <label style="font-size:11px">کد شخص تحویل‌گیرنده
+          <input name="recipient_code" maxlength="100" placeholder="کد شخص" style="display:block;width:100%;margin-top:5px">
+        </label>
+        <label style="font-size:11px">نام راننده
+          <input name="driver_name" maxlength="255" placeholder="نام راننده" style="display:block;width:100%;margin-top:5px">
+        </label>
+        <label style="font-size:11px">شماره بارنامه
+          <input name="waybill_number" maxlength="100" placeholder="شماره بارنامه" style="display:block;width:100%;margin-top:5px">
+        </label>
+        <label style="font-size:11px">شماره وسیله نقلیه
+          <input name="vehicle_number" maxlength="100" placeholder="شماره وسیله" style="display:block;width:100%;margin-top:5px">
+        </label>
+        <label style="font-size:11px">نوع وسیله نقلیه
+          <input name="vehicle_type" maxlength="100" placeholder="مثلاً وانت، کامیون" style="display:block;width:100%;margin-top:5px">
         </label>
       </div>
       <button class="btn primary" type="submit" style="margin-top:12px">ثبت درخواست تحویل</button>
@@ -125,7 +137,12 @@ document.querySelectorAll('.delivery-request-form').forEach(form=>form.addEventL
     await post('/api/orders/'+form.dataset.orderId+'/delivery-request',{
       scheduled_at:date+'T'+time,
       recipient_name:String(data.get('recipient_name')||'').trim(),
-      vehicle:String(data.get('vehicle')||'').trim()||null
+      recipient_code:String(data.get('recipient_code')||'').trim()||null,
+      driver_name:String(data.get('driver_name')||'').trim()||null,
+      waybill_number:String(data.get('waybill_number')||'').trim()||null,
+      vehicle_number:String(data.get('vehicle_number')||'').trim()||null,
+      vehicle_type:String(data.get('vehicle_type')||'').trim()||null,
+      vehicle:String(data.get('vehicle_number')||'').trim()||null
     });
     location.reload();
   }catch(e){alert(e.message);submit.disabled=false;submit.textContent='ثبت درخواست تحویل'}
