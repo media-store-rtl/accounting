@@ -25,13 +25,19 @@ final class CostingReportController extends Controller
             'fiscal_year_id'=>'nullable|integer',
             'order_id'=>'nullable|integer',
             'goods_id'=>'nullable|integer',
+            'start_date'=>'nullable|date',
+            'end_date'=>'nullable|date|after_or_equal:start_date',
+            'personnel_id'=>'nullable|integer',
         ]);
-        $report=$service->generate($companyId,$data['fiscal_year_id']??null,$data['order_id']??null,$data['goods_id']??null);
+        $personnelId=$data['personnel_id']??null;
+        if($personnelId!==null) abort_unless(DB::table('personnel')->where('id',$personnelId)->where('account_id',$request->user()->account_id)->exists(),422,'کارگر انتخاب‌شده معتبر نیست.');
+        $report=$service->generate($companyId,$data['fiscal_year_id']??null,$data['order_id']??null,$data['goods_id']??null,$data['start_date']??null,$data['end_date']??null,$personnelId);
 
         if($request->expectsJson()) return response()->json(['data'=>$report]);
 
         $fiscalYears=DB::table('fiscal_years')->where('company_id',$companyId)->orderByDesc('id')->get();
         $goods=DB::table('goods')->where('company_id',$companyId)->where('is_active',true)->orderBy('name')->get(['id','code','name']);
-        return view('reports.costing',compact('report','fiscalYears','goods'));
+        $personnel=DB::table('personnel')->where('account_id',$request->user()->account_id)->where('is_active',true)->orderBy('name')->get(['id','name','code']);
+        return view('reports.costing',compact('report','fiscalYears','goods','personnel'));
     }
 }

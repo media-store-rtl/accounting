@@ -100,7 +100,11 @@ class CostingReportTest extends TestCase
                 'order_id'=>$order,'personnel_id'=>$personnel,'reported_by_user_id'=>$user,
                 'shift_name'=>'Day Shift','worked_hours'=>1,'overtime_hours'=>0,'holiday_hours'=>0,
                 'work_date'=>'2026-10-07','produced_quantity'=>1,'scrap_quantity'=>0,
-                'status'=>$shiftStatus,'created_at'=>now(),'updated_at'=>now(),
+                'status'=>$shiftStatus,
+                'warehouse_location_id'=>$shiftStatus==='received'?$location:null,
+                'warehouse_received_at'=>$shiftStatus==='received'?now():null,
+                'warehouse_quantity'=>$shiftStatus==='received'?1:null,
+                'created_at'=>now(),'updated_at'=>now(),
             ]);
         }
 
@@ -121,6 +125,15 @@ class CostingReportTest extends TestCase
         $this->assertSame(90.0,$report['rows'][0]['total_cost']);
         $this->assertSame(['fifo'],$report['rows'][0]['valuation_methods']);
         $this->assertSame(0.0,$report['totals']['unvalued_material_quantity']);
+        $this->assertCount(1,$report['production_reports']);
+        $this->assertSame(1.0,$report['product_rows'][0]['produced_quantity']);
+        $this->assertSame(90.0,$report['product_rows'][0]['unit_cost']);
+
+        $filtered=app(CostingReportService::class)->generate($company,$fy,$order,$goods,'2026-10-07','2026-10-07',$personnel);
+        $this->assertCount(1,$filtered['production_reports']);
+        $this->assertSame(1.0,$filtered['product_rows'][0]['produced_quantity']);
+        $this->assertSame(30.0,$filtered['totals']['labor_cost']);
+        $this->assertSame(40.0,$filtered['product_rows'][0]['unit_cost']);
 
         $unassignedReport=app(CostingReportService::class)->generate($company,$fy,null,$goods);
         $unassignedRows=array_values(array_filter($unassignedReport['rows'],fn($row)=>$row['order_id']===null&&$row['goods_id']===$goods));
