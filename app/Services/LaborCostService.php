@@ -8,7 +8,7 @@ use Illuminate\Validation\ValidationException;
 final class LaborCostService
 {
     private const MEASURE_TYPES = ['hours', 'quantity'];
-    private const RATE_TYPES = ['hourly', 'per_unit'];
+    private const RATE_TYPES = ['regular', 'overtime', 'holiday', 'per_unit'];
 
     public function setRate(
         int $companyId,
@@ -51,7 +51,8 @@ final class LaborCostService
         float $measureQuantity,
         string $workedAt,
         int $createdByUserId,
-        ?string $notes = null
+        ?string $notes = null,
+        string $laborRateType = 'regular'
     ): int {
         if (!in_array($measureType, self::MEASURE_TYPES, true) || $measureQuantity <= 0) {
             throw ValidationException::withMessages(['measure_quantity' => 'نوع یا مقدار کارکرد نامعتبر است.']);
@@ -71,7 +72,10 @@ final class LaborCostService
             throw ValidationException::withMessages(['personnel_id' => 'پرسنل فعال شرکت معتبر نیست.']);
         }
 
-        $rateType = $measureType === 'hours' ? 'hourly' : 'per_unit';
+        $rateType = $measureType === 'quantity' ? 'per_unit' : $laborRateType;
+        if (!in_array($rateType, self::RATE_TYPES, true)) {
+            throw ValidationException::withMessages(['labor_rate_type' => 'نوع دستمزد انتخاب‌شده معتبر نیست.']);
+        }
         $rate = DB::table('personnel_labor_rates')
             ->where('company_id',$companyId)->where('personnel_id',$personnelId)->where('rate_type',$rateType)
             ->where('effective_from','<=',substr($workedAt,0,10))
@@ -82,7 +86,7 @@ final class LaborCostService
         return DB::table('production_labor_entries')->insertGetId([
             'company_id'=>$companyId,'fiscal_year_id'=>$context->fiscal_year_id,'production_id'=>$context->production_id,
             'production_stage_id'=>$context->production_stage_id,'production_operation_run_id'=>$productionOperationRunId,
-            'personnel_id'=>$personnelId,'measure_type'=>$measureType,'measure_quantity'=>$measureQuantity,
+            'personnel_id'=>$personnelId,'measure_type'=>$measureType,'labor_rate_type'=>$rateType,'measure_quantity'=>$measureQuantity,
             'unit_rate'=>(float)$rate,'total_cost'=>$measureQuantity*(float)$rate,'worked_at'=>$workedAt,
             'status'=>'pending','created_by_user_id'=>$createdByUserId,'notes'=>$notes,'created_at'=>now(),'updated_at'=>now(),
         ]);
@@ -99,7 +103,7 @@ final class LaborCostService
                     'labor_entry_id'=>$entry->id,'company_id'=>$entry->company_id,'fiscal_year_id'=>$entry->fiscal_year_id,
                     'production_id'=>$entry->production_id,'production_stage_id'=>$entry->production_stage_id,
                     'production_operation_run_id'=>$entry->production_operation_run_id,'personnel_id'=>$entry->personnel_id,
-                    'measure_type'=>$entry->measure_type,'measure_quantity'=>$entry->measure_quantity,'unit_rate'=>$entry->unit_rate,
+                    'measure_type'=>$entry->measure_type,'labor_rate_type'=>$entry->labor_rate_type ?? ($entry->measure_type === 'quantity' ? 'per_unit' : 'regular'),'measure_quantity'=>$entry->measure_quantity,'unit_rate'=>$entry->unit_rate,
                     'total_cost'=>$entry->total_cost,'worked_at'=>$entry->worked_at,'approved_at'=>now(),
                     'approved_by_user_id'=>$reviewerUserId,'created_at'=>now(),'updated_at'=>now(),
                 ]);
