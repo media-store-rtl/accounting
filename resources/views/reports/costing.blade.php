@@ -63,7 +63,7 @@
             <td>{{ $productionReport['work_date'] }}</td>
             <td>{{ $productionReport['warehouse_received_at'] }}</td>
             <td>{{ $productionReport['section_name'] }}</td>
-            <td>{{ $productionReport['worker_name'] }}</td>
+            <td>{{ $productionReport['worker_name'] ?? 'ثبت نشده' }}</td>
             <td>{{ $productionReport['goods_code'] }} — {{ $productionReport['goods_name'] }}</td>
             <td>{{ number_format($productionReport['produced_quantity'],4) }}</td>
             <td>{{ number_format($productionReport['received_quantity'],4) }}</td>
