@@ -12,6 +12,8 @@ export function formatGregorianIsoDate(unixDate, PersianDateCtor = globalThis.pe
     const gregorianDate = typeof date.toCalendar === 'function'
         ? date.toCalendar('gregorian')
         : date;
+    // Keep the server value ASCII ISO even when PersianDate defaults to Persian digits.
+    gregorianDate.formatPersian = false;
     const value = gregorianDate.format('YYYY-MM-DD');
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
