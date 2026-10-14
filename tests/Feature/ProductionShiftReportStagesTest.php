@@ -344,7 +344,8 @@ class ProductionShiftReportStagesTest extends TestCase
             ->assertOk()
             ->assertSee('تحویل‌های گزارش شیفت تولید')
             ->assertSee('انبار مقصد')
-            ->assertSee('#' . $reportId)
+            ->assertSee('گزارش شیفت #' . $reportId)
+            ->assertSee('تأییدشده محصول نهایی')
             ->assertSee('آماده تحویل')
             ->assertDontSee('تأیید دریافت کامل');
 
