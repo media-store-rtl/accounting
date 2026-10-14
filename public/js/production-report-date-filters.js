@@ -46,6 +46,9 @@ export function setupProductionReportDatePicker(pickerSelector, isoSelector, {
         altField: isoSelector,
         altFormat: 'YYYY-MM-DD',
         altFieldFormatter: unixDate => formatGregorianIsoDate(unixDate, PersianDateCtor),
+        onSelect: unixDate => {
+            isoField.value = formatGregorianIsoDate(unixDate, PersianDateCtor);
+        },
         calendar: { persian: { locale: 'fa' } },
         toolbox: {
             calendarSwitch: { enabled: false },
