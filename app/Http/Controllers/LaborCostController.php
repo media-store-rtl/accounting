@@ -39,7 +39,7 @@ final class LaborCostController
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.labor.rate.manage');
         $validated=$request->validate([
-            'personnel_id'=>['required','integer'],'rate_type'=>['required','in:regular,overtime,holiday,per_unit'],
+            'personnel_id'=>['required','integer'],'rate_type'=>['required','in:regular,overtime,holiday,per_unit,hourly'],
             'rate'=>['required','numeric','min:0'],'effective_from'=>['required','date'],'effective_to'=>['nullable','date','after_or_equal:effective_from'],
         ]);
         $id=$service->setRate($companyId,(int)$validated['personnel_id'],(string)$validated['rate_type'],(float)$validated['rate'],$validated['effective_from'],$validated['effective_to']??null);
