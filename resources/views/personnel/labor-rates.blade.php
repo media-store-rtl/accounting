@@ -41,6 +41,12 @@
     .labor-rates-page .empty-state p { margin: 0; color: #71879d; font-size: 11px; line-height: 1.9; }
     .labor-rates-page .status.future { color: #a8d4ff; background: #142d45; }
     .labor-rates-page .status.expired { color: #ffb8a8; background: #3b2528; }
+    /* Keep the Jalali date picker above panels and inside the viewport, like the order form. */
+    .datepicker-container { z-index: 10000 !important; }
+    @media (max-width: 650px) {
+        .datepicker-container { position: fixed !important; top: 50% !important; left: 50% !important; right: auto !important; bottom: auto !important; transform: translate(-50%, -50%) !important; max-width: calc(100vw - 20px) !important; }
+        .datepicker-plot-area { max-width: calc(100vw - 20px) !important; box-sizing: border-box !important; }
+    }
     @media (max-width: 1050px) { .labor-rates-page .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 560px) {
         .labor-rates-page .page-heading { flex-direction: column; }
