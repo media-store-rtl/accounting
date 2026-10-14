@@ -115,6 +115,8 @@
                         <option value="regular" @selected(old('rate_type', $editingRate->rate_type ?? 'regular') === 'regular')>کار عادی (شیفت ۸ ساعته)</option>
                         <option value="overtime" @selected(old('rate_type', $editingRate->rate_type ?? '') === 'overtime')>اضافه‌کاری</option>
                         <option value="holiday" @selected(old('rate_type', $editingRate->rate_type ?? '') === 'holiday')>تعطیل‌کاری</option>
+                        <option value="hourly" @selected(old('rate_type', $editingRate->rate_type ?? '') === 'hourly')>کار عادی (نرخ ساعتی قدیمی)</option>
+                        <option value="per_unit" @selected(old('rate_type', $editingRate->rate_type ?? '') === 'per_unit')>به‌ازای هر واحد تولید</option>
                     </select>
                     <span class="field-hint">نرخ را جداگانه برای کار عادی، اضافه‌کاری یا تعطیل‌کاری ثبت کنید.</span>
                 </label>
