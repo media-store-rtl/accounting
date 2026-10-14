@@ -321,7 +321,7 @@ final class ProductionShiftReportController extends Controller
         DB::transaction(function () use ($companyId, $report, $data, $request, $stageIds, $materialRows, $scrap) {
             $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
             if (!$row || !(in_array($row->status, ['pending', 'rejected'], true) || ($row->status === 'approved' && empty($row->warehouse_requested_at) && (float) ($row->warehouse_quantity ?? 0) <= 0))) {
-                throw ValidationException::withMessages(['report' => 'گزارش در انتظار تأیید یا ردشده قابل ویرایش است. گزارش تأییدشده فقط تا قبل از هرگونه تحویل به انبار قابل اصلاح است؛ پس از ثبت ورود به انبار، برای جلوگیری از مغایرت موجودی باید اصلاح جداگانه انجام شود.']);
+                throw ValidationException::withMessages(['report' => 'گزارش در انتظار تأیید یا ردشده قابل ویرایش است. گزارش تأییدشده فقط تا پیش از ارسال درخواست تحویل به انبار قابل اصلاح است؛ پس از ارسال درخواست، برای جلوگیری از مغایرت تولید و موجودی، اصلاح جداگانه لازم است.']);
             }
 
             $before = [
