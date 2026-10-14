@@ -15,6 +15,7 @@
 <div class="panel" style="padding:16px"><div class="detail-grid">
 <div class="detail-item"><span>تاریخ تولید</span><strong class="shift-date-display" data-iso-date="{{ $row->work_date }}">{{ $row->work_date }}</strong></div>
 <div class="detail-item"><span>قسمت تولید</span><strong>{{ $row->section_name ?: '—' }}</strong></div><div class="detail-item"><span>کارگر</span><strong>{{ $row->worker_name ?: '—' }}</strong></div>
+<div class="detail-item"><span>سفارش مربوط</span><strong>{{ $row->order_number ?: "—" }}</strong></div>
 <div class="detail-item"><span>محصول / قطعه</span><strong>{{ $row->goods_name }} @if($row->goods_code)({{ $row->goods_code }})@endif</strong></div>
 <div class="detail-item"><span>تعداد تولیدشده</span><strong>{{ \App\Support\PersianQuantityFormatter::format($row->produced_quantity) }}</strong></div><div class="detail-item"><span>ضایعات محصول</span><strong>{{ \App\Support\PersianQuantityFormatter::format($row->scrap_quantity ?? 0) }}</strong></div>
 <div class="detail-item"><span>تولید سالم قابل تحویل</span><strong>{{ \App\Support\PersianQuantityFormatter::format(max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0))) }}</strong></div><div class="detail-item"><span>ساعات کارکرد</span><strong>{{ $row->worked_hours !== null ? \App\Support\PersianQuantityFormatter::format($row->worked_hours) : '—' }}</strong></div>
