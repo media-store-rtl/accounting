@@ -11,9 +11,19 @@ class InventoryService
 {
     public function available(int $companyId,int $goodsId): float
     {
-        return (float)DB::table('inventory as i')->join('locations as l','l.id','=','i.location_id')
-            ->where('i.company_id',$companyId)->where('i.goods_id',$goodsId)->where('l.company_id',$companyId)
-            ->where('l.type','warehouse')->where('l.is_active',true)->sum('i.quantity');
+        return (float) DB::table('inventory as i')
+            ->join('locations as l', 'l.id', '=', 'i.location_id')
+            ->where('i.company_id', $companyId)
+            ->where('i.goods_id', $goodsId)
+            ->where('l.company_id', $companyId)
+            ->where('l.is_active', true)
+            // Finished goods may be received into a dedicated Persian "محصول" location.
+            // Count that stock for order allocation just like stock in a warehouse.
+            ->where(function ($query) {
+                $query->whereRaw('LOWER(TRIM(l.type)) = ?', ['warehouse'])
+                    ->orWhereRaw('TRIM(l.type) = ?', ['محصول']);
+            })
+            ->sum('i.quantity');
     }
 
     public function receive(int $companyId,int $locationId,int $goodsId,float $quantity,string $referenceType,int $referenceId,array $metadata=[]): void
