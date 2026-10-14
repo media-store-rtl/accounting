@@ -325,8 +325,8 @@ class ProductionShiftReportStagesTest extends TestCase
             ->assertOk()
             ->assertSee('تحویل‌های گزارش شیفت تولید')
             ->assertSee('انبار مقصد')
-            ->assertSee('گزارش شیفت #' . $reportId)
-            ->assertSee('تأییدشده محصول نهایی')
+            ->assertSee('#' . $reportId)
+            ->assertSee('آماده تحویل')
             ->assertDontSee('تأیید دریافت کامل');
 
         // A separate warehouse user confirms the complete quantity and posts inventory once.
