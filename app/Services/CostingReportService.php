@@ -61,28 +61,70 @@ final class CostingReportService
 
     private function materials(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId): void
     {
-        $costs=DB::table('inventory_consumption_costs as c')->join('inventory_movements as m','m.id','=','c.inventory_movement_id')
-            ->where('c.company_id',$companyId)->when($fy,fn($q)=>$q->where('c.fiscal_year_id',$fy))->when($goodsId,fn($q)=>$q->where('c.goods_id',$goodsId))
+        // Consumption rows reference the raw material. Attribute their cost to
+        // the finished good produced by the linked supply request when possible.
+        $costs=DB::table('inventory_consumption_costs as c')
+            ->join('inventory_movements as m','m.id','=','c.inventory_movement_id')
+            ->where('c.company_id',$companyId)
+            ->when($fy,fn($q)=>$q->where('c.fiscal_year_id',$fy))
             ->get(['c.goods_id','c.total_cost','c.valuation_method','m.metadata']);
-        $movements=DB::table('inventory_movements as m')->where('m.company_id',$companyId)->where('m.quantity','<',0)->where('m.movement_type','material_handover')
-            ->whereNotExists(function($q){$q->selectRaw('1')->from('inventory_consumption_costs as vc')->whereColumn('vc.inventory_movement_id','m.id');})
-            ->when($goodsId,fn($q)=>$q->where('m.goods_id',$goodsId))->get(['m.goods_id','m.quantity','m.metadata']);
-        $costSupplyIds=$costs->map(fn($c)=>(int)(json_decode((string)$c->metadata,true)['supply_request_id']??0));
-        $unvaluedSupplyIds=$movements->map(fn($m)=>(int)(json_decode((string)$m->metadata,true)['supply_request_id']??0));
-        $ids=$costSupplyIds->merge($unvaluedSupplyIds)->filter()->unique()->values();
-        $supplies=$ids->isEmpty()?collect():DB::table('supply_requests')->where('company_id',$companyId)->whereIn('id',$ids)->get(['id','order_id','production_id','fiscal_year_id'])->keyBy('id');
+
+        $movements=DB::table('inventory_movements as m')
+            ->where('m.company_id',$companyId)
+            ->where('m.quantity','<',0)
+            ->where('m.movement_type','material_handover')
+            ->whereNotExists(function($q){
+                $q->selectRaw('1')->from('inventory_consumption_costs as vc')
+                    ->whereColumn('vc.inventory_movement_id','m.id');
+            })
+            ->get(['m.goods_id','m.quantity','m.metadata']);
+
+        $supplyIdFromMetadata=fn($item)=>(int)(json_decode((string)$item->metadata,true)['supply_request_id']??0);
+        $ids=$costs->map($supplyIdFromMetadata)->merge($movements->map($supplyIdFromMetadata))->filter()->unique()->values();
+        $supplies=$ids->isEmpty()?collect():DB::table('supply_requests')
+            ->where('company_id',$companyId)->whereIn('id',$ids)
+            ->get(['id','order_id','production_id','fiscal_year_id'])->keyBy('id');
         $prodIds=$supplies->pluck('production_id')->filter()->unique()->values();
-        $links=$prodIds->isEmpty()?collect():DB::table('production_order')->whereIn('production_id',$prodIds)->get(['production_id','order_id'])->groupBy('production_id');
+        $productions=$prodIds->isEmpty()?collect():DB::table('productions')
+            ->where('company_id',$companyId)->whereIn('id',$prodIds)
+            ->get(['id','goods_id'])->keyBy('id');
+        $links=$prodIds->isEmpty()?collect():DB::table('production_order')
+            ->whereIn('production_id',$prodIds)->get(['production_id','order_id'])->groupBy('production_id');
+
+        $resolveTarget=function($item) use ($supplyIdFromMetadata,$supplies,$productions,$links) {
+            $meta=json_decode((string)$item->metadata,true)?:[];
+            $supply=$supplies->get($supplyIdFromMetadata($item));
+            $productionId=(int)($supply?->production_id??0);
+            $production=$productions->get($productionId);
+            $targetGoodsId=$production?->goods_id!==null?(int)$production->goods_id:(int)$item->goods_id;
+            $resolvedOrderId=$supply?->order_id;
+            if($resolvedOrderId===null&&$productionId){
+                $resolvedOrderId=$links->get($productionId)?->first()?->order_id;
+            }
+            return [$resolvedOrderId!==null?(int)$resolvedOrderId:null,$targetGoodsId,$supply];
+        };
+
         foreach($costs as $c){
-            $meta=json_decode((string)$c->metadata,true)?:[];$s=$supplies->get((int)($meta['supply_request_id']??0));$oid=$s?->order_id;
-            if($oid===null&&$s?->production_id)$oid=$links->get((int)$s->production_id)?->first()?->order_id;
-            if($orderId!==null&&(int)$oid!==$orderId)continue;
-            $key=$this->key($oid,(int)$c->goods_id);$this->row($rows,$key,$oid,(int)$c->goods_id);$rows[$key]['material_cost']+=(float)$c->total_cost;$rows[$key]['valuation_methods'][(string)$c->valuation_method]=true;
+            [$oid,$targetGoodsId]=$resolveTarget($c);
+            if($orderId!==null&&$oid!==$orderId)continue;
+            if($goodsId!==null&&$targetGoodsId!==$goodsId)continue;
+            $key=$this->key($oid,$targetGoodsId);
+            $this->row($rows,$key,$oid,$targetGoodsId);
+            $rows[$key]['material_cost']+=(float)$c->total_cost;
+            $rows[$key]['valuation_methods'][(string)$c->valuation_method]=true;
         }
+
         foreach($movements as $m){
-            $meta=json_decode((string)$m->metadata,true)?:[];$sid=(int)($meta['supply_request_id']??0);if(!$sid)continue;$s=$supplies->get($sid);if(!$s)continue;
-            if($fy!==null&&(int)$s->fiscal_year_id!==$fy)continue;$oid=$s->order_id;if($oid===null&&$s->production_id)$oid=$links->get((int)$s->production_id)?->first()?->order_id;
-            if($orderId!==null&&(int)$oid!==$orderId)continue;$key=$this->key($oid,(int)$m->goods_id);$this->row($rows,$key,$oid,(int)$m->goods_id);$rows[$key]['unvalued_material_quantity']+=abs((float)$m->quantity);
+            $sid=$supplyIdFromMetadata($m);
+            if(!$sid)continue;
+            [$oid,$targetGoodsId,$supply]=$resolveTarget($m);
+            if(!$supply)continue;
+            if($fy!==null&&(int)$supply->fiscal_year_id!==$fy)continue;
+            if($orderId!==null&&$oid!==$orderId)continue;
+            if($goodsId!==null&&$targetGoodsId!==$goodsId)continue;
+            $key=$this->key($oid,$targetGoodsId);
+            $this->row($rows,$key,$oid,$targetGoodsId);
+            $rows[$key]['unvalued_material_quantity']+=abs((float)$m->quantity);
         }
     }
 
@@ -112,7 +154,6 @@ final class CostingReportService
         $reports = DB::table('production_shift_reports as r')
             ->where('r.company_id',$companyId)
             ->whereIn('r.status',['approved','received'])
-            ->whereNotNull('r.order_id')
             ->when($fy,fn($q)=>$q->whereBetween('r.work_date', [
                 DB::table('fiscal_years')->where('id',$fy)->value('starts_at'),
                 DB::table('fiscal_years')->where('id',$fy)->value('ends_at')
@@ -141,8 +182,9 @@ final class CostingReportService
                 if ($rate !== null) $total += $hours * (float)$rate;
             }
             if ($total <= 0) continue;
-            $key = $this->key((int)$report->order_id,(int)$report->goods_id);
-            $this->row($rows,$key,(int)$report->order_id,(int)$report->goods_id);
+            $reportOrderId = $report->order_id !== null ? (int)$report->order_id : null;
+            $key = $this->key($reportOrderId,(int)$report->goods_id);
+            $this->row($rows,$key,$reportOrderId,(int)$report->goods_id);
             $rows[$key]['labor_cost'] += $total;
         }
     }
