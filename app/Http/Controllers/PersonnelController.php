@@ -88,6 +88,47 @@ class PersonnelController extends Controller
         return back()->with('success', 'پرسنل غیرفعال شد.');
     }
 
+    public function laborRates(Request $request, Personnel $personnel): View
+    {
+        $this->assertSameAccount($request, $personnel);
+        $companyId = \\App\\Support\\CompanyAuthorization::authorize($request, 'production.labor.rate.manage');
+        abort_unless((int) DB::table('companies')->where('id', $companyId)->value('account_id') === (int) $personnel->account_id, 404);
+
+        $rates = DB::table('personnel_labor_rates')
+            ->where('company_id', $companyId)
+            ->where('personnel_id', $personnel->id)
+            ->orderByDesc('effective_from')
+            ->orderByDesc('id')
+            ->get();
+
+        return view('personnel.labor-rates', compact('personnel', 'rates'));
+    }
+
+    public function storeLaborRate(Request $request, Personnel $personnel, \\App\\Services\\LaborCostService $service): RedirectResponse
+    {
+        $this->assertSameAccount($request, $personnel);
+        $companyId = \\App\\Support\\CompanyAuthorization::authorize($request, 'production.labor.rate.manage');
+        abort_unless((int) DB::table('companies')->where('id', $companyId)->value('account_id') === (int) $personnel->account_id, 404);
+
+        $data = $request->validate([
+            'rate_type' => ['required', 'in:hourly,per_unit'],
+            'rate' => ['required', 'numeric', 'min:0'],
+            'effective_from' => ['required', 'date'],
+            'effective_to' => ['nullable', 'date', 'after_or_equal:effective_from'],
+        ]);
+
+        $service->setRate(
+            $companyId,
+            (int) $personnel->id,
+            $data['rate_type'],
+            (float) $data['rate'],
+            $data['effective_from'],
+            $data['effective_to'] ?? null
+        );
+
+        return redirect()->route('personnel.labor-rates', $personnel)->with('success', 'نرخ دستمزد ثبت شد.');
+    }
+
     private function assertSameAccount(Request $request, Personnel $personnel): void
     {
         abort_unless((int) $personnel->account_id === (int) $request->user()->account_id, 404);
