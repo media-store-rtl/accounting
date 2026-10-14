@@ -4,7 +4,7 @@
 - پیاده‌سازی: موجودی قابل تخصیص پس از دریافت انبار محاسبه می‌شود؛ سفارش‌های دارای کسری به ترتیب قدیمی‌تر بودن بررسی و فقط موجودی آزاد به آن‌ها تخصیص داده می‌شود. سفارش با کسری باقی‌مانده اعلان آماده‌شدن نمی‌گیرد. تنظیمات گیرندگان اعلان و مجوز `order.view` رعایت می‌شود.
 - تست Feature اضافه‌شده: ورود مرحله‌ای موجودی، عدم اعلان در دریافت ناقص، رفع کسری کامل و اعلان فروش بعد از رسیدن موجودی به مقدار سفارش.
 - فایل‌ها: `app/Services/ProductionOutputService.php`, `app/Services/NotificationRecipientService.php`, `app/Http/Controllers/OrderController.php`, `resources/views/notifications/index.blade.php`, `tests/Feature/SalesOperationalWorkflowTest.php`, `PROJECT_PROGRESS.md`.
-- شاخه: `fix/order-shortage-sales-notification`. تست محلی در این محیط اجرا نشده؛ وضعیت CI، PR، تست مرورگر و سایت زنده پس از ثبت تغییرات بررسی/تأیید نشده‌اند. ادغام انجام نشده و فقط با تأیید صریح کاربر مجاز است.
+- شاخه: `fix/order-shortage-sales-notification`؛ PR [#78](https://github.com/media-store-rtl/accounting/pull/78)، باز و ادغام‌نشده. CI اجرا شمارهٔ ۱۷۳۴ با SHA `65473d38170091829e51758c1a6f9d3601c8ec10` موفق است: `npm test`، نصب Composer، Migration و `migrate:status`، `route:list` و `php artisan test` همگی موفق شدند ([اجرای CI](https://github.com/media-store-rtl/accounting/actions/runs/38518204185)). تست محلی جداگانه، مرورگر واقعی، سایت زنده و Deploy بررسی نشده‌اند. این ثبت مستند نتیجهٔ CI است؛ ادغام فقط با تأیید صریح کاربر مجاز است.
 ---
 
 # 84. تأیید تحویل گزارش شیفت توسط سرپرست انبار — 2026-10-13
