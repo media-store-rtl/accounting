@@ -146,9 +146,43 @@ function addItem() {
     document.getElementById('items').appendChild(row);
     i++;
 }
+function syncRequestedDeliveryDate() {
+    const picker = document.querySelector('#requested_delivery_at_picker');
+    const isoField = document.querySelector('#requested_delivery_at');
+    if (!picker || !isoField) return false;
+
+    // Prefer the datepicker's ISO value when it has already populated it.
+    if (/^\\d{4}-\\d{2}-\\d{2}$/.test(isoField.value)) return true;
+
+    // Fallback: convert the visible Jalali date even if the plugin's hidden-field
+    // callback did not run. Accept Persian, Arabic-Indic, and Latin digits.
+    const visibleDate = picker.value
+        .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+        .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
+    const match = visibleDate.match(/^\\s*(\\d{4})[\\/-](\\d{1,2})[\\/-](\\d{1,2})\\s*$/);
+    if (!match || typeof window.persianDate !== 'function') return false;
+
+    try {
+        const gregorian = new window.persianDate([
+            Number(match[1]), Number(match[2]), Number(match[3])
+        ]).toCalendar('gregorian');
+        const iso = gregorian.format('YYYY-MM-DD');
+        if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(iso)) return false;
+        isoField.value = iso;
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
 async function submitOrder(e) {
     e.preventDefault();
     const f = e.target;
+    if (!syncRequestedDeliveryDate()) {
+        alert('لطفاً موعد درخواستی تحویل را از تقویم شمسی انتخاب کنید.');
+        document.querySelector('#requested_delivery_at_picker')?.focus();
+        return false;
+    }
     const button = f.querySelector('button[type="submit"]');
     button.disabled = true;
     try {
