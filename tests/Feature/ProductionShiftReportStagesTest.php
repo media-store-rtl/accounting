@@ -249,7 +249,7 @@ class ProductionShiftReportStagesTest extends TestCase
             'produced_quantity' => 18,
             'scrap_quantity' => 2,
             'stages' => [['production_stage_id' => $stageTwo]],
-            'materials' => [['goods_id' => $materialGoods, 'quantity => 4, 'scrap_quantity' => 1]],
+            'materials' => [['goods_id' => $materialGoods, 'quantity' => 4, 'scrap_quantity' => 1]],
         ])->assertRedirect(route('production.shift-reports.show', $reportId))
             ->assertSessionHas('success');
         $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'pending']);
