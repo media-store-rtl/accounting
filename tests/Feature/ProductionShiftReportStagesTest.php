@@ -32,7 +32,7 @@ class ProductionShiftReportStagesTest extends TestCase
             'company_id' => $company, 'name' => 'Production', 'slug' => 'production-test',
             'is_system' => false, 'created_at' => now(), 'updated_at' => now(),
         ]);
-        foreach (['production.operation.create', 'production.operation.view', 'production.operation.review', 'production.output.receive'] as $slug) {
+        foreach (['production.operation.create', 'production.operation.view', 'production.operation.review', 'production.output.view', 'production.output.receive'] as $slug) {
             $permission = DB::table('permissions')->where('slug', $slug)->first();
             $permissionId = $permission?->id ?? DB::table('permissions')->insertGetId([
                 'name' => $slug, 'slug' => $slug, 'module' => 'production',
@@ -267,6 +267,14 @@ class ProductionShiftReportStagesTest extends TestCase
         // The same reviewer cannot perform the warehouse confirmation.
         $this->post(route('production.outputs.shift-reports.receive', $reportId), ['warehouse_location_id' => $warehouse])
             ->assertSessionHasErrors('report');
+
+        // The output report must display the receipt record without warehouse selection or confirmation controls.
+        $this->get(route('production.outputs.index'))
+            ->assertOk()
+            ->assertSee('تحویل‌های گزارش شیفت تولید')
+            ->assertSee('انبار مقصد')
+            ->assertDontSee('انتخاب انبار')
+            ->assertDontSee('تأیید دریافت کامل');
 
         // A separate warehouse user confirms the complete quantity and posts inventory once.
         $this->actingAs(User::findOrFail($warehouseUserId));
