@@ -2,7 +2,7 @@
 
 - علت: دریافت انبار از مسیر `ProductionOutputController::receiveShiftReport` موجودی را ثبت می‌کرد، اما برخلاف مسیر `ProductionOutputService::receive`، پس از آن کسری سفارش‌های باز را دوباره تخصیص نمی‌داد و رویداد `order.ready_for_delivery` را ارسال نمی‌کرد.
 - اصلاح: پس از ثبت دریافت گزارش شیفت، همان منطق مشترک بازبینی و تخصیص کسری اجرا می‌شود؛ اعلان فروش فقط وقتی ارسال می‌شود که کسری تمام اقلام سفارش صفر شود. منطق گیرندگان و تنظیمات اعلان تغییر نکرده است.
-- تست Feature جدید در `tests/Feature/SalesOperationalWorkflowTest.php`: سفارش را با وضعیت `awaiting_production` و موعد تولید ثبت‌شده آماده می‌کند؛ دریافت گزارش شیفت باید وضعیت را به `ready_for_delivery` تغییر دهد، کسری را صفر کند و اعلان `order.ready_for_delivery` برای فروش بفرستد.
+- تست Feature جدید در `tests/Feature/SalesOperationalWorkflowTest.php`: سفارش را با وضعیت `awaiting_production` و موعد تولید ثبت‌شده آماده می‌کند؛ دریافت گزارش شیفت باید وضعیت را به `ready_for_delivery` تغییر دهد، کسری را صفر کند و اعلان `order.ready_for_delivery` برای فروش بفرستد. اجرای CI یک خطای نحوی در namespace تست نشان داد؛ اصلاح شد و اجرای جدید CI در انتظار نتیجه است.
 - فایل‌ها: `app/Http/Controllers/ProductionOutputController.php`, `app/Services/ProductionOutputService.php`, `tests/Feature/SalesOperationalWorkflowTest.php`, `PROJECT_PROGRESS.md`.
 - شاخهٔ کاری: `fix/shift-report-receipt-sales-notification`. اجرای محلی تست‌ها انجام نشده؛ CI، سایت زنده و Deploy باید پس از ثبت PR بررسی شوند. ادغام/انتشار انجام نشده است.
 ---
