@@ -40,12 +40,12 @@ $statusLabels = [
             <td>@if($o->production_due_at)<time class="jalali-date" datetime="{{ $o->production_due_at }}">{{ $o->production_due_at }}</time>@else — @endif</td>
             <td><span class="status">{{ $statusLabels[$o->status] ?? 'در حال بررسی' }}</span></td>
             <td style="white-space:nowrap"><a class="btn" href="{{ route('sales.orders.show', $o->id) }}">مشاهده جزئیات</a>
-              @if($canApproveDeliveryRelease && $o->status === 'delivery_requested' && $o->delivery_request_status === 'awaiting_sales_approval' && $o->delivery_request_id)
+              @if($canApproveDeliveryRelease && $o->status === 'delivery_requested' && $o->delivery_request_id && ($o->delivery_request_status === 'awaiting_sales_approval' || ($o->delivery_request_status === 'pending' && !$o->delivery_request_sales_approved_at)))
                 <form method="POST" action="{{ route('sales.delivery.sales-approve', $o->delivery_request_id) }}" style="display:inline" onsubmit="return confirm('مجوز خروج این سفارش از سمت فروش صادر شود؟');">@csrf
                   <button class="btn primary" type="submit">مجوز خروج</button>
                 </form>
               @endif
-              @if($o->delivery_request_id && $o->delivery_request_status === 'pending')
+              @if($o->delivery_request_id && $o->delivery_request_status === 'pending' && $o->delivery_request_sales_approved_at)
                 <button class="btn primary" type="button" onclick="issueDelivery({{ $o->delivery_request_id }})">خروج از انبار</button>
               @endif
               @if(in_array($o->status, ['checking_stock','production_required','awaiting_production','ready_for_delivery'], true))
