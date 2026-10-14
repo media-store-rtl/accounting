@@ -26,10 +26,6 @@ button{width:100%;border:0;padding:13px;border-radius:12px;background:#2d7ff9;co
 <h1>ورود به حسابداری</h1>
 <div class="muted">روش ورود خود را انتخاب کنید.</div>
 
-<a class="sso" href="{{ route('sso.start') }}">ورود با حساب Web2022</a>
-
-<div class="divider">یا ورود مستقیم</div>
-
 @if ($errors->any())
 <div class="errors">
     @foreach ($errors->all() as $error)
