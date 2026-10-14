@@ -103,7 +103,57 @@ class PersonnelController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        return view('personnel.labor-rates', compact('personnel', 'rates'));
+        $editingRate = null;
+        return view('personnel.labor-rates', compact('personnel', 'rates', 'editingRate'));
+    }
+
+    public function editLaborRate(Request $request, Personnel $personnel, int $rate): View
+    {
+        $this->assertSameAccount($request, $personnel);
+        $companyId = CompanyAuthorization::authorize($request, 'production.labor.rate.manage');
+        abort_unless((int) DB::table('companies')->where('id', $companyId)->value('account_id') === (int) $personnel->account_id, 404);
+
+        $editingRate = DB::table('personnel_labor_rates')
+            ->where('id', $rate)
+            ->where('company_id', $companyId)
+            ->where('personnel_id', $personnel->id)
+            ->first();
+        abort_unless($editingRate, 404);
+
+        $rates = DB::table('personnel_labor_rates')
+            ->where('company_id', $companyId)
+            ->where('personnel_id', $personnel->id)
+            ->orderByDesc('effective_from')
+            ->orderByDesc('id')
+            ->get();
+
+        return view('personnel.labor-rates', compact('personnel', 'rates', 'editingRate'));
+    }
+
+    public function updateLaborRate(Request $request, Personnel $personnel, int $rate, LaborCostService $service): RedirectResponse
+    {
+        $this->assertSameAccount($request, $personnel);
+        $companyId = CompanyAuthorization::authorize($request, 'production.labor.rate.manage');
+        abort_unless((int) DB::table('companies')->where('id', $companyId)->value('account_id') === (int) $personnel->account_id, 404);
+
+        $data = $request->validate([
+            'rate_type' => ['required', 'in:regular,overtime,holiday'],
+            'rate' => ['required', 'numeric', 'min:0'],
+            'effective_from' => ['required', 'date'],
+            'effective_to' => ['nullable', 'date', 'after_or_equal:effective_from'],
+        ]);
+
+        $service->updateRate(
+            $companyId,
+            (int) $personnel->id,
+            $rate,
+            $data['rate_type'],
+            (float) $data['rate'],
+            $data['effective_from'],
+            $data['effective_to'] ?? null
+        );
+
+        return redirect()->route('personnel.labor-rates', $personnel)->with('success', 'نرخ دستمزد ویرایش شد.');
     }
 
     public function storeLaborRate(Request $request, Personnel $personnel, LaborCostService $service): RedirectResponse
