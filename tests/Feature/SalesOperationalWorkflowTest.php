@@ -115,6 +115,78 @@ class SalesOperationalWorkflowTest extends TestCase
         $this->assertDatabaseHas('order_items',['order_id'=>$order,'shortage_quantity'=>0,'fulfillment_status'=>'ready_for_delivery']);
     }
 
+    public function test_finished_goods_receipt_clears_existing_order_shortage_and_notifies_sales_only_when_fully_covered(): void
+    {
+        Notification::fake();
+        $c = $this->context(0);
+
+        $salesUserId = DB::table('users')->insertGetId([
+            'account_id' => DB::table('companies')->where('id', $c['company'])->value('account_id'),
+            'name' => 'Sales User',
+            'username' => 'sales'.uniqid(),
+            'email' => uniqid().'@test.local',
+            'password' => bcrypt('secret'),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $roleId = DB::table('company_user')->where('company_id', $c['company'])->where('user_id', $c['user'])->value('role_id');
+        DB::table('company_user')->insert([
+            'company_id' => $c['company'], 'user_id' => $salesUserId, 'role_id' => $roleId,
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $salesUser = User::findOrFail($salesUserId);
+
+        $orderId = $this->postJson('/api/orders', [
+            'fiscal_year_id' => $c['fy'],
+            'customer_id' => $c['customer'],
+            'requested_delivery_at' => '2026-10-20',
+            'items' => [['goods_id' => $c['goods'], 'quantity' => 4]],
+        ])->assertCreated()->assertJsonPath('data.status', 'production_required')->json('data.id');
+
+        $routeId = DB::table('production_routes')->insertGetId([
+            'company_id' => $c['company'], 'goods_id' => $c['goods'], 'code' => 'ROUTE-SHORTAGE',
+            'name' => 'Finished Goods Route', 'status' => 'active', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $service = app(ProductionOutputService::class);
+
+        foreach ([2, 2] as $index => $quantity) {
+            $productionId = DB::table('productions')->insertGetId([
+                'company_id' => $c['company'], 'fiscal_year_id' => $c['fy'], 'goods_id' => $c['goods'],
+                'production_route_id' => $routeId, 'number' => 'PR-SHORTAGE-'.$index,
+                'planned_quantity' => $quantity, 'produced_quantity' => 0, 'rejected_quantity' => 0,
+                'status' => 'completed', 'completed_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+            ]);
+            DB::table('production_order')->insert([
+                'production_id' => $productionId, 'order_id' => $orderId, 'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $output = $service->create($c['company'], $productionId, $orderId, $c['warehouse'], $quantity, $c['user']);
+            $service->confirm($c['company'], $output->id, $c['user']);
+
+            if ($index === 0) {
+                $this->assertDatabaseHas('orders', ['id' => $orderId, 'status' => 'production_required']);
+                $this->assertDatabaseHas('order_items', ['order_id' => $orderId, 'shortage_quantity' => 2]);
+                Notification::assertNotSentTo($salesUser, \App\Notifications\WorkflowNotification::class, function ($notification) use ($salesUser) {
+                    return $notification->toArray($salesUser)['event'] === 'order.ready_for_delivery';
+                });
+            }
+        }
+
+        $this->assertDatabaseHas('orders', ['id' => $orderId, 'status' => 'ready_for_delivery']);
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $orderId, 'available_quantity' => 4, 'shortage_quantity' => 0,
+            'fulfillment_status' => 'ready_for_delivery',
+        ]);
+        Notification::assertSentTo($salesUser, \App\Notifications\WorkflowNotification::class, function ($notification) use ($salesUser, $orderId) {
+            $data = $notification->toArray($salesUser);
+            return $data['event'] === 'order.ready_for_delivery' && (int) $data['order_id'] === (int) $orderId;
+        });
+
+        $this->postJson('/api/orders/'.$orderId.'/refresh')->assertOk()->assertJsonPath('data.status', 'ready_for_delivery');
+        $readyNotifications = Notification::sent($salesUser, \App\Notifications\WorkflowNotification::class)
+            ->filter(fn ($notification) => $notification->toArray($salesUser)['event'] === 'order.ready_for_delivery');
+        $this->assertCount(1, $readyNotifications, 'Refreshing an already-ready order must not send a duplicate ready notification.');
+    }
+
     public function test_sales_pages_are_user_facing_and_server_authorized(): void
     {
         $c=$this->context(5);

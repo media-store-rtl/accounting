@@ -141,10 +141,13 @@ class OrderController extends Controller
             }
             $status=$ready?'ready_for_delivery':($row->production_due_at?'awaiting_production':'production_required');
             DB::table('orders')->where('id',$order)->update(['status'=>$status,'updated_at'=>now()]);
-            return DB::table('orders')->where('id',$order)->first();
+            return ['order' => DB::table('orders')->where('id',$order)->first(), 'was_ready' => $row->status === 'ready_for_delivery'];
         });
-        if ($result->status === 'ready_for_delivery') {
-            app(NotificationRecipientService::class)->send($companyId, 'order.ready_for_delivery', ['order_id' => $order], (int) $request->user()->id, 'order.view');
+        $resultOrder = $result['order'];
+        if ($resultOrder->status === 'ready_for_delivery') {
+            if (! $result['was_ready']) {
+                app(NotificationRecipientService::class)->send($companyId, 'order.ready_for_delivery', ['order_id' => $order], (int) $request->user()->id, 'order.view');
+            }
         } else {
             // A recheck can confirm an existing shortage (including orders already awaiting production).
             // Create the production-required notification once per order, rather than on every button click.
@@ -171,7 +174,7 @@ class OrderController extends Controller
                 }
             }
         }
-        return response()->json(['data'=>$result]);
+        return response()->json(['data'=>$resultOrder]);
     }
 
 
