@@ -21,6 +21,7 @@ test('formats the selected timestamp using the date library Gregorian calendar, 
             return this;
         }
         format(pattern) {
+            assert.equal(this.formatPersian, false);
             assert.equal(pattern, 'YYYY-MM-DD');
             assert.equal(this.timestamp, 1791763200000);
             return '2026-10-12';
@@ -46,6 +47,7 @@ test('initialises from the hidden Gregorian value and submits the ISO value via 
         constructor(timestamp) { this.timestamp = timestamp; }
         toCalendar(calendar) { assert.equal(calendar, 'gregorian'); return this; }
         format(pattern) {
+            assert.equal(this.formatPersian, false);
             assert.equal(pattern, 'YYYY-MM-DD');
             assert.equal(this.timestamp, 1791763200000);
             return '2026-10-12';
