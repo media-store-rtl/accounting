@@ -268,12 +268,14 @@ class ProductionShiftReportStagesTest extends TestCase
         $this->post(route('production.outputs.shift-reports.receive', $reportId), ['warehouse_location_id' => $warehouse])
             ->assertSessionHasErrors('report');
 
-        // The output report must display the receipt record without warehouse selection or confirmation controls.
+        // A report explicitly marked as a finished product must also appear in the upper output table.
+        // Displaying it must not post inventory or bypass the separate warehouse receipt step.
         $this->get(route('production.outputs.index'))
             ->assertOk()
             ->assertSee('تحویل‌های گزارش شیفت تولید')
             ->assertSee('انبار مقصد')
-            ->assertDontSee('انتخاب انبار')
+            ->assertSee('گزارش شیفت #' . $reportId)
+            ->assertSee('تأییدشده محصول نهایی')
             ->assertDontSee('تأیید دریافت کامل');
 
         // A separate warehouse user confirms the complete quantity and posts inventory once.
