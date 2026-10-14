@@ -19,7 +19,7 @@ class SalesOperationalWorkflowTest extends TestCase
         $company=DB::table('companies')->insertGetId(['account_id'=>$account,'name'=>'Test Company','code'=>'COM'.uniqid(),'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $user=DB::table('users')->insertGetId(['account_id'=>$account,'name'=>'Tester','username'=>'u'.uniqid(),'email'=>uniqid().'@test.local','password'=>bcrypt('secret'),'created_at'=>now(),'updated_at'=>now()]);
         $role=DB::table('roles')->insertGetId(['company_id'=>$company,'name'=>'Sales Operations','slug'=>'sales-ops','is_system'=>false,'created_at'=>now(),'updated_at'=>now()]);
-        $slugs=['customer.view','customer.create','order.view','order.create','order.refresh','production.supervise','delivery_request.view','delivery_request.create','delivery_request.issue','delivery_request.handover','warehouse.delivery.manage','production.output.receive'];
+        $slugs=['customer.view','customer.create','order.view','order.create','order.refresh','production.supervise','delivery_request.view','delivery_request.create','delivery_request.sales_approve','delivery_request.issue','delivery_request.handover','warehouse.delivery.manage','production.output.receive'];
         foreach($slugs as $slug){
             $permission=DB::table('permissions')->where('slug',$slug)->value('id');
             if (!$permission) {
@@ -66,8 +66,11 @@ class SalesOperationalWorkflowTest extends TestCase
         $response=$this->postJson('/api/orders',['fiscal_year_id'=>$c['fy'],'customer_id'=>$c['customer'],'number'=>'SO-1','ordered_at'=>'2026-10-07','requested_delivery_at'=>'2026-10-20','items'=>[['goods_id'=>$c['goods'],'quantity'=>4]]]);
         $response->assertCreated()->assertJsonPath('data.status','ready_for_delivery');
         $order=$response->json('data.id');
-        $this->postJson('/api/orders/'.$order.'/delivery-request',['scheduled_at'=>'2026-10-08 10:00:00','recipient_name'=>'Receiver','vehicle'=>'Truck 1'])->assertCreated();
+        $this->postJson('/api/orders/'.$order.'/delivery-request',['scheduled_at'=>'2026-10-08 10:00:00','recipient_name'=>'Receiver','vehicle'=>'Truck 1'])->assertCreated()->assertJsonPath('data.status','awaiting_sales_approval');
         $delivery=DB::table('delivery_requests')->where('order_id',$order)->first();
+        $this->get('/sales/orders')->assertOk()->assertSee('مجوز خروج');
+        $this->postJson('/sales/delivery-requests/'.$delivery->id.'/sales-approve')->assertOk()->assertJsonPath('data.status','pending');
+        $this->assertDatabaseHas('delivery_requests',['id'=>$delivery->id,'sales_approved_by_user_id'=>$c['user']]);
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertOk();
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>6]);
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'delivery_issue','quantity'=>-4]);
@@ -116,6 +119,7 @@ class SalesOperationalWorkflowTest extends TestCase
 
         $this->postJson('/api/orders/'.$order.'/delivery-request',['scheduled_at'=>'2026-10-08 10:00:00','recipient_name'=>'Receiver','vehicle'=>'Truck FG'])->assertCreated();
         $delivery=DB::table('delivery_requests')->where('order_id',$order)->first();
+        $this->postJson('/sales/delivery-requests/'.$delivery->id.'/sales-approve')->assertOk();
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertOk();
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>0]);
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'delivery_issue','reference_type'=>'delivery_request','reference_id'=>$delivery->id,'quantity'=>-4]);
