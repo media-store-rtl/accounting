@@ -6,8 +6,8 @@
 - تست Feature: سناریوی موجود بهای تمام‌شده گسترش یافت تا گزارش‌های `approved` و `received` به هزینه دستمزد اضافه شوند و گزارش `pending` حذف شود.
 - فایل‌ها: `app/Services/CostingReportService.php`, `tests/Feature/CostingReportTest.php`, `PROJECT_PROGRESS.md`.
 - Migration لازم نیست؛ داده‌های موجود، موجودی انبار و وضعیت گزارش‌ها تغییر داده نمی‌شوند. فقط منبع محاسبه گزارش بهای تمام‌شده اصلاح شده است.
-- تست محلی/PHPUnit در این محیط اجرا نشده است؛ CI پس از ایجاد PR باید بررسی شود. مرورگر، سایت زنده و Deploy تأیید نشده‌اند.
-- شاخه: `fix/costing-include-received-shift-reports`. کامیت‌های کد و تست: `4d10aa139d9fde2f71dd3f1e9187ccb02583ed86` و `ce347fcb2fc072aac68e15bd910958c5a8938ae0`. PR پس از ثبت این ورودی ایجاد می‌شود؛ ادغام انجام نشده است.
+- تست محلی/PHPUnit در این محیط اجرا نشده است. CI مربوط به PR #115 شکست کلی دارد: هر دو تست `CostingReportTest` از جمله سناریوی جدید موفق‌اند، اما ۱ تست از مجموعه با ۳۶ تست موفق در `ProductionShiftReportStagesTest` به‌علت `Undefined array key "order_id"` در کنترلر شکست خورده است؛ اجرای CI روی کامیت مبنای قبل از این تغییر نیز همین خطا را داشت. مرورگر، سایت زنده و Deploy تأیید نشده‌اند.
+- شاخه: `fix/costing-include-received-shift-reports`. PR [#115](https://github.com/media-store-rtl/accounting/pull/115) باز و ادغام‌نشده است. کامیت‌های کد و تست: `4d10aa139d9fde2f71dd3f1e9187ccb02583ed86` و `ce347fcb2fc072aac68e15bd910958c5a8938ae0`.
 
 ---
 
