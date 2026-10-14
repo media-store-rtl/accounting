@@ -16,6 +16,7 @@ final class CostingReportService
         $rows=[];
         $this->materials($rows,$companyId,$fiscalYearId,$orderId,$goodsId);
         $this->labor($rows,$companyId,$fiscalYearId,$orderId,$goodsId);
+        $this->approvedShiftReportLabor($rows,$companyId,$fiscalYearId,$orderId,$goodsId);
         $this->directPurchaseCosts($rows,$companyId,$fiscalYearId,$orderId,$goodsId);
         $this->scraps($rows,$companyId,$fiscalYearId,$orderId,$goodsId);
 
@@ -95,6 +96,54 @@ final class CostingReportService
             foreach($links->get((int)$c->production_id,collect()) as $link){
                 if($orderId!==null&&(int)$link->order_id!==$orderId)continue;$key=$this->key((int)$link->order_id,(int)$p->goods_id);$this->row($rows,$key,(int)$link->order_id,(int)$p->goods_id);$rows[$key]['labor_cost']+=(float)$c->total_cost;
             }
+        }
+    }
+
+
+    /**
+     * Approved shift reports carry their own order and worker/time information.
+     * Resolve the rate valid on the work date so these reports contribute to
+     * the same order/product costing report as operation-level labor entries.
+     */
+    private function approvedShiftReportLabor(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId): void
+    {
+        if (!DB::getSchemaBuilder()->hasColumn('production_shift_reports', 'order_id')) return;
+
+        $reports = DB::table('production_shift_reports as r')
+            ->where('r.company_id',$companyId)
+            ->where('r.status','approved')
+            ->whereNotNull('r.order_id')
+            ->when($fy,fn($q)=>$q->whereBetween('r.work_date', [
+                DB::table('fiscal_years')->where('id',$fy)->value('starts_at'),
+                DB::table('fiscal_years')->where('id',$fy)->value('ends_at')
+            ]))
+            ->when($orderId,fn($q)=>$q->where('r.order_id',$orderId))
+            ->when($goodsId,fn($q)=>$q->where('r.goods_id',$goodsId))
+            ->get(['r.order_id','r.goods_id','r.personnel_id','r.work_date','r.worked_hours','r.overtime_hours','r.holiday_hours']);
+
+        foreach ($reports as $report) {
+            $date = substr((string)$report->work_date,0,10);
+            $total = 0.0;
+            foreach ([
+                'regular' => (float)$report->worked_hours,
+                'overtime' => (float)$report->overtime_hours,
+                'holiday' => (float)$report->holiday_hours,
+            ] as $rateType => $hours) {
+                if ($hours <= 0) continue;
+                $rate = DB::table('personnel_labor_rates')
+                    ->where('company_id',$companyId)
+                    ->where('personnel_id',(int)$report->personnel_id)
+                    ->where('rate_type',$rateType)
+                    ->where('effective_from','<=',$date)
+                    ->where(fn($q)=>$q->whereNull('effective_to')->orWhere('effective_to','>=',$date))
+                    ->orderByDesc('effective_from')->orderByDesc('id')
+                    ->value('rate');
+                if ($rate !== null) $total += $hours * (float)$rate;
+            }
+            if ($total <= 0) continue;
+            $key = $this->key((int)$report->order_id,(int)$report->goods_id);
+            $this->row($rows,$key,(int)$report->order_id,(int)$report->goods_id);
+            $rows[$key]['labor_cost'] += $total;
         }
     }
 
