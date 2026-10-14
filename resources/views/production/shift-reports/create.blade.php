@@ -87,6 +87,13 @@
     </div>
     <form method="POST" action="{{ route('production.shift-reports.store') }}" class="shift-form">
       @csrf
+      <label class="shift-field">سفارش مربوط *
+        <select name="order_id" required>
+          <option value="">انتخاب سفارش</option>
+          @foreach($orders as $order)<option value="{{ $order->id }}" @selected((string)old('order_id')===(string)$order->id)>{{ $order->number ?: 'سفارش '.$order->id }}</option>@endforeach
+        </select>
+        <small>هزینه دستمزد تأییدشده به همین سفارش اضافه می‌شود.</small>
+      </label>
       <label class="shift-field">قسمت تولید *
         <select name="production_section_id" required>
           <option value="">انتخاب قسمت تولید</option>
