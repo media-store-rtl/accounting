@@ -137,7 +137,7 @@ class PersonnelController extends Controller
         abort_unless((int) DB::table('companies')->where('id', $companyId)->value('account_id') === (int) $personnel->account_id, 404);
 
         $data = $request->validate([
-            'rate_type' => ['required', 'in:regular,overtime,holiday'],
+            'rate_type' => ['required', 'in:regular,overtime,holiday,per_unit,hourly'],
             'rate' => ['required', 'numeric', 'min:0'],
             'effective_from' => ['required', 'date'],
             'effective_to' => ['nullable', 'date', 'after_or_equal:effective_from'],
