@@ -282,7 +282,7 @@ final class ProductionShiftReportController extends Controller
             ->where('s.id', $data['production_section_id'])->where('l.company_id', $companyId)->exists();
         $goodValid = DB::table('goods')->where('id', $data['goods_id'])->where('company_id', $companyId)
             ->where('is_active', true)->where('producible', true)->exists();
-        $orderValid = DB::table('orders')->where('id', $data['order_id'])->where('company_id', $companyId)->exists();
+        $orderValid = empty($data['order_id']) || DB::table('orders')->where('id', $data['order_id'])->where('company_id', $companyId)->exists();
         $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
         $workerValid = DB::table('personnel')->where('id', $data['personnel_id'])->where('account_id', $accountId)->where('is_active', true)->exists();
         if (!$sectionValid) throw ValidationException::withMessages(['production_section_id' => 'قسمت تولید معتبر نیست.']);
@@ -354,7 +354,7 @@ final class ProductionShiftReportController extends Controller
             DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->update([
                 'production_section_id' => (int) $data['production_section_id'],
                 'goods_id' => (int) $data['goods_id'],
-                'order_id' => (int) $data['order_id'],
+                'order_id' => isset($data['order_id']) && $data['order_id'] !== '' ? (int) $data['order_id'] : null,
                 'personnel_id' => (int) $data['personnel_id'],
                 'shift_name' => 'کارکرد ' . (float) $data['worked_hours'] . ' ساعت',
                 'worked_hours' => (float) $data['worked_hours'],
