@@ -14,10 +14,13 @@ return new class extends Migration
         if (!Schema::hasTable(self::TABLE)) {
             Schema::create(self::TABLE, function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('company_id')->constrained()->cascadeOnDelete();
-                $table->foreignId('production_shift_report_id')->constrained('production_shift_reports')->cascadeOnDelete();
-                $table->foreignId('production_stage_id')->constrained('production_stages')->restrictOnDelete();
+                $table->foreignId('company_id');
+                $table->foreignId('production_shift_report_id');
+                $table->foreignId('production_stage_id');
                 $table->timestamps();
+                $table->foreign('company_id', 'psrs_company_fk')->references('id')->on('companies')->cascadeOnDelete();
+                $table->foreign('production_shift_report_id', 'psrs_report_fk')->references('id')->on('production_shift_reports')->cascadeOnDelete();
+                $table->foreign('production_stage_id', 'psrs_stage_fk')->references('id')->on('production_stages')->restrictOnDelete();
                 $table->unique(['production_shift_report_id', 'production_stage_id'], 'psrs_report_stage_unique');
                 $table->index(['company_id', 'production_shift_report_id'], 'psrs_company_report_idx');
             });
@@ -163,21 +166,21 @@ return new class extends Migration
             }
 
             if (isset($missingForeignKeys['production_shift_report_id'])) {
-                $table->foreign('production_shift_report_id', 'production_shift_report_stages_production_shift_report_id_foreign')
+                $table->foreign('production_shift_report_id', 'psrs_report_fk')
                     ->references('id')
                     ->on('production_shift_reports')
                     ->cascadeOnDelete();
             }
 
             if (isset($missingForeignKeys['production_stage_id'])) {
-                $table->foreign('production_stage_id', 'production_shift_report_stages_production_stage_id_foreign')
+                $table->foreign('production_stage_id', 'psrs_stage_fk')
                     ->references('id')
                     ->on('production_stages')
                     ->restrictOnDelete();
             }
 
             if (isset($missingForeignKeys['company_id'])) {
-                $table->foreign('company_id', 'production_shift_report_stages_company_id_foreign')
+                $table->foreign('company_id', 'psrs_company_fk')
                     ->references('id')
                     ->on('companies')
                     ->cascadeOnDelete();
