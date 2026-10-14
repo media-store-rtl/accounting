@@ -43,6 +43,8 @@ class CostingReportTest extends TestCase
         $report = app(CostingReportService::class)->generate($company, $fy);
 
         $this->assertSame([], $report['rows']);
+        $this->assertSame([], $report['product_rows']);
+        $this->assertSame([], $report['production_reports']);
         $this->assertSame([], $report['valuation_methods']);
         $this->assertSame(0.0, $report['totals']['material_cost']);
         $this->assertSame(0.0, $report['totals']['labor_cost']);
