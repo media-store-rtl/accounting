@@ -90,11 +90,14 @@ class DeliveryController extends Controller
             'vehicle_plate'=>'required|string|max:30',
             'driver_name'=>'required|string|max:255',
             'driver_phone'=>'nullable|string|max:30',
-            'recipient_signature'=>['required','string','max:700000','regex:/^data:image\\/png;base64,[A-Za-z0-9+\\/]+={0,2}$/'],
+            'recipient_signature'=>'required|string|max:700000',
             'handover_note'=>'nullable|string|max:2000',
         ]);
-        $signaturePayload=substr($data['recipient_signature'],strlen('data:image/png;base64,'));
-        abort_if(base64_decode($signaturePayload,true)===false,422,'تصویر امضا معتبر نیست.');
+        $signaturePrefix='data:image/png;base64,';
+        abort_unless(str_starts_with($data['recipient_signature'],$signaturePrefix),422,'فرمت تصویر امضا معتبر نیست.');
+        $signaturePayload=substr($data['recipient_signature'],strlen($signaturePrefix));
+        $signatureBytes=base64_decode($signaturePayload,true);
+        abort_if($signatureBytes===false || !str_starts_with($signatureBytes, "\x89PNG\r\n\x1a\n"),422,'تصویر امضا معتبر نیست.');
 
         DB::transaction(function()use($companyId,$delivery,$request,$data){
             $d=DB::table('delivery_requests')->where('id',$delivery)->where('company_id',$companyId)->first();
