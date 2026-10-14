@@ -115,10 +115,27 @@ class ProductionShiftReportStagesTest extends TestCase
 
         $this->get(route('production.shift-reports.show', $reportId))
             ->assertOk()
-            ->assertSee('ویرایش اطلاعات این گزارش');
+            ->assertSee('ویرایش اطلاعات این گزارش')
+            ->assertSee('مواد اولیه مصرف‌شده *')
+            ->assertSee('ثبت حداقل یک ماده اولیه با مقدار مصرف مثبت الزامی است.');
         $this->get(route('production.shift-reports.show', $reportId))
             ->assertSee('۲۰')
             ->assertDontSee('20.0000');
+
+        $editPayloadWithoutMaterials = [
+            'production_section_id' => $section,
+            'goods_id' => $goods,
+            'personnel_id' => $worker,
+            'worked_hours' => 7.5,
+            'work_date' => '2026-10-13',
+            'produced_quantity' => 18,
+            'scrap_quantity' => 2,
+        ];
+        $this->put(route('production.shift-reports.update', $reportId), $editPayloadWithoutMaterials)
+            ->assertSessionHasErrors('materials');
+        $this->put(route('production.shift-reports.update', $reportId), $editPayloadWithoutMaterials + [
+            'materials' => [['goods_id' => '', 'quantity' => '', 'scrap_quantity' => '0']],
+        ])->assertSessionHasErrors('materials');
 
         $this->put(route('production.shift-reports.update', $reportId), [
             'production_section_id' => $section,
@@ -179,6 +196,7 @@ class ProductionShiftReportStagesTest extends TestCase
             'work_date' => '2026-10-13',
             'produced_quantity' => 18,
             'scrap_quantity' => 2,
+            'materials' => [['goods_id' => $goods, 'quantity' => 4, 'scrap_quantity' => 1]],
         ])->assertRedirect(route('production.shift-reports.show', $reportId))
             ->assertSessionHas('success');
         $this->assertSame(1, DB::table('production_shift_report_stages')
@@ -194,6 +212,7 @@ class ProductionShiftReportStagesTest extends TestCase
             'produced_quantity' => 18,
             'scrap_quantity' => 2,
             'stages' => [['production_stage_id' => $stageTwo]],
+            'materials' => [['goods_id' => $goods, 'quantity' => 4, 'scrap_quantity' => 1]],
         ])->assertRedirect(route('production.shift-reports.show', $reportId))
             ->assertSessionHas('success');
         $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'pending']);
