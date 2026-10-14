@@ -4,7 +4,7 @@
 @endif
 @section('content')
 @php
-$labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbol'=>'نماد','unit_type'=>'نوع واحد','national_id'=>'شناسه ملی','phone'=>'تلفن','email'=>'ایمیل','address'=>'آدرس','category_id'=>'دسته‌بندی','purchasable'=>'قابل خرید','producible'=>'قابل تولید','sellable'=>'قابل فروش','location_id'=>'محل / انبار','supervisor_personnel_id'=>'سرپرست','type'=>'نوع','production_route_id'=>'مسیر تولید','production_section_id'=>'قسمت تولید','production_stage_id'=>'مرحله تولید','sequence'=>'ترتیب','standard_duration_minutes'=>'مدت استاندارد (دقیقه)','setup_duration_minutes'=>'زمان آماده‌سازی (دقیقه)','status'=>'وضعیت','number'=>'شماره','goods_id'=>'کالا','fiscal_year_id'=>'سال مالی','planned_quantity'=>'مقدار برنامه‌ریزی‌شده','planned_start_at'=>'شروع برنامه‌ریزی‌شده','planned_end_at'=>'پایان برنامه‌ریزی‌شده','description'=>'توضیحات','notes'=>'یادداشت'];
+$labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbol'=>'نماد','unit_type'=>'نوع واحد','national_id'=>'شناسه ملی','phone'=>'تلفن','email'=>'ایمیل','address'=>'آدرس','category_id'=>'دسته‌بندی','unit_id'=>'واحد اندازه‌گیری','purchasable'=>'قابل خرید','producible'=>'قابل تولید','sellable'=>'قابل فروش','location_id'=>'محل / انبار','supervisor_personnel_id'=>'سرپرست','type'=>'نوع','production_route_id'=>'مسیر تولید','production_section_id'=>'قسمت تولید','production_stage_id'=>'مرحله تولید','sequence'=>'ترتیب','standard_duration_minutes'=>'مدت استاندارد (دقیقه)','setup_duration_minutes'=>'زمان آماده‌سازی (دقیقه)','status'=>'وضعیت','number'=>'شماره','goods_id'=>'کالا','fiscal_year_id'=>'سال مالی','planned_quantity'=>'مقدار برنامه‌ریزی‌شده','planned_start_at'=>'شروع برنامه‌ریزی‌شده','planned_end_at'=>'پایان برنامه‌ریزی‌شده','description'=>'توضیحات','notes'=>'یادداشت'];
 @endphp
 @if(in_array(($module ?? null), ['goods', 'goods-categories', 'units', 'locations', 'productions', 'suppliers', 'production-routes', 'production-sections', 'production-stages', 'production-operations'], true))
 <style>
@@ -143,6 +143,9 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 @else
 @if($f==='category_id')
 <select name="{{$f}}" class="form-select" required><option value="">انتخاب کنید</option>@foreach(($options['categories']??[]) as $o)<option value="{{$o->id}}" @selected((string)$value===(string)$o->id)>{{$o->name}}</option>@endforeach</select>
+@elseif($f==='unit_id')
+<select id="field-{{$f}}" name="{{$f}}" class="form-select" required><option value="">انتخاب واحد اندازه‌گیری</option>@foreach(($options['units']??[]) as $o)<option value="{{$o->id}}" @selected((string)$value===(string)$o->id)>{{$o->name}}@if($o->symbol) ({{$o->symbol}})@endif</option>@endforeach</select>
+<p class="field-help">واحدی را انتخاب کنید که مقدارهای پایه این کالا با آن ثبت می‌شوند. برای کالاهای قدیمی که واحد ندارند، هنگام ویرایش واحد پایه را مشخص کنید.</p>
 @elseif($f==='parent_id')
 <select name="{{$f}}" class="form-select"><option value="">بدون والد</option>@foreach(($options['parents']??[]) as $o)<option value="{{$o->id}}" @selected((string)$value===(string)$o->id)>{{$o->name}}</option>@endforeach</select>
 @elseif($f==='goods_id')
