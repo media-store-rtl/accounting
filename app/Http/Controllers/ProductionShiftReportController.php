@@ -93,7 +93,7 @@ final class ProductionShiftReportController extends Controller
                 ->get(['rm.goods_id', 'rm.quantity', 'rm.scrap_quantity', 'mg.name', 'mg.code']);
         }
         $canReview = $request->user()->hasCompanyPermission($companyId, 'production.operation.review');
-        $canEdit = $canReview && (in_array($row->status, ['pending', 'rejected'], true) || ($row->status === 'approved' && (float) ($row->warehouse_quantity ?? 0) <= 0));
+        $canEdit = $canReview && (in_array($row->status, ['pending', 'rejected'], true) || ($row->status === 'approved' && empty($row->warehouse_requested_at) && (float) ($row->warehouse_quantity ?? 0) <= 0));
         $canReceive = $request->user()->hasCompanyPermission($companyId, 'production.output.receive');
         $warehouses = $canReceive ? DB::table('locations')->where('company_id', $companyId)->where('is_active', true)->where(function ($query) { $query->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])
                 ->orWhereIn(DB::raw('TRIM(type)'), ['مواد', 'محصول', 'ضایعات']); })->orderBy('name')->get(['id', 'name']) : collect();
@@ -320,7 +320,7 @@ final class ProductionShiftReportController extends Controller
 
         DB::transaction(function () use ($companyId, $report, $data, $request, $stageIds, $materialRows, $scrap) {
             $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
-            if (!$row || !(in_array($row->status, ['pending', 'rejected'], true) || ($row->status === 'approved' && (float) ($row->warehouse_quantity ?? 0) <= 0))) {
+            if (!$row || !(in_array($row->status, ['pending', 'rejected'], true) || ($row->status === 'approved' && empty($row->warehouse_requested_at) && (float) ($row->warehouse_quantity ?? 0) <= 0))) {
                 throw ValidationException::withMessages(['report' => 'گزارش در انتظار تأیید یا ردشده قابل ویرایش است. گزارش تأییدشده فقط تا قبل از هرگونه تحویل به انبار قابل اصلاح است؛ پس از ثبت ورود به انبار، برای جلوگیری از مغایرت موجودی باید اصلاح جداگانه انجام شود.']);
             }
 
