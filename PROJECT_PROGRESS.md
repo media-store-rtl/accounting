@@ -1,3 +1,13 @@
+# 100. ثبت تأیید کاربر از آزمایش رفع ایراد ثبت تولید شیفت — 2026-10-14
+
+- کاربر اعلام کرد پس از آزمایش، اصلاح ثبت تولید شیفت درست کار می‌کند؛ بنابراین نتیجهٔ آزمایش دستی کاربر تأیید شده است.
+- PR [#101](https://github.com/media-store-rtl/accounting/pull/101) شامل اجباری‌بودن حداقل یک مادهٔ اولیه با مقدار مصرف مثبت و جلوگیری از یکسان بودن محصول و مادهٔ اولیه بود و در `main` ادغام شد.
+- CI روی کامیت ادغام [`b9b2c0fab200e3a44d8fb42f943bc0150c2c9843`](https://github.com/media-store-rtl/accounting/commit/b9b2c0fab200e3a44d8fb42f943bc0150c2c9843) موفق است ([نتیجهٔ PHPUnit](https://github.com/media-store-rtl/accounting/actions/runs/38555676771/job/115824090069)).
+- این ورودی صرفاً سابقهٔ تأیید کاربر و وضعیت CI را مستند می‌کند؛ آزمایش دستی را کاربر انجام داده است. اجرای تست محلی توسط عامل، Deploy و وضعیت سایت زنده به‌صورت مستقل تأیید نشده‌اند. Migration لازم نبود.
+- فایل به‌روزشده: `PROJECT_PROGRESS.md`.
+
+---
+
 # 99. اجباری‌کردن مواد اولیه در ثبت تولید شیفت و جلوگیری از تکرار محصول — 2026-10-14
 
 - درخواست: در صفحه «ثبت تولید شیفت»، حداقل یک ماده اولیه با مقدار مصرف مثبت اجباری باشد و محصول تولیدی نتواند به‌عنوان ماده اولیه همان گزارش انتخاب شود.
@@ -6,7 +16,7 @@
 - تست Feature: درخواست ثبت بدون مواد و با ردیف خالی باید خطا بگیرد؛ ثبت موفق ماده معتبر جدا از محصول را ذخیره می‌کند؛ تست‌های موجود تکرار محصول در مواد را برای ثبت و ویرایش بررسی می‌کنند.
 - فایل‌ها: `app/Http/Controllers/ProductionShiftReportController.php`, `resources/views/production/shift-reports/create.blade.php`, `tests/Feature/ProductionShiftReportStagesTest.php`, `PROJECT_PROGRESS.md`.
 - Migration لازم نیست؛ داده‌های تاریخی و موجودی انبار تغییر نمی‌کنند. تست محلی و مرورگر واقعی در این محیط اجرا نشده‌اند؛ CI باید بررسی شود. سایت زنده و Deploy تأیید نشده‌اند.
-- شاخه: `fix/required-distinct-shift-materials`. وضعیت: PR [#101](https://github.com/media-store-rtl/accounting/pull/101) باز و ادغام‌نشده است؛ CI در حال اجراست.
+- شاخه: `fix/required-distinct-shift-materials`. PR [#101](https://github.com/media-store-rtl/accounting/pull/101) در `main` ادغام شده است؛ کامیت ادغام [`b9b2c0fab200e3a44d8fb42f943bc0150c2c9843`](https://github.com/media-store-rtl/accounting/commit/b9b2c0fab200e3a44d8fb42f943bc0150c2c9843). CI مربوط به کامیت ادغام با موفقیت پایان یافته است. کاربر تأیید کرده که تغییر را در محیط خود آزمایش کرده و درست کار می‌کند؛ این تأیید، گزارش کاربر است و آزمایش مستقل از سوی عامل محسوب نمی‌شود. وضعیت Deploy جداگانه تأیید نشده است.
 
 ---
 
