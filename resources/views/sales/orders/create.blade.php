@@ -166,6 +166,7 @@ function syncRequestedDeliveryDate() {
         const gregorian = new window.persianDate([
             Number(match[1]), Number(match[2]), Number(match[3])
         ]).toCalendar('gregorian');
+        gregorian.formatPersian = false;
         const iso = gregorian.format('YYYY-MM-DD');
         if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
         isoField.value = iso;
