@@ -82,7 +82,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/sales/orders', [OrderController::class, 'store'])->middleware('company.permission:order.create')->name('sales.orders.store');
     Route::get('/sales/orders/{order}', [OrderController::class, 'show'])->middleware('company.permission:order.view')->name('sales.orders.show');
     Route::post('/sales/orders/{order}/cancel', [OrderController::class, 'cancel'])->middleware('company.permission:order.create')->whereNumber('order')->name('sales.orders.cancel');
-    Route::get('/sales/deliveries', [DeliveryController::class, 'index'])->middleware('company.permission:delivery_request.view')->name('sales.deliveries.index');
+    Route::get('/sales/deliveries', fn () => redirect()->route('warehouse.deliveries.index'))->middleware('company.permission:delivery_request.issue')->name('sales.deliveries.index');
     Route::get('/warehouse/deliveries', [DeliveryController::class, 'index'])->middleware('company.permission:delivery_request.issue')->name('warehouse.deliveries.index');
     Route::post('/api/orders/{order}/refresh', [OrderController::class, 'refreshFulfillment'])->middleware('company.permission:order.refresh')->name('sales.orders.refresh');
     Route::post('/api/orders/{order}/production-due', [OrderController::class, 'setProductionDue'])->middleware('company.permission:production.supervise')->name('sales.orders.production-due');
