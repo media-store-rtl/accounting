@@ -88,6 +88,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/orders/{order}/delivery-request', [OrderController::class, 'deliveryRequest'])->middleware('company.permission:delivery_request.create')->name('sales.orders.delivery-request');
     Route::post('/api/delivery-requests/{delivery}/issue', [DeliveryController::class, 'issue'])->middleware('company.permission:delivery_request.issue')->name('sales.delivery.issue');
     Route::post('/api/delivery-requests/{delivery}/handover', [DeliveryController::class, 'handover'])->middleware('company.permission:delivery_request.handover')->name('sales.delivery.handover');
+    Route::get('/api/delivery-requests/{delivery}/receipt', [DeliveryController::class, 'receipt'])->middleware('company.permission:delivery_request.view')->name('sales.delivery.receipt');
 
     Route::prefix('api')->name('api.')->group(function () {
         Route::post('/orders', [OrderController::class, 'store'])->middleware('company.permission:order.create')->name('orders.store');

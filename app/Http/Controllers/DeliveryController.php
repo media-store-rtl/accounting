@@ -14,9 +14,34 @@ class DeliveryController extends Controller
     public function index(Request $request)
     {
         $companyId=CompanyAuthorization::authorize($request,'delivery_request.view');
-        $deliveries=DB::table('delivery_requests as d')->join('orders as o','o.id','=','d.order_id')->join('customers as c','c.id','=','d.customer_id')
-            ->where('d.company_id',$companyId)->select('d.*','o.number as order_number','c.name as customer_name')->latest('d.id')->paginate(20);
+        $deliveries=DB::table('delivery_requests as d')
+            ->join('orders as o','o.id','=','d.order_id')
+            ->join('customers as c','c.id','=','d.customer_id')
+            ->leftJoin('deliveries as physical','physical.delivery_request_id','=','d.id')
+            ->where('d.company_id',$companyId)
+            ->select(
+                'd.*','o.number as order_number','c.name as customer_name',
+                'physical.driver_name','physical.driver_phone','physical.vehicle_plate',
+                'physical.received_by','physical.handover_note',
+                'physical.handed_over_at'
+            )
+            ->latest('d.id')->paginate(20);
+
         return view('sales.deliveries.index',compact('deliveries'));
+    }
+
+    public function receipt(Request $request,int $delivery): \Illuminate\Http\JsonResponse
+    {
+        $companyId=CompanyAuthorization::authorize($request,'delivery_request.view');
+        $receipt=DB::table('deliveries as physical')
+            ->join('delivery_requests as d','d.id','=','physical.delivery_request_id')
+            ->where('d.company_id',$companyId)
+            ->where('d.id',$delivery)
+            ->whereNotNull('physical.recipient_signature')
+            ->select('physical.received_by','physical.driver_name','physical.driver_phone','physical.vehicle_plate','physical.recipient_signature','physical.handed_over_at')
+            ->first();
+        abort_unless($receipt,404,'رسید تحویل برای این سفارش ثبت نشده است.');
+        return response()->json(['data'=>$receipt]);
     }
 
     public function issue(Request $request,int $delivery): \Illuminate\Http\JsonResponse
@@ -60,7 +85,20 @@ class DeliveryController extends Controller
     public function handover(Request $request,int $delivery): \Illuminate\Http\JsonResponse
     {
         $companyId=CompanyAuthorization::authorize($request,'delivery_request.handover');
-        $data=$request->validate(['received_by'=>'required|string|max:255','handover_note'=>'nullable|string']);
+        $data=$request->validate([
+            'received_by'=>'required|string|max:255',
+            'vehicle_plate'=>'required|string|max:30',
+            'driver_name'=>'required|string|max:255',
+            'driver_phone'=>'nullable|string|max:30',
+            'recipient_signature'=>'required|string|max:700000',
+            'handover_note'=>'nullable|string|max:2000',
+        ]);
+        $signaturePrefix='data:image/png;base64,';
+        abort_unless(str_starts_with($data['recipient_signature'],$signaturePrefix),422,'فرمت تصویر امضا معتبر نیست.');
+        $signaturePayload=substr($data['recipient_signature'],strlen($signaturePrefix));
+        $signatureBytes=base64_decode($signaturePayload,true);
+        abort_if($signatureBytes===false || !str_starts_with($signatureBytes, "\x89PNG\r\n\x1a\n"),422,'تصویر امضا معتبر نیست.');
+
         DB::transaction(function()use($companyId,$delivery,$request,$data){
             $d=DB::table('delivery_requests')->where('id',$delivery)->where('company_id',$companyId)->first();
             abort_unless($d,404); abort_unless($d->status==='issued',422,'ابتدا باید خروج انبار ثبت شود.');
@@ -68,7 +106,10 @@ class DeliveryController extends Controller
             abort_unless($deliveryRow,422,'رکورد تحویل فیزیکی یافت نشد.');
             DB::table('deliveries')->where('id',$deliveryRow->id)->update([
                 'status'=>'handed_over','handed_over_at'=>now(),'handed_over_by_user_id'=>$request->user()->id,
-                'received_by'=>$data['received_by'],'handover_note'=>$data['handover_note']??null,'updated_at'=>now()
+                'received_by'=>$data['received_by'],'vehicle_plate'=>$data['vehicle_plate'],
+                'driver_name'=>$data['driver_name'],'driver_phone'=>$data['driver_phone']??null,
+                'recipient_signature'=>$data['recipient_signature'],
+                'handover_note'=>$data['handover_note']??null,'updated_at'=>now()
             ]);
             DB::table('delivery_requests')->where('id',$delivery)->update(['status'=>'completed','updated_at'=>now()]);
             DB::table('orders')->where('id',$d->order_id)->update(['status'=>'completed','updated_at'=>now()]);
