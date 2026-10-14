@@ -22,6 +22,7 @@ $fulfillmentLabels = [
 @endphp
 
 @push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
 <style>
 .order-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:18px}
 .order-fact{padding:14px 16px;background:#0d2235;border:1px solid #1b354b;border-radius:12px;min-width:0}
@@ -33,6 +34,7 @@ $fulfillmentLabels = [
 .order-form h3{font-size:12px;margin:0 0 12px}
 .order-form label{display:block;color:#8ba1b5;font-size:10px;margin:10px 0 6px}
 .order-form input{display:block;width:100%;min-width:0;padding:10px;border:1px solid #29465e;border-radius:9px;background:#081522;color:#e9f3fb;font:inherit;font-size:11px}
+@media(max-width:650px){.datepicker-container{position:fixed!important;top:50%!important;left:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)!important;z-index:10000!important;max-width:calc(100vw - 20px)!important}.datepicker-plot-area{max-width:calc(100vw - 20px)!important;box-sizing:border-box!important}}
 .order-form .btn{margin-top:12px;cursor:pointer}
 .order-status{display:inline-block;padding:5px 10px;border-radius:20px;background:#12372f;color:#6ee7d0;font-size:10px}
 .order-table td{white-space:normal}
@@ -97,8 +99,11 @@ $fulfillmentLabels = [
     @if($row->status === 'ready_for_delivery')
       <form class="order-form" onsubmit="requestDelivery(event)">
         <h3>درخواست تحویل سفارش</h3>
-        <label for="scheduled">زمان برنامه‌ریزی‌شده تحویل</label>
-        <input id="scheduled" type="datetime-local" lang="fa-IR" required>
+        <label for="scheduled_date_picker">تاریخ برنامه‌ریزی‌شده تحویل</label>
+        <input id="scheduled_date_picker" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" required>
+        <input id="scheduled_date_iso" type="hidden">
+        <label for="scheduled_time">ساعت برنامه‌ریزی‌شده تحویل</label>
+        <input id="scheduled_time" type="time" required>
         <label for="recipient">شخص تحویل‌گیرنده</label>
         <input id="recipient" placeholder="نام شخص تحویل‌گیرنده" required>
         <label for="vehicle">وسیله حمل</label>
@@ -109,6 +114,15 @@ $fulfillmentLabels = [
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+<script type="module">
+import { setupProductionReportDatePicker } from '/js/production-report-date-filters.js';
+document.addEventListener('DOMContentLoaded', function () {
+  setupProductionReportDatePicker('#scheduled_date_picker', '#scheduled_date_iso');
+});
+</script>
 <script>
 const token = '{{ csrf_token() }}';
 document.querySelectorAll('.jalali-date').forEach((el) => {
@@ -139,7 +153,7 @@ async function requestDelivery(event) {
   event.preventDefault();
   try {
     await call('{{ route('sales.orders.delivery-request', $row->id) }}', {
-      scheduled_at:document.getElementById('scheduled').value,
+      scheduled_at:document.getElementById('scheduled_date_iso').value + 'T' + document.getElementById('scheduled_time').value,
       recipient_name:document.getElementById('recipient').value,
       vehicle:document.getElementById('vehicle').value
     });
