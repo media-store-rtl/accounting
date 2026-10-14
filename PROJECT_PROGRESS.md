@@ -4,7 +4,8 @@
 - الزام سمت سرور برای وجود حداقل یک ماده اولیه با مقدار مصرف مثبت در ثبت و ویرایش حفظ شد؛ شرط تکراری در ثبت حذف شد.
 - تأیید گزارش بدون مواد معتبر مسدود می‌شود و تست Feature مربوط به ثبت بدون مواد و تأیید گزارش قدیمی/ناقص اضافه شد.
 - فایل‌ها: `app/Http/Controllers/ProductionShiftReportController.php`, `resources/views/production/shift-reports/create.blade.php`, `tests/Feature/ProductionShiftReportStagesTest.php`, `PROJECT_PROGRESS.md`.
-- تست محلی اجرا نشده است؛ نتیجه CI پس از به‌روزرسانی شاخه باید بررسی شود. هیچ Deploy یا تغییری روی سایت زنده انجام نشده است.
+- CI اولیه پس از رفع تعارض: ۳۴ تست موفق و یک تست ناموفق در `ProductionShiftReportStagesTest` بود؛ علت، نبودن برچسب و راهنمای الزام مواد در فرم ویرایش داخل `show.blade.php` بود. برچسب و راهنما اضافه شد؛ CI جدید پس از این اصلاح باید بررسی شود.
+- تست محلی در این محیط اجرا نشده است. هیچ Deploy یا تغییری روی سایت زنده انجام نشده است.
 
 ---
 
