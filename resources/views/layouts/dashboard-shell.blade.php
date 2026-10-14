@@ -66,6 +66,7 @@ $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifica
 <div class="nav-title">نمای کلی</div>
 <a class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">⌂ داشبورد</a>
 @if($can['notifications'])<a class="{{ request()->routeIs('notifications.*') ? 'active' : '' }}" href="{{ route('notifications.index') }}">♢ اعلان‌ها</a>@endif
+@if($can['notification_recipients'])<a class="{{ request()->routeIs('settings.notification-recipients.*') ? 'active' : '' }}" href="{{ route('settings.notification-recipients.index') }}">⚙ تنظیم گیرندگان اعلان</a>@endif
 @if($can['orders'] || $can['deliveries'])
 <div class="nav-title">فروش</div>
 <div class="sales-menu">
@@ -127,14 +128,14 @@ elseif ($can['production_operations']) $productionHome = route('master.index', '
 @if($can['production_stages'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-stages' ? 'active' : '' }}" href="{{ route('master.index', 'production-stages') }}">⚙ مراحل تولید</a>@endif
 @if($can['production_routes'])<a class="{{ request()->routeIs('master.*') && request()->route('module') === 'production-routes' ? 'active' : '' }}" href="{{ route('master.index', 'production-routes') }}">⚙ مسیرهای تولید</a>@endif
 @endif
-@if($can['company'] || $can['fiscal_years'] || $can['personnel'] || $can['users'] || $can['roles'] || $can['notification_recipients'])
+@if($can['company'] || $can['fiscal_years'] || $can['personnel'] || $can['users'] || $can['roles'])
 <div class="nav-title">مدیریت</div>
 @if($can['company'])<a class="{{ request()->routeIs('company.*') ? 'active' : '' }}" href="{{ route('company.edit') }}">▤ اطلاعات مجموعه</a>@endif
 @if($can['fiscal_years'])<a class="{{ request()->routeIs('fiscal-years.*') ? 'active' : '' }}" href="{{ route('fiscal-years.index') }}">▣ سال‌های مالی</a>@endif
 @if($can['personnel'])<a class="{{ request()->routeIs('personnel.*') ? 'active' : '' }}" href="{{ route('personnel.index') }}">♟ پرسنل</a>@endif
 @if($can['users'])<a class="{{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">♙ کاربران</a>@endif
 @if($can['roles'])<a class="{{ request()->routeIs('roles.*') ? 'active' : '' }}" href="{{ route('roles.index') }}">⚿ نقش‌ها و دسترسی‌ها</a>@endif
-@if($can['notification_recipients'])<a class="{{ request()->routeIs('settings.notification-recipients.*') ? 'active' : '' }}" href="{{ route('settings.notification-recipients.index') }}">♧ تنظیم گیرندگان اعلان</a>@endif
+
 @endif
 @if($can['costing'] || $can['backups'])
 <div class="nav-title">گزارشات</div>
