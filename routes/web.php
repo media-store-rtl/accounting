@@ -179,6 +179,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/personnel', [PersonnelController::class, 'index'])->middleware('company.permission:personnel.view')->name('personnel.index');
         Route::get('/personnel/create', [PersonnelController::class, 'create'])->middleware(['company.permission:personnel.create', 'account.owner'])->name('personnel.create');
         Route::post('/personnel', [PersonnelController::class, 'store'])->middleware(['company.permission:personnel.create', 'account.owner'])->name('personnel.store');
+        Route::get('/personnel/{personnel}/labor-rates', [PersonnelController::class, 'laborRates'])->middleware('company.permission:production.labor.rate.manage')->name('personnel.labor-rates');
+        Route::post('/personnel/{personnel}/labor-rates', [PersonnelController::class, 'storeLaborRate'])->middleware('company.permission:production.labor.rate.manage')->name('personnel.labor-rates.store');
         Route::get('/personnel/{personnel}/edit', [PersonnelController::class, 'edit'])->middleware('company.permission:personnel.update')->name('personnel.edit');
         Route::put('/personnel/{personnel}', [PersonnelController::class, 'update'])->middleware('company.permission:personnel.update')->name('personnel.update');
         Route::post('/personnel/{personnel}/deactivate', [PersonnelController::class, 'deactivate'])->middleware('company.permission:personnel.deactivate')->name('personnel.deactivate');
