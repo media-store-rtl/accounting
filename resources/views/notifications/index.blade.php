@@ -198,6 +198,8 @@
                                             {{ $goodsName ?: 'کالای ثبت‌شده' }}
                                         @elseif($k === 'location_id')
                                             {{ $locationName ?: 'انبار ثبت‌شده' }}
+                                        @elseif($k === 'work_date' && is_scalar($v) && $v !== '')
+                                            <time class="notification-jalali-date" datetime="{{ \\Illuminate\\Support\\Carbon::parse($v)->format('Y-m-d') }}">{{ \\Illuminate\\Support\\Carbon::parse($v)->format('Y/m/d') }}</time>
                                         @elseif($k === 'production_due_at' && is_scalar($v) && $v !== '')
                                             <time class="notification-jalali-datetime" datetime="{{ \Illuminate\Support\Carbon::parse($v)->toIso8601String() }}">{{ \Illuminate\Support\Carbon::parse($v)->format('Y/m/d H:i') }}</time>
                                         @elseif(is_numeric($v) && in_array($k, ['purchase_total_amount', 'direct_cost_total'], true))
@@ -263,6 +265,21 @@ document.querySelectorAll('.notification-jalali-datetime').forEach(function (ele
         hour: '2-digit',
         minute: '2-digit',
         hourCycle: 'h23',
+    }).format(date);
+});
+
+document.querySelectorAll('.notification-jalali-date').forEach(function (element) {
+    const raw = element.getAttribute('datetime');
+    if (!raw) return;
+    const parts = raw.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return;
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
+    if (Number.isNaN(date.getTime())) return;
+
+    element.textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
     }).format(date);
 });
 </script>
