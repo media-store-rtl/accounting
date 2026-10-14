@@ -130,13 +130,11 @@ class SalesOperationalWorkflowTest extends TestCase
             'updated_at' => now(),
         ]);
         $roleId = DB::table('company_user')->where('company_id', $c['company'])->where('user_id', $c['user'])->value('role_id');
-        $receivePermissionId = DB::table('permissions')->where('slug', 'production.output.receive')->value('id');
-        DB::table('role_permissions')->insertOrIgnore([
-            'role_id' => $roleId,
-            'permission_id' => $receivePermissionId,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $receivePermissionId = DB::table('permissions')->where('slug', 'production.output.receive')->value('slug');
+        if ($receivePermissionId) {
+            $permissionId = DB::table('permissions')->where('slug', 'production.output.receive')->value('id');
+            DB::table('role_permissions')->insertOrIgnore(['role_id' => $roleId, 'permission_id' => $permissionId]);
+        }
         DB::table('company_user')->insert([
             'company_id' => $c['company'], 'user_id' => $salesUserId, 'role_id' => $roleId,
             'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
