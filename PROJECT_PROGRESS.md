@@ -5,8 +5,8 @@
 - خروجی: خلاصه محصول اکنون تعداد تولید تأییدشده برای دریافت انبار و فی واحد را نشان می‌دهد؛ فی واحد برابر جمع بهای تمام‌شده محصول تقسیم بر تعداد تولید تحویل‌شده در محدوده فیلتر است و در صورت صفر بودن تعداد، خط تیره نمایش داده می‌شود.
 - محدودیت داده: هزینه مواد، ضایعات و خرید مستقیم به کارگر مشخص یا گزارش شیفت انبارپذیرفته وصل نیستند؛ در فیلتر کارگر، این اقلام همچنان در سطح محصول تجمیع می‌شوند و این موضوع در صفحه توضیح داده شده است.
 - فایل‌ها: `app/Http/Controllers/CostingReportController.php`, `app/Services/CostingReportService.php`, `resources/views/reports/costing.blade.php`, `tests/Feature/CostingReportTest.php`, `PROJECT_PROGRESS.md`.
-- Migration لازم نیست؛ داده و موجودی انبار تغییر نمی‌کنند. اجرای اولیه CI در run [38627613688](https://github.com/media-store-rtl/accounting/actions/runs/38627613688) یک خطای مقداردهی اولیهٔ `produced_quantity` را در تست CostingReportTest نشان داد؛ اصلاح در شاخه اعمال شده و CI مجدد باید نتیجه را تأیید کند. بررسی مرورگر، سایت زنده و Deploy انجام نشده‌اند.
-- شاخه: `feat/costing-report-output-filters`. PR [#126](https://github.com/media-store-rtl/accounting/pull/126) باز و ادغام‌نشده است.
+- Migration لازم نیست؛ داده و موجودی انبار تغییر نمی‌کنند. اجرای اولیه CI در run [38627613688](https://github.com/media-store-rtl/accounting/actions/runs/38627613688) خطای مقداردهی اولیهٔ `produced_quantity` را نشان داد و اصلاح شد. اجرای مجدد CI در [run 38627894047](https://github.com/media-store-rtl/accounting/actions/runs/38627894047) موفق شد: 38 تست موفق، 328 assertion؛ [38;5;2m`npm test` و `php artisan test` هر دو موفق[0m. بررسی مرورگر، سایت زنده و Deploy انجام نشده‌اند.
+- شاخه: `feat/costing-report-output-filters`. کامیت‌های تغییر کد: [3b62c0d](https://github.com/media-store-rtl/accounting/commit/3b62c0d62ca4fd24db2e52639c61cf74cc90788d) و [36a221d](https://github.com/media-store-rtl/accounting/commit/36a221de2bc2997f84306bd600cc1527af425cbf). PR [#126](https://github.com/media-store-rtl/accounting/pull/126) باز و ادغام‌نشده است.
 
 ---
 
