@@ -416,22 +416,60 @@ final class ProductionShiftReportController extends Controller
                 'method' => 'SERVICE', 'status_code' => 200, 'created_at' => now(), 'updated_at' => now(),
             ]);
         });
-        if ((bool) $data['approve']) {
-            $details = DB::table('production_shift_reports as r')->join('goods as g', 'g.id', '=', 'r.goods_id')
-                ->leftJoin('locations as l', 'l.id', '=', 'r.warehouse_location_id')
-                ->where('r.company_id', $companyId)->where('r.id', $report)
-                ->first(['r.id', 'r.work_date', 'r.produced_quantity', 'r.scrap_quantity', 'g.name as goods_name', 'g.sellable', 'l.name as warehouse_name']);
-            if ($details && (bool) $details->sellable) {
-                app(NotificationRecipientService::class)->send($companyId, 'production.shift_report_warehouse_receipt', [
-                    'report_id' => $report, 'work_date' => $details->work_date ?? '', 'goods_name' => $details->goods_name ?? '',
-                    'prepared_quantity' => max(0, (float) ($details->produced_quantity ?? 0) - (float) ($details->scrap_quantity ?? 0)),
-                    'warehouse_name' => $details->warehouse_name ?? '', 'url' => route('production.outputs.index'),
-                ], (int) $request->user()->id, 'production.output.receive');
-            }
-        }
         return back()->with('success', $data['approve']
-            ? 'گزارش تولید تأیید شد و برای تأیید دریافت به سرپرست انبار اعلان ارسال شد.'
+            ? 'گزارش تولید تأیید شد. تأیید گزارش به‌تنهایی موجودی انبار را تغییر نمی‌دهد؛ ارسال درخواست تحویل، عملیات جداگانه است.'
             : 'گزارش شیفت رد شد.');
+    }
+
+    public function requestWarehouseReceipt(Request $request, int $report)
+    {
+        $companyId = CompanyAuthorization::authorize($request, 'production.operation.review');
+
+        DB::transaction(function () use ($companyId, $report, $request) {
+            $row = DB::table('production_shift_reports')->where('company_id', $companyId)
+                ->where('id', $report)->lockForUpdate()->first();
+
+            if (!$row || $row->status !== 'approved') {
+                throw ValidationException::withMessages(['report' => 'فقط گزارش تأییدشده می‌تواند برای تحویل به انبار ارسال شود.']);
+            }
+
+            $goods = DB::table('goods')->where('company_id', $companyId)->where('id', $row->goods_id)
+                ->first(['name', 'sellable']);
+            if (!$goods || !(bool) $goods->sellable) {
+                throw ValidationException::withMessages(['report' => 'این کالا محصول نهایی قابل‌فروش نیست؛ آن را از مسیر انتقال بین مراحل تولید جابه‌جا کنید، نه انبار محصول نهایی.']);
+            }
+
+            $available = max(0, (float) $row->produced_quantity - (float) ($row->scrap_quantity ?? 0));
+            if ($available - (float) ($row->warehouse_quantity ?? 0) <= 0.0000001) {
+                throw ValidationException::withMessages(['report' => 'مقدار آماده ارسال به انبار باقی نمانده است.']);
+            }
+            if (!empty($row->warehouse_requested_at)) {
+                throw ValidationException::withMessages(['report' => 'درخواست تحویل این گزارش قبلاً برای انبار ارسال شده است.']);
+            }
+
+            DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)
+                ->update(['warehouse_requested_at' => now(), 'updated_at' => now()]);
+
+            DB::table('audit_trails')->insert([
+                'company_id' => $companyId, 'user_id' => (int) $request->user()->id, 'module' => 'production',
+                'action' => 'production_shift_report.warehouse_request', 'auditable_type' => 'production_shift_reports', 'auditable_id' => $report,
+                'before' => json_encode((array) $row),
+                'after' => json_encode((array) DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->first()),
+                'method' => 'SERVICE', 'status_code' => 200, 'created_at' => now(), 'updated_at' => now(),
+            ]);
+        });
+
+        $details = DB::table('production_shift_reports as r')
+            ->join('goods as g', 'g.id', '=', 'r.goods_id')
+            ->where('r.company_id', $companyId)->where('r.id', $report)
+            ->first(['r.id', 'r.work_date', 'r.produced_quantity', 'r.scrap_quantity', 'g.name as goods_name']);
+        app(NotificationRecipientService::class)->send($companyId, 'production.shift_report_warehouse_receipt', [
+            'report_id' => $report, 'work_date' => $details->work_date ?? '', 'goods_name' => $details->goods_name ?? '',
+            'prepared_quantity' => max(0, (float) ($details->produced_quantity ?? 0) - (float) ($details->scrap_quantity ?? 0)),
+            'url' => route('production.outputs.index'),
+        ], (int) $request->user()->id, 'production.output.receive');
+
+        return back()->with('success', 'درخواست تحویل به انبار جداگانه ثبت و برای مسئولان انبار ارسال شد.');
     }
 
     public function receive(Request $request, int $report)
