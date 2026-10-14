@@ -275,7 +275,7 @@ class OrderController extends Controller
             $id=DB::table('delivery_requests')->insertGetId([
                 'company_id'=>$companyId,'order_id'=>$order,'customer_id'=>$row->customer_id,'requested_by_user_id'=>$request->user()->id,
                 'requested_at'=>now(),'scheduled_at'=>$data['scheduled_at'],'vehicle'=>$data['vehicle']??null,
-                'recipient_name'=>$data['recipient_name'],'status'=>'pending','notes'=>$data['notes']??null,'created_at'=>now(),'updated_at'=>now()
+                'recipient_name'=>$data['recipient_name'],'status'=>'awaiting_sales_approval','notes'=>$data['notes']??null,'created_at'=>now(),'updated_at'=>now()
             ]);
             foreach($items as $item) DB::table('delivery_request_items')->insert([
                 'delivery_request_id'=>$id,'goods_id'=>$item->goods_id,'quantity'=>$item->quantity,'created_at'=>now(),'updated_at'=>now()
