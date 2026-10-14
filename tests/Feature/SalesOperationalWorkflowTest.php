@@ -243,6 +243,7 @@ class SalesOperationalWorkflowTest extends TestCase
             'produced_quantity' => 4,
             'scrap_quantity' => 0,
             'status' => 'approved',
+            'warehouse_receipt_requested' => true,
             'reviewed_at' => now(),
             'created_at' => now(),
             'updated_at' => now(),
