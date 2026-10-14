@@ -94,7 +94,7 @@ class ProductionOutputService
      * Allocate newly received finished goods to older open orders with shortages.
      * Notify sales only when every line of an order can be fulfilled.
      */
-    private function refreshOrderShortagesAfterReceipt(int $companyId, int $goodsId, int $actorId): void
+    public function refreshOrderShortagesAfterReceipt(int $companyId, int $goodsId, int $actorId): void
     {
         $stock = app(InventoryService::class)->available($companyId, $goodsId);
         $reserved = (float) DB::table('order_items as oi')

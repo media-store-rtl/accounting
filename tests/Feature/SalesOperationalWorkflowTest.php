@@ -19,7 +19,7 @@ class SalesOperationalWorkflowTest extends TestCase
         $company=DB::table('companies')->insertGetId(['account_id'=>$account,'name'=>'Test Company','code'=>'COM'.uniqid(),'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $user=DB::table('users')->insertGetId(['account_id'=>$account,'name'=>'Tester','username'=>'u'.uniqid(),'email'=>uniqid().'@test.local','password'=>bcrypt('secret'),'created_at'=>now(),'updated_at'=>now()]);
         $role=DB::table('roles')->insertGetId(['company_id'=>$company,'name'=>'Sales Operations','slug'=>'sales-ops','is_system'=>false,'created_at'=>now(),'updated_at'=>now()]);
-        $slugs=['customer.view','customer.create','order.view','order.create','order.refresh','production.supervise','delivery_request.view','delivery_request.create','delivery_request.issue','delivery_request.handover','warehouse.delivery.manage'];
+        $slugs=['customer.view','customer.create','order.view','order.create','order.refresh','production.supervise','delivery_request.view','delivery_request.create','delivery_request.issue','delivery_request.handover','warehouse.delivery.manage','production.output.receive'];
         foreach($slugs as $slug){
             $permission=DB::table('permissions')->where('slug',$slug)->value('id');
             if (!$permission) {
@@ -185,6 +185,97 @@ class SalesOperationalWorkflowTest extends TestCase
         $readyNotifications = Notification::sent($salesUser, \App\Notifications\WorkflowNotification::class)
             ->filter(fn ($notification) => $notification->toArray($salesUser)['event'] === 'order.ready_for_delivery');
         $this->assertCount(1, $readyNotifications, 'Refreshing an already-ready order must not send a duplicate ready notification.');
+    }
+
+    public function test_shift_report_warehouse_receipt_clears_shortage_and_notifies_sales(): void
+    {
+        Notification::fake();
+        $c = $this->context(0);
+
+        $salesUserId = DB::table('users')->insertGetId([
+            'account_id' => DB::table('companies')->where('id', $c['company'])->value('account_id'),
+            'name' => 'Sales User',
+            'username' => 'sales-shift'.uniqid(),
+            'email' => uniqid().'@test.local',
+            'password' => bcrypt('secret'),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $roleId = DB::table('company_user')->where('company_id', $c['company'])->where('user_id', $c['user'])->value('role_id');
+        DB::table('company_user')->insert([
+            'company_id' => $c['company'], 'user_id' => $salesUserId, 'role_id' => $roleId,
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $salesUser = User::findOrFail($salesUserId);
+
+        $orderId = $this->postJson('/api/orders', [
+            'fiscal_year_id' => $c['fy'],
+            'customer_id' => $c['customer'],
+            'requested_delivery_at' => '2026-10-20',
+            'items' => [['goods_id' => $c['goods'], 'quantity' => 4]],
+        ])->assertCreated()->assertJsonPath('data.status', 'production_required')->json('data.id');
+
+        DB::table('orders')->where('id', $orderId)->update([
+            'production_due_at' => '2026-10-30',
+            'status' => 'awaiting_production',
+            'updated_at' => now(),
+        ]);
+
+        $sectionLocation = DB::table('locations')->insertGetId([
+            'company_id' => $c['company'], 'code' => 'SHIFT-SEC-'.uniqid(), 'name' => 'Production Section',
+            'type' => 'production', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $sectionId = DB::table('production_sections')->insertGetId([
+            'location_id' => $sectionLocation, 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $reportId = DB::table('production_shift_reports')->insertGetId([
+            'company_id' => $c['company'],
+            'production_section_id' => $sectionId,
+            'goods_id' => $c['goods'],
+            'reported_by_user_id' => $c['user'],
+            'reviewed_by_user_id' => $c['user'],
+            'shift_name' => 'صبح',
+            'worked_hours' => 8,
+            'overtime_hours' => 0,
+            'holiday_hours' => 0,
+            'work_date' => '2026-10-13',
+            'produced_quantity' => 4,
+            'scrap_quantity' => 0,
+            'status' => 'approved',
+            'reviewed_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $receiverId = DB::table('users')->insertGetId([
+            'account_id' => DB::table('companies')->where('id', $c['company'])->value('account_id'),
+            'name' => 'Warehouse Receiver',
+            'username' => 'receiver'.uniqid(),
+            'email' => uniqid().'@test.local',
+            'password' => bcrypt('secret'),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('company_user')->insert([
+            'company_id' => $c['company'], 'user_id' => $receiverId, 'role_id' => $roleId,
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->actingAs(User::findOrFail($receiverId))->withSession(['company_id' => $c['company']])
+            ->post(route('production.outputs.shift-reports.receive', $reportId), [
+                'warehouse_location_id' => $c['warehouse'],
+            ])->assertRedirect()->assertSessionHas('success');
+
+        $this->assertDatabaseHas('orders', ['id' => $orderId, 'status' => 'ready_for_delivery']);
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $orderId, 'available_quantity' => 4, 'shortage_quantity' => 0,
+            'fulfillment_status' => 'ready_for_delivery',
+        ]);
+        Notification::assertSentTo($salesUser, \App\Notifications\WorkflowNotification::class, function ($notification) use ($salesUser, $orderId) {
+            $data = $notification->toArray($salesUser);
+            return $data['event'] === 'order.ready_for_delivery' && (int) $data['order_id'] === (int) $orderId;
+        });
     }
 
     public function test_sales_pages_are_user_facing_and_server_authorized(): void
