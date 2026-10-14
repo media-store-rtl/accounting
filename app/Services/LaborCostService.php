@@ -43,6 +43,64 @@ final class LaborCostService
         });
     }
 
+    public function updateRate(
+        int $companyId,
+        int $personnelId,
+        int $rateId,
+        string $rateType,
+        float $rate,
+        string $effectiveFrom,
+        ?string $effectiveTo = null
+    ): void {
+        if (!in_array($rateType, self::RATE_TYPES, true) || $rate < 0) {
+            throw ValidationException::withMessages(['rate' => 'نوع یا نرخ دستمزد نامعتبر است.']);
+        }
+
+        $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
+        $personnel = DB::table('personnel')
+            ->where('id', $personnelId)
+            ->where('account_id', $accountId)
+            ->where('is_active', true)
+            ->first();
+        if (!$personnel) {
+            throw ValidationException::withMessages(['personnel_id' => 'پرسنل فعال شرکت معتبر نیست.']);
+        }
+
+        DB::transaction(function () use ($companyId, $personnelId, $rateId, $rateType, $rate, $effectiveFrom, $effectiveTo) {
+            $existing = DB::table('personnel_labor_rates')
+                ->where('id', $rateId)
+                ->where('company_id', $companyId)
+                ->where('personnel_id', $personnelId)
+                ->lockForUpdate()
+                ->first();
+            if (!$existing) {
+                abort(404);
+            }
+
+            $overlap = DB::table('personnel_labor_rates')
+                ->where('company_id', $companyId)
+                ->where('personnel_id', $personnelId)
+                ->where('rate_type', $rateType)
+                ->where('id', '<>', $rateId)
+                ->where('effective_from', '<=', $effectiveTo ?? '9999-12-31')
+                ->where(function ($q) use ($effectiveFrom) {
+                    $q->whereNull('effective_to')->orWhere('effective_to', '>=', $effectiveFrom);
+                })
+                ->exists();
+            if ($overlap) {
+                throw ValidationException::withMessages(['effective_from' => 'بازه نرخ دستمزد با نرخ موجود هم‌پوشانی دارد.']);
+            }
+
+            DB::table('personnel_labor_rates')->where('id', $rateId)->update([
+                'rate_type' => $rateType,
+                'rate' => $rate,
+                'effective_from' => $effectiveFrom,
+                'effective_to' => $effectiveTo,
+                'updated_at' => now(),
+            ]);
+        });
+    }
+
     public function record(
         int $companyId,
         int $productionOperationRunId,
