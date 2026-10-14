@@ -152,14 +152,14 @@ function syncRequestedDeliveryDate() {
     if (!picker || !isoField) return false;
 
     // Prefer the datepicker's ISO value when it has already populated it.
-    if (/^\\d{4}-\\d{2}-\\d{2}$/.test(isoField.value)) return true;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(isoField.value)) return true;
 
     // Fallback: convert the visible Jalali date even if the plugin's hidden-field
     // callback did not run. Accept Persian, Arabic-Indic, and Latin digits.
     const visibleDate = picker.value
         .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
         .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
-    const match = visibleDate.match(/^\\s*(\\d{4})[\\/-](\\d{1,2})[\\/-](\\d{1,2})\\s*$/);
+    const match = visibleDate.match(/^\s*(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})\s*$/);
     if (!match || typeof window.persianDate !== 'function') return false;
 
     try {
@@ -167,7 +167,7 @@ function syncRequestedDeliveryDate() {
             Number(match[1]), Number(match[2]), Number(match[3])
         ]).toCalendar('gregorian');
         const iso = gregorian.format('YYYY-MM-DD');
-        if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(iso)) return false;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
         isoField.value = iso;
         return true;
     } catch (error) {
