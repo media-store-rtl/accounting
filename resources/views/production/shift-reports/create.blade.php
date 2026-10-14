@@ -154,7 +154,7 @@
           @endforelse
         </div>
         <div><button type="button" class="shift-add-material" onclick="addShiftMaterial()">+ افزودن ماده اولیه</button></div>
-        <small class="shift-material-help">برای هر ماده اولیه، مقدار مصرف و مقدار ضایعات مواد همان ماده را وارد کنید. مقدار ضایعات مواد نمی‌تواند از مقدار مصرف آن بیشتر باشد. اگر مواد اولیه‌ای ثبت نمی‌کنید، ردیف را خالی بگذارید.</small>
+        <small class="shift-material-help">ثبت گزارش بدون حداقل یک ماده اولیه و مقدار مصرف آن مجاز نیست. برای هر ماده، مقدار مصرف را وارد کنید؛ ردیف‌های اضافیِ خالی نادیده گرفته می‌شوند. ضایعات هر ماده نمی‌تواند از مقدار مصرف آن بیشتر باشد.</small>
       </div>
 
       <label class="shift-field">محصول / قطعه *
@@ -225,6 +225,18 @@ function addShiftMaterial() {
   lines.appendChild(row);
   shiftMaterialIndex++;
 }
+document.querySelector('.shift-form')?.addEventListener('submit', function (event) {
+  const lines = document.getElementById('shift-material-lines');
+  const hasMaterial = lines && Array.from(lines.querySelectorAll('.shift-material-line')).some(row => {
+    const goods = row.querySelector('select[name$="[goods_id]"]');
+    const quantity = row.querySelector('input[name$="[quantity]"]');
+    return goods && goods.value !== '' && quantity && quantity.value !== '' && Number(quantity.value) > 0;
+  });
+  if (!hasMaterial) {
+    event.preventDefault();
+    alert('برای ثبت گزارش، حداقل یک ماده اولیه و مقدار مصرف معتبر وارد کنید.');
+  }
+});
 function removeShiftMaterial(button) {
   const lines = document.getElementById('shift-material-lines');
   const row = button.closest('.shift-material-line');

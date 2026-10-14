@@ -167,6 +167,10 @@ final class ProductionShiftReportController extends Controller
             }
             $materialRows[] = ['goods_id' => $materialId, 'quantity' => (float) $materialQuantity, 'scrap_quantity' => $materialScrap];
         }
+        if (count($materialRows) < 1) {
+            throw ValidationException::withMessages(['materials' => 'گزارش باید حداقل یک ماده اولیه با مقدار مصرف معتبر داشته باشد.']);
+        }
+
         $scrap = (float) ($data['scrap_quantity'] ?? 0);
         if ($scrap > (float) $data['produced_quantity']) {
             throw ValidationException::withMessages(['scrap_quantity' => 'ضایعات محصول نمی‌تواند از تعداد تولیدشده بیشتر باشد.']);
@@ -322,6 +326,10 @@ final class ProductionShiftReportController extends Controller
             throw ValidationException::withMessages(['materials' => 'حداقل یک ماده اولیه معتبر همراه با مقدار مصرف مثبت باید ثبت شود.']);
         }
 
+        if (count($materialRows) < 1) {
+            throw ValidationException::withMessages(['materials' => 'گزارش باید حداقل یک ماده اولیه با مقدار مصرف معتبر داشته باشد.']);
+        }
+
         $scrap = (float) ($data['scrap_quantity'] ?? 0);
         if ($scrap > (float) $data['produced_quantity']) {
             throw ValidationException::withMessages(['scrap_quantity' => 'ضایعات محصول نمی‌تواند از تعداد تولیدشده بیشتر باشد.']);
@@ -405,6 +413,13 @@ final class ProductionShiftReportController extends Controller
             if (!$row || $row->status !== 'pending') throw ValidationException::withMessages(['report' => 'این گزارش دیگر در انتظار بررسی نیست.']);
 
             if ((bool) $data['approve']) {
+                $materialCount = DB::table('production_shift_report_materials')
+                    ->where('company_id', $companyId)->where('production_shift_report_id', $report)
+                    ->whereNotNull('goods_id')->where('quantity', '>', 0)->count();
+                if ($materialCount < 1) {
+                    throw ValidationException::withMessages(['materials' => 'تأیید گزارش بدون حداقل یک ماده اولیه با مقدار مصرف معتبر امکان‌پذیر نیست؛ گزارش باید اصلاح شود.']);
+                }
+
                 $goods = DB::table('goods')->where('company_id', $companyId)->where('id', $row->goods_id)->first(['producible', 'sellable']);
                 if (!$goods || !(bool) $goods->producible) {
                     throw ValidationException::withMessages(['report' => 'کالای این گزارش معتبر نیست یا به‌عنوان کالای تولیدشدنی تعریف نشده است.']);
