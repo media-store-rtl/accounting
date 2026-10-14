@@ -37,6 +37,19 @@ final class CostingReportService
         } unset($row);
 
         usort($rows,fn($a,$b)=>[$a['order_id']??PHP_INT_MAX,$a['goods_name']??'']<=>[$b['order_id']??PHP_INT_MAX,$b['goods_name']??'']);
+        $productRows=[];
+        foreach($rows as $row){
+            $gid=(int)$row['goods_id'];
+            if(!isset($productRows[$gid])){
+                $productRows[$gid]=array_merge($row,['order_id'=>null,'material_cost'=>0.0,'labor_cost'=>0.0,'scrap_cost'=>0.0,'direct_cost'=>0.0,'total_cost'=>0.0,'unvalued_material_quantity'=>0.0,'valuation_methods'=>[]]);
+            }
+            foreach(['material_cost','labor_cost','scrap_cost','direct_cost','unvalued_material_quantity'] as $field){$productRows[$gid][$field]+=(float)$row[$field];}
+            $productRows[$gid]['total_cost']+=(float)$row['total_cost'];
+            foreach($row['valuation_methods'] as $method){$productRows[$gid]['valuation_methods'][$method]=true;}
+        }
+        foreach($productRows as &$productRow){$productRow['valuation_methods']=array_keys($productRow['valuation_methods']);} unset($productRow);
+        $productionReports=$this->receivedProductionReports($companyId,$fiscalYearId,$orderId,$goodsId);
+
         $valuationMethods=[];
         foreach($rows as $row){
             foreach(($row['valuation_methods'] ?? []) as $method){
@@ -47,6 +60,8 @@ final class CostingReportService
         return [
             'fiscal_year_id'=>$fiscalYearId,
             'rows'=>array_values($rows),
+            'product_rows'=>array_values($productRows),
+            'production_reports'=>$productionReports,
             'totals'=>[
                 'material_cost'=>round(array_sum(array_column($rows,'material_cost')),4),
                 'labor_cost'=>round(array_sum(array_column($rows,'labor_cost')),4),
@@ -241,6 +256,78 @@ final class CostingReportService
                 $key=$this->key((int)$link->order_id,(int)$s->goods_id);$this->row($rows,$key,(int)$link->order_id,(int)$s->goods_id);$rows[$key]['scrap_cost']+=(float)$s->total_cost;
             }
         }
+    }
+
+
+    /**
+     * Warehouse-accepted production shift reports are the traceable output records.
+     * Labor is calculated per report and worker using the rate effective on work_date.
+     */
+    private function receivedProductionReports(int $companyId, ?int $fy, ?int $orderId, ?int $goodsId): array
+    {
+        if (!DB::getSchemaBuilder()->hasTable('production_shift_reports')
+            || !DB::getSchemaBuilder()->hasColumn('production_shift_reports', 'warehouse_received_at')) return [];
+
+        $query = DB::table('production_shift_reports as r')
+            ->join('goods as g', 'g.id', '=', 'r.goods_id')
+            ->leftJoin('personnel as pe', 'pe.id', '=', 'r.personnel_id')
+            ->join('production_sections as ps', 'ps.id', '=', 'r.production_section_id')
+            ->join('locations as section_location', 'section_location.id', '=', 'ps.location_id')
+            ->leftJoin('locations as warehouse', 'warehouse.id', '=', 'r.warehouse_location_id')
+            ->where('r.company_id', $companyId)
+            ->where('r.status', 'received')
+            ->whereNotNull('r.warehouse_received_at')
+            ->when($fy, function ($q) use ($fy) {
+                $start = DB::table('fiscal_years')->where('id', $fy)->value('starts_at');
+                $end = DB::table('fiscal_years')->where('id', $fy)->value('ends_at');
+                $q->whereBetween('r.work_date', [$start, $end]);
+            })
+            ->when($orderId !== null, fn($q) => $q->where('r.order_id', $orderId))
+            ->when($goodsId !== null, fn($q) => $q->where('r.goods_id', $goodsId))
+            ->select([
+                'r.id as report_id', 'r.work_date', 'r.warehouse_received_at',
+                'r.produced_quantity', 'r.scrap_quantity', 'r.warehouse_quantity',
+                'r.worked_hours', 'r.overtime_hours', 'r.holiday_hours',
+                'r.personnel_id', 'r.goods_id', 'r.order_id',
+                'pe.name as worker_name', 'section_location.name as section_name',
+                'warehouse.name as warehouse_name', 'g.code as goods_code', 'g.name as goods_name',
+            ])
+            ->orderByDesc('r.warehouse_received_at')->orderByDesc('r.id')
+            ->get();
+
+        return $query->map(function ($report) use ($companyId) {
+            $date = substr((string) $report->work_date, 0, 10);
+            $labor = 0.0;
+            foreach ([
+                'regular' => (float) $report->worked_hours,
+                'overtime' => (float) $report->overtime_hours,
+                'holiday' => (float) $report->holiday_hours,
+            ] as $type => $hours) {
+                if ($hours <= 0) continue;
+                $rate = DB::table('personnel_labor_rates')
+                    ->where('company_id', $companyId)
+                    ->where('personnel_id', (int) $report->personnel_id)
+                    ->where('rate_type', $type)
+                    ->where('effective_from', '<=', $date)
+                    ->where(fn($q) => $q->whereNull('effective_to')->orWhere('effective_to', '>=', $date))
+                    ->orderByDesc('effective_from')->orderByDesc('id')->value('rate');
+                if ($rate !== null) $labor += $hours * (float) $rate;
+            }
+            return [
+                'report_id' => (int) $report->report_id,
+                'work_date' => $date,
+                'warehouse_received_at' => $report->warehouse_received_at,
+                'worker_name' => $report->worker_name,
+                'section_name' => $report->section_name,
+                'warehouse_name' => $report->warehouse_name,
+                'goods_code' => $report->goods_code,
+                'goods_name' => $report->goods_name,
+                'produced_quantity' => (float) $report->produced_quantity,
+                'scrap_quantity' => (float) $report->scrap_quantity,
+                'received_quantity' => (float) ($report->warehouse_quantity ?? 0),
+                'labor_cost' => round($labor, 4),
+            ];
+        })->all();
     }
 
     private function key(?int $orderId,int $goodsId): string{return ($orderId??0).':'.$goodsId;}
