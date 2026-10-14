@@ -8,7 +8,7 @@
 @if($errors->any())<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #714448;border-radius:12px;background:#302126;color:#ffb8a8;font-size:12px">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>تولید</th><th>کالا</th><th>مقدار</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
 @forelse($rows as $r)
-<tr><td>@if(($r->source_type ?? 'production_output') === 'shift_report')<a href="{{ route('production.shift-reports.show', $r->id) }}">گزارش شیفت #{{ $r->id }}</a>@else{{ $r->production_number }}@endif</td><td>{{ $r->goods_name }}</td><td>{{ \\App\\Support\\PersianQuantityFormatter::format($r->quantity) }}</td><td><span class="status {{ in_array($r->status, ['confirmed','received'], true) ? 'active' : 'inactive' }}">{{ $r->source_type === 'shift_report' ? ($r->status === 'received' ? 'تحویل‌شده' : 'تأییدشده محصول نهایی') : $r->status }}</span></td><td style="white-space:normal">
+<tr><td>@if(($r->source_type ?? 'production_output') === 'shift_report')<a href="{{ route('production.shift-reports.show', $r->id) }}">گزارش شیفت #{{ $r->id }}</a>@else{{ $r->production_number }}@endif</td><td>{{ $r->goods_name }}</td><td>{{ \App\Support\PersianQuantityFormatter::format($r->quantity) }}</td><td><span class="status {{ in_array($r->status, ['confirmed','received'], true) ? 'active' : 'inactive' }}">{{ $r->source_type === 'shift_report' ? ($r->status === 'received' ? 'تحویل‌شده' : 'تأییدشده محصول نهایی') : $r->status }}</span></td><td style="white-space:normal">
 @if(($r->source_type ?? 'production_output') === 'shift_report')
 <a class="btn" href="{{ route('production.shift-reports.show', $r->id) }}">مشاهده گزارش</a>
 @elseif($r->status==='pending')
