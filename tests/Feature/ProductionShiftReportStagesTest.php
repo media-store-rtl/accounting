@@ -67,6 +67,11 @@ class ProductionShiftReportStagesTest extends TestCase
             'name' => 'Finished Product', 'producible' => true, 'sellable' => true,
             'purchasable' => false, 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
+        $materialGoods = DB::table('goods')->insertGetId([
+            'company_id' => $company, 'category_id' => $category, 'code' => 'M' . uniqid(),
+            'name' => 'Raw Material', 'producible' => true, 'sellable' => false,
+            'purchasable' => true, 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
         $route = DB::table('production_routes')->insertGetId([
             'company_id' => $company, 'goods_id' => $goods, 'code' => 'R' . uniqid(),
             'name' => 'Default Route', 'status' => 'active', 'created_at' => now(), 'updated_at' => now(),
@@ -81,6 +86,17 @@ class ProductionShiftReportStagesTest extends TestCase
         ]);
 
         $this->actingAs(User::findOrFail($user))->withSession(['company_id' => $company]);
+
+        $this->post(route('production.shift-reports.store'), [
+            'production_section_id' => $section,
+            'stages' => [['production_stage_id' => $stageOne]],
+            'goods_id' => $goods,
+            'personnel_id' => $worker,
+            'worked_hours' => 8,
+            'work_date' => '2026-10-12',
+            'produced_quantity' => 20,
+            'materials' => [['goods_id' => $goods, 'quantity' => 2, 'scrap_quantity' => 0]],
+        ])->assertSessionHasErrors('materials');
 
         $this->post(route('production.shift-reports.store'), [
             'production_section_id' => $section,
@@ -113,7 +129,7 @@ class ProductionShiftReportStagesTest extends TestCase
             'work_date' => '2026-10-12',
             'produced_quantity' => 20,
             'scrap_quantity' => 0,
-            'materials' => [['goods_id' => $goods, 'quantity' => 4, 'scrap_quantity' => 0]],
+            'materials' => [['goods_id' => $materialGoods, 'quantity' => 4, 'scrap_quantity' => 0]],
         ])->assertRedirect(route('production.shift-reports.index'));
 
         $reportId = DB::table('production_shift_reports')->where('company_id', $company)->value('id');
@@ -168,7 +184,7 @@ class ProductionShiftReportStagesTest extends TestCase
             'notes' => 'اصلاح‌شده توسط سرپرست',
             'stages' => [['production_stage_id' => $stageTwo]],
             'materials' => [[
-                'goods_id' => $goods,
+                'goods_id' => $materialGoods,
                 'quantity' => 4,
                 'scrap_quantity' => 1,
             ]],
@@ -194,7 +210,7 @@ class ProductionShiftReportStagesTest extends TestCase
         ]);
         $this->assertDatabaseHas('production_shift_report_materials', [
             'production_shift_report_id' => $reportId,
-            'goods_id' => $goods,
+            'goods_id' => $materialGoods,
             'quantity' => 4,
             'scrap_quantity' => 1,
         ]);
@@ -214,7 +230,7 @@ class ProductionShiftReportStagesTest extends TestCase
             'work_date' => '2026-10-13',
             'produced_quantity' => 18,
             'scrap_quantity' => 2,
-            'materials' => [['goods_id' => $goods, 'quantity' => 4, 'scrap_quantity' => 1]],
+            'materials' => [['goods_id' => $materialGoods, 'quantity' => 4, 'scrap_quantity' => 1]],
         ])->assertRedirect(route('production.shift-reports.show', $reportId))
             ->assertSessionHas('success');
         $this->assertSame(1, DB::table('production_shift_report_stages')
@@ -289,7 +305,7 @@ class ProductionShiftReportStagesTest extends TestCase
         $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'pending']);
         DB::table('production_shift_report_materials')->insert([
             'company_id' => $company, 'production_shift_report_id' => $reportId,
-            'goods_id' => $goods, 'quantity' => 4, 'scrap_quantity' => 0,
+            'goods_id' => $materialGoods, 'quantity' => 4, 'scrap_quantity' => 0,
             'created_at' => now(), 'updated_at' => now(),
         ]);
 
