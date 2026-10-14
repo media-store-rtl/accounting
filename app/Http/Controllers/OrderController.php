@@ -232,7 +232,7 @@ class OrderController extends Controller
         return response()->json(['data'=>DB::table('orders')->find($order)]);
     }
 
-    public function approveDeliveryRelease(Request $request, int $delivery): JsonResponse|\\Illuminate\\Http\\RedirectResponse
+    public function approveDeliveryRelease(Request $request, int $delivery): JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $companyId = CompanyAuthorization::authorize($request, 'delivery_request.sales_approve');
 
