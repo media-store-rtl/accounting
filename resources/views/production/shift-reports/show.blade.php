@@ -11,7 +11,7 @@
 <div class="detail-head"><div><h1>جزئیات گزارش تولید #{{ $row->id }}</h1><p>اطلاعات ثبت‌شده، مواد مصرفی، ضایعات و وضعیت تحویل به انبار.</p></div><a class="detail-btn" href="{{ route('production.shift-reports.index') }}">← بازگشت به گزارش‌ها</a></div>
 @if(session('success'))<div class="detail-flash">{{ session('success') }}</div>@endif
 @if($errors->any())<div class="detail-flash" style="background:#3b2528;color:#ffb8a8">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
-@php($labels=['pending'=>'در انتظار تأیید','approved'=>((bool)($row->goods_sellable ?? false) ? 'تأییدشده' : 'تأییدشده؛ نیازمند تعیین مسیر انتقال'),'rejected'=>'ردشده','received'=>'تحویل کامل به انبار'])
+@php($labels=['pending'=>'در انتظار تأیید','approved'=>((bool)($row->warehouse_receipt_requested ?? false) ? 'تأییدشده؛ در انتظار تحویل به انبار' : 'تأییدشده'),'rejected'=>'ردشده','received'=>'تحویل کامل به انبار'])
 <div class="panel" style="padding:16px"><div class="detail-grid">
 <div class="detail-item"><span>تاریخ تولید</span><strong class="shift-date-display" data-iso-date="{{ $row->work_date }}">{{ $row->work_date }}</strong></div>
 <div class="detail-item"><span>قسمت تولید</span><strong>{{ $row->section_name ?: '—' }}</strong></div><div class="detail-item"><span>کارگر</span><strong>{{ $row->worker_name ?: '—' }}</strong></div>
@@ -75,9 +75,9 @@
 <div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">مواد اولیه مصرف‌شده</h2>
 @if($materialUsage->isEmpty())<p class="detail-note">برای این گزارش ماده اولیه‌ای ثبت نشده است.</p>@else<div style="overflow:auto"><table class="detail-table"><thead><tr><th>ماده اولیه</th><th>مقدار مصرف</th><th>ضایعات ماده</th></tr></thead><tbody>@foreach($materialUsage as $material)<tr><td>{{ $material->name }} @if($material->code)({{ $material->code }})@endif</td><td>{{ \App\Support\PersianQuantityFormatter::format($material->quantity) }}</td><td>{{ \App\Support\PersianQuantityFormatter::format($material->scrap_quantity ?? 0) }}</td></tr>@endforeach</tbody></table></div>@endif
 </div>
-@if($row->status==='approved' && (bool)($row->goods_sellable ?? false) && max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0)) > 0)
+@if($row->status==='approved' && (bool)($row->warehouse_receipt_requested ?? false) && (bool)($row->goods_sellable ?? false) && max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0)) > 0)
 <div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">تحویل محصول به انبار</h2>
-<p class="detail-note">این گزارش تأیید شده و برای دریافت به سرپرست انبار اعلام شده است. مقدار آماده تحویل: <strong>{{ \App\Support\PersianQuantityFormatter::format(max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0))) }}</strong>.</p>
+<p class="detail-note">سرپرست تولید تحویل این خروجی به انبار را انتخاب کرده است و اعلان آن ارسال شده است. مقدار آماده تحویل: <strong>{{ \App\Support\PersianQuantityFormatter::format(max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0))) }}</strong>.</p>
 @if($canReceive)
 <p class="detail-note">برای تأیید نهایی و افزایش موجودی، به صفحه «خروجی تولید و کالای ساخته‌شده» بروید.</p>
 <a class="detail-btn" href="{{ route('production.outputs.index') }}">رفتن به خروجی تولید و تأیید انبار</a>
@@ -87,9 +87,10 @@
 </div>
 @endif
 @if($row->status==='pending' && $canReview)
-<div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">بررسی سرپرست</h2><p class="detail-note">پس از بررسی مقدار تولید، ضایعات و مواد مصرفی، گزارش را تأیید یا رد کنید. تأیید گزارش فقط وضعیت آن را تغییر می‌دهد؛ گزینه «تحویل محصول به انبار» بعد از تأیید و در بخش جداگانه نمایش داده می‌شود.</p>
+<div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">بررسی سرپرست</h2><p class="detail-note">پس از بررسی مقدار تولید، ضایعات و مواد مصرفی، گزارش را تأیید یا رد کنید. در صورت نیاز به تحویل خروجی نهایی به انبار، گزینه مربوط را انتخاب کنید؛ این انتخاب موجودی را تغییر نمی‌دهد و ثبت موجودی همچنان با تأیید سرپرست انبار انجام می‌شود.</p>
 <form class="detail-form" method="POST" action="{{ route('production.shift-reports.review',$row->id) }}">@csrf
 <label>یادداشت بررسی (برای رد گزارش الزامی است)<textarea id="review-notes" name="review_notes" rows="3" maxlength="1000" placeholder="یادداشت یا دلیل رد گزارش"></textarea></label>
+<label class="detail-check"><input type="checkbox" name="warehouse_receipt_requested" value="1"><span>پس از تأیید، این خروجی محصول نهایی است و باید به انبار تحویل شود؛ اعلان برای سرپرست انبار ارسال شود.</span></label>
 <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="submit" name="approve" value="1">تأیید گزارش</button><button class="btn" type="submit" name="approve" value="0" formnovalidate onclick="return confirm('گزارش رد شود؟');">رد گزارش</button></div></form></div>
 @endif
 </div>

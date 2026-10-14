@@ -255,9 +255,9 @@ class ProductionShiftReportStagesTest extends TestCase
             'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
         $this->post(route('production.shift-reports.review', $reportId), [
-            'approve' => '1', 'review_notes' => '',
+            'approve' => '1', 'review_notes' => '', 'warehouse_receipt_requested' => '1',
         ])->assertRedirect(route('production.shift-reports.show', $reportId))->assertSessionHas('success');
-        $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'approved']);
+        $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'approved', 'warehouse_receipt_requested' => true]);
         $this->assertDatabaseMissing('inventory_movements', ['reference_type' => 'production_shift_reports', 'reference_id' => $reportId]);
         $this->assertDatabaseHas('notifications', [
             'notifiable_id' => $warehouseUserId,
@@ -291,6 +291,7 @@ class ProductionShiftReportStagesTest extends TestCase
 
         // A supervisor without warehouse-receipt permission must still be able to approve the report.
         $movementCountBeforeFinalApproval = DB::table('inventory_movements')->where('reference_type', 'production_shift_reports')->where('reference_id', $reportId)->count();
+        $warehouseNotificationCountBeforeFinalApproval = DB::table('notifications')->where('notifiable_id', $warehouseUserId)->where('type', 'production.shift_report_warehouse_receipt')->count();
         DB::table('production_shift_reports')->where('id', $reportId)->update(['status' => 'pending']);
         $receivePermissionId = DB::table('permissions')->where('slug', 'production.output.receive')->value('id');
         DB::table('role_permissions')->where('role_id', $role)->where('permission_id', $receivePermissionId)->delete();
@@ -298,7 +299,7 @@ class ProductionShiftReportStagesTest extends TestCase
         $this->get(route('production.shift-reports.show', $reportId))
             ->assertOk()
             ->assertSee('تأیید گزارش')
-            ->assertSee('تأیید گزارش فقط وضعیت آن را تغییر می‌دهد');
+            ->assertSee('این انتخاب موجودی را تغییر نمی‌دهد');
 
         $this->post(route('production.shift-reports.review', $reportId), [
             'approve' => '1',
@@ -309,6 +310,7 @@ class ProductionShiftReportStagesTest extends TestCase
         $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'approved']);
         $this->assertSame($movementCountBeforeFinalApproval, DB::table('inventory_movements')
             ->where('reference_type', 'production_shift_reports')->where('reference_id', $reportId)->count());
+        $this->assertSame($warehouseNotificationCountBeforeFinalApproval, DB::table('notifications')->where('notifiable_id', $warehouseUserId)->where('type', 'production.shift_report_warehouse_receipt')->count(), 'Approving without selecting warehouse receipt must not send a warehouse notification.');
     }
 
 }
