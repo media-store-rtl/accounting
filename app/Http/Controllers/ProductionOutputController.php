@@ -32,7 +32,8 @@ final class ProductionOutputController extends Controller
             ->where('r.company_id', $companyId)->whereIn('r.status', ['approved', 'received'])->where('g.sellable', true)
             ->select('r.id as report_id', 'r.work_date', 'r.status', 'r.produced_quantity', 'r.scrap_quantity',
                 'r.warehouse_quantity as quantity', 'r.warehouse_location_id', 'r.reviewed_by_user_id',
-                'g.name as goods_name', 'section_location.name as section_name', 'l.name as location_name')
+                'g.name as goods_name', 'g.producible as goods_producible',
+                'section_location.name as section_name', 'l.name as location_name')
             ->latest('r.reviewed_at')->latest('r.id')->paginate(20, ['*'], 'shift_page');
         $shiftWarehouses = DB::table('locations')->where('company_id', $companyId)->where('is_active', true)
             ->where(function ($query) { $query->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])->orWhereIn(DB::raw('TRIM(type)'), ['مواد', 'محصول', 'ضایعات']); })
@@ -48,27 +49,27 @@ final class ProductionOutputController extends Controller
         DB::transaction(function () use ($companyId, $report, $data, $request, $inventory, $productionOutputService) {
             $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
             if (!$row || $row->status !== 'approved') {
-                throw \Illuminate\Validation\ValidationException::withMessages(['report' => 'این گزارش آماده دریافت نیست یا قبلاً تحویل کامل شده است.']);
+                throw \\Illuminate\\Validation\\ValidationException::withMessages(['report' => 'این گزارش آماده دریافت نیست یا قبلاً تحویل کامل شده است.']);
             }
             if ((int) $row->reviewed_by_user_id === (int) $request->user()->id) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['report' => 'تأیید نهایی انبار باید توسط کاربری غیر از تأییدکننده گزارش تولید انجام شود.']);
+                throw \\Illuminate\\Validation\\ValidationException::withMessages(['report' => 'تأیید نهایی انبار باید توسط کاربری غیر از تأییدکننده گزارش تولید انجام شود.']);
             }
             $goods = DB::table('goods')->where('company_id', $companyId)->where('id', $row->goods_id)->first(['sellable', 'producible']);
             if (!$goods || !(bool) $goods->sellable || !(bool) $goods->producible) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['report' => 'فقط کالای نهایی قابل‌فروش می‌تواند از این مسیر وارد انبار شود.']);
+                throw \\Illuminate\\Validation\\ValidationException::withMessages(['report' => 'فقط کالای نهایی قابل‌فروش می‌تواند از این مسیر وارد انبار شود.']);
             }
             $available = max(0, (float) $row->produced_quantity - (float) ($row->scrap_quantity ?? 0));
             $alreadyReceived = (float) ($row->warehouse_quantity ?? 0);
             $remaining = $available - $alreadyReceived;
             if ($remaining <= 0.0000001) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['report' => 'مقدار آماده تحویل باقی نمانده است.']);
+                throw \\Illuminate\\Validation\\ValidationException::withMessages(['report' => 'مقدار آماده تحویل باقی نمانده است.']);
             }
             if ($alreadyReceived > 0 && (int) $row->warehouse_location_id !== (int) $data['warehouse_location_id']) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['warehouse_location_id' => 'برای تکمیل تحویل این گزارش باید همان انبار قبلی انتخاب شود.']);
+                throw \\Illuminate\\Validation\\ValidationException::withMessages(['warehouse_location_id' => 'برای تکمیل تحویل این گزارش باید همان انبار قبلی انتخاب شود.']);
             }
             $warehouse = DB::table('locations')->where('id', (int) $data['warehouse_location_id'])->where('company_id', $companyId)->where('is_active', true)
                 ->where(function ($query) { $query->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])->orWhereIn(DB::raw('TRIM(type)'), ['مواد', 'محصول', 'ضایعات']); })->exists();
-            if (!$warehouse) throw \Illuminate\Validation\ValidationException::withMessages(['warehouse_location_id' => 'انبار مقصد معتبر نیست.']);
+            if (!$warehouse) throw \\Illuminate\\Validation\\ValidationException::withMessages(['warehouse_location_id' => 'انبار مقصد معتبر نیست.']);
             $inventory->receiveFinishedGoods($companyId, (int) $data['warehouse_location_id'], (int) $row->goods_id, $remaining,
                 'production_shift_reports', $report, ['production_section_id' => (int) $row->production_section_id, 'shift_name' => $row->shift_name,
                     'work_date' => $row->work_date, 'reported_by_user_id' => (int) $row->reported_by_user_id,
