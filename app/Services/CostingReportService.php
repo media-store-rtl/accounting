@@ -8,7 +8,9 @@ final class CostingReportService
 {
     public function generate(int $companyId, ?int $fiscalYearId = null, ?int $orderId = null, ?int $goodsId = null, ?string $startDate = null, ?string $endDate = null, ?int $personnelId = null): array
     {
-        $fiscalYearId ??= DB::table('fiscal_years')->where('company_id',$companyId)->orderByDesc('id')->value('id');
+        if ($fiscalYearId === null && $startDate === null && $endDate === null) {
+            $fiscalYearId = DB::table('fiscal_years')->where('company_id',$companyId)->orderByDesc('id')->value('id');
+        }
         if ($fiscalYearId !== null) abort_unless(DB::table('fiscal_years')->where('id',$fiscalYearId)->where('company_id',$companyId)->exists(),422,'سال مالی متعلق به شرکت نیست.');
         if ($orderId !== null) abort_unless(DB::table('orders')->where('id',$orderId)->where('company_id',$companyId)->exists(),422,'سفارش متعلق به شرکت نیست.');
         if ($goodsId !== null) abort_unless(DB::table('goods')->where('id',$goodsId)->where('company_id',$companyId)->exists(),422,'کالا متعلق به شرکت نیست.');
@@ -58,7 +60,7 @@ final class CostingReportService
                     'unvalued_material_quantity'=>0.0,'valuation_methods'=>[],'produced_quantity'=>0.0,'unit_cost'=>null,
                 ];
             }
-            $productRows[$gid]['produced_quantity']+=(float)$productionReport['produced_quantity'];
+            $productRows[$gid]['produced_quantity']=(float)($productRows[$gid]['produced_quantity']??0)+(float)$productionReport['produced_quantity'];
         }
         foreach($productRows as &$productRow){
             $productRow['produced_quantity']=round((float)($productRow['produced_quantity']??0),4);

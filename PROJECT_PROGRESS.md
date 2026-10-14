@@ -5,8 +5,8 @@
 - خروجی: خلاصه محصول اکنون تعداد تولید تأییدشده برای دریافت انبار و فی واحد را نشان می‌دهد؛ فی واحد برابر جمع بهای تمام‌شده محصول تقسیم بر تعداد تولید تحویل‌شده در محدوده فیلتر است و در صورت صفر بودن تعداد، خط تیره نمایش داده می‌شود.
 - محدودیت داده: هزینه مواد، ضایعات و خرید مستقیم به کارگر مشخص یا گزارش شیفت انبارپذیرفته وصل نیستند؛ در فیلتر کارگر، این اقلام همچنان در سطح محصول تجمیع می‌شوند و این موضوع در صفحه توضیح داده شده است.
 - فایل‌ها: `app/Http/Controllers/CostingReportController.php`, `app/Services/CostingReportService.php`, `resources/views/reports/costing.blade.php`, `tests/Feature/CostingReportTest.php`, `PROJECT_PROGRESS.md`.
-- Migration لازم نیست؛ داده و موجودی انبار تغییر نمی‌کنند. تست Feature برای تعداد تولید، فی واحد و فیلتر تاریخ/کارگر به‌روز شده است؛ نتیجه اجرا تا زمان بررسی CI تأیید نشده. بررسی مرورگر، سایت زنده و Deploy انجام نشده‌اند.
-- شاخه: `feat/costing-report-output-filters`. PR و نتیجه CI پس از ایجاد بررسی و ثبت خواهند شد.
+- Migration لازم نیست؛ داده و موجودی انبار تغییر نمی‌کنند. اجرای اولیه CI در run [38627613688](https://github.com/media-store-rtl/accounting/actions/runs/38627613688) یک خطای مقداردهی اولیهٔ `produced_quantity` را در تست CostingReportTest نشان داد؛ اصلاح در شاخه اعمال شده و CI مجدد باید نتیجه را تأیید کند. بررسی مرورگر، سایت زنده و Deploy انجام نشده‌اند.
+- شاخه: `feat/costing-report-output-filters`. PR [#126](https://github.com/media-store-rtl/accounting/pull/126) باز و ادغام‌نشده است.
 
 ---
 
