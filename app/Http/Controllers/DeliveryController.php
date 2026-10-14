@@ -13,7 +13,9 @@ class DeliveryController extends Controller
 {
     public function index(Request $request)
     {
-        $companyId=CompanyAuthorization::authorize($request,'delivery_request.view');
+        $companyId=(int) $request->session()->get('company_id');
+        $permission=$request->user()?->hasCompanyPermission($companyId,'delivery_request.issue') ? 'delivery_request.issue' : 'delivery_request.view';
+        $companyId=CompanyAuthorization::authorize($request,$permission);
         $deliveries=DB::table('delivery_requests as d')->join('orders as o','o.id','=','d.order_id')->join('customers as c','c.id','=','d.customer_id')
             ->where('d.company_id',$companyId)->select('d.*','o.number as order_number','c.name as customer_name')->latest('d.id')->paginate(20);
         return view('sales.deliveries.index',compact('deliveries'));
