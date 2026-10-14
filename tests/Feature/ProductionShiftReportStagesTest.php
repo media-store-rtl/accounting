@@ -280,6 +280,7 @@ class ProductionShiftReportStagesTest extends TestCase
         ]);
 
         // Approval must reject legacy/pending reports without valid material usage.
+        DB::table('production_shift_reports')->where('id', $reportId)->update(['status' => 'pending']);
         DB::table('production_shift_report_materials')->where('production_shift_report_id', $reportId)->delete();
         $this->post(route('production.shift-reports.review', $reportId), [
             'approve' => '1', 'review_notes' => '',
