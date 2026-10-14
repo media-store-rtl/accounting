@@ -165,6 +165,7 @@
                         <th>شروع اعتبار</th>
                         <th>پایان اعتبار</th>
                         <th>وضعیت زمانی</th>
+                        <th>عملیات</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -183,10 +184,38 @@
                                     <span class="status expired">پایان‌یافته</span>
                                 @endif
                             </td>
+                            <td>
+                                <details>
+                                    <summary class="btn" style="cursor:pointer; white-space:nowrap;">ویرایش</summary>
+                                    <form method="POST" action="{{ route('personnel.labor-rates.update', [$personnel, $rate->id]) }}" style="min-width:220px; display:grid; gap:8px; padding:10px;">
+                                        @csrf
+                                        @method('PUT')
+                                        <label class="field">نوع دستمزد
+                                            <select name="rate_type" required>
+                                                <option value="regular" @selected($rate->rate_type === 'regular')>کار عادی</option>
+                                                <option value="hourly" @selected($rate->rate_type === 'hourly')>کار عادی (قدیمی)</option>
+                                                <option value="overtime" @selected($rate->rate_type === 'overtime')>اضافه‌کاری</option>
+                                                <option value="holiday" @selected($rate->rate_type === 'holiday')>تعطیل‌کاری</option>
+                                                <option value="per_unit" @selected($rate->rate_type === 'per_unit')>به‌ازای هر واحد تولید</option>
+                                            </select>
+                                        </label>
+                                        <label class="field">مبلغ نرخ
+                                            <input name="rate" type="number" min="0" step="0.000001" value="{{ $rate->rate }}" required>
+                                        </label>
+                                        <label class="field">شروع اعتبار
+                                            <input name="effective_from" type="date" value="{{ $rate->effective_from }}" required>
+                                        </label>
+                                        <label class="field">پایان اعتبار
+                                            <input name="effective_to" type="date" value="{{ $rate->effective_to }}" min="{{ $rate->effective_from }}">
+                                        </label>
+                                        <button class="btn primary" type="submit">ذخیره تغییرات</button>
+                                    </form>
+                                </details>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="empty-state">
+                            <td colspan="6" class="empty-state">
                                 <div class="empty-state-icon" aria-hidden="true">≡</div>
                                 <strong>هنوز نرخی ثبت نشده است</strong>
                                 <p>پس از ثبت اولین نرخ از فرم بالا، سوابق دستمزد این پرسنل در این بخش نمایش داده می‌شود.</p>
