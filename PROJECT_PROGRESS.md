@@ -1,12 +1,12 @@
 # 91. اتصال واحد اندازه‌گیری به تعریف کالا — 2026-10-14
 
 - درخواست: واحد اندازه‌گیری باید در ثبت، ویرایش و فهرست کالاها قابل مشاهده و ذخیره باشد.
-- اصلاح: فیلد واحد پایه در فرم کالا اضافه شد؛ فقط واحدهای فعال شرکت جاری قابل انتخاب‌اند و مالکیت واحد در سمت سرور بررسی می‌شود. ذخیره کالا و ارتباط آن با جدول goods_units در یک تراکنش انجام می‌شود؛ واحد انتخابی با ضریب تبدیل ۱ به‌عنوان واحد پایه ثبت می‌شود.
+- اصلاح: فیلد واحد پایه در فرم کالا اضافه شد؛ فقط واحدهای فعال شرکت جاری قابل انتخاب‌اند و مالکیت واحد در سمت سرور بررسی می‌شود. ذخیره کالا و ارتباط آن با جدول `goods_units` در یک تراکنش انجام می‌شود؛ واحد انتخابی با ضریب تبدیل ۱ به‌عنوان واحد پایه ثبت می‌شود.
 - ویرایش: تغییر واحد پایه به‌صورت تراکنشی ذخیره می‌شود. اگر برای کالا واحدهای تبدیلی دیگری ثبت شده باشند، تغییر پایه تا اصلاح ضرایب تبدیل مسدود است تا معنای ضرایب موجود ناخواسته عوض نشود.
-- فهرست کالاها نام و نماد واحد پایه را نمایش می‌دهد. کالاهای قدیمی بدون واحد به‌صورت «واحد تعریف نشده» نمایش داده می‌شوند تا واحد واقعی آن‌ها را کاربر تعیین کند؛ هیچ واحدی به‌صورت حدسی به کالاهای قبلی نسبت داده نمی‌شود و داده/موجودی تاریخی تغییر نمی‌کند.
-- فایل‌ها: app/Http/Controllers/MasterDataController.php، resources/views/master-data/form.blade.php، resources/views/master-data/index.blade.php، tests/Feature/GoodsMeasurementUnitTest.php، PROJECT_PROGRESS.md.
-- تست Feature برای ذخیره و نمایش واحد پایه، تغییر واحد پایه و رد واحد متعلق به شرکت دیگر اضافه شد. اجرای محلی تست‌ها در این محیط انجام نشده؛ CI برای commit `6ddc8994c53d1af7c7ca18de3094f9373359bc94` موفق گزارش شده است ([اجرای CI](https://github.com/media-store-rtl/accounting/actions/runs/38550694401/job/115807642181)). پس از به‌روزرسانی شاخه برای رفع تعارض با main، نتیجهٔ CI باید دوباره بررسی شود. Migration جدید لازم نیست؛ جدول‌های units و goods_units از قبل وجود دارند.
-- شاخه: fix/goods-measurement-units. PR #96 باز و ادغام‌نشده است؛ برای هماهنگ‌کردن ثبت پیشرفت با آخرین تغییرات main، این شاخه به‌روزرسانی می‌شود. CI اولیه روی commit 198c679195b0812ff58ed71dad498ec9ba730df6 به‌دلیل نبود قاعده integer برای unit_id در مسیر ثبت کالا ناموفق شد؛ اصلاح روی همین شاخه انجام شده و CI commit جدید باید بررسی شود. بررسی مرورگر، اجرای Migration روی سرور و Deploy انجام نشده‌اند.
+- فهرست کالاها نام و نماد واحد پایه را نمایش می‌دهد. کالاهای قدیمی بدون واحد به‌صورت «واحد تعریف نشده» نمایش داده می‌شوند؛ هیچ واحدی به‌صورت حدسی به کالاهای قبلی نسبت داده نمی‌شود و داده/موجودی تاریخی تغییر نمی‌کند.
+- فایل‌ها: `app/Http/Controllers/MasterDataController.php`، `resources/views/master-data/form.blade.php`، `resources/views/master-data/index.blade.php`، `tests/Feature/GoodsMeasurementUnitTest.php` و `PROJECT_PROGRESS.md`.
+- تست Feature برای ذخیره و نمایش واحد پایه، تغییر واحد پایه و رد واحد متعلق به شرکت دیگر اضافه شد. اجرای محلی تست‌ها انجام نشده است. CI برای commit `6ddc8994c53d1af7c7ca18de3094f9373359bc94` موفق گزارش شده است ([اجرای CI](https://github.com/media-store-rtl/accounting/actions/runs/38550694401/job/115807642181))؛ نتیجهٔ CI برای SHA نهایی پس از هماهنگ‌سازی شاخه و کامیت ادغام از طریق ابزار بررسی وضعیت در دسترس تأیید نشد.
+- Migration جدید لازم نیست؛ جدول‌های `units` و `goods_units` از قبل وجود دارند. PR [#96](https://github.com/media-store-rtl/accounting/pull/96) در `main` ادغام شد؛ کامیت ادغام `ba30a1bcc0572842df86b4906adfc0ba48475014` ([کامیت](https://github.com/media-store-rtl/accounting/commit/ba30a1bcc0572842df86b4906adfc0ba48475014)). بررسی مرورگر، سایت زنده و Deploy انجام نشده‌اند.
 
 
 ---
@@ -29,7 +29,7 @@
 - محدودهٔ عمداً دست‌نخورده: endpoint دریافت گزارش شیفت، اعتبارسنجی سمت سرور، ثبت گردش موجودی و قواعد تأیید انبار تغییر نکرده‌اند. این تغییر صرفاً ظاهر همین گزارش است و دریافت مستقیم از این جدول دیگر در دسترس نیست.
 - تست: assertion در `tests/Feature/ProductionShiftReportStagesTest.php` اضافه شد تا صفحه گزارش را بررسی کند و نبودن «انتخاب انبار» و «تأیید دریافت کامل» را تأیید کند. تست محلی اجرا نشده؛ نتیجهٔ CI هنوز تأیید نشده است.
 - فایل‌ها: `resources/views/production/outputs/index.blade.php`, `tests/Feature/ProductionShiftReportStagesTest.php`, `PROJECT_PROGRESS.md`.
-- شاخه: `fix/remove-shift-receipt-controls-from-output-report`. PR [#95](https://github.com/media-store-rtl/accounting/pull/95) در main ادغام شده است؛ commit نهایی `8cf980c3cdf5b1356d3e5beaccc95ea524c334bb`. Merge، اجرای سایت زنده و Deploy انجام نشده/تأیید نشده‌اند.
+- شاخه: `fix/remove-shift-receipt-controls-from-output-report`. PR [#95](https://github.com/media-store-rtl/accounting/pull/95) در main ادغام شده است؛ commit نهایی `8cf980c3cdf5b1356d3e5beaccc95ea524c334bb`. اجرای سایت زنده و Deploy جداگانه تأیید نشده‌اند.
 - تأکید: درخواست این کار فقط حذف دو کنترل از گزارش بود؛ هیچ تغییر تازه‌ای در منطق تأیید تولید یا ثبت موجودی انجام نشد.
 
 ---
