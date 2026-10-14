@@ -241,7 +241,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setupProductionReportDatePicker('#effective_to_picker', '#effective_to');
 
     document.querySelectorAll('.jalali-date[data-gregorian-date]').forEach(function (element) {
-        const match = element.dataset.gregorianDate.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+        const match = element.dataset.gregorianDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
         if (!match || typeof window.persianDate !== 'function') return;
 
         const timestamp = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])).getTime();
