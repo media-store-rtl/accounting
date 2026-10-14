@@ -132,8 +132,8 @@
       </label>
 
       <div class="shift-field full">
-        <span>مواد اولیه مصرف‌شده</span>
-        <div id="shift-material-lines" class="shift-material-lines">
+        <span>مواد اولیه مصرف‌شده *</span>
+        <div id="shift-material-lines" class="shift-material-lines" aria-describedby="shift-material-validation">
           @forelse(old('materials', [['goods_id' => '', 'quantity' => '']]) as $i => $line)
             <div class="shift-material-line">
               <select name="materials[{{ $i }}][goods_id]" aria-label="ماده اولیه">
@@ -154,11 +154,12 @@
           @endforelse
         </div>
         <div><button type="button" class="shift-add-material" onclick="addShiftMaterial()">+ افزودن ماده اولیه</button></div>
-        <small class="shift-material-help">برای هر ماده اولیه، مقدار مصرف و مقدار ضایعات مواد همان ماده را وارد کنید. مقدار ضایعات مواد نمی‌تواند از مقدار مصرف آن بیشتر باشد. اگر مواد اولیه‌ای ثبت نمی‌کنید، ردیف را خالی بگذارید.</small>
+        <small class="shift-material-help">ثبت حداقل یک ماده اولیه با مقدار مصرف مثبت الزامی است. محصول تولیدی نمی‌تواند هم‌زمان به‌عنوان ماده اولیه انتخاب شود؛ مقدار ضایعات هر ماده نیز نمی‌تواند از مقدار مصرف آن بیشتر باشد.</small>
+        <small id="shift-material-validation" class="shift-flash error" role="alert" hidden></small>
       </div>
 
       <label class="shift-field">محصول / قطعه *
-        <select name="goods_id" required>
+        <select id="shift-product-select" name="goods_id" required>
           <option value="">انتخاب محصول</option>
           @foreach($goods as $g)<option value="{{ $g->id }}" @selected((string)old('goods_id')===(string)$g->id)>{{ $g->code ? $g->code.' — ' : '' }}{{ $g->name }}</option>@endforeach
         </select>
@@ -235,6 +236,64 @@ function removeShiftMaterial(button) {
   }
   row.remove();
 }
+
+function syncShiftMaterialOptions() {
+  const product = document.getElementById('shift-product-select');
+  const lines = document.getElementById('shift-material-lines');
+  if (!product || !lines) return;
+  lines.querySelectorAll('select[name*="[goods_id]"]').forEach(select => {
+    Array.from(select.options).forEach(option => {
+      const isProduct = Boolean(product.value) && option.value === product.value;
+      option.disabled = isProduct;
+      if (isProduct && select.value === option.value) select.value = '';
+    });
+  });
+}
+function validateShiftMaterials(event) {
+  const form = event.currentTarget;
+  const product = document.getElementById('shift-product-select');
+  const lines = document.getElementById('shift-material-lines');
+  const message = document.getElementById('shift-material-validation');
+  if (!lines || !message) return;
+  syncShiftMaterialOptions();
+  const rows = Array.from(lines.querySelectorAll('.shift-material-line'));
+  let validCount = 0;
+  let error = '';
+  for (const row of rows) {
+    const material = row.querySelector('select[name*="[goods_id]"]');
+    const quantity = row.querySelector('input[name*="[quantity]"]');
+    const scrap = row.querySelector('input[name*="[scrap_quantity]"]');
+    const materialId = material?.value || '';
+    const quantityValue = quantity?.value || '';
+    const scrapValue = scrap?.value || '0';
+    const blank = !materialId && !quantityValue;
+    if (blank) continue;
+    if (!materialId || !quantityValue || Number(quantityValue) <= 0) {
+      error = 'برای هر ردیف ماده اولیه، انتخاب ماده و مقدار مصرف مثبت را وارد کنید.';
+      break;
+    }
+    if (product?.value && materialId === product.value) {
+      error = 'محصول تولیدی نمی‌تواند به‌عنوان ماده اولیه همین گزارش انتخاب شود.';
+      break;
+    }
+    if (Number(scrapValue) < 0 || Number(scrapValue) > Number(quantityValue)) {
+      error = 'ضایعات ماده اولیه نمی‌تواند از مقدار مصرف آن بیشتر باشد.';
+      break;
+    }
+    validCount++;
+  }
+  if (!error && validCount === 0) error = 'ثبت حداقل یک ماده اولیه با مقدار مصرف مثبت الزامی است.';
+  message.textContent = error;
+  message.hidden = !error;
+  if (error) {
+    event.preventDefault();
+    message.scrollIntoView({behavior: 'smooth', block: 'center'});
+  }
+}
+document.getElementById('shift-product-select')?.addEventListener('change', syncShiftMaterialOptions);
+document.getElementById('shift-material-lines')?.addEventListener('change', syncShiftMaterialOptions);
+document.querySelector('.shift-form')?.addEventListener('submit', validateShiftMaterials);
+syncShiftMaterialOptions();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
