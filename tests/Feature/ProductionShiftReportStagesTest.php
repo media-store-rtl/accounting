@@ -170,6 +170,9 @@ class ProductionShiftReportStagesTest extends TestCase
         $this->put(route('production.shift-reports.update', $reportId), $editPayloadWithoutMaterials + [
             'materials' => [['goods_id' => '', 'quantity' => '', 'scrap_quantity' => '0']],
         ])->assertSessionHasErrors('materials');
+        $this->put(route('production.shift-reports.update', $reportId), $editPayloadWithoutMaterials + [
+            'materials' => [['goods_id' => $goods, 'quantity' => 2, 'scrap_quantity' => 0]],
+        ])->assertSessionHasErrors('materials');
 
         $this->put(route('production.shift-reports.update', $reportId), [
             'production_section_id' => $section,
