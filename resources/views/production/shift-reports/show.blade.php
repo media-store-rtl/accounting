@@ -46,7 +46,7 @@
 <div style="margin-top:16px"><strong style="font-size:12px">مراحل انجام‌شده</strong><div class="detail-checks" style="margin-top:9px">
 @foreach($stages as $stage)<label class="detail-check"><input type="checkbox" name="stages[{{ $loop->index }}][production_stage_id]" value="{{ $stage->id }}" @checked($reportedStages->contains('id',$stage->id))><span>{{ $stage->code ? $stage->code.' — ' : '' }}{{ $stage->name }}</span></label>@endforeach
 </div></div>
-<div style="margin-top:16px"><strong style="font-size:12px">مواد اولیه مصرف‌شده</strong>
+<div style="margin-top:16px"><strong style="font-size:12px">مواد اولیه مصرف‌شده *</strong>
 <div id="detail-material-lines">
 @if($materialUsage->isNotEmpty())
 @foreach($materialUsage as $material)
@@ -62,7 +62,7 @@
 </div>
 <template id="detail-material-template"><div class="detail-material-line"><select name="materials[__INDEX__][goods_id]"><option value="">انتخاب ماده اولیه</option>@foreach($materials as $option)<option value="{{ $option->id }}">{{ $option->name }}{{ $option->code ? ' ('.$option->code.')' : '' }}</option>@endforeach</select><input name="materials[__INDEX__][quantity]" type="number" min="0.0001" step="0.0001" placeholder="مقدار مصرف"><input name="materials[__INDEX__][scrap_quantity]" type="number" min="0" step="0.0001" placeholder="ضایعات ماده" value="0"></div></template>
 <button class="detail-btn" type="button" id="detail-add-material" style="margin-top:8px;cursor:pointer">+ افزودن ماده اولیه</button>
-<p class="detail-note">برای حذف یک ماده از گزارش، گزینهٔ ماده و مقدار مصرف آن ردیف را خالی بگذارید.</p>
+<p class="detail-note">ثبت حداقل یک ماده اولیه با مقدار مصرف مثبت الزامی است. ردیف‌های کاملاً خالی نادیده گرفته می‌شوند؛ اگر یک ردیف را نیمه‌کاره پر کرده‌اید، آن را کامل کنید یا هر دو فیلد ماده و مقدار را خالی بگذارید.</p>
 </div>
 <div class="detail-edit-actions"><button class="btn primary" type="submit">ذخیره اصلاحات و ارسال برای تأیید</button></div>
 </form>
@@ -120,6 +120,28 @@ if(editDatePicker && editIsoDate && window.jQuery && jQuery.fn.persianDatepicker
 }
 if(editDateForm){
   editDateForm.addEventListener('submit',event=>{
+    const materialLines=[...document.querySelectorAll('#detail-material-lines .detail-material-line')];
+    let validMaterialCount=0;
+    for(const line of materialLines){
+      const materialSelect=line.querySelector('select[name*="[goods_id]"]');
+      const quantityField=line.querySelector('input[name*="[quantity]"]');
+      const materialId=(materialSelect?.value||'').trim();
+      const quantityText=(quantityField?.value||'').trim();
+      if(!materialId && !quantityText) continue;
+      if(!materialId || !quantityText || !Number.isFinite(Number(quantityText)) || Number(quantityText)<=0){
+        event.preventDefault();
+        alert('برای هر ماده اولیه، ماده و مقدار مصرف مثبت را وارد کنید یا هر دو فیلد را خالی بگذارید.');
+        (!materialId ? materialSelect : quantityField)?.focus();
+        return;
+      }
+      validMaterialCount++;
+    }
+    if(validMaterialCount===0){
+      event.preventDefault();
+      alert('ثبت حداقل یک ماده اولیه با مقدار مصرف مثبت الزامی است.');
+      document.querySelector('#detail-material-lines select[name*="[goods_id]"]')?.focus();
+      return;
+    }
     if(!editIsoDate || !/^\d{4}-\d{2}-\d{2}$/.test(editIsoDate.value||'')){
       event.preventDefault();
       alert('لطفاً تاریخ تولید را از تقویم شمسی انتخاب کنید.');
