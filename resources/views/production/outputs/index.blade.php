@@ -39,7 +39,7 @@
                 <td>{{ $r->location_name ?? '—' }}</td>
                 <td><span class="status {{ $r->status === 'received' ? 'active' : 'inactive' }}">{{ $r->status === 'received' ? 'تحویل کامل' : 'آماده تحویل' }}</span></td>
                 <td style="white-space:normal;min-width:170px">
-                    @if($r->status === 'approved' && $remaining > 0 && (bool) $r->warehouse_receipt_requested)
+                    @if($r->status === 'approved' && $remaining > 0 && (bool) $r->warehouse_receipt_requested && (int) $r->reviewed_by_user_id !== (int) auth()->id())
                         @if(!$r->goods_producible || !$r->goods_sellable)
                             <span style="color:#8198ac;font-size:11px">کالای نهایی قابل‌فروش نیست</span>
                         @elseif(!$canReceiveShiftReports)
