@@ -164,6 +164,14 @@ final class ProductionShiftReportController extends Controller
             }
             $materialRows[] = ['goods_id' => $materialId, 'quantity' => (float) $materialQuantity, 'scrap_quantity' => $materialScrap];
         }
+        if (count($materialRows) < 1) {
+            throw ValidationException::withMessages(['materials' => 'ثبت گزارش تولید بدون حداقل یک ماده اولیه و مقدار مصرف آن امکان‌پذیر نیست.']);
+        }
+
+        if (count($materialRows) < 1) {
+            throw ValidationException::withMessages(['materials' => 'گزارش باید حداقل یک ماده اولیه با مقدار مصرف معتبر داشته باشد.']);
+        }
+
         $scrap = (float) ($data['scrap_quantity'] ?? 0);
         if ($scrap > (float) $data['produced_quantity']) {
             throw ValidationException::withMessages(['scrap_quantity' => 'ضایعات محصول نمی‌تواند از تعداد تولیدشده بیشتر باشد.']);
