@@ -64,7 +64,7 @@ class DeliveryController extends Controller
         DB::transaction(function()use($companyId,$delivery,$request){
             DB::table('companies')->where('id',$companyId)->lockForUpdate()->first();
             $d=DB::table('delivery_requests')->where('id',$delivery)->where('company_id',$companyId)->lockForUpdate()->first();
-            abort_unless($d,404); abort_unless($d->status==='pending',422,'درخواست تحویل در وضعیت قابل خروج نیست.');
+            abort_unless($d,404); abort_unless($d->status==='pending' && $d->sales_approved_at !== null,422,'ابتدا باید مجوز خروج فروش صادر شود.');
             $items=DB::table('delivery_request_items')->where('delivery_request_id',$delivery)->get();
             foreach($items as $item){
                 $rows=DB::table('inventory')->join('locations','locations.id','=','inventory.location_id')
