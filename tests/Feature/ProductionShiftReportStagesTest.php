@@ -12,6 +12,47 @@ class ProductionShiftReportStagesTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_production_user_without_warehouse_receive_permission_does_not_see_receipt_queue(): void
+    {
+        $account = DB::table('accounts')->insertGetId([
+            'name' => 'Warehouse Visibility Account', 'code' => 'WVA' . uniqid(),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $company = DB::table('companies')->insertGetId([
+            'account_id' => $account, 'name' => 'Warehouse Visibility Company', 'code' => 'WVC' . uniqid(),
+            'is_active' => true, 'settings' => json_encode([]),
+            'inventory_valuation_method' => 'fifo', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $userId = DB::table('users')->insertGetId([
+            'account_id' => $account, 'name' => 'Production Supervisor', 'username' => 'prod' . uniqid(),
+            'email' => uniqid() . '@test.local', 'password' => Hash::make('secret'),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $role = DB::table('roles')->insertGetId([
+            'company_id' => $company, 'name' => 'Production Viewer', 'slug' => 'production-viewer-' . uniqid(),
+            'is_system' => false, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $permission = DB::table('permissions')->where('slug', 'production.output.view')->first();
+        $permissionId = $permission?->id ?? DB::table('permissions')->insertGetId([
+            'name' => 'View production outputs', 'slug' => 'production.output.view', 'module' => 'production',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('role_permissions')->insertOrIgnore([
+            'role_id' => $role, 'permission_id' => $permissionId,
+        ]);
+        DB::table('company_user')->insert([
+            'company_id' => $company, 'user_id' => $userId, 'role_id' => $role,
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->actingAs(User::findOrFail($userId))->withSession(['company_id' => $company])
+            ->get(route('production.outputs.index'))
+            ->assertOk()
+            ->assertSee('خروجی تولید و کالای ساخته‌شده')
+            ->assertDontSee('تحویل‌های گزارش شیفت تولید')
+            ->assertDontSee('تأیید دریافت کامل');
+    }
+
     public function test_shift_report_stores_multiple_independently_selected_stages(): void
     {
         $account = DB::table('accounts')->insertGetId([
