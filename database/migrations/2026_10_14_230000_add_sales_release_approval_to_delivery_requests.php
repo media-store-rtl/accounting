@@ -15,10 +15,11 @@ return new class extends Migration
         });
 
         // Keep the permission visible under Warehouse and add a distinct Sales approval permission.
-        DB::table('permissions')->where('slug', 'delivery_request.create')->update([
-            'module' => 'warehouse',
-            'updated_at' => now(),
-        ]);
+        DB::table('permissions')->updateOrInsert(
+            ['slug' => 'delivery_request.create'],
+            ['name' => 'ثبت درخواست تحویل', 'module' => 'warehouse', 'created_at' => now(), 'updated_at' => now()]
+        );
+        $createPermissionId = DB::table('permissions')->where('slug', 'delivery_request.create')->value('id');
 
         DB::table('permissions')->updateOrInsert(
             ['slug' => 'delivery_request.sales_approve'],
@@ -38,7 +39,7 @@ return new class extends Migration
         foreach ($warehouseRoleIds as $roleId) {
             DB::table('role_permissions')->insertOrIgnore([
                 'role_id' => $roleId,
-                'permission_id' => DB::table('permissions')->where('slug', 'delivery_request.create')->value('id'),
+                'permission_id' => $createPermissionId,
             ]);
         }
 
