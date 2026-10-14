@@ -263,11 +263,26 @@ class SalesOperationalWorkflowTest extends TestCase
             'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
 
+        // This dedicated location is valid for finished-goods receipt, but the old
+        // InventoryService::available() ignored it because its type is "محصول".
+        $productLocation = DB::table('locations')->insertGetId([
+            'company_id' => $c['company'], 'code' => 'FG-'.uniqid(), 'name' => 'Finished Products',
+            'type' => 'محصول', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
         $this->actingAs(User::findOrFail($receiverId))->withSession(['company_id' => $c['company']])
             ->post(route('production.outputs.shift-reports.receive', $reportId), [
-                'warehouse_location_id' => $c['warehouse'],
+                'warehouse_location_id' => $productLocation,
             ])->assertRedirect()->assertSessionHas('success');
 
+        $this->assertDatabaseHas('inventory', [
+            'company_id' => $c['company'], 'location_id' => $productLocation,
+            'goods_id' => $c['goods'], 'quantity' => 4,
+        ]);
+        $this->assertDatabaseHas('inventory_movements', [
+            'company_id' => $c['company'], 'location_id' => $productLocation,
+            'goods_id' => $c['goods'], 'movement_type' => 'finished_goods_receipt', 'quantity' => 4,
+        ]);
         $this->assertDatabaseHas('orders', ['id' => $orderId, 'status' => 'ready_for_delivery']);
         $this->assertDatabaseHas('order_items', [
             'order_id' => $orderId, 'available_quantity' => 4, 'shortage_quantity' => 0,
