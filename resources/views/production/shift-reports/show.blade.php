@@ -76,13 +76,20 @@
 @if($materialUsage->isEmpty())<p class="detail-note">برای این گزارش ماده اولیه‌ای ثبت نشده است.</p>@else<div style="overflow:auto"><table class="detail-table"><thead><tr><th>ماده اولیه</th><th>مقدار مصرف</th><th>ضایعات ماده</th></tr></thead><tbody>@foreach($materialUsage as $material)<tr><td>{{ $material->name }} @if($material->code)({{ $material->code }})@endif</td><td>{{ \App\Support\PersianQuantityFormatter::format($material->quantity) }}</td><td>{{ \App\Support\PersianQuantityFormatter::format($material->scrap_quantity ?? 0) }}</td></tr>@endforeach</tbody></table></div>@endif
 </div>
 @if($row->status==='approved' && (bool)($row->goods_sellable ?? false) && max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0)) > 0)
-<div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">تحویل محصول به انبار</h2>
-<p class="detail-note">این گزارش تأیید شده و برای دریافت به سرپرست انبار اعلام شده است. مقدار آماده تحویل: <strong>{{ \App\Support\PersianQuantityFormatter::format(max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0))) }}</strong>.</p>
-@if($canReceive)
-<p class="detail-note">برای تأیید نهایی و افزایش موجودی، به صفحه «خروجی تولید و کالای ساخته‌شده» بروید.</p>
-<a class="detail-btn" href="{{ route('production.outputs.index') }}">رفتن به خروجی تولید و تأیید انبار</a>
+<div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">ارسال درخواست تحویل محصول به انبار</h2>
+<p class="detail-note">تأیید گزارش به معنی تحویل کالا نیست. مقدار سالم آماده ارسال: <strong>{{ \\App\\Support\\PersianQuantityFormatter::format(max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0))) }}</strong>.</p>
+@if(empty($row->warehouse_requested_at))
+    @if($canReview)
+        <form method="POST" action="{{ route('production.shift-reports.request-warehouse', $row->id) }}" onsubmit="return confirm('درخواست تحویل این محصول را جداگانه برای مسئولان انبار ارسال می‌کنید؟');">
+            @csrf
+            <button class="btn primary" type="submit">ارسال درخواست به انبار</button>
+        </form>
+    @else
+        <p class="detail-note">ارسال درخواست به انبار باید توسط مسئول مجاز تولید انجام شود.</p>
+    @endif
 @else
-<p class="detail-note">انتقال محصول نهایی به انبار باید بعداً توسط سرپرست انبار انجام شود.</p>
+    <p class="detail-note">درخواست تحویل قبلاً ثبت شده و برای مسئولان انبار ارسال شده است.</p>
+    <a class="detail-btn" href="{{ route('production.outputs.index') }}">مشاهده درخواست در خروجی تولید</a>
 @endif
 </div>
 @endif
