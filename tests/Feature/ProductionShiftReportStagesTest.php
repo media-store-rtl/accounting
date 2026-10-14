@@ -271,6 +271,19 @@ class ProductionShiftReportStagesTest extends TestCase
             'company_id' => $company, 'user_id' => $warehouseUserId, 'role_id' => $role,
             'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
+        // Approval must independently reject legacy/pending reports with no valid material rows.
+        DB::table('production_shift_report_materials')->where('production_shift_report_id', $reportId)->delete();
+        $this->post(route('production.shift-reports.review', $reportId), [
+            'approve' => '1', 'review_notes' => '',
+        ])->assertRedirect(route('production.shift-reports.show', $reportId))
+            ->assertSessionHasErrors('materials');
+        $this->assertDatabaseHas('production_shift_reports', ['id' => $reportId, 'status' => 'pending']);
+        DB::table('production_shift_report_materials')->insert([
+            'company_id' => $company, 'production_shift_report_id' => $reportId,
+            'goods_id' => $goods, 'quantity' => 4, 'scrap_quantity' => 0,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
         $this->post(route('production.shift-reports.review', $reportId), [
             'approve' => '1', 'review_notes' => '',
         ])->assertRedirect(route('production.shift-reports.show', $reportId))->assertSessionHas('success');
