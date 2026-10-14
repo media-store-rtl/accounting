@@ -28,9 +28,12 @@ export function setupProductionReportDatePicker(pickerSelector, isoSelector, {
 } = {}) {
     const picker = documentRef?.querySelector(pickerSelector);
     const isoField = documentRef?.querySelector(isoSelector);
+    const datepickerMethod = jQueryRef?.fn?.pDatepicker
+        ? 'pDatepicker'
+        : (jQueryRef?.fn?.persianDatepicker ? 'persianDatepicker' : null);
 
     if (!picker || !isoField || typeof jQueryRef !== 'function'
-        || !jQueryRef.fn?.persianDatepicker || typeof PersianDateCtor !== 'function') {
+        || !datepickerMethod || typeof PersianDateCtor !== 'function') {
         return false;
     }
 
@@ -38,7 +41,7 @@ export function setupProductionReportDatePicker(pickerSelector, isoSelector, {
     // while keeping the hidden field in the server's Gregorian ISO format.
     picker.value = normalizeIsoDateForPicker(isoField.value);
 
-    jQueryRef(picker).persianDatepicker({
+    jQueryRef(picker)[datepickerMethod]({
         calendarType: 'persian',
         initialValue: Boolean(isoField.value),
         initialValueType: 'gregorian',
