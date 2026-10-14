@@ -1,3 +1,13 @@
+# 98. بازیابی Migration درخواست تحویل انبار در شاخه PR الزام مواد اولیه — 2026-10-14
+
+- نتیجه CI برای commit `cae753f0ef6c3a2307d9624d3fd39f6aec847810`: ۳۴ تست موفق و یک تست ناموفق. خطا هنگام رد گزارش تولید به نبود ستون `warehouse_receipt_requested` در SQLite مربوط بود.
+- علت: شاخه PR نسبت به `main` یک commit عقب بود و Migration موجود در `main` با نام `database/migrations/2026_10_14_000001_add_warehouse_receipt_requested_to_production_shift_reports.php` در شاخه وجود نداشت.
+- اصلاح: همان Migration موجود در `main` به شاخه PR بازگردانده شد؛ ستون با مقدار پیش‌فرض `false` اضافه می‌شود و rollback نیز وجود جدول/ستون را بررسی می‌کند. رفتار تولید یا موجودی تغییر نکرده است.
+- فایل تغییرکرده: `database/migrations/2026_10_14_000001_add_warehouse_receipt_requested_to_production_shift_reports.php`؛ commit اصلاح Migration: `13d7b41b15cc1f5b7e5fdcaa05933eaf8ad9eb71`.
+- تست محلی اجرا نشده است. CI پس از افزودن Migration باید دوباره بررسی شود. هیچ Migration روی سرور اجرا نشده و Deploy یا بررسی سایت زنده انجام نشده است. PR #91 هنوز ادغام نشده است.
+
+---
+
 # 92. رفع تعارض PR الزام مواد اولیه در گزارش شیفت — 2026-10-14
 
 - تغییرات فعلی `main` در فایل‌های مشترک با PR حفظ شد؛ شامل منطق جدید درخواست تحویل انبار و ثبت واحد اندازه‌گیری که در شاخهٔ PR قدیمی‌تر بودند.
