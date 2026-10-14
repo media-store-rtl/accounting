@@ -95,6 +95,27 @@ class ProductionShiftReportStagesTest extends TestCase
             'worked_hours' => 8,
             'work_date' => '2026-10-12',
             'produced_quantity' => 20,
+        ])->assertSessionHasErrors('materials');
+
+        $this->post(route('production.shift-reports.store'), [
+            'production_section_id' => $section,
+            'stages' => [['production_stage_id' => $stageOne]],
+            'goods_id' => $goods,
+            'personnel_id' => $worker,
+            'worked_hours' => 8,
+            'work_date' => '2026-10-12',
+            'produced_quantity' => 20,
+            'materials' => [['goods_id' => '', 'quantity' => '', 'scrap_quantity' => 0]],
+        ])->assertSessionHasErrors('materials');
+
+        $this->post(route('production.shift-reports.store'), [
+            'production_section_id' => $section,
+            'stages' => [['production_stage_id' => $stageOne]],
+            'goods_id' => $goods,
+            'personnel_id' => $worker,
+            'worked_hours' => 8,
+            'work_date' => '2026-10-12',
+            'produced_quantity' => 20,
             'materials' => [['goods_id' => $goods, 'quantity' => 2, 'scrap_quantity' => 0]],
         ])->assertSessionHasErrors('materials');
 
@@ -112,10 +133,17 @@ class ProductionShiftReportStagesTest extends TestCase
             'work_date' => '2026-10-12',
             'produced_quantity' => 20,
             'scrap_quantity' => 0,
+            'materials' => [['goods_id' => $materialGoods, 'quantity' => 5, 'scrap_quantity' => 0]],
         ])->assertRedirect(route('production.shift-reports.index'));
 
         $reportId = DB::table('production_shift_reports')->where('company_id', $company)->value('id');
         $this->assertNotNull($reportId);
+        $this->assertDatabaseHas('production_shift_report_materials', [
+            'production_shift_report_id' => $reportId,
+            'goods_id' => $materialGoods,
+            'quantity' => 5,
+            'scrap_quantity' => 0,
+        ]);
         $this->assertDatabaseHas('production_shift_report_stages', [
             'company_id' => $company,
             'production_shift_report_id' => $reportId,
