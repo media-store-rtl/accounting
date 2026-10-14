@@ -120,7 +120,7 @@ final class ProductionShiftReportController extends Controller
             'holiday_hours' => ['nullable', 'numeric', 'gte:0', 'lte:24'],
             'stages' => ['required', 'array', 'min:1'],
             'stages.*.production_stage_id' => ['required', 'integer'],
-            'materials' => ['nullable', 'array'],
+            'materials' => ['required', 'array', 'min:1'],
             'materials.*.goods_id' => ['nullable', 'integer'],
             'materials.*.quantity' => ['nullable', 'numeric', 'gt:0'],
             'materials.*.scrap_quantity' => ['nullable', 'numeric', 'gte:0'],
@@ -166,6 +166,9 @@ final class ProductionShiftReportController extends Controller
                 throw ValidationException::withMessages(['materials' => 'ضایعات هر ماده اولیه نمی‌تواند از مقدار مصرف آن بیشتر باشد.']);
             }
             $materialRows[] = ['goods_id' => $materialId, 'quantity' => (float) $materialQuantity, 'scrap_quantity' => $materialScrap];
+        }
+        if (count($materialRows) < 1) {
+            throw ValidationException::withMessages(['materials' => 'ثبت حداقل یک ماده اولیه با مقدار مصرف مثبت الزامی است.']);
         }
         $scrap = (float) ($data['scrap_quantity'] ?? 0);
         if ($scrap > (float) $data['produced_quantity']) {
