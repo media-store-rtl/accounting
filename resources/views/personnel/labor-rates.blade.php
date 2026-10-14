@@ -90,10 +90,10 @@
     <section class="panel">
         <div class="section-heading">
             <div class="section-title">
-                <span class="section-icon" aria-hidden="true">＋</span>
+                <span class="section-icon" aria-hidden="true">{{ $editingRate ? '✎' : '＋' }}</span>
                 <div>
-                    <h2>ثبت نرخ جدید</h2>
-                    <p>نرخ دستمزد را همراه با بازهٔ اعتبار آن تعریف کنید.</p>
+                    <h2>{{ $editingRate ? 'ویرایش نرخ دستمزد' : 'ثبت نرخ جدید' }}</h2>
+                    <p>{{ $editingRate ? 'اطلاعات نرخ انتخاب‌شده را اصلاح کنید.' : 'نرخ دستمزد را همراه با بازهٔ اعتبار آن تعریف کنید.' }}</p>
                 </div>
             </div>
         </div>
@@ -103,43 +103,49 @@
             <div><strong>نکته:</strong> نرخ فقط در بازهٔ اعتبار مشخص‌شده اعمال می‌شود. سوابق قبلی برای حفظ محاسبات تاریخی باقی می‌مانند؛ بازه‌های هم‌پوشان قابل ثبت نیستند.</div>
         </div>
 
-        <form method="POST" action="{{ route('personnel.labor-rates.store', $personnel) }}">
+        <form method="POST" action="{{ $editingRate ? route('personnel.labor-rates.update', [$personnel, $editingRate->id]) : route('personnel.labor-rates.store', $personnel) }}">
             @csrf
+            @if($editingRate)
+                @method('PUT')
+            @endif
             <div class="form-grid">
                 <label class="field">
                     <span>نوع دستمزد <span class="required">*</span></span>
                     <select name="rate_type" required>
-                        <option value="regular" @selected(old('rate_type', 'regular') === 'regular')>کار عادی (شیفت ۸ ساعته)</option>
-                        <option value="overtime" @selected(old('rate_type') === 'overtime')>اضافه‌کاری</option>
-                        <option value="holiday" @selected(old('rate_type') === 'holiday')>تعطیل‌کاری</option>
+                        <option value="regular" @selected(old('rate_type', $editingRate->rate_type ?? 'regular') === 'regular')>کار عادی (شیفت ۸ ساعته)</option>
+                        <option value="overtime" @selected(old('rate_type', $editingRate->rate_type ?? '') === 'overtime')>اضافه‌کاری</option>
+                        <option value="holiday" @selected(old('rate_type', $editingRate->rate_type ?? '') === 'holiday')>تعطیل‌کاری</option>
                     </select>
                     <span class="field-hint">نرخ را جداگانه برای کار عادی، اضافه‌کاری یا تعطیل‌کاری ثبت کنید.</span>
                 </label>
 
                 <label class="field">
                     <span>مبلغ نرخ <span class="required">*</span></span>
-                    <input name="rate" type="number" min="0" step="0.000001" inputmode="decimal" value="{{ old('rate') }}" placeholder="مثلاً 250000" required>
+                    <input name="rate" type="number" min="0" step="0.000001" inputmode="decimal" value="{{ old('rate', $editingRate->rate ?? '') }}" placeholder="مثلاً 250000" required>
                     <span class="field-hint">مبلغ را به واحد پول ثبت‌شده در سامانه وارد کنید.</span>
                 </label>
 
                 <label class="field">
                     <span>شروع اعتبار <span class="required">*</span></span>
-                    <input id="effective_from_picker" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="{{ old('effective_from', now()->toDateString()) }}" readonly required aria-describedby="effective_from_help">
-                    <input id="effective_from" name="effective_from" type="hidden" value="{{ old('effective_from', now()->toDateString()) }}">
+                    <input id="effective_from_picker" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="{{ old('effective_from', $editingRate->effective_from ?? now()->toDateString()) }}" readonly required aria-describedby="effective_from_help">
+                    <input id="effective_from" name="effective_from" type="hidden" value="{{ old('effective_from', $editingRate->effective_from ?? now()->toDateString()) }}">
                     <span id="effective_from_help" class="field-hint">اولین روز اعمال این نرخ را از تقویم شمسی انتخاب کنید.</span>
                 </label>
 
                 <label class="field">
                     <span>پایان اعتبار</span>
-                    <input id="effective_to_picker" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی (اختیاری)" value="{{ old('effective_to') }}" readonly aria-describedby="effective_to_help">
-                    <input id="effective_to" name="effective_to" type="hidden" value="{{ old('effective_to') }}">
+                    <input id="effective_to_picker" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی (اختیاری)" value="{{ old('effective_to', $editingRate->effective_to ?? '') }}" readonly aria-describedby="effective_to_help">
+                    <input id="effective_to" name="effective_to" type="hidden" value="{{ old('effective_to', $editingRate->effective_to ?? '') }}">
                     <span id="effective_to_help" class="field-hint">در صورت خالی‌بودن، تاریخ پایان تعیین نمی‌شود.</span>
                 </label>
             </div>
 
             <div class="form-footer">
                 <p>موارد ستاره‌دار الزامی هستند. پیش از ثبت، تاریخ شروع و پایان را بررسی کنید.</p>
-                <button class="btn primary" type="submit">ثبت نرخ دستمزد <span aria-hidden="true">←</span></button>
+                <button class="btn primary" type="submit">{{ $editingRate ? 'ذخیره تغییرات' : 'ثبت نرخ دستمزد' }} <span aria-hidden="true">←</span></button>
+                @if($editingRate)
+                    <a class="btn" href="{{ route('personnel.labor-rates', $personnel) }}">انصراف از ویرایش</a>
+                @endif
             </div>
         </form>
     </section>
@@ -165,6 +171,7 @@
                         <th>شروع اعتبار</th>
                         <th>پایان اعتبار</th>
                         <th>وضعیت زمانی</th>
+                        <th>عملیات</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -183,10 +190,11 @@
                                     <span class="status expired">پایان‌یافته</span>
                                 @endif
                             </td>
+                            <td><a class="btn" href="{{ route('personnel.labor-rates.edit', [$personnel, $rate->id]) }}">ویرایش</a></td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="empty-state">
+                            <td colspan="6" class="empty-state">
                                 <div class="empty-state-icon" aria-hidden="true">≡</div>
                                 <strong>هنوز نرخی ثبت نشده است</strong>
                                 <p>پس از ثبت اولین نرخ از فرم بالا، سوابق دستمزد این پرسنل در این بخش نمایش داده می‌شود.</p>
