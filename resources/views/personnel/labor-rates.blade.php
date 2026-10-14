@@ -3,6 +3,7 @@
 @section('title', 'دستمزد پرسنل')
 
 @push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
 <style>
     .labor-rates-page { display: grid; gap: 18px; }
     .labor-rates-page .page-heading { align-items: flex-start; margin-bottom: 0; }
@@ -117,14 +118,16 @@
 
                 <label class="field">
                     <span>شروع اعتبار <span class="required">*</span></span>
-                    <input name="effective_from" type="date" value="{{ old('effective_from', now()->toDateString()) }}" required>
-                    <span class="field-hint">اولین روز اعمال این نرخ.</span>
+                    <input id="effective_from_picker" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="{{ old('effective_from', now()->toDateString()) }}" readonly required aria-describedby="effective_from_help">
+                    <input id="effective_from" name="effective_from" type="hidden" value="{{ old('effective_from', now()->toDateString()) }}">
+                    <span id="effective_from_help" class="field-hint">اولین روز اعمال این نرخ را از تقویم شمسی انتخاب کنید.</span>
                 </label>
 
                 <label class="field">
                     <span>پایان اعتبار</span>
-                    <input name="effective_to" type="date" min="{{ old('effective_from', now()->toDateString()) }}" value="{{ old('effective_to') }}">
-                    <span class="field-hint">در صورت خالی‌بودن، تاریخ پایان تعیین نمی‌شود.</span>
+                    <input id="effective_to_picker" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی (اختیاری)" value="{{ old('effective_to') }}" readonly aria-describedby="effective_to_help">
+                    <input id="effective_to" name="effective_to" type="hidden" value="{{ old('effective_to') }}">
+                    <span id="effective_to_help" class="field-hint">در صورت خالی‌بودن، تاریخ پایان تعیین نمی‌شود.</span>
                 </label>
             </div>
 
@@ -189,4 +192,16 @@
         </div>
     </section>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+<script type="module">
+import { setupProductionReportDatePicker } from '/js/production-report-date-filters.js';
+
+document.addEventListener('DOMContentLoaded', function () {
+    setupProductionReportDatePicker('#effective_from_picker', '#effective_from');
+    setupProductionReportDatePicker('#effective_to_picker', '#effective_to');
+});
+</script>
 @endsection
