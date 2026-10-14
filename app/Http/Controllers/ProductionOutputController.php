@@ -51,7 +51,7 @@ final class ProductionOutputController extends Controller
                 throw \Illuminate\Validation\ValidationException::withMessages(['report' => 'این گزارش آماده دریافت نیست یا قبلاً تحویل کامل شده است.']);
             }
             if (empty($row->warehouse_requested_at)) {
-                throw \\Illuminate\\Validation\\ValidationException::withMessages(['report' => 'ابتدا باید درخواست تحویل این گزارش جداگانه ثبت و برای انبار ارسال شود.']);
+                throw \Illuminate\Validation\ValidationException::withMessages(['report' => 'ابتدا باید درخواست تحویل این گزارش جداگانه ثبت و برای انبار ارسال شود.']);
             }
             if ((int) $row->reviewed_by_user_id === (int) $request->user()->id) {
                 throw \Illuminate\Validation\ValidationException::withMessages(['report' => 'تأیید نهایی انبار باید توسط کاربری غیر از تأییدکننده گزارش تولید انجام شود.']);
