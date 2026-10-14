@@ -14,6 +14,7 @@ class NotificationRecipientController extends Controller
     private const EVENTS = [
         ['key' => 'order.production_required', 'name' => 'کسری موجودی سفارش و نیاز به تولید'],
         ['key' => 'production.shift_report_pending', 'name' => 'ثبت گزارش تولید شیفت و نیاز به تأیید سرپرست'],
+        ['key' => 'production.shift_report_warehouse_receipt', 'name' => 'محصول تولیدشده آماده تحویل به انبار است'],
         ['key' => 'order.production_due_set', 'name' => 'ثبت موعد قابل تحویل تولید برای فروش'],
         ['key' => 'order.ready_for_delivery', 'name' => 'آماده شدن سفارش برای تحویل'],
         ['key' => 'delivery.requested', 'name' => 'ثبت درخواست تحویل برای انبار'],
