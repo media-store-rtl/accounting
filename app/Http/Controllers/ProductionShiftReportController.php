@@ -117,7 +117,7 @@ final class ProductionShiftReportController extends Controller
         $data = $request->validate([
             'production_section_id' => ['required', 'integer'],
             'goods_id' => ['required', 'integer'],
-            'order_id' => ['required', 'integer'],
+            'order_id' => ['nullable', 'integer'],
             'personnel_id' => ['required', 'integer'],
             'worked_hours' => ['required', 'numeric', 'gt:0', 'lte:24'],
             'overtime_hours' => ['nullable', 'numeric', 'gte:0', 'lte:24'],
@@ -135,7 +135,7 @@ final class ProductionShiftReportController extends Controller
         ]);
         $section = DB::table('production_sections as s')->join('locations as l', 'l.id', '=', 's.location_id')->where('s.id', $data['production_section_id'])->where('l.company_id', $companyId)->exists();
         $good = DB::table('goods')->where('id', $data['goods_id'])->where('company_id', $companyId)->where('is_active', true)->where('producible', true)->exists();
-        $orderValid = DB::table('orders')->where('id', $data['order_id'])->where('company_id', $companyId)->exists();
+        $orderValid = empty($data['order_id']) || DB::table('orders')->where('id', $data['order_id'])->where('company_id', $companyId)->exists();
         $accountId = DB::table('companies')->where('id', $companyId)->value('account_id');
         $worker = DB::table('personnel')->where('id', $data['personnel_id'])->where('account_id', $accountId)->where('is_active', true)->exists();
         if (!$section) throw ValidationException::withMessages(['production_section_id' => 'قسمت تولید معتبر نیست.']);
@@ -186,7 +186,7 @@ final class ProductionShiftReportController extends Controller
                 'company_id' => $companyId,
                 'production_section_id' => (int) $data['production_section_id'],
                 'goods_id' => (int) $data['goods_id'],
-                'order_id' => (int) $data['order_id'],
+                'order_id' => isset($data['order_id']) && $data['order_id'] !== '' ? (int) $data['order_id'] : null,
                 'personnel_id' => (int) $data['personnel_id'],
                 'reported_by_user_id' => (int) $request->user()->id,
                 'shift_name' => 'کارکرد ' . (float) $data['worked_hours'] . ' ساعت',
