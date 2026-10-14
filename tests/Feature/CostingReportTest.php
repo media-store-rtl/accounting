@@ -79,20 +79,42 @@ class CostingReportTest extends TestCase
         $entry=DB::table('production_labor_entries')->insertGetId(['company_id'=>$company,'fiscal_year_id'=>$fy,'production_id'=>$production,'production_stage_id'=>$stage,'production_operation_run_id'=>$run,'personnel_id'=>$personnel,'measure_type'=>'hours','measure_quantity'=>2,'unit_rate'=>15,'total_cost'=>30,'worked_at'=>now(),'status'=>'approved','created_by_user_id'=>$user,'reviewed_by_user_id'=>$user,'reviewed_at'=>now(),'created_at'=>now(),'updated_at'=>now()]);
         DB::table('production_labor_costs')->insert(['labor_entry_id'=>$entry,'company_id'=>$company,'fiscal_year_id'=>$fy,'production_id'=>$production,'production_stage_id'=>$stage,'production_operation_run_id'=>$run,'personnel_id'=>$personnel,'measure_type'=>'hours','measure_quantity'=>2,'unit_rate'=>15,'total_cost'=>30,'worked_at'=>now(),'approved_at'=>now(),'approved_by_user_id'=>$user,'created_at'=>now(),'updated_at'=>now()]);
 
+        // Shift reports handed over to the warehouse remain part of labor costing.
+        $sectionLocation=DB::table('locations')->insertGetId([
+            'company_id'=>$company,'code'=>'PS'.uniqid(),'name'=>'Production Section Location',
+            'type'=>'production','is_active'=>true,'created_at'=>now(),'updated_at'=>now(),
+        ]);
+        $section=DB::table('production_sections')->insertGetId([
+            'location_id'=>$sectionLocation,'created_at'=>now(),'updated_at'=>now(),
+        ]);
+        DB::table('personnel_labor_rates')->insert([
+            'company_id'=>$company,'personnel_id'=>$personnel,'rate_type'=>'regular','rate'=>15,
+            'effective_from'=>'2026-10-01','effective_to'=>null,'created_at'=>now(),'updated_at'=>now(),
+        ]);
+        foreach (['approved','received','pending'] as $shiftStatus) {
+            DB::table('production_shift_reports')->insert([
+                'company_id'=>$company,'production_section_id'=>$section,'goods_id'=>$goods,
+                'order_id'=>$order,'personnel_id'=>$personnel,'reported_by_user_id'=>$user,
+                'shift_name'=>'Day Shift','worked_hours'=>1,'overtime_hours'=>0,'holiday_hours'=>0,
+                'work_date'=>'2026-10-07','produced_quantity'=>1,'scrap_quantity'=>0,
+                'status'=>$shiftStatus,'created_at'=>now(),'updated_at'=>now(),
+            ]);
+        }
+
         $report=app(CostingReportService::class)->generate($company,$fy,$order,$goods);
         $this->assertCount(1,$report['rows']);
         $this->assertSame(20.0,$report['rows'][0]['material_cost']);
-        $this->assertSame(30.0,$report['rows'][0]['labor_cost']);
+        $this->assertSame(60.0,$report['rows'][0]['labor_cost']);
         $this->assertSame(10.0,$report['rows'][0]['direct_cost']);
-        $this->assertSame(60.0,$report['rows'][0]['total_cost']);
+        $this->assertSame(90.0,$report['rows'][0]['total_cost']);
         $this->assertSame(['fifo'],$report['rows'][0]['valuation_methods']);
         $this->assertSame(0.0,$report['totals']['unvalued_material_quantity']);
 
         $calculation=app(\App\Services\CostCalculationService::class)->calculate($company,$user,$fy,$order,$goods);
         $this->assertSame(1,$calculation['count']);
-        $this->assertDatabaseHas('cost_calculations',['id'=>$calculation['ids'][0],'company_id'=>$company,'order_id'=>$order,'goods_id'=>$goods,'total_cost'=>60]);
+        $this->assertDatabaseHas('cost_calculations',['id'=>$calculation['ids'][0],'company_id'=>$company,'order_id'=>$order,'goods_id'=>$goods,'total_cost'=>90]);
         $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'material','amount'=>20]);
-        $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'labor','amount'=>30]);
+        $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'labor','amount'=>60]);
         $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'direct','amount'=>10]);
     }
 }
