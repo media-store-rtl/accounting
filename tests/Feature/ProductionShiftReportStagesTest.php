@@ -91,11 +91,27 @@ class ProductionShiftReportStagesTest extends TestCase
             'goods_id' => $goods,
             'personnel_id' => $worker,
             'worked_hours' => 8,
+            'work_date' => '2026-10-12',
+            'produced_quantity' => 20,
+            'scrap_quantity' => 0,
+        ])->assertSessionHasErrors('materials');
+        $this->assertSame(0, DB::table('production_shift_reports')->where('company_id', $company)->count());
+
+        $this->post(route('production.shift-reports.store'), [
+            'production_section_id' => $section,
+            'stages' => [
+                ['production_stage_id' => $stageOne],
+                ['production_stage_id' => $stageTwo],
+            ],
+            'goods_id' => $goods,
+            'personnel_id' => $worker,
+            'worked_hours' => 8,
             'overtime_hours' => 0,
             'holiday_hours' => 0,
             'work_date' => '2026-10-12',
             'produced_quantity' => 20,
             'scrap_quantity' => 0,
+            'materials' => [['goods_id' => $goods, 'quantity' => 4, 'scrap_quantity' => 0]],
         ])->assertRedirect(route('production.shift-reports.index'));
 
         $reportId = DB::table('production_shift_reports')->where('company_id', $company)->value('id');
@@ -179,6 +195,7 @@ class ProductionShiftReportStagesTest extends TestCase
             'work_date' => '2026-10-13',
             'produced_quantity' => 18,
             'scrap_quantity' => 2,
+            'materials' => [['goods_id' => $goods, 'quantity' => 4, 'scrap_quantity' => 0]],
         ])->assertRedirect(route('production.shift-reports.show', $reportId))
             ->assertSessionHas('success');
         $this->assertSame(1, DB::table('production_shift_report_stages')
