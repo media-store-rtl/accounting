@@ -25,6 +25,16 @@
 @if($row->review_notes)<div class="detail-item"><span>یادداشت بررسی</span><strong>{{ $row->review_notes }}</strong></div>@endif
 @if($row->notes)<div class="detail-item"><span>توضیحات ثبت‌کننده</span><strong>{{ $row->notes }}</strong></div>@endif
 </div></div>
+@if($canReview && $row->status === 'approved' && !(bool)($row->warehouse_receipt_requested ?? false) && (float)($row->warehouse_quantity ?? 0) <= 0 && (bool)($row->goods_sellable ?? false) && (bool)($row->goods_producible ?? false) && max(0, (float)$row->produced_quantity - (float)($row->scrap_quantity ?? 0)) > 0)
+<div class="panel" style="padding:16px;border:1px solid #6b5830">
+  <h2 style="font-size:15px;margin:0 0 8px">تعیین تکلیف تحویل به انبار</h2>
+  <p class="detail-note">این گزارش قبلاً تأیید شده اما درخواست تحویل به انبار برای آن ثبت نشده است. اگر بررسی سوابق تولید نشان می‌دهد محصول نهایی باید به انبار تحویل شود، می‌توانید درخواست را ثبت کنید. این کار موجودی را تغییر نمی‌دهد؛ ثبت موجودی فقط با تأیید مستقل سرپرست انبار انجام می‌شود.</p>
+  <form method="POST" action="{{ route('production.shift-reports.request-warehouse-receipt', $row->id) }}" onsubmit="return confirm('پس از بررسی سوابق، درخواست تحویل این محصول به انبار ثبت شود؟ موجودی در این مرحله تغییر نمی‌کند.');">
+    @csrf
+    <button class="detail-btn" type="submit">ثبت درخواست تحویل به انبار</button>
+  </form>
+</div>
+@endif
 @if($canEdit)
 <div class="panel" style="padding:16px">
 <details class="detail-edit">

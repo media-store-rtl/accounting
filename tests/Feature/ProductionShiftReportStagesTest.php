@@ -254,6 +254,31 @@ class ProductionShiftReportStagesTest extends TestCase
             'company_id' => $company, 'user_id' => $warehouseUserId, 'role_id' => $role,
             'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
+
+        // Legacy approved reports without an explicit receipt request require a deliberate supervisor action.
+        DB::table('production_shift_reports')->where('id', $reportId)->update([
+            'status' => 'approved', 'warehouse_receipt_requested' => false, 'warehouse_quantity' => null,
+            'warehouse_location_id' => null, 'reviewed_by_user_id' => $user, 'reviewed_at' => now(),
+        ]);
+        $this->get(route('production.shift-reports.show', $reportId))
+            ->assertOk()->assertSee('ثبت درخواست تحویل به انبار');
+        $this->post(route('production.shift-reports.request-warehouse-receipt', $reportId))
+            ->assertRedirect(route('production.shift-reports.show', $reportId))->assertSessionHas('success');
+        $this->assertDatabaseHas('production_shift_reports', [
+            'id' => $reportId, 'status' => 'approved', 'warehouse_receipt_requested' => true,
+        ]);
+        $this->assertDatabaseMissing('inventory_movements', [
+            'reference_type' => 'production_shift_reports', 'reference_id' => $reportId,
+        ]);
+        $this->assertDatabaseHas('notifications', [
+            'notifiable_id' => $warehouseUserId, 'type' => 'production.shift_report_warehouse_receipt',
+        ]);
+
+        // Continue the existing first-time approval path independently of the retroactive request test.
+        DB::table('production_shift_reports')->where('id', $reportId)->update([
+            'status' => 'pending', 'warehouse_receipt_requested' => false, 'warehouse_quantity' => null,
+            'warehouse_location_id' => null, 'reviewed_by_user_id' => null, 'reviewed_at' => null,
+        ]);
         $this->post(route('production.shift-reports.review', $reportId), [
             'approve' => '1', 'review_notes' => '', 'warehouse_receipt_requested' => '1',
         ])->assertRedirect(route('production.shift-reports.show', $reportId))->assertSessionHas('success');
