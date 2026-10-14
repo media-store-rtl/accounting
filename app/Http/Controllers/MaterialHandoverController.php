@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\InventoryService;
+use App\Services\InventoryValuationService;
 use App\Support\CompanyAuthorization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -10,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class MaterialHandoverController extends Controller
 {
-    public function store(Request $request, InventoryService $inventory): JsonResponse
+    public function store(Request $request, InventoryService $inventory, InventoryValuationService $valuation): JsonResponse
     {
         $companyId = CompanyAuthorization::authorize($request, 'supply_request.handover.create');
 
@@ -26,7 +27,7 @@ class MaterialHandoverController extends Controller
             'items.*.quantity' => ['required', 'numeric', 'gt:0'],
         ]);
 
-        $handoverId = DB::transaction(function () use ($data, $companyId, $inventory) {
+        $handoverId = DB::transaction(function () use ($data, $companyId, $inventory, $valuation) {
             $requestRow = DB::table('supply_requests')
                 ->where('id', $data['supply_request_id'])
                 ->where('company_id', $companyId)
@@ -99,6 +100,24 @@ class MaterialHandoverController extends Controller
                     // Preserve legacy behavior for old requests without a production section.
                     $inventory->issue($companyId, (int) $data['warehouse_location_id'], (int) $item['goods_id'], $quantity,
                         'material_handovers', $handoverId, ['supply_request_id' => $requestRow->id]);
+                }
+
+                // Value the warehouse issue immediately so the costing report can include
+                // this material handover. If stock has no cost layer, it remains unvalued
+                // and is surfaced by the report rather than assigned a fabricated cost.
+                $movement = DB::table('inventory_movements')
+                    ->where('company_id', $companyId)
+                    ->where('movement_type', 'material_handover')
+                    ->where('reference_type', 'material_handovers')
+                    ->where('reference_id', $handoverId)
+                    ->where('goods_id', (int) $item['goods_id'])
+                    ->where('location_id', (int) $data['warehouse_location_id'])
+                    ->where('quantity', '<', 0)
+                    ->orderByDesc('id')
+                    ->first();
+
+                if ($movement) {
+                    $valuation->valueInventoryMovement((int) $movement->id, (int) $requestRow->fiscal_year_id);
                 }
 
                 DB::table('material_handover_items')->insert([
