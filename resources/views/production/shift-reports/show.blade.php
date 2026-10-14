@@ -46,7 +46,7 @@
 <div style="margin-top:16px"><strong style="font-size:12px">مراحل انجام‌شده</strong><div class="detail-checks" style="margin-top:9px">
 @foreach($stages as $stage)<label class="detail-check"><input type="checkbox" name="stages[{{ $loop->index }}][production_stage_id]" value="{{ $stage->id }}" @checked($reportedStages->contains('id',$stage->id))><span>{{ $stage->code ? $stage->code.' — ' : '' }}{{ $stage->name }}</span></label>@endforeach
 </div></div>
-<div style="margin-top:16px"><strong style="font-size:12px">مواد اولیه مصرف‌شده</strong>
+<div style="margin-top:16px"><strong style="font-size:12px">مواد اولیه مصرف‌شده *</strong><p class="muted" style="margin:6px 0 10px">ثبت حداقل یک ماده اولیه با مقدار مصرف مثبت الزامی است.</p>
 <div id="detail-material-lines">
 @if($materialUsage->isNotEmpty())
 @foreach($materialUsage as $material)
