@@ -19,7 +19,7 @@ class SalesOperationalWorkflowTest extends TestCase
         $company=DB::table('companies')->insertGetId(['account_id'=>$account,'name'=>'Test Company','code'=>'COM'.uniqid(),'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $user=DB::table('users')->insertGetId(['account_id'=>$account,'name'=>'Tester','username'=>'u'.uniqid(),'email'=>uniqid().'@test.local','password'=>bcrypt('secret'),'created_at'=>now(),'updated_at'=>now()]);
         $role=DB::table('roles')->insertGetId(['company_id'=>$company,'name'=>'Sales Operations','slug'=>'sales-ops','is_system'=>false,'created_at'=>now(),'updated_at'=>now()]);
-        $slugs=['customer.view','customer.create','order.view','order.create','order.refresh','production.supervise','delivery_request.view','delivery_request.create','delivery_request.issue','delivery_request.handover','warehouse.delivery.manage'];
+        $slugs=['customer.view','customer.create','order.view','order.create','order.refresh','production.supervise','delivery_request.view','delivery_request.create','delivery_request.issue','delivery_request.handover','warehouse.delivery.manage','production.output.receive'];
         foreach($slugs as $slug){
             $permission=DB::table('permissions')->where('slug',$slug)->value('id');
             if (!$permission) {
@@ -130,11 +130,6 @@ class SalesOperationalWorkflowTest extends TestCase
             'updated_at' => now(),
         ]);
         $roleId = DB::table('company_user')->where('company_id', $c['company'])->where('user_id', $c['user'])->value('role_id');
-        $receivePermissionId = DB::table('permissions')->where('slug', 'production.output.receive')->value('slug');
-        if ($receivePermissionId) {
-            $permissionId = DB::table('permissions')->where('slug', 'production.output.receive')->value('id');
-            DB::table('role_permissions')->insertOrIgnore(['role_id' => $roleId, 'permission_id' => $permissionId]);
-        }
         DB::table('company_user')->insert([
             'company_id' => $c['company'], 'user_id' => $salesUserId, 'role_id' => $roleId,
             'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
