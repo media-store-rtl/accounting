@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Personnel;
+use App\Services\LaborCostService;
+use App\Support\CompanyAuthorization;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -91,7 +93,7 @@ class PersonnelController extends Controller
     public function laborRates(Request $request, Personnel $personnel): View
     {
         $this->assertSameAccount($request, $personnel);
-        $companyId = \\App\\Support\\CompanyAuthorization::authorize($request, 'production.labor.rate.manage');
+        $companyId = CompanyAuthorization::authorize($request, 'production.labor.rate.manage');
         abort_unless((int) DB::table('companies')->where('id', $companyId)->value('account_id') === (int) $personnel->account_id, 404);
 
         $rates = DB::table('personnel_labor_rates')
@@ -104,10 +106,10 @@ class PersonnelController extends Controller
         return view('personnel.labor-rates', compact('personnel', 'rates'));
     }
 
-    public function storeLaborRate(Request $request, Personnel $personnel, \\App\\Services\\LaborCostService $service): RedirectResponse
+    public function storeLaborRate(Request $request, Personnel $personnel, LaborCostService $service): RedirectResponse
     {
         $this->assertSameAccount($request, $personnel);
-        $companyId = \\App\\Support\\CompanyAuthorization::authorize($request, 'production.labor.rate.manage');
+        $companyId = CompanyAuthorization::authorize($request, 'production.labor.rate.manage');
         abort_unless((int) DB::table('companies')->where('id', $companyId)->value('account_id') === (int) $personnel->account_id, 404);
 
         $data = $request->validate([
