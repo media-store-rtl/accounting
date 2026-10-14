@@ -29,7 +29,7 @@ final class ProductionOutputController extends Controller
             ->leftJoin('production_sections as s', 's.id', '=', 'r.production_section_id')
             ->leftJoin('locations as section_location', 'section_location.id', '=', 's.location_id')
             ->leftJoin('locations as l', 'l.id', '=', 'r.warehouse_location_id')
-            ->where('r.company_id', $companyId)->whereIn('r.status', ['approved', 'received'])->where('g.sellable', true)
+            ->where('r.company_id', $companyId)->whereIn('r.status', ['approved', 'received'])->where('g.sellable', true)->whereNotNull('r.warehouse_requested_at')
             ->select('r.id as report_id', 'r.work_date', 'r.status', 'r.produced_quantity', 'r.scrap_quantity',
                 'r.warehouse_quantity as quantity', 'r.warehouse_location_id', 'r.reviewed_by_user_id',
                 'g.name as goods_name', 'section_location.name as section_name', 'l.name as location_name')
@@ -49,6 +49,9 @@ final class ProductionOutputController extends Controller
             $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
             if (!$row || $row->status !== 'approved') {
                 throw \Illuminate\Validation\ValidationException::withMessages(['report' => 'این گزارش آماده دریافت نیست یا قبلاً تحویل کامل شده است.']);
+            }
+            if (empty($row->warehouse_requested_at)) {
+                throw \\Illuminate\\Validation\\ValidationException::withMessages(['report' => 'ابتدا باید درخواست تحویل این گزارش جداگانه ثبت و برای انبار ارسال شود.']);
             }
             if ((int) $row->reviewed_by_user_id === (int) $request->user()->id) {
                 throw \Illuminate\Validation\ValidationException::withMessages(['report' => 'تأیید نهایی انبار باید توسط کاربری غیر از تأییدکننده گزارش تولید انجام شود.']);
