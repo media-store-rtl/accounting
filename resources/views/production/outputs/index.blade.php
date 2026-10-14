@@ -8,8 +8,10 @@
 @if($errors->any())<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #714448;border-radius:12px;background:#302126;color:#ffb8a8;font-size:12px">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>تولید</th><th>کالا</th><th>مقدار</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
 @forelse($rows as $r)
-<tr><td>{{ $r->production_number }}</td><td>{{ $r->goods_name }}</td><td>{{ $r->quantity }}</td><td><span class="status {{ in_array($r->status, ['confirmed','received'], true) ? 'active' : 'inactive' }}">{{ $r->status }}</span></td><td style="white-space:normal">
-@if($r->status==='pending')
+<tr><td>@if(($r->source_type ?? 'production_output') === 'shift_report')<a href="{{ route('production.shift-reports.show', $r->id) }}">گزارش شیفت #{{ $r->id }}</a>@else{{ $r->production_number }}@endif</td><td>{{ $r->goods_name }}</td><td>{{ \App\Support\PersianQuantityFormatter::format($r->quantity) }}</td><td><span class="status {{ in_array($r->status, ['confirmed','received'], true) ? 'active' : 'inactive' }}">{{ $r->source_type === 'shift_report' ? ($r->status === 'received' ? 'تحویل‌شده' : 'تأییدشده محصول نهایی') : $r->status }}</span></td><td style="white-space:normal">
+@if(($r->source_type ?? 'production_output') === 'shift_report')
+<a class="btn" href="{{ route('production.shift-reports.show', $r->id) }}">مشاهده گزارش</a>
+@elseif($r->status==='pending')
 <form method="POST" action="{{ route('production.outputs.confirm',$r->id) }}" style="display:inline-block;margin:2px">@csrf<button class="btn" type="submit">تأیید</button></form>
 <form method="POST" action="{{ route('production.outputs.reject',$r->id) }}" style="display:inline-flex;gap:5px;flex-wrap:wrap;margin:2px">@csrf<input name="rejection_reason" required placeholder="دلیل رد" style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:8px;padding:8px;font:inherit"><button class="btn" type="submit" style="background:#3b2528;border-color:#63343b;color:#ffb8a8">رد</button></form>
 @elseif($r->status==='confirmed')
@@ -20,7 +22,7 @@
 </tbody></table></div>@if(method_exists($rows, 'links'))<div class="pagination">{{ $rows->links() }}</div>@endif</div>
 
 <div class="panel" style="margin-top:20px">
-    <div style="padding:16px 18px 0"><h2 style="margin:0 0 6px;font-size:16px">تحویل‌های گزارش شیفت تولید</h2><p style="margin:0 0 14px;color:#8198ac;font-size:12px">فقط گزارش‌هایی نمایش داده می‌شوند که سرپرست تولید صریحاً تحویل آن‌ها به انبار را درخواست کرده است. موجودی فقط پس از تأیید سرپرست انبار افزایش می‌یابد.</p></div>
+    <div style="padding:16px 18px 0"><h2 style="margin:0 0 6px;font-size:16px">تحویل‌های گزارش شیفت تولید</h2><p style="margin:0 0 14px;color:#8198ac;font-size:12px">همه گزارش‌های تأییدشده و تحویل‌شده نمایش داده می‌شوند. کنترل دریافت فقط برای گزارش‌هایی فعال است که سرپرست تولید صریحاً تحویل آن‌ها به انبار را درخواست کرده است.</p></div>
     <style>.shift-report-receive-button{width:auto!important;min-width:0!important;min-height:0!important;padding:6px 10px!important;font-size:11px!important;line-height:1.35!important;white-space:nowrap}.shift-report-receive-select{max-width:180px;min-width:130px;padding:7px;border-radius:7px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;font:inherit;font-size:11px}</style>
     <div class="table-wrap"><table>
         <thead><tr><th>شماره گزارش</th><th>تاریخ کار</th><th>قسمت تولید</th><th>کالا</th><th>مقدار آماده‌شده</th><th>مقدار دریافت‌شده</th><th>انبار مقصد</th><th>وضعیت</th><th>عملیات</th></tr></thead>
@@ -39,8 +41,10 @@
                 <td>{{ $r->location_name ?? '—' }}</td>
                 <td><span class="status {{ $r->status === 'received' ? 'active' : 'inactive' }}">{{ $r->status === 'received' ? 'تحویل کامل' : 'آماده تحویل' }}</span></td>
                 <td style="white-space:normal;min-width:170px">
-                    @if($r->status === 'approved' && $remaining > 0 && (bool) $r->goods_producible)
-                        @if(!$canReceiveShiftReports)
+                    @if($r->status === 'approved' && $remaining > 0 && (bool) $r->warehouse_receipt_requested && (int) $r->reviewed_by_user_id !== (int) auth()->id())
+                        @if(!$r->goods_producible || !$r->goods_sellable)
+                            <span style="color:#8198ac;font-size:11px">کالای نهایی قابل‌فروش نیست</span>
+                        @elseif(!$canReceiveShiftReports)
                             <span style="color:#8198ac;font-size:11px">فقط کاربر دارای مجوز دریافت انبار</span>
                         @elseif($shiftWarehouses->isEmpty())
                             <span style="color:#ffb8a8;font-size:11px">انبار فعالی موجود نیست</span>
@@ -58,15 +62,15 @@
                                 <button class="btn primary shift-report-receive-button" type="submit" onclick="return confirm('کل مقدار آماده‌شده را به موجودی انبار اضافه و تحویل را نهایی می‌کنید؟');">تأیید دریافت کامل</button>
                             </form>
                         @endif
-                    @elseif($r->status === 'approved' && $remaining > 0)
-                        <span style="color:#8198ac;font-size:11px">فقط برای کالای نهایی فعال است</span>
+                    @elseif($r->status === 'approved' && $remaining > 0 && !(bool) $r->warehouse_receipt_requested)
+                        <span style="color:#8198ac;font-size:11px">تحویل به انبار درخواست نشده</span>
                     @else
                         <span style="color:#8198ac;font-size:11px">ثبت شده</span>
                     @endif
                 </td>
             </tr>
         @empty
-            <tr><td colspan="9" style="text-align:center;padding:24px;color:#8198ac">گزارش آماده تحویل یا تحویل ثبت‌شده‌ای وجود ندارد.</td></tr>
+            <tr><td colspan="9" style="text-align:center;padding:24px;color:#8198ac">گزارش تأییدشده یا تحویل‌شده‌ای وجود ندارد.</td></tr>
         @endforelse
         </tbody>
     </table></div>
