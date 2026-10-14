@@ -111,7 +111,7 @@ final class CostingReportService
 
         $reports = DB::table('production_shift_reports as r')
             ->where('r.company_id',$companyId)
-            ->where('r.status','approved')
+            ->whereIn('r.status',['approved','received'])
             ->whereNotNull('r.order_id')
             ->when($fy,fn($q)=>$q->whereBetween('r.work_date', [
                 DB::table('fiscal_years')->where('id',$fy)->value('starts_at'),
