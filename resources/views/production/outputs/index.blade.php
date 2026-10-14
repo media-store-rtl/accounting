@@ -21,14 +21,12 @@
 
 <div class="panel" style="margin-top:20px">
     <div style="padding:16px 18px 0"><h2 style="margin:0 0 6px;font-size:16px">تحویل‌های گزارش شیفت تولید</h2><p style="margin:0 0 14px;color:#8198ac;font-size:12px">فقط گزارش‌هایی نمایش داده می‌شوند که سرپرست تولید صریحاً تحویل آن‌ها به انبار را درخواست کرده است. موجودی فقط پس از تأیید سرپرست انبار افزایش می‌یابد.</p></div>
-    <style>.shift-report-receive-button{width:auto!important;min-width:0!important;min-height:0!important;padding:6px 10px!important;font-size:11px!important;line-height:1.35!important;white-space:nowrap}.shift-report-receive-select{max-width:180px;min-width:130px;padding:7px;border-radius:7px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;font:inherit;font-size:11px}</style>
     <div class="table-wrap"><table>
         <thead><tr><th>شماره گزارش</th><th>تاریخ کار</th><th>قسمت تولید</th><th>کالا</th><th>مقدار آماده‌شده</th><th>مقدار دریافت‌شده</th><th>انبار مقصد</th><th>وضعیت</th><th>عملیات</th></tr></thead>
         <tbody>
         @forelse($shiftRows as $r)
             @php($available = max(0, (float)$r->produced_quantity - (float)($r->scrap_quantity ?? 0)))
             @php($received = (float)($r->quantity ?? 0))
-            @php($remaining = max(0, $available - $received))
             <tr>
                 <td><a href="{{ route('production.shift-reports.show', $r->report_id) }}">#{{ $r->report_id }}</a></td>
                 <td>{{ $r->work_date }}</td>
@@ -38,32 +36,7 @@
                 <td>{{ \App\Support\PersianQuantityFormatter::format($received) }}</td>
                 <td>{{ $r->location_name ?? '—' }}</td>
                 <td><span class="status {{ $r->status === 'received' ? 'active' : 'inactive' }}">{{ $r->status === 'received' ? 'تحویل کامل' : 'آماده تحویل' }}</span></td>
-                <td style="white-space:normal;min-width:170px">
-                    @if($r->status === 'approved' && $remaining > 0 && (bool) $r->goods_producible)
-                        @if(!$canReceiveShiftReports)
-                            <span style="color:#8198ac;font-size:11px">فقط کاربر دارای مجوز دریافت انبار</span>
-                        @elseif($shiftWarehouses->isEmpty())
-                            <span style="color:#ffb8a8;font-size:11px">انبار فعالی موجود نیست</span>
-                        @else
-                            <form method="POST" action="{{ route('production.outputs.shift-reports.receive', $r->report_id) }}" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-                                @csrf
-                                <select class="shift-report-receive-select" name="warehouse_location_id" required>
-                                    <option value="">انتخاب انبار</option>
-                                    @foreach($shiftWarehouses as $warehouse)
-                                        @if($received <= 0 || (int)$r->warehouse_location_id === (int)$warehouse->id)
-                                            <option value="{{ $warehouse->id }}" @selected((int)($r->warehouse_location_id ?? 0)===(int)$warehouse->id)>{{ $warehouse->name }}</option>
-                                        @endif
-                                    @endforeach
-                                </select>
-                                <button class="btn primary shift-report-receive-button" type="submit" onclick="return confirm('کل مقدار آماده‌شده را به موجودی انبار اضافه و تحویل را نهایی می‌کنید؟');">تأیید دریافت کامل</button>
-                            </form>
-                        @endif
-                    @elseif($r->status === 'approved' && $remaining > 0)
-                        <span style="color:#8198ac;font-size:11px">فقط برای کالای نهایی فعال است</span>
-                    @else
-                        <span style="color:#8198ac;font-size:11px">ثبت شده</span>
-                    @endif
-                </td>
+                <td style="white-space:normal">—</td>
             </tr>
         @empty
             <tr><td colspan="9" style="text-align:center;padding:24px;color:#8198ac">گزارش آماده تحویل یا تحویل ثبت‌شده‌ای وجود ندارد.</td></tr>
