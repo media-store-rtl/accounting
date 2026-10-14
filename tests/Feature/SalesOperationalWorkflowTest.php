@@ -69,6 +69,7 @@ class SalesOperationalWorkflowTest extends TestCase
         $this->postJson('/api/orders/'.$order.'/delivery-request',['scheduled_at'=>'2026-10-08 10:00:00','recipient_name'=>'Receiver','vehicle'=>'Truck 1'])->assertCreated()->assertJsonPath('data.status','awaiting_sales_approval');
         $delivery=DB::table('delivery_requests')->where('order_id',$order)->first();
         $this->get('/sales/orders')->assertOk()->assertSee('مجوز خروج');
+        $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertStatus(422);
         $this->postJson('/sales/delivery-requests/'.$delivery->id.'/sales-approve')->assertOk()->assertJsonPath('data.status','pending');
         $this->assertDatabaseHas('delivery_requests',['id'=>$delivery->id,'sales_approved_by_user_id'=>$c['user']]);
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertOk();
