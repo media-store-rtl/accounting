@@ -17,7 +17,7 @@
 @endpush
 
 @section('content')
-<div class="page-heading"><div><h1>تحویل و ارسال</h1><p>ثبت درخواست تحویل، مدیریت خروج سفارش از انبار و ثبت رسید تحویل به مشتری</p></div><a class="btn" href="{{ route('sales.orders.index') }}">مشاهده سفارش‌های فروش</a></div>
+<div class="page-heading"><div><h1>تحویل و ارسال</h1><p>ثبت درخواست تحویل، مدیریت خروج سفارش از انبار و ثبت رسید تحویل به مشتری</p></div></div>
 
 @if($canCreateDeliveryRequest)
 <div class="panel" style="margin-bottom:16px">
