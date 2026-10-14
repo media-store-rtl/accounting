@@ -31,8 +31,7 @@ final class CostingReportController extends Controller
         if($request->expectsJson()) return response()->json(['data'=>$report]);
 
         $fiscalYears=DB::table('fiscal_years')->where('company_id',$companyId)->orderByDesc('id')->get();
-        $orders=DB::table('orders')->where('company_id',$companyId)->orderByDesc('id')->get(['id','number']);
         $goods=DB::table('goods')->where('company_id',$companyId)->where('is_active',true)->orderBy('name')->get(['id','code','name']);
-        return view('reports.costing',compact('report','fiscalYears','orders','goods'));
+        return view('reports.costing',compact('report','fiscalYears','goods'));
     }
 }
