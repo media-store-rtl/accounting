@@ -155,6 +155,9 @@ final class ProductionShiftReportController extends Controller
             if ($materialId === 0 || $materialQuantity === null || $materialQuantity === '') {
                 throw ValidationException::withMessages(['materials' => 'برای هر ماده اولیه، هم انتخاب ماده و هم مقدار مصرف را وارد کنید.']);
             }
+            if ($materialId === (int) $data['goods_id']) {
+                throw ValidationException::withMessages(['materials' => 'محصول تولیدی نمی‌تواند به‌عنوان ماده اولیه مصرفی همین گزارش انتخاب شود.']);
+            }
             $validMaterial = DB::table('goods')->where('id', $materialId)->where('company_id', $companyId)
                 ->where('is_active', true)->where('producible', true)->exists();
             if (!$validMaterial) throw ValidationException::withMessages(['materials' => 'یکی از مواد اولیه انتخاب‌شده معتبر نیست.']);
@@ -302,6 +305,9 @@ final class ProductionShiftReportController extends Controller
             if ($materialId === 0 && ($quantity === null || $quantity === '')) continue;
             if ($materialId === 0 || $quantity === null || $quantity === '') {
                 throw ValidationException::withMessages(['materials' => 'برای هر ماده اولیه، هم ماده و هم مقدار مصرف را مشخص کنید.']);
+            }
+            if ($materialId === (int) $data['goods_id']) {
+                throw ValidationException::withMessages(['materials' => 'محصول تولیدی نمی‌تواند به‌عنوان ماده اولیه مصرفی همین گزارش انتخاب شود.']);
             }
             $validMaterial = DB::table('goods')->where('id', $materialId)->where('company_id', $companyId)
                 ->where('is_active', true)->where('producible', true)->exists();
