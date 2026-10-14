@@ -41,11 +41,11 @@ final class ProductionOutputController extends Controller
     }
 
 
-    public function receiveShiftReport(Request $request, int $report, InventoryService $inventory)
+    public function receiveShiftReport(Request $request, int $report, InventoryService $inventory, ProductionOutputService $productionOutputService)
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.output.receive');
         $data = $request->validate(['warehouse_location_id' => ['required', 'integer']]);
-        DB::transaction(function () use ($companyId, $report, $data, $request, $inventory) {
+        DB::transaction(function () use ($companyId, $report, $data, $request, $inventory, $productionOutputService) {
             $row = DB::table('production_shift_reports')->where('company_id', $companyId)->where('id', $report)->lockForUpdate()->first();
             if (!$row || $row->status !== 'approved') {
                 throw \Illuminate\Validation\ValidationException::withMessages(['report' => 'این گزارش آماده دریافت نیست یا قبلاً تحویل کامل شده است.']);
@@ -77,6 +77,9 @@ final class ProductionOutputController extends Controller
                 'warehouse_location_id' => (int) $data['warehouse_location_id'], 'warehouse_quantity' => $available,
                 'status' => 'received', 'warehouse_received_at' => now(), 'updated_at' => now(),
             ]);
+            // Shift-report receipts use this controller path rather than ProductionOutputService::receive;
+            // refresh order allocations here as well so sales are notified when the final shortage clears.
+            $productionOutputService->refreshOrderShortagesAfterReceipt($companyId, (int) $row->goods_id, (int) $request->user()->id);
             DB::table('audit_trails')->insert([
                 'company_id' => $companyId, 'user_id' => (int) $request->user()->id, 'module' => 'production',
                 'action' => 'production_shift_report.warehouse_receive', 'auditable_type' => 'production_shift_reports', 'auditable_id' => $report,
