@@ -45,6 +45,9 @@ $statusLabels = [
                   <button class="btn primary" type="submit">مجوز خروج</button>
                 </form>
               @endif
+              @if($o->delivery_request_id && $o->delivery_request_status === 'pending')
+                <button class="btn primary" type="button" onclick="issueDelivery({{ $o->delivery_request_id }})">خروج از انبار</button>
+              @endif
               @if(in_array($o->status, ['checking_stock','production_required','awaiting_production','ready_for_delivery'], true))
                 <form method="POST" action="{{ route('sales.orders.cancel', $o->id) }}" style="display:inline" onsubmit="return confirm('آیا از لغو این سفارش مطمئن هستید؟');">@csrf
                   <button class="btn" type="submit" style="border-color:#8d3e3e;color:#ffb8b8">لغو سفارش</button>
@@ -61,6 +64,25 @@ $statusLabels = [
   <div class="pagination">{{ $orders->links() }}</div>
 </div>
 <script>
+async function issueDelivery(id) {
+  if (!confirm('خروج این سفارش از انبار ثبت شود؟')) return;
+  try {
+    const response = await fetch('/api/delivery-requests/' + id + '/issue', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+      },
+      body: JSON.stringify({})
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.message || 'ثبت خروج از انبار ناموفق بود');
+    location.reload();
+  } catch (error) {
+    alert(error.message || 'خطا در ثبت خروج از انبار');
+  }
+}
 document.querySelectorAll('.jalali-date').forEach((el) => {
   const raw = (el.getAttribute('datetime') || '').slice(0, 10);
   const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
