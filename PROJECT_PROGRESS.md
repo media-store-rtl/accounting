@@ -7,7 +7,7 @@
 - تست Feature: پوشش رد ویرایش بدون فیلد مواد و رد آرایه‌ای که فقط ردیف خالی دارد اضافه شد؛ مسیرهای ویرایش موفق موجود به ارسال ماده معتبر به‌روز شدند و متن الزام در صفحه بررسی می‌شود.
 - فایل‌ها: `app/Http/Controllers/ProductionShiftReportController.php`, `resources/views/production/shift-reports/show.blade.php`, `tests/Feature/ProductionShiftReportStagesTest.php`, `PROJECT_PROGRESS.md`.
 - تست محلی و مرورگر واقعی در این محیط اجرا نشده‌اند؛ CI پس از ایجاد PR باید بررسی شود. سایت زنده و Deploy بررسی نشده‌اند.
-- شاخه: `fix/require-materials-on-shift-report-edit-current`. PR هنوز ایجاد نشده؛ ادغام انجام نشده است.
+- شاخه: `fix/require-materials-on-shift-report-edit-current`. PR [#98](https://github.com/media-store-rtl/accounting/pull/98) باز و ادغام‌نشده است. CI هنوز نتیجه‌ای برای آخرین commit برنگردانده؛ تست محلی، سایت زنده و Deploy بررسی نشده‌اند.
 
 ---
 
