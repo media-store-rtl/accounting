@@ -5,6 +5,13 @@
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
 <style>
+.delivery-request-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:16px}
+.delivery-request-fields label{display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:0;font-size:13px!important;line-height:1.7;color:inherit}
+.delivery-request-fields input{box-sizing:border-box;width:100%;min-width:0;min-height:42px;margin-top:0!important;padding:9px 11px;border:1px solid #52677b;border-radius:8px;background:rgba(255,255,255,.04);color:inherit;font:inherit}
+.delivery-request-fields input:focus{outline:2px solid #60a5fa;outline-offset:1px;border-color:#60a5fa}
+.delivery-request-form>.btn{margin-top:18px!important}
+@media(max-width:900px){.delivery-request-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.delivery-request-fields{grid-template-columns:minmax(0,1fr);gap:12px}}
 @media(max-width:650px){.datepicker-container{position:fixed!important;top:50%!important;left:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)!important;z-index:10000!important;max-width:calc(100vw - 20px)!important}.datepicker-plot-area{max-width:calc(100vw - 20px)!important;box-sizing:border-box!important}}
 </style>
 @endpush
@@ -18,7 +25,7 @@
   @forelse($eligibleOrders as $order)
     <form class="delivery-request-form" data-order-id="{{ $order->id }}" style="padding:14px 0;border-top:1px solid #29465e">
       <strong>سفارش {{ $order->number }}</strong> — {{ $order->customer_name }}
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:12px">
+      <div class="delivery-request-fields">
         <label style="font-size:11px">تاریخ برنامه‌ریزی‌شده تحویل
           <input id="scheduled_date_picker_{{ $order->id }}" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" required style="display:block;width:100%;margin-top:5px">
           <input id="scheduled_date_iso_{{ $order->id }}" type="hidden">
