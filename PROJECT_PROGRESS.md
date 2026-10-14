@@ -6,7 +6,7 @@
 - تست Feature: درخواست ثبت بدون مواد و با ردیف خالی باید خطا بگیرد؛ ثبت موفق ماده معتبر جدا از محصول را ذخیره می‌کند؛ تست‌های موجود تکرار محصول در مواد را برای ثبت و ویرایش بررسی می‌کنند.
 - فایل‌ها: `app/Http/Controllers/ProductionShiftReportController.php`, `resources/views/production/shift-reports/create.blade.php`, `tests/Feature/ProductionShiftReportStagesTest.php`, `PROJECT_PROGRESS.md`.
 - Migration لازم نیست؛ داده‌های تاریخی و موجودی انبار تغییر نمی‌کنند. تست محلی و مرورگر واقعی در این محیط اجرا نشده‌اند؛ CI باید بررسی شود. سایت زنده و Deploy تأیید نشده‌اند.
-- شاخه: `fix/required-distinct-shift-materials`. وضعیت: تغییرات آماده بررسی و PR پس از ثبت تغییرات باز می‌شود؛ ادغام نشده است.
+- شاخه: `fix/required-distinct-shift-materials`. وضعیت: PR [#101](https://github.com/media-store-rtl/accounting/pull/101) باز و ادغام‌نشده است؛ CI در حال اجراست.
 
 ---
 
