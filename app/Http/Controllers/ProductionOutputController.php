@@ -13,6 +13,7 @@ final class ProductionOutputController extends Controller
     public function index(Request $request)
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.output.view');
+        $canReceiveShiftReports = $request->user()->hasCompanyPermission($companyId, 'production.output.receive');
         $rows = DB::table('production_outputs as po')
             ->join('productions as p','p.id','=','po.production_id')
             ->join('goods as g','g.id','=','po.goods_id')
@@ -32,12 +33,13 @@ final class ProductionOutputController extends Controller
             ->where('r.company_id', $companyId)->whereIn('r.status', ['approved', 'received'])->where('g.sellable', true)
             ->select('r.id as report_id', 'r.work_date', 'r.status', 'r.produced_quantity', 'r.scrap_quantity',
                 'r.warehouse_quantity as quantity', 'r.warehouse_location_id', 'r.reviewed_by_user_id',
-                'g.name as goods_name', 'section_location.name as section_name', 'l.name as location_name')
+                'g.name as goods_name', 'g.producible as goods_producible',
+                'section_location.name as section_name', 'l.name as location_name')
             ->latest('r.reviewed_at')->latest('r.id')->paginate(20, ['*'], 'shift_page');
         $shiftWarehouses = DB::table('locations')->where('company_id', $companyId)->where('is_active', true)
             ->where(function ($query) { $query->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])->orWhereIn(DB::raw('TRIM(type)'), ['مواد', 'محصول', 'ضایعات']); })
             ->orderBy('name')->get(['id', 'name']);
-        return view('production.outputs.index', compact('rows', 'shiftRows', 'shiftWarehouses'));
+        return view('production.outputs.index', compact('rows', 'shiftRows', 'shiftWarehouses', 'canReceiveShiftReports'));
     }
 
 
@@ -127,7 +129,7 @@ final class ProductionOutputController extends Controller
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.output.confirm');
         $data = $request->validate(['rejection_reason'=>['required','string','max:1000']]);
-        $service->reject($companyId,$output,(int)$request->user()->id,$data['rejection_reason']);
+        $service->reject($companyId,$output,(int)$request->user()->id,$data['rejection_reason']??null);
         return back()->with('success','خروجی تولید رد شد.');
     }
 

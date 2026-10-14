@@ -39,8 +39,10 @@
                 <td>{{ $r->location_name ?? '—' }}</td>
                 <td><span class="status {{ $r->status === 'received' ? 'active' : 'inactive' }}">{{ $r->status === 'received' ? 'تحویل کامل' : 'آماده تحویل' }}</span></td>
                 <td style="white-space:normal;min-width:170px">
-                    @if($r->status === 'approved' && $remaining > 0)
-                        @if($shiftWarehouses->isEmpty())
+                    @if($r->status === 'approved' && $remaining > 0 && (bool) $r->goods_producible)
+                        @if(!$canReceiveShiftReports)
+                            <span style="color:#8198ac;font-size:11px">فقط کاربر دارای مجوز دریافت انبار</span>
+                        @elseif($shiftWarehouses->isEmpty())
                             <span style="color:#ffb8a8;font-size:11px">انبار فعالی موجود نیست</span>
                         @else
                             <form method="POST" action="{{ route('production.outputs.shift-reports.receive', $r->report_id) }}" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -56,6 +58,8 @@
                                 <button class="btn primary shift-report-receive-button" type="submit" onclick="return confirm('کل مقدار آماده‌شده را به موجودی انبار اضافه و تحویل را نهایی می‌کنید؟');">تأیید دریافت کامل</button>
                             </form>
                         @endif
+                    @elseif($r->status === 'approved' && $remaining > 0)
+                        <span style="color:#8198ac;font-size:11px">فقط برای کالای نهایی فعال است</span>
                     @else
                         <span style="color:#8198ac;font-size:11px">ثبت شده</span>
                     @endif
