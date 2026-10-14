@@ -14,13 +14,47 @@ final class ProductionOutputController extends Controller
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.output.view');
         $canReceiveShiftReports = $request->user()->hasCompanyPermission($companyId, 'production.output.receive');
-        $rows = DB::table('production_outputs as po')
-            ->join('productions as p','p.id','=','po.production_id')
-            ->join('goods as g','g.id','=','po.goods_id')
-            ->join('locations as l','l.id','=','po.warehouse_location_id')
-            ->where('po.company_id',$companyId)
-            ->select('po.*','p.number as production_number','g.name as goods_name','l.name as location_name')
-            ->latest('po.id')->paginate(20);
+        $outputRows = DB::table('production_outputs as po')
+            ->join('productions as p', 'p.id', '=', 'po.production_id')
+            ->join('goods as g', 'g.id', '=', 'po.goods_id')
+            ->join('locations as l', 'l.id', '=', 'po.warehouse_location_id')
+            ->where('po.company_id', $companyId)
+            ->select(
+                'po.id',
+                'p.number as production_number',
+                'g.name as goods_name',
+                'po.quantity',
+                'po.status',
+                'l.name as location_name',
+                'po.created_at as sort_at',
+                DB::raw("'production_output' as source_type")
+            );
+
+        // A shift report explicitly marked as a finished-product handover is also
+        // a production output for this overview. Listing it here does not post stock;
+        // inventory is still changed only by the warehouse receipt action below.
+        $finishedShiftRows = DB::table('production_shift_reports as r')
+            ->join('goods as g', 'g.id', '=', 'r.goods_id')
+            ->leftJoin('locations as l', 'l.id', '=', 'r.warehouse_location_id')
+            ->where('r.company_id', $companyId)
+            ->whereIn('r.status', ['approved', 'received'])
+            ->where('r.warehouse_receipt_requested', true)
+            ->where('g.producible', true)
+            ->where('g.sellable', true)
+            ->select(
+                'r.id',
+                DB::raw('NULL as production_number'),
+                'g.name as goods_name',
+                DB::raw('CASE WHEN r.produced_quantity > COALESCE(r.scrap_quantity, 0) THEN r.produced_quantity - COALESCE(r.scrap_quantity, 0) ELSE 0 END as quantity'),
+                DB::raw("CASE WHEN r.status = 'approved' THEN 'confirmed' ELSE 'received' END as status"),
+                'l.name as location_name',
+                'r.reviewed_at as sort_at',
+                DB::raw("'shift_report' as source_type")
+            );
+
+        $combinedOutputRows = $outputRows->unionAll($finishedShiftRows);
+        $rows = DB::query()->fromSub($combinedOutputRows, 'production_output_rows')
+            ->orderByDesc('sort_at')->orderByDesc('id')->paginate(20);
 
         // Include approved/received shift reports in the report regardless of whether
         // warehouse receipt was requested. The receipt controls themselves are shown
