@@ -21,23 +21,29 @@ final class ProductionOutputController extends Controller
             ->select('po.*','p.number as production_number','g.name as goods_name','l.name as location_name')
             ->latest('po.id')->paginate(20);
 
-        // Include quantities received directly from production shift reports.
-        // These are already posted to inventory, so they are displayed separately
-        // and must not be processed again through production_outputs.
-        $shiftRows = DB::table('production_shift_reports as r')
-            ->join('goods as g', 'g.id', '=', 'r.goods_id')
-            ->leftJoin('production_sections as s', 's.id', '=', 'r.production_section_id')
-            ->leftJoin('locations as section_location', 'section_location.id', '=', 's.location_id')
-            ->leftJoin('locations as l', 'l.id', '=', 'r.warehouse_location_id')
-            ->where('r.company_id', $companyId)->whereIn('r.status', ['approved', 'received'])->where('g.sellable', true)
-            ->select('r.id as report_id', 'r.work_date', 'r.status', 'r.produced_quantity', 'r.scrap_quantity',
-                'r.warehouse_quantity as quantity', 'r.warehouse_location_id', 'r.reviewed_by_user_id',
-                'g.name as goods_name', 'section_location.name as section_name', 'l.name as location_name')
-            ->latest('r.reviewed_at')->latest('r.id')->paginate(20, ['*'], 'shift_page');
-        $shiftWarehouses = DB::table('locations')->where('company_id', $companyId)->where('is_active', true)
-            ->where(function ($query) { $query->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])->orWhereIn(DB::raw('TRIM(type)'), ['مواد', 'محصول', 'ضایعات']); })
-            ->orderBy('name')->get(['id', 'name']);
-        return view('production.outputs.index', compact('rows', 'shiftRows', 'shiftWarehouses'));
+        // Warehouse receipt work is only visible to users who may perform it.
+        // Do not expose the shift-receipt queue to production supervisors who only review reports.
+        $canReceiveShiftReports = $request->user()->hasCompanyPermission($companyId, 'production.output.receive');
+        if ($canReceiveShiftReports) {
+            // These quantities are already posted to inventory and must not be processed again.
+            $shiftRows = DB::table('production_shift_reports as r')
+                ->join('goods as g', 'g.id', '=', 'r.goods_id')
+                ->leftJoin('production_sections as s', 's.id', '=', 'r.production_section_id')
+                ->leftJoin('locations as section_location', 'section_location.id', '=', 's.location_id')
+                ->leftJoin('locations as l', 'l.id', '=', 'r.warehouse_location_id')
+                ->where('r.company_id', $companyId)->whereIn('r.status', ['approved', 'received'])->where('g.sellable', true)
+                ->select('r.id as report_id', 'r.work_date', 'r.status', 'r.produced_quantity', 'r.scrap_quantity',
+                    'r.warehouse_quantity as quantity', 'r.warehouse_location_id', 'r.reviewed_by_user_id',
+                    'g.name as goods_name', 'section_location.name as section_name', 'l.name as location_name')
+                ->latest('r.reviewed_at')->latest('r.id')->paginate(20, ['*'], 'shift_page');
+            $shiftWarehouses = DB::table('locations')->where('company_id', $companyId)->where('is_active', true)
+                ->where(function ($query) { $query->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])->orWhereIn(DB::raw('TRIM(type)'), ['مواد', 'محصول', 'ضایعات']); })
+                ->orderBy('name')->get(['id', 'name']);
+        } else {
+            $shiftRows = collect();
+            $shiftWarehouses = collect();
+        }
+        return view('production.outputs.index', compact('rows', 'shiftRows', 'shiftWarehouses', 'canReceiveShiftReports'));
     }
 
 
