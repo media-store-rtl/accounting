@@ -181,6 +181,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/personnel', [PersonnelController::class, 'store'])->middleware(['company.permission:personnel.create', 'account.owner'])->name('personnel.store');
         Route::get('/personnel/{personnel}/labor-rates', [PersonnelController::class, 'laborRates'])->middleware('company.permission:production.labor.rate.manage')->name('personnel.labor-rates');
         Route::post('/personnel/{personnel}/labor-rates', [PersonnelController::class, 'storeLaborRate'])->middleware('company.permission:production.labor.rate.manage')->name('personnel.labor-rates.store');
+        Route::get('/personnel/{personnel}/labor-rates/{rate}/edit', [PersonnelController::class, 'editLaborRate'])->whereNumber('rate')->middleware('company.permission:production.labor.rate.manage')->name('personnel.labor-rates.edit');
+        Route::put('/personnel/{personnel}/labor-rates/{rate}', [PersonnelController::class, 'updateLaborRate'])->whereNumber('rate')->middleware('company.permission:production.labor.rate.manage')->name('personnel.labor-rates.update');
         Route::get('/personnel/{personnel}/edit', [PersonnelController::class, 'edit'])->middleware('company.permission:personnel.update')->name('personnel.edit');
         Route::put('/personnel/{personnel}', [PersonnelController::class, 'update'])->middleware('company.permission:personnel.update')->name('personnel.update');
         Route::post('/personnel/{personnel}/deactivate', [PersonnelController::class, 'deactivate'])->middleware('company.permission:personnel.deactivate')->name('personnel.deactivate');
