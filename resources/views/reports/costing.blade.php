@@ -6,7 +6,7 @@
 <style>
 .costing-filters,.costing-panel,.costing-card{background:#0a1b2b;border:1px solid #1b354b;border-radius:17px;padding:18px}
 .costing-filters{margin-bottom:16px}
-.costing-filters form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.costing-filters form{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
 .costing-filters label{display:block;color:#7890a5;font-size:10px;margin-bottom:6px}
 .costing-filters select,.costing-filters button{width:100%;background:#0d2235;color:#dcebf6;border:1px solid #29465e;border-radius:10px;padding:10px;font-family:inherit;font-size:11px}
 .costing-filters button{cursor:pointer;background:#153b52}
@@ -29,6 +29,9 @@
   <form method="GET" action="{{ route('reports.costing') }}">
     <div><label for="costing-fiscal-year">سال مالی</label><select id="costing-fiscal-year" name="fiscal_year_id"><option value="">همه</option>@foreach($fiscalYears as $fy)<option value="{{ $fy->id }}" @selected((int)request('fiscal_year_id')===(int)$fy->id)>{{ $fy->name }}</option>@endforeach</select></div>
     <div><label for="costing-goods">محصول / کالا</label><select id="costing-goods" name="goods_id"><option value="">همه</option>@foreach($goods as $good)<option value="{{ $good->id }}" @selected((int)request('goods_id')===(int)$good->id)>{{ $good->code }} — {{ $good->name }}</option>@endforeach</select></div>
+    <div><label for="costing-start-date">از تاریخ</label><input id="costing-start-date" type="date" name="start_date" value="{{ request('start_date') }}" style="width:100%;background:#0d2235;color:#dcebf6;border:1px solid #29465e;border-radius:10px;padding:10px;font-family:inherit;font-size:11px"></div>
+    <div><label for="costing-end-date">تا تاریخ</label><input id="costing-end-date" type="date" name="end_date" value="{{ request('end_date') }}" style="width:100%;background:#0d2235;color:#dcebf6;border:1px solid #29465e;border-radius:10px;padding:10px;font-family:inherit;font-size:11px"></div>
+    <div><label for="costing-personnel">کارگر</label><select id="costing-personnel" name="personnel_id"><option value="">همه کارگران</option>@foreach($personnel as $worker)<option value="{{ $worker->id }}" @selected((int)request('personnel_id')===(int)$worker->id)>{{ $worker->code }} — {{ $worker->name }}</option>@endforeach</select></div>
     <div style="display:flex;align-items:end"><button type="submit">نمایش گزارش</button></div>
   </form>
 </div>
@@ -76,7 +79,7 @@
       </table>
     @endif
   </div>
-  <p style="font-size:10px;color:#91a6b9;margin:12px 0 0">هزینه دستمزد در این جدول بر اساس کارگر و نرخ معتبر در تاریخ کار محاسبه شده است. مواد، ضایعات و هزینه‌های خرید در بخش تجمیعی محصول نمایش داده می‌شوند، چون در داده فعلی به شماره گزارش تحویل انبار وصل نشده‌اند.</p>
+  <p style="font-size:10px;color:#91a6b9;margin:12px 0 0">هزینه دستمزد گزارش بر اساس کارگر و نرخ معتبر در تاریخ کار محاسبه می‌شود. با انتخاب کارگر، تعداد تولید و دستمزد به گزارش‌های همان کارگر محدود می‌شود؛ مواد، ضایعات و هزینه‌های خرید فعلاً در سطح محصول قابل ردیابی‌اند و به کارگر مشخصی وصل نیستند. فی تمام‌شده از تقسیم جمع هزینه‌های محصول در بازه انتخابی بر تعداد تولید تحویل‌شده در همان بازه به دست می‌آید.</p>
 </div>
 
 <div class="costing-panel">
@@ -86,10 +89,10 @@
       <div class="costing-empty">برای فیلتر انتخاب‌شده داده هزینه‌ای ثبت نشده است.</div>
     @else
       <table class="costing-table">
-        <thead><tr><th>محصول</th><th>مواد</th><th>دستمزد</th><th>ضایعات</th><th>جمع</th><th>روش</th><th>مصرف بدون ارزش‌گذاری</th></tr></thead>
+        <thead><tr><th>محصول</th><th>تعداد تولیدشده</th><th>مواد</th><th>دستمزد</th><th>ضایعات</th><th>هزینه مستقیم</th><th>جمع بهای تمام‌شده</th><th>فی تمام‌شده هر عدد</th><th>روش</th><th>مصرف بدون ارزش‌گذاری</th></tr></thead>
         <tbody>
         @foreach($report['product_rows'] as $row)
-          <tr><td>{{ $row['goods_code'] }} — {{ $row['goods_name'] }}</td><td>{{ number_format($row['material_cost'],4) }}</td><td>{{ number_format($row['labor_cost'],4) }}</td><td>{{ number_format($row['scrap_cost'],4) }}</td><td><strong>{{ number_format($row['total_cost'],4) }}</strong></td><td>{{ implode('، ',$row['valuation_methods']) ?: '—' }}</td><td>{{ number_format($row['unvalued_material_quantity'],4) }}</td></tr>
+          <tr><td>{{ $row['goods_code'] }} — {{ $row['goods_name'] }}</td><td>{{ number_format($row['produced_quantity'] ?? 0,4) }}</td><td>{{ number_format($row['material_cost'],4) }}</td><td>{{ number_format($row['labor_cost'],4) }}</td><td>{{ number_format($row['scrap_cost'],4) }}</td><td>{{ number_format($row['direct_cost'],4) }}</td><td><strong>{{ number_format($row['total_cost'],4) }}</strong></td><td><strong>{{ isset($row['unit_cost']) && $row['unit_cost'] !== null ? number_format($row['unit_cost'],4) : '—' }}</strong></td><td>{{ implode('، ',$row['valuation_methods']) ?: '—' }}</td><td>{{ number_format($row['unvalued_material_quantity'],4) }}</td></tr>
         @endforeach
         </tbody>
       </table>
