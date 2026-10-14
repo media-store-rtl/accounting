@@ -94,35 +94,7 @@ $fulfillmentLabels = [
   </div>
 </div>
 
-<div class="panel">
-  <div class="order-forms">
-    @if($row->status === 'ready_for_delivery')
-      <form class="order-form" onsubmit="requestDelivery(event)">
-        <h3>درخواست تحویل سفارش</h3>
-        <label for="scheduled_date_picker">تاریخ برنامه‌ریزی‌شده تحویل</label>
-        <input id="scheduled_date_picker" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" required>
-        <input id="scheduled_date_iso" type="hidden">
-        <label for="scheduled_time">ساعت برنامه‌ریزی‌شده تحویل</label>
-        <input id="scheduled_time" type="time" required>
-        <label for="recipient">شخص تحویل‌گیرنده</label>
-        <input id="recipient" placeholder="نام شخص تحویل‌گیرنده" required>
-        <label for="vehicle">وسیله حمل</label>
-        <input id="vehicle" placeholder="وسیله حمل (اختیاری)">
-        <button class="btn primary" type="submit">ثبت درخواست تحویل</button>
-      </form>
-    @endif
-  </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
-<script type="module">
-import { setupProductionReportDatePicker } from '/js/production-report-date-filters.js';
-document.addEventListener('DOMContentLoaded', function () {
-  setupProductionReportDatePicker('#scheduled_date_picker', '#scheduled_date_iso');
-});
-</script>
 <script>
 const token = '{{ csrf_token() }}';
 document.querySelectorAll('.jalali-date').forEach((el) => {
@@ -146,17 +118,6 @@ async function call(url, data = {}) {
 async function refreshOrder() {
   try {
     await call('{{ route('sales.orders.refresh', $row->id) }}');
-    location.reload();
-  } catch (error) { alert(error.message); }
-}
-async function requestDelivery(event) {
-  event.preventDefault();
-  try {
-    await call('{{ route('sales.orders.delivery-request', $row->id) }}', {
-      scheduled_at:document.getElementById('scheduled_date_iso').value + 'T' + document.getElementById('scheduled_time').value,
-      recipient_name:document.getElementById('recipient').value,
-      vehicle:document.getElementById('vehicle').value
-    });
     location.reload();
   } catch (error) { alert(error.message); }
 }
