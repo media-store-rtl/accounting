@@ -180,6 +180,11 @@ class SalesOperationalWorkflowTest extends TestCase
             $data = $notification->toArray($salesUser);
             return $data['event'] === 'order.ready_for_delivery' && (int) $data['order_id'] === (int) $orderId;
         });
+
+        $this->postJson('/api/orders/'.$orderId.'/refresh')->assertOk()->assertJsonPath('data.status', 'ready_for_delivery');
+        $readyNotifications = Notification::sent($salesUser, \App\Notifications\WorkflowNotification::class)
+            ->filter(fn ($notification) => $notification->toArray($salesUser)['event'] === 'order.ready_for_delivery');
+        $this->assertCount(1, $readyNotifications, 'Refreshing an already-ready order must not send a duplicate ready notification.');
     }
 
     public function test_sales_pages_are_user_facing_and_server_authorized(): void
