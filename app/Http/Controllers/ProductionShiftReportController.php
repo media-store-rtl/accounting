@@ -403,6 +403,13 @@ final class ProductionShiftReportController extends Controller
             if (!$row || $row->status !== 'pending') throw ValidationException::withMessages(['report' => 'این گزارش دیگر در انتظار بررسی نیست.']);
 
             if ((bool) $data['approve']) {
+                $materialCount = DB::table('production_shift_report_materials')
+                    ->where('company_id', $companyId)->where('production_shift_report_id', $report)
+                    ->whereNotNull('goods_id')->where('quantity', '>', 0)->count();
+                if ($materialCount < 1) {
+                    throw ValidationException::withMessages(['materials' => 'تأیید گزارش بدون حداقل یک ماده اولیه با مقدار مصرف معتبر امکان‌پذیر نیست؛ گزارش باید اصلاح شود.']);
+                }
+
                 $goods = DB::table('goods')->where('company_id', $companyId)->where('id', $row->goods_id)->first(['producible']);
                 if (!$goods || !(bool) $goods->producible) {
                     throw ValidationException::withMessages(['report' => 'کالای این گزارش معتبر نیست یا به‌عنوان کالای تولیدشدنی تعریف نشده است.']);
