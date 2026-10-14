@@ -49,7 +49,7 @@
                                 @if($p->user)
                                     <a class="btn" href="{{ route('users.edit', $p->user) }}">ویرایش کاربر</a>
                                 @endif
-                                @if(auth()->user()->hasCompanyPermission((int) session('active_company_id'), 'production.labor.rate.manage'))
+                                @if(auth()->user()->hasCompanyPermission((int) session('company_id'), 'production.labor.rate.manage'))
                                     <a class="btn" href="{{ route('personnel.labor-rates', $p) }}">دستمزد</a>
                                 @endif
                                 @if($p->is_active)
