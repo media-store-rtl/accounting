@@ -215,6 +215,12 @@ class SalesOperationalWorkflowTest extends TestCase
             'items' => [['goods_id' => $c['goods'], 'quantity' => 4]],
         ])->assertCreated()->assertJsonPath('data.status', 'production_required')->json('data.id');
 
+        DB::table('orders')->where('id', $orderId)->update([
+            'production_due_at' => '2026-10-30',
+            'status' => 'awaiting_production',
+            'updated_at' => now(),
+        ]);
+
         $sectionLocation = DB::table('locations')->insertGetId([
             'company_id' => $c['company'], 'code' => 'SHIFT-SEC-'.uniqid(), 'name' => 'Production Section',
             'type' => 'production', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
