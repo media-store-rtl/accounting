@@ -27,7 +27,28 @@ class DeliveryController extends Controller
             )
             ->latest('d.id')->paginate(20);
 
-        return view('sales.deliveries.index',compact('deliveries'));
+        $eligibleOrders = DB::table('orders as o')
+            ->join('customers as c','c.id','=','o.customer_id')
+            ->where('o.company_id',$companyId)
+            ->where('o.status','ready_for_delivery')
+            ->whereNotExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('delivery_requests as d')
+                    ->whereColumn('d.order_id','o.id');
+            })
+            ->select('o.id','o.number','c.name as customer_name')
+            ->latest('o.id')->get();
+
+        $canCreateDeliveryRequest = DB::table('company_user as cu')
+            ->join('role_permissions as rp','rp.role_id','=','cu.role_id')
+            ->join('permissions as p','p.id','=','rp.permission_id')
+            ->where('cu.company_id',$companyId)
+            ->where('cu.user_id',$request->user()->id)
+            ->where('cu.is_active',true)
+            ->where('p.slug','delivery_request.create')
+            ->exists();
+
+        return view('sales.deliveries.index',compact('deliveries','eligibleOrders','canCreateDeliveryRequest'));
     }
 
     public function receipt(Request $request,int $delivery): \Illuminate\Http\JsonResponse

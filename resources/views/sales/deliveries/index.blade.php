@@ -2,9 +2,46 @@
 
 @section('title', 'تحویل و ارسال')
 
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
+<style>
+@media(max-width:650px){.datepicker-container{position:fixed!important;top:50%!important;left:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)!important;z-index:10000!important;max-width:calc(100vw - 20px)!important}.datepicker-plot-area{max-width:calc(100vw - 20px)!important;box-sizing:border-box!important}}
+</style>
+@endpush
+
 @section('content')
-<div class="page-heading"><div><h1>تحویل و ارسال</h1><p>مدیریت خروج سفارش از انبار و ثبت رسید تحویل به مشتری</p></div><a class="btn" href="{{ route('sales.orders.index') }}">مشاهده سفارش‌های فروش</a></div>
-<div class="panel"><div class="table-wrap"><table><thead><tr><th>سفارش</th><th>مشتری</th><th>زمان تحویل</th><th>وضعیت</th><th>راننده / خودرو</th><th>عملیات</th></tr></thead><tbody>
+<div class="page-heading"><div><h1>تحویل و ارسال</h1><p>ثبت درخواست تحویل، مدیریت خروج سفارش از انبار و ثبت رسید تحویل به مشتری</p></div><a class="btn" href="{{ route('sales.orders.index') }}">مشاهده سفارش‌های فروش</a></div>
+
+@if($canCreateDeliveryRequest)
+<div class="panel" style="margin-bottom:16px">
+  <h2 style="font-size:14px;margin:0 0 14px">سفارش‌های آماده ثبت درخواست تحویل</h2>
+  @forelse($eligibleOrders as $order)
+    <form class="delivery-request-form" data-order-id="{{ $order->id }}" style="padding:14px 0;border-top:1px solid #29465e">
+      <strong>سفارش {{ $order->number }}</strong> — {{ $order->customer_name }}
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:12px">
+        <label style="font-size:11px">تاریخ برنامه‌ریزی‌شده تحویل
+          <input id="scheduled_date_picker_{{ $order->id }}" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" required style="display:block;width:100%;margin-top:5px">
+          <input id="scheduled_date_iso_{{ $order->id }}" type="hidden">
+        </label>
+        <label style="font-size:11px">ساعت برنامه‌ریزی‌شده تحویل
+          <input name="scheduled_time" type="time" required style="display:block;width:100%;margin-top:5px">
+        </label>
+        <label style="font-size:11px">شخص تحویل‌گیرنده
+          <input name="recipient_name" required maxlength="255" placeholder="نام تحویل‌گیرنده" style="display:block;width:100%;margin-top:5px">
+        </label>
+        <label style="font-size:11px">وسیله حمل
+          <input name="vehicle" maxlength="255" placeholder="اختیاری" style="display:block;width:100%;margin-top:5px">
+        </label>
+      </div>
+      <button class="btn primary" type="submit" style="margin-top:12px">ثبت درخواست تحویل</button>
+    </form>
+  @empty
+    <p style="color:#71879d;margin:0">سفارش آماده‌ای که هنوز درخواست تحویل نداشته باشد، وجود ندارد.</p>
+  @endforelse
+</div>
+@endif
+
+<div class="panel"><h2 style="font-size:14px;margin:0 0 14px">درخواست‌های ثبت‌شده</h2><div class="table-wrap"><table><thead><tr><th>سفارش</th><th>مشتری</th><th>زمان تحویل</th><th>وضعیت</th><th>راننده / خودرو</th><th>عملیات</th></tr></thead><tbody>
 @forelse($deliveries as $d)
 <tr>
 <td>{{ $d->order_number }}</td><td>{{ $d->customer_name }}</td><td>{{ $d->scheduled_at }}</td>
@@ -63,8 +100,36 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+<script type="module">
+import { setupProductionReportDatePicker } from '/js/production-report-date-filters.js';
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.delivery-request-form').forEach(form => {
+    const id = form.dataset.orderId;
+    setupProductionReportDatePicker('#scheduled_date_picker_' + id, '#scheduled_date_iso_' + id);
+  });
+});
+</script>
 <script>
 const token='{{ csrf_token() }}';
+document.querySelectorAll('.delivery-request-form').forEach(form=>form.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const submit=form.querySelector('button[type="submit"]');
+  const data=new FormData(form);
+  const date=form.querySelector('[id^="scheduled_date_iso_"]').value,time=data.get('scheduled_time');
+  if(!date||!time){alert('تاریخ و ساعت تحویل را وارد کنید.');return}
+  submit.disabled=true;submit.textContent='در حال ثبت…';
+  try{
+    await post('/api/orders/'+form.dataset.orderId+'/delivery-request',{
+      scheduled_at:date+'T'+time,
+      recipient_name:String(data.get('recipient_name')||'').trim(),
+      vehicle:String(data.get('vehicle')||'').trim()||null
+    });
+    location.reload();
+  }catch(e){alert(e.message);submit.disabled=false;submit.textContent='ثبت درخواست تحویل'}
+}));
 async function post(url,data={}){const r=await fetch(url,{method:'POST',headers:{'Accept':'application/json','Content-Type':'application/json','X-CSRF-TOKEN':token},body:JSON.stringify(data)});const j=await r.json();if(!r.ok){const first=j.errors?Object.values(j.errors).flat()[0]:null;throw Error(first||j.message||'خطا در ثبت اطلاعات')}return j}
 async function issue(id){if(!confirm('خروج این سفارش از انبار ثبت شود؟'))return;try{await post('/api/delivery-requests/'+id+'/issue');location.reload()}catch(e){alert(e.message)}}
 const modal=document.getElementById('handoverModal');
