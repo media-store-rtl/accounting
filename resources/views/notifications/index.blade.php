@@ -199,7 +199,7 @@
                                         @elseif($k === 'location_id')
                                             {{ $locationName ?: 'انبار ثبت‌شده' }}
                                         @elseif($k === 'work_date' && is_scalar($v) && $v !== '')
-                                            <time class="notification-jalali-date" datetime="{{ \\Illuminate\\Support\\Carbon::parse($v)->toIso8601String() }}">{{ \\Illuminate\\Support\\Carbon::parse($v)->format('Y/m/d') }}</time>
+                                            <time class="notification-jalali-date" datetime="{{ \Illuminate\Support\Carbon::parse($v)->toIso8601String() }}">{{ \Illuminate\Support\Carbon::parse($v)->format('Y/m/d') }}</time>
                                         @elseif($k === 'production_due_at' && is_scalar($v) && $v !== '')
                                             <time class="notification-jalali-datetime" datetime="{{ \Illuminate\Support\Carbon::parse($v)->toIso8601String() }}">{{ \Illuminate\Support\Carbon::parse($v)->format('Y/m/d H:i') }}</time>
                                         @elseif(is_numeric($v) && in_array($k, ['purchase_total_amount', 'direct_cost_total'], true))
