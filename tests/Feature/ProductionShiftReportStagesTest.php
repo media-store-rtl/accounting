@@ -299,7 +299,7 @@ class ProductionShiftReportStagesTest extends TestCase
         $this->get(route('production.shift-reports.show', $reportId))
             ->assertOk()
             ->assertSee('تأیید گزارش')
-            ->assertSee('تأیید گزارش فقط وضعیت آن را تغییر می‌دهد');
+            ->assertSee('این انتخاب موجودی را تغییر نمی‌دهد');
 
         $this->post(route('production.shift-reports.review', $reportId), [
             'approve' => '1',
