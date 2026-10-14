@@ -26,15 +26,36 @@ class NotificationRecipientController extends Controller
     {
         $companyId = CompanyAuthorization::authorize($request, 'user.update');
         foreach (self::EVENTS as $event) {
-            $exists = DB::table('notification_recipient_rules')
-                ->where('company_id', $companyId)->where('event_key', $event['key'])->exists();
-            if (! $exists) {
-                DB::table('notification_recipient_rules')->insert([
-                    'company_id' => $companyId, 'event_key' => $event['key'], 'name' => $event['name'],
-                    'is_active' => true, 'is_configured' => false, 'exclude_actor' => true,
-                    'created_at' => now(), 'updated_at' => now(),
-                ]);
+            $existingRule = DB::table('notification_recipient_rules')
+                ->where('company_id', $companyId)
+                ->where('event_key', $event['key'])
+                ->first();
+
+            if ($existingRule) {
+                // Keep recipient settings intact while syncing the canonical display label.
+                if ($existingRule->name !== $event['name']) {
+                    DB::table('notification_recipient_rules')
+                        ->where('id', $existingRule->id)
+                        ->where('company_id', $companyId)
+                        ->update([
+                            'name' => $event['name'],
+                            'updated_at' => now(),
+                        ]);
+                }
+
+                continue;
             }
+
+            DB::table('notification_recipient_rules')->insert([
+                'company_id' => $companyId,
+                'event_key' => $event['key'],
+                'name' => $event['name'],
+                'is_active' => true,
+                'is_configured' => false,
+                'exclude_actor' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
 
         $rules = DB::table('notification_recipient_rules')->where('company_id', $companyId)->orderBy('id')->get();
