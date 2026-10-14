@@ -32,7 +32,7 @@ class PermissionSeeder extends Seeder
             ['order.view', 'مشاهده سفارش فروش', 'sales'], ['order.create', 'ایجاد سفارش فروش', 'sales'],
             ['order.refresh', 'به‌روزرسانی وضعیت تأمین سفارش', 'sales'],
             ['production.supervise', 'ثبت موعد قابل تحویل تولید', 'production'],
-            ['delivery_request.view', 'مشاهده درخواست‌های تحویل', 'sales'],
+            ['delivery_request.view', 'مشاهده درخواست‌های تحویل', 'warehouse'],
             ['delivery_request.create', 'ثبت درخواست تحویل', 'sales'],
             ['delivery_request.issue', 'خروج کالا برای تحویل', 'warehouse'],
             ['delivery_request.handover', 'ثبت تحویل به مشتری', 'sales'],
