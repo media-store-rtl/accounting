@@ -8,7 +8,7 @@ use Illuminate\Validation\ValidationException;
 final class LaborCostService
 {
     private const MEASURE_TYPES = ['hours', 'quantity'];
-    private const RATE_TYPES = ['regular', 'overtime', 'holiday', 'per_unit'];
+    private const RATE_TYPES = ['regular', 'overtime', 'holiday', 'per_unit', 'hourly'];
 
     public function setRate(
         int $companyId,
@@ -77,8 +77,9 @@ final class LaborCostService
             throw ValidationException::withMessages(['labor_rate_type' => 'نوع دستمزد انتخاب‌شده معتبر نیست.']);
         }
         $rate = DB::table('personnel_labor_rates')
-            ->where('company_id',$companyId)->where('personnel_id',$personnelId)->where('rate_type',$rateType)
+            ->where('company_id',$companyId)->where('personnel_id',$personnelId)->whereIn('rate_type', $rateType === 'regular' ? ['regular', 'hourly'] : [$rateType])
             ->where('effective_from','<=',substr($workedAt,0,10))
+            ->orderByRaw("CASE WHEN rate_type = ? THEN 0 ELSE 1 END", [$rateType])
             ->where(function($q) use ($workedAt){ $q->whereNull('effective_to')->orWhere('effective_to','>=',substr($workedAt,0,10)); })
             ->orderByDesc('effective_from')->orderByDesc('id')->value('rate');
         if ($rate === null) throw ValidationException::withMessages(['measure_quantity' => 'برای تاریخ کارکرد نرخ دستمزد معتبر ثبت نشده است.']);
