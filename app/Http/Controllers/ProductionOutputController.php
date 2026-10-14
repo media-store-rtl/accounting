@@ -13,6 +13,7 @@ final class ProductionOutputController extends Controller
     public function index(Request $request)
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.output.view');
+        $canReceiveShiftReports = $request->user()->hasCompanyPermission($companyId, 'production.output.receive');
         $rows = DB::table('production_outputs as po')
             ->join('productions as p','p.id','=','po.production_id')
             ->join('goods as g','g.id','=','po.goods_id')
@@ -38,7 +39,7 @@ final class ProductionOutputController extends Controller
         $shiftWarehouses = DB::table('locations')->where('company_id', $companyId)->where('is_active', true)
             ->where(function ($query) { $query->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])->orWhereIn(DB::raw('TRIM(type)'), ['مواد', 'محصول', 'ضایعات']); })
             ->orderBy('name')->get(['id', 'name']);
-        return view('production.outputs.index', compact('rows', 'shiftRows', 'shiftWarehouses'));
+        return view('production.outputs.index', compact('rows', 'shiftRows', 'shiftWarehouses', 'canReceiveShiftReports'));
     }
 
 
@@ -128,7 +129,7 @@ final class ProductionOutputController extends Controller
     {
         $companyId = CompanyAuthorization::authorize($request, 'production.output.confirm');
         $data = $request->validate(['rejection_reason'=>['required','string','max:1000']]);
-        $service->reject($companyId,$output,(int)$request->user()->id,$data['rejection_reason']);
+        $service->reject($companyId,$output,(int)$request->user()->id,$data['rejection_reason']??null);
         return back()->with('success','خروجی تولید رد شد.');
     }
 
