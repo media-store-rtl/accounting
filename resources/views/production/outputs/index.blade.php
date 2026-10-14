@@ -19,6 +19,7 @@
 @empty<tr><td colspan="5" style="text-align:center;padding:28px;color:#8198ac">خروجی‌ای برای نمایش ثبت نشده است.</td></tr>@endforelse
 </tbody></table></div>@if(method_exists($rows, 'links'))<div class="pagination">{{ $rows->links() }}</div>@endif</div>
 
+@if($canReceiveShiftReports)
 <div class="panel" style="margin-top:20px">
     <div style="padding:16px 18px 0"><h2 style="margin:0 0 6px;font-size:16px">تحویل‌های گزارش شیفت تولید</h2><p style="margin:0 0 14px;color:#8198ac;font-size:12px">گزارش‌های آماده تحویل را بررسی و کل مقدار باقی‌مانده را یک‌جا تأیید کنید. موجودی فقط پس از تأیید سرپرست انبار افزایش می‌یابد.</p></div>
     <style>.shift-report-receive-button{width:auto!important;min-width:0!important;min-height:0!important;padding:6px 10px!important;font-size:11px!important;line-height:1.35!important;white-space:nowrap}.shift-report-receive-select{max-width:180px;min-width:130px;padding:7px;border-radius:7px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;font:inherit;font-size:11px}</style>
@@ -68,4 +69,5 @@
     </table></div>
     @if(method_exists($shiftRows, 'links'))<div class="pagination">{{ $shiftRows->links() }}</div>@endif
 </div>
+@endif
 @endsection
