@@ -77,7 +77,7 @@
 </div>
 @if($row->status==='approved' && (bool)($row->goods_sellable ?? false) && max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0)) > 0)
 <div class="panel" style="padding:16px"><h2 style="font-size:15px;margin:0 0 12px">ارسال درخواست تحویل محصول به انبار</h2>
-<p class="detail-note">تأیید گزارش به معنی تحویل کالا نیست. مقدار سالم آماده ارسال: <strong>{{ \\App\\Support\\PersianQuantityFormatter::format(max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0))) }}</strong>.</p>
+<p class="detail-note">تأیید گزارش به معنی تحویل کالا نیست. مقدار سالم آماده ارسال: <strong>{{ \App\Support\PersianQuantityFormatter::format(max(0,(float)$row->produced_quantity-(float)($row->scrap_quantity ?? 0)-(float)($row->warehouse_quantity ?? 0))) }}</strong>.</p>
 @if(empty($row->warehouse_requested_at))
     @if($canReview)
         <form method="POST" action="{{ route('production.shift-reports.request-warehouse', $row->id) }}" onsubmit="return confirm('درخواست تحویل این محصول را جداگانه برای مسئولان انبار ارسال می‌کنید؟');">
