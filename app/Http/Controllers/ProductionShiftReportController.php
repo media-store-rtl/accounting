@@ -261,7 +261,7 @@ final class ProductionShiftReportController extends Controller
         $data = $request->validate([
             'production_section_id' => ['required', 'integer'],
             'goods_id' => ['required', 'integer'],
-            'order_id' => ['required', 'integer'],
+            'order_id' => ['nullable', 'integer'],
             'personnel_id' => ['required', 'integer'],
             'worked_hours' => ['required', 'numeric', 'gt:0', 'lte:24'],
             'overtime_hours' => ['nullable', 'numeric', 'gte:0', 'lte:24'],
