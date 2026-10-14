@@ -38,6 +38,28 @@ class SalesOperationalWorkflowTest extends TestCase
         return compact('company','user','fy','goods','customer','warehouse');
     }
 
+    public function test_delivery_request_form_is_on_deliveries_page_not_order_details(): void
+    {
+        Notification::fake();
+        $c = $this->context(10);
+        $orderId = $this->postJson('/api/orders', [
+            'fiscal_year_id' => $c['fy'],
+            'customer_id' => $c['customer'],
+            'requested_delivery_at' => '2026-10-20',
+            'items' => [['goods_id' => $c['goods'], 'quantity' => 2]],
+        ])->assertCreated()->assertJsonPath('data.status', 'ready_for_delivery')->json('data.id');
+
+        $this->get('/sales/orders/'.$orderId)
+            ->assertOk()
+            ->assertDontSee('درخواست تحویل سفارش');
+
+        $this->get('/sales/deliveries')
+            ->assertOk()
+            ->assertSee('سفارش‌های آماده ثبت درخواست تحویل')
+            ->assertSee('ثبت درخواست تحویل')
+            ->assertSee('Customer');
+    }
+
     public function test_in_stock_order_can_create_delivery_issue_and_customer_handover(): void
     {
         Notification::fake(); $c=$this->context(10);
