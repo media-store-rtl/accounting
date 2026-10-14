@@ -102,10 +102,11 @@
                 <label class="field">
                     <span>نوع دستمزد <span class="required">*</span></span>
                     <select name="rate_type" required>
-                        <option value="hourly" @selected(old('rate_type', 'hourly') === 'hourly')>ساعتی</option>
-                        <option value="per_unit" @selected(old('rate_type') === 'per_unit')>به‌ازای هر واحد تولید</option>
+                        <option value="regular" @selected(old('rate_type', 'regular') === 'regular')>کار عادی (شیفت ۸ ساعته)</option>
+                        <option value="overtime" @selected(old('rate_type') === 'overtime')>اضافه‌کاری</option>
+                        <option value="holiday" @selected(old('rate_type') === 'holiday')>تعطیل‌کاری</option>
                     </select>
-                    <span class="field-hint">مبنای محاسبهٔ دستمزد را انتخاب کنید.</span>
+                    <span class="field-hint">نرخ را جداگانه برای کار عادی، اضافه‌کاری یا تعطیل‌کاری ثبت کنید.</span>
                 </label>
 
                 <label class="field">
@@ -160,7 +161,7 @@
                 <tbody>
                     @forelse($rates as $rate)
                         <tr>
-                            <td>{{ $rate->rate_type === 'hourly' ? 'ساعتی' : 'به‌ازای هر واحد تولید' }}</td>
+                            <td>{{ ['regular' => 'کار عادی (شیفت ۸ ساعته)', 'hourly' => 'کار عادی (شیفت ۸ ساعته)', 'overtime' => 'اضافه‌کاری', 'holiday' => 'تعطیل‌کاری', 'per_unit' => 'به‌ازای هر واحد تولید'][$rate->rate_type] ?? $rate->rate_type }}</td>
                             <td class="rate-amount">{{ number_format((float) $rate->rate, 2) }}</td>
                             <td class="date-value">{{ $rate->effective_from }}</td>
                             <td class="date-value">{{ $rate->effective_to ?: 'بدون تاریخ پایان' }}</td>
