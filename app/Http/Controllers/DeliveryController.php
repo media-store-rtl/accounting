@@ -22,12 +22,26 @@ class DeliveryController extends Controller
             ->select(
                 'd.*','o.number as order_number','c.name as customer_name',
                 'physical.driver_name','physical.driver_phone','physical.vehicle_plate',
-                'physical.received_by','physical.recipient_signature','physical.handover_note',
+                'physical.received_by','physical.handover_note',
                 'physical.handed_over_at'
             )
             ->latest('d.id')->paginate(20);
 
         return view('sales.deliveries.index',compact('deliveries'));
+    }
+
+    public function receipt(Request $request,int $delivery): \Illuminate\Http\JsonResponse
+    {
+        $companyId=CompanyAuthorization::authorize($request,'delivery_request.view');
+        $receipt=DB::table('deliveries as physical')
+            ->join('delivery_requests as d','d.id','=','physical.delivery_request_id')
+            ->where('d.company_id',$companyId)
+            ->where('d.id',$delivery)
+            ->whereNotNull('physical.recipient_signature')
+            ->select('physical.received_by','physical.driver_name','physical.driver_phone','physical.vehicle_plate','physical.recipient_signature','physical.handed_over_at')
+            ->first();
+        abort_unless($receipt,404,'رسید تحویل برای این سفارش ثبت نشده است.');
+        return response()->json(['data'=>$receipt]);
     }
 
     public function issue(Request $request,int $delivery): \Illuminate\Http\JsonResponse
