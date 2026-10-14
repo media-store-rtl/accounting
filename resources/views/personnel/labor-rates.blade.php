@@ -173,8 +173,8 @@
                         <tr>
                             <td>{{ ['regular' => 'کار عادی (شیفت ۸ ساعته)', 'hourly' => 'کار عادی (شیفت ۸ ساعته)', 'overtime' => 'اضافه‌کاری', 'holiday' => 'تعطیل‌کاری', 'per_unit' => 'به‌ازای هر واحد تولید'][$rate->rate_type] ?? $rate->rate_type }}</td>
                             <td class="rate-amount">{{ number_format((float) $rate->rate, 2) }}</td>
-                            <td class="date-value">{{ $rate->effective_from }}</td>
-                            <td class="date-value">{{ $rate->effective_to ?: 'بدون تاریخ پایان' }}</td>
+                            <td class="date-value"><time class="jalali-date" data-gregorian-date="{{ $rate->effective_from }}">{{ $rate->effective_from }}</time></td>
+                            <td class="date-value">@if($rate->effective_to)<time class="jalali-date" data-gregorian-date="{{ $rate->effective_to }}">{{ $rate->effective_to }}</time>@else بدون تاریخ پایان @endif</td>
                             <td>
                                 @if($rate->effective_from <= now()->toDateString() && (!$rate->effective_to || $rate->effective_to >= now()->toDateString()))
                                     <span class="status active">معتبر امروز</span>
@@ -203,10 +203,12 @@
                                             <input name="rate" type="number" min="0" step="0.000001" value="{{ $rate->rate }}" required>
                                         </label>
                                         <label class="field">شروع اعتبار
-                                            <input name="effective_from" type="date" value="{{ $rate->effective_from }}" required>
+                                            <input id="rate_effective_from_picker_{{ $rate->id }}" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="{{ $rate->effective_from }}" readonly required>
+                                            <input id="rate_effective_from_{{ $rate->id }}" name="effective_from" type="hidden" value="{{ $rate->effective_from }}">
                                         </label>
                                         <label class="field">پایان اعتبار
-                                            <input name="effective_to" type="date" value="{{ $rate->effective_to }}" min="{{ $rate->effective_from }}">
+                                            <input id="rate_effective_to_picker_{{ $rate->id }}" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی (اختیاری)" value="{{ $rate->effective_to }}" readonly>
+                                            <input id="rate_effective_to_{{ $rate->id }}" name="effective_to" type="hidden" value="{{ $rate->effective_to }}">
                                         </label>
                                         <button class="btn primary" type="submit">ذخیره تغییرات</button>
                                     </form>
@@ -237,6 +239,25 @@ import { setupProductionReportDatePicker } from '/js/production-report-date-filt
 document.addEventListener('DOMContentLoaded', function () {
     setupProductionReportDatePicker('#effective_from_picker', '#effective_from');
     setupProductionReportDatePicker('#effective_to_picker', '#effective_to');
+
+    document.querySelectorAll('.jalali-date[data-gregorian-date]').forEach(function (element) {
+        const match = element.dataset.gregorianDate.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+        if (!match || typeof window.persianDate !== 'function') return;
+
+        const timestamp = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])).getTime();
+        const jalali = new window.persianDate(timestamp).toCalendar('persian');
+        element.textContent = jalali.format('YYYY/MM/DD');
+    });
+
+    document.querySelectorAll('[id^="rate_effective_from_picker_"]').forEach(function (picker) {
+        const id = picker.id.replace('rate_effective_from_picker_', '');
+        setupProductionReportDatePicker('#' + picker.id, '#rate_effective_from_' + id);
+    });
+
+    document.querySelectorAll('[id^="rate_effective_to_picker_"]').forEach(function (picker) {
+        const id = picker.id.replace('rate_effective_to_picker_', '');
+        setupProductionReportDatePicker('#' + picker.id, '#rate_effective_to_' + id);
+    });
 });
 </script>
 @endsection
