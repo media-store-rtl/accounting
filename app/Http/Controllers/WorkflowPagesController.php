@@ -11,8 +11,7 @@ class WorkflowPagesController extends Controller {
     ->where('sri.supply_request_id',$row->id)->select('sri.*','g.name as goods_name','g.code as goods_code')->get();
    if($canReviewStock){
     foreach($row->items as $item){
-     $item->warehouse_quantity=(float)DB::table('inventory as i')->join('locations as l','l.id','=','i.location_id')
-      ->where('i.company_id',$cid)->where('i.goods_id',$item->goods_id)->where('l.company_id',$cid)->where('l.type','warehouse')->where('l.is_active',true)->sum('i.quantity');
+     $item->warehouse_quantity=app(\App\Services\InventoryBalanceService::class)->availableInWarehouses($cid,(int)$item->goods_id);
     }
    }
   }
@@ -98,7 +97,7 @@ class WorkflowPagesController extends Controller {
   $rows=DB::table('supply_requests')->where('company_id',$cid)->latest('id')->paginate(30);
   foreach($rows as $row){
    $row->items=DB::table('supply_request_items as sri')->join('goods as g','g.id','=','sri.goods_id')->where('sri.supply_request_id',$row->id)->select('sri.*','g.name as goods_name','g.code as goods_code')->get();
-   foreach($row->items as $item){$item->warehouse_quantity=(float)DB::table('inventory as i')->join('locations as l','l.id','=','i.location_id')->where('i.company_id',$cid)->where('i.goods_id',$item->goods_id)->where('l.company_id',$cid)->where('l.type','warehouse')->where('l.is_active',true)->sum('i.quantity');}
+   foreach($row->items as $item){$item->warehouse_quantity=app(\App\Services\InventoryBalanceService::class)->availableInWarehouses($cid,(int)$item->goods_id);}
   }
   return view('workflows.warehouse-supply-requests',compact('rows'));
  }
@@ -143,13 +142,12 @@ class WorkflowPagesController extends Controller {
  }
  public function inventory(Request $r){
   $cid=CompanyAuthorization::authorize($r,'inventory.view');
+  $stock=DB::table('inventory_movements')->select('company_id','location_id','goods_id',DB::raw('SUM(quantity) as quantity'))->groupBy('company_id','location_id','goods_id');
   $rows=DB::table('goods as g')->crossJoin('locations as l')
-   ->leftJoin('inventory as i',function($join)use($cid){
-    $join->on('i.goods_id','=','g.id')->on('i.location_id','=','l.id')->where('i.company_id','=',$cid);
-   })
-   ->where('g.company_id',$cid)->where('g.is_active',true)
-   ->where('l.company_id',$cid)->where('l.is_active',true)
-   ->select('i.id as inventory_id','g.id as goods_id','l.id as location_id','g.name as goods_name','g.code as goods_code','l.name as location_name',DB::raw('COALESCE(i.quantity, 0) as quantity'),DB::raw('COALESCE(i.reorder_point, 0) as reorder_point'))
+   ->leftJoin('inventory as i',function($join)use($cid){$join->on('i.goods_id','=','g.id')->on('i.location_id','=','l.id')->where('i.company_id','=',$cid);})
+   ->leftJoinSub($stock,'stock',function($join){$join->on('stock.company_id','=','g.company_id')->on('stock.goods_id','=','g.id')->on('stock.location_id','=','l.id');})
+   ->where('g.company_id',$cid)->where('g.is_active',true)->where('l.company_id',$cid)->where('l.is_active',true)
+   ->select('i.id as inventory_id','g.id as goods_id','l.id as location_id','g.name as goods_name','g.code as goods_code','l.name as location_name',DB::raw('COALESCE(stock.quantity, 0) as quantity'),DB::raw('COALESCE(i.reorder_point, 0) as reorder_point'))
    ->orderBy('g.name')->orderBy('l.name')->paginate(30);
   return view('workflows.inventory',compact('rows'));
  }
