@@ -48,7 +48,7 @@ class ProductionExecutionTest extends TestCase
         $this->assertDatabaseHas('production_operation_outputs',['production_operation_run_id'=>$run,'goods_id'=>$goods,'quantity'=>9]);
         $this->assertDatabaseHas('scraps',['production_operation_run_id'=>$run,'goods_id'=>$goods,'quantity'=>1]);
 
-        app(\App\Services\InventoryService::class)->adjust($company,$location,$goods,9,'simulate stock reduction',$user);
+        DB::table('inventory_movements')->insert(['company_id'=>$company,'location_id'=>$location,'goods_id'=>$goods,'quantity'=>-9,'movement_type'=>'inventory_adjustment','reference_type'=>'inventory','reference_id'=>$inventoryId,'occurred_at'=>now(),'metadata'=>json_encode(['source'=>'test stock reduction']),'created_at'=>now(),'updated_at'=>now()]);
         try {
             app(ProductionExecutionService::class)->review($company,$run,$user,true);
             $this->fail('تأیید عملیات با موجودی ناکافی نباید موفق شود.');
@@ -58,7 +58,7 @@ class ProductionExecutionTest extends TestCase
         $this->assertSame('pending_review', DB::table('production_operation_runs')->where('id',$run)->value('status'));
         $this->assertSame(9.0, (float) DB::table('inventory_movements')->where('company_id',$company)->where('location_id',$location)->where('goods_id',$goods)->sum('quantity'));
         $this->assertSame(0, DB::table('inventory_movements')->where('reference_type','production_operation_runs')->where('reference_id',$run)->where('movement_type','production_consumption')->count());
-        app(\App\Services\InventoryService::class)->adjust($company,$location,$goods,18,'restore stock for next operation',$user);
+        DB::table('inventory_movements')->insert(['company_id'=>$company,'location_id'=>$location,'goods_id'=>$goods,'quantity'=>9,'movement_type'=>'inventory_adjustment','reference_type'=>'inventory','reference_id'=>$inventoryId,'occurred_at'=>now(),'metadata'=>json_encode(['source'=>'test stock restoration']),'created_at'=>now(),'updated_at'=>now()]);
 
         app(ProductionExecutionService::class)->review($company,$run,$user,true);
 
