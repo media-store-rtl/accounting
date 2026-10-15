@@ -59,14 +59,15 @@
   <div class="costing-card"><small>دستمزد تأییدشده</small><b>{{ $formatCostingNumber($report['totals']['labor_cost']) }}</b></div>
   <div class="costing-card"><small>بهای تمام‌شده</small><b>{{ $formatCostingNumber($report['totals']['total_cost']) }}</b></div>
   <div class="costing-card"><small>مصرف بدون ارزش‌گذاری</small><b>{{ $formatCostingNumber($report['totals']['unvalued_material_quantity']) }}</b></div>
+  <div class="costing-card"><small>مصرف گزارش‌های تولید بدون ارزش‌گذاری</small><b>{{ $formatCostingNumber($report['totals']['production_report_unvalued_material_quantity'] ?? 0) }}</b></div>
   <div class="costing-card"><small>تعداد کل تولید در گزارش‌های تأییدشده و تحویل‌شده</small><b>{{ $formatCostingNumber(collect($report['production_reports'])->sum('produced_quantity')) }}</b></div>
 </div>
 
 @if(!empty($report['valuation_methods']))
   <div class="costing-panel"><span style="color:#71879d;font-size:11px">روش ارزش‌گذاری:</span> {{ implode('، ',$report['valuation_methods']) }}</div>
 @endif
-@if($report['totals']['unvalued_material_quantity']>0)
-  <div class="costing-warn">بخشی از خروج مواد هنوز ارزش‌گذاری نشده است؛ این مقدار عمداً در مبلغ بهای تمام‌شده وارد نشده است.</div>
+@if($report['totals']['unvalued_material_quantity']>0 || ($report['totals']['production_report_unvalued_material_quantity'] ?? 0)>0)
+  <div class="costing-warn">مقدار بدون ارزش‌گذاری در دو شاخص جدا نمایش داده می‌شود: خروج انبارِ بدون ارزش‌گذاری و مصرف ثبت‌شده در گزارش تولید که هنوز با حواله/ارزش‌گذاری تطبیق کامل ندارد. این مقادیر برای جلوگیری از دوباره‌شماری به مبلغ بهای تمام‌شده اضافه نمی‌شوند.</div>
 @endif
 
 <div class="costing-panel">
