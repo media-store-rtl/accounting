@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 
 final class CostingReportService
 {
-    public function generate(int $companyId, ?int $fiscalYearId = null, ?int $orderId = null, ?int $goodsId = null, ?string $startDate = null, ?string $endDate = null, ?int $personnelId = null): array
+    public function generate(int $companyId, ?int $fiscalYearId = null, ?int $orderId = null, ?int $goodsId = null, ?string $startDate = null, ?string $endDate = null, ?int $personnelId = null, ?int $productionSectionId = null, ?int $productionStageId = null): array
     {
         if ($fiscalYearId === null && $startDate === null && $endDate === null) {
             $fiscalYearId = DB::table('fiscal_years')->where('company_id',$companyId)->orderByDesc('id')->value('id');
@@ -18,7 +18,7 @@ final class CostingReportService
         $rows=[];
         $this->materials($rows,$companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate);
         $this->labor($rows,$companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId);
-        $this->approvedShiftReportLabor($rows,$companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId);
+        $this->approvedShiftReportLabor($rows,$companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId);
         $this->directPurchaseCosts($rows,$companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate);
         $this->scraps($rows,$companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate);
 
@@ -50,7 +50,7 @@ final class CostingReportService
             foreach($row['valuation_methods'] as $method){$productRows[$gid]['valuation_methods'][$method]=true;}
         }
         foreach($productRows as &$productRow){$productRow['valuation_methods']=array_keys($productRow['valuation_methods']);} unset($productRow);
-        $productionReports=$this->receivedProductionReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId);
+        $productionReports=$this->productionShiftReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId);
         foreach($productionReports as $productionReport){
             $gid=(int)$productionReport['goods_id'];
             if(!isset($productRows[$gid])){
@@ -184,7 +184,7 @@ final class CostingReportService
      * Resolve the rate valid on the work date so these reports contribute to
      * the same order/product costing report as operation-level labor entries.
      */
-    private function approvedShiftReportLabor(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId,?string $startDate,?string $endDate,?int $personnelId): void
+    private function approvedShiftReportLabor(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId,?string $startDate,?string $endDate,?int $personnelId,?int $productionSectionId,?int $productionStageId): void
     {
         if (!DB::getSchemaBuilder()->hasColumn('production_shift_reports', 'order_id')) return;
 
@@ -200,6 +200,13 @@ final class CostingReportService
             ->when($startDate,fn($q)=>$q->whereDate('r.work_date','>=',$startDate))
             ->when($endDate,fn($q)=>$q->whereDate('r.work_date','<=',$endDate))
             ->when($personnelId,fn($q)=>$q->where('r.personnel_id',$personnelId))
+            ->when($productionSectionId !== null,fn($q)=>$q->where('r.production_section_id',$productionSectionId))
+            ->when($productionStageId !== null,fn($q)=>$q->whereExists(function($sub) use ($productionStageId, $companyId) {
+                $sub->selectRaw('1')->from('production_shift_report_stages as rs')
+                    ->whereColumn('rs.production_shift_report_id','r.id')
+                    ->where('rs.company_id',$companyId)
+                    ->where('rs.production_stage_id',$productionStageId);
+            }))
             ->get(['r.order_id','r.goods_id','r.personnel_id','r.work_date','r.worked_hours','r.overtime_hours','r.holiday_hours']);
 
         foreach ($reports as $report) {
@@ -292,7 +299,7 @@ final class CostingReportService
      * Warehouse-accepted production shift reports are the traceable output records.
      * Labor is calculated per report and worker using the rate effective on work_date.
      */
-    private function receivedProductionReports(int $companyId, ?int $fy, ?int $orderId, ?int $goodsId, ?string $startDate, ?string $endDate, ?int $personnelId): array
+    private function productionShiftReports(int $companyId, ?int $fy, ?int $orderId, ?int $goodsId, ?string $startDate, ?string $endDate, ?int $personnelId, ?int $productionSectionId, ?int $productionStageId): array
     {
         if (!DB::getSchemaBuilder()->hasTable('production_shift_reports')
             || !DB::getSchemaBuilder()->hasColumn('production_shift_reports', 'warehouse_received_at')) return [];
@@ -304,8 +311,7 @@ final class CostingReportService
             ->join('locations as section_location', 'section_location.id', '=', 'ps.location_id')
             ->leftJoin('locations as warehouse', 'warehouse.id', '=', 'r.warehouse_location_id')
             ->where('r.company_id', $companyId)
-            ->where('r.status', 'received')
-            ->whereNotNull('r.warehouse_received_at')
+            ->whereIn('r.status', ['approved', 'received'])
             ->when($fy, function ($q) use ($fy) {
                 $start = DB::table('fiscal_years')->where('id', $fy)->value('starts_at');
                 $end = DB::table('fiscal_years')->where('id', $fy)->value('ends_at');
@@ -316,6 +322,13 @@ final class CostingReportService
             ->when($startDate, fn($q) => $q->whereDate('r.work_date', '>=', $startDate))
             ->when($endDate, fn($q) => $q->whereDate('r.work_date', '<=', $endDate))
             ->when($personnelId !== null, fn($q) => $q->where('r.personnel_id', $personnelId))
+            ->when($productionSectionId !== null, fn($q) => $q->where('r.production_section_id', $productionSectionId))
+            ->when($productionStageId !== null, fn($q) => $q->whereExists(function($sub) use ($productionStageId, $companyId) {
+                $sub->selectRaw('1')->from('production_shift_report_stages as rs')
+                    ->whereColumn('rs.production_shift_report_id', 'r.id')
+                    ->where('rs.company_id', $companyId)
+                    ->where('rs.production_stage_id', $productionStageId);
+            }))
             ->select([
                 'r.id as report_id', 'r.work_date', 'r.warehouse_received_at',
                 'r.produced_quantity', 'r.scrap_quantity', 'r.warehouse_quantity',
@@ -324,7 +337,7 @@ final class CostingReportService
                 'pe.name as worker_name', 'section_location.name as section_name',
                 'warehouse.name as warehouse_name', 'g.code as goods_code', 'g.name as goods_name',
             ])
-            ->orderByDesc('r.warehouse_received_at')->orderByDesc('r.id')
+            ->orderByDesc('r.work_date')->orderByDesc('r.id')
             ->get();
 
         return $query->map(function ($report) use ($companyId) {
