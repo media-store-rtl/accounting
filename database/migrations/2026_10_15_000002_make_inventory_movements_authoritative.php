@@ -12,8 +12,10 @@ return new class extends Migration {
                 $ledgerQuantity = (float) DB::table('inventory_movements')->where('company_id',$row->company_id)
                     ->where('location_id',$row->location_id)->where('goods_id',$row->goods_id)->sum('quantity');
                 $storedQuantity = (float) $row->quantity;
+                $movementCount = DB::table('inventory_movements')->where('company_id',$row->company_id)
+                    ->where('location_id',$row->location_id)->where('goods_id',$row->goods_id)->count();
                 if (abs($storedQuantity - $ledgerQuantity) <= 0.0001) continue;
-                if (abs($ledgerQuantity) > 0.0001) {
+                if ($movementCount > 0) {
                     throw new RuntimeException('Inventory ledger mismatch for inventory id '.$row->id.
                         ': stored='.$storedQuantity.', ledger='.$ledgerQuantity.
                         '. Reconcile this stock record before running this migration.');
