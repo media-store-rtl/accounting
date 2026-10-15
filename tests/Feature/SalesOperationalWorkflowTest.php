@@ -72,8 +72,8 @@ class SalesOperationalWorkflowTest extends TestCase
         $delivery=DB::table('delivery_requests')->where('order_id',$order)->first();
         $this->assertNotNull($delivery->sales_approved_at);
         $this->assertSame((int)$c['user'], (int)$delivery->sales_approved_by_user_id);
-        Notification::assertSentTo(\\App\\Models\\User::findOrFail($c['user']), \\App\\Notifications\\WorkflowNotification::class, function ($notification) use ($c, $order) {
-            $data = $notification->toArray(\\App\\Models\\User::findOrFail($c['user']));
+        Notification::assertSentTo(\App\\Models\\User::findOrFail($c['user']), \App\\Notifications\\WorkflowNotification::class, function ($notification) use ($c, $order) {
+            $data = $notification->toArray(\App\\Models\\User::findOrFail($c['user']));
             return $data['event'] === 'delivery.requested' && (int) $data['order_id'] === (int) $order;
         });
         $this->assertDatabaseHas('delivery_requests',['id'=>$delivery->id,'sales_approved_by_user_id'=>$c['user']]);
