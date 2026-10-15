@@ -99,7 +99,6 @@ class SalesOperationalWorkflowTest extends TestCase
         $this->get('/sales/deliveries')->assertOk()->assertSee('ثبت امضای تحویل');
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>10]);
         $this->assertSame(6.0,(float)DB::table('inventory_movements')->where('company_id',$c['company'])->where('location_id',$c['warehouse'])->where('goods_id',$c['goods'])->sum('quantity'));
-        $this->assertSame(6.0,(float)DB::table('inventory_movements')->where('company_id',$c['company'])->where('location_id',$c['warehouse'])->where('goods_id',$c['goods'])->sum('quantity'));
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'delivery_issue','quantity'=>-4]);
         // Existing warehouse roles may have issue permission without the separate handover permission.
         $roleId = DB::table('company_user')->where('company_id', $c['company'])->where('user_id', $c['user'])->value('role_id');
@@ -157,6 +156,7 @@ class SalesOperationalWorkflowTest extends TestCase
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/prepare',['received_by'=>'Customer Receiver'])->assertOk();
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertOk();
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>0]);
+        $this->assertSame(0.0,(float)DB::table('inventory_movements')->where('company_id',$c['company'])->where('location_id',$c['warehouse'])->where('goods_id',$c['goods'])->sum('quantity'));
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'delivery_issue','reference_type'=>'delivery_request','reference_id'=>$delivery->id,'quantity'=>-4]);
 
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/handover',[
