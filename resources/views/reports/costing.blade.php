@@ -24,7 +24,15 @@
 .costing-table-wrap{overflow-x:auto}.costing-table{width:100%;border-collapse:collapse;min-width:900px}
 .costing-table th,.costing-table td{padding:11px 9px;border-bottom:1px solid #183047;text-align:right;font-size:11px}
 .costing-table th{color:#71879d;font-weight:500}.costing-table td{color:#dcebf6}
+.costing-row-details{min-width:94px}.costing-row-details summary{cursor:pointer;color:#9dd8ff;white-space:nowrap;list-style-position:inside}
+.costing-row-details[open] summary{margin-bottom:10px}
+.costing-detail-panel{min-width:300px;max-width:760px;padding:14px;background:#0d2235;border:1px solid #29465e;border-radius:12px;white-space:normal}
+.costing-detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.costing-detail-item small{display:block;color:#7890a5;font-size:10px;margin-bottom:4px}.costing-detail-item strong{font-size:11px;font-weight:500;overflow-wrap:anywhere}
+.costing-detail-costs{width:100%;border-collapse:collapse}.costing-detail-costs th,.costing-detail-costs td{padding:8px 5px;border-bottom:1px solid #183047;text-align:right;font-size:11px}
+.costing-detail-note{color:#91a6b9;font-size:10px;line-height:1.9;margin:10px 0 0}
 .costing-empty{text-align:center;padding:35px;color:#71879d;border:1px dashed #29455d;border-radius:12px;font-size:11px}
+@media(max-width:700px){.costing-detail-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:800px){.costing-filters form{grid-template-columns:1fr 1fr}.costing-cards{grid-template-columns:1fr 1fr}}
 @media(max-width:500px){.costing-filters form,.costing-cards{grid-template-columns:1fr}}
 </style>
@@ -62,34 +70,69 @@
 
 <div class="costing-panel">
   <h2 style="font-size:14px;margin:0 0 12px">گزارش‌های تولید تأییدشده و تحویل‌شده</h2>
+  <p style="font-size:10px;color:#91a6b9;margin:0 0 12px">برای خلوت ماندن جدول، اطلاعات تکمیلی هر گزارش با بازکردن «جزئیات» نمایش داده می‌شود.</p>
   <div class="costing-table-wrap">
     @if(empty($report['production_reports']))
       <div class="costing-empty">گزارش تولید تأییدشده یا تحویل‌شده‌ای برای این فیلتر پیدا نشد.</div>
     @else
       <table class="costing-table">
-        <thead><tr><th>شماره گزارش</th><th>تاریخ تولید</th><th>تاریخ تحویل انبار</th><th>بخش تولید</th><th>کارگر</th><th>محصول</th><th>واحد</th><th>تعداد تولید</th><th>تعداد تحویل‌شده</th><th>ضایعات</th><th>دستمزد این گزارش</th><th>انبار</th></tr></thead>
+        <thead><tr><th>جزئیات</th><th>شماره گزارش</th><th>تاریخ تولید</th><th>محصول</th><th>بخش تولید</th><th>تعداد تولید</th><th>تحویل‌شده</th><th>ضایعات</th><th>دستمزد گزارش (ریال)</th></tr></thead>
         <tbody>
         @foreach($report['production_reports'] as $productionReport)
+          @php($productCost = collect($report['product_rows'])->firstWhere('goods_id', $productionReport['goods_id']))
           <tr>
+            <td>
+              <details class="costing-row-details">
+                <summary>جزئیات</summary>
+                <div class="costing-detail-panel">
+                  <div class="costing-detail-grid">
+                    <div class="costing-detail-item"><small>تاریخ تحویل انبار</small><strong class="jalali-date" data-date="{{ $productionReport['warehouse_received_at'] }}">{{ $productionReport['warehouse_received_at'] ?? 'ثبت نشده' }}</strong></div>
+                    <div class="costing-detail-item"><small>کارگر</small><strong>{{ $productionReport['worker_name'] ?? 'ثبت نشده' }}</strong></div>
+                    <div class="costing-detail-item"><small>واحد محصول</small><strong>{{ $productionReport['unit_symbol'] ?? $productionReport['unit_name'] ?? '—' }}</strong></div>
+                    <div class="costing-detail-item"><small>انبار مقصد</small><strong>{{ $productionReport['warehouse_name'] ?? '—' }}</strong></div>
+                    <div class="costing-detail-item"><small>مرحله تولید</small><strong>{{ !empty($productionReport['stage_names']) ? implode('، ', $productionReport['stage_names']) : 'مرحله‌ای برای این گزارش ثبت/برگردانده نشده است' }}</strong></div>
+                    <div class="costing-detail-item"><small>تعداد محصول سالم</small><strong>{{ $formatCostingNumber(max(0, (float) $productionReport['produced_quantity'] - (float) $productionReport['scrap_quantity'])) }}</strong></div>
+                  </div>
+                  <h3 style="font-size:12px;margin:0 0 8px">هزینه مختص این گزارش</h3>
+                  <table class="costing-detail-costs">
+                    <tbody>
+                      <tr><td>دستمزد محاسبه‌شده بر اساس نرخ معتبر کارگر</td><td>{{ $formatCostingNumber($productionReport['labor_cost']) }} ریال</td></tr>
+                    </tbody>
+                  </table>
+                  <h3 style="font-size:12px;margin:14px 0 8px">خلاصه هزینه محصول در بازه انتخابی</h3>
+                  @if($productCost)
+                    <table class="costing-detail-costs">
+                      <tbody>
+                        <tr><td>مواد مصرفی</td><td>{{ $formatCostingNumber($productCost['material_cost'] ?? 0) }} ریال</td></tr>
+                        <tr><td>دستمزد تجمیعی محصول</td><td>{{ $formatCostingNumber($productCost['labor_cost'] ?? 0) }} ریال</td></tr>
+                        <tr><td>هزینه ضایعات</td><td>{{ $formatCostingNumber($productCost['scrap_cost'] ?? 0) }} ریال</td></tr>
+                        <tr><td>هزینه‌های مستقیم خرید</td><td>{{ $formatCostingNumber($productCost['direct_cost'] ?? 0) }} ریال</td></tr>
+                        <tr><td><strong>جمع بهای تمام‌شده محصول</strong></td><td><strong>{{ $formatCostingNumber($productCost['total_cost'] ?? 0) }} ریال</strong></td></tr>
+                        <tr><td>فی تمام‌شده هر واحد</td><td>{{ isset($productCost['unit_cost']) && $productCost['unit_cost'] !== null ? $formatCostingNumber($productCost['unit_cost']) . ' ریال' : '—' }}</td></tr>
+                      </tbody>
+                    </table>
+                  @else
+                    <p class="costing-detail-note">برای این محصول در بازه انتخابی هزینه‌ای ثبت نشده است.</p>
+                  @endif
+                  <p class="costing-detail-note">مبلغ مواد و هزینه‌های مستقیم در سطح محصول تجمیع شده و لزوماً به این گزارش یا کارگر مشخص متصل نیست. مقدار و مبلغ هر ماده به تفکیک این گزارش در داده فعلی این جدول موجود نیست. سربار تولید نیز در حال حاضر به‌صورت مستقل در این گزارش ثبت/محاسبه نمی‌شود. جمع هزینه محصول را نباید به‌عنوان هزینه اختصاصی همین گزارش تفسیر کرد.</p>
+                </div>
+              </details>
+            </td>
             <td>گزارش #{{ $productionReport['report_id'] }}</td>
             <td class="jalali-date" data-date="{{ $productionReport['work_date'] }}">{{ $productionReport['work_date'] }}</td>
-            <td class="jalali-date" data-date="{{ $productionReport['warehouse_received_at'] }}">{{ $productionReport['warehouse_received_at'] }}</td>
-            <td>{{ $productionReport['section_name'] }}</td>
-            <td>{{ $productionReport['worker_name'] ?? 'ثبت نشده' }}</td>
             <td>{{ $productionReport['goods_code'] }} — {{ $productionReport['goods_name'] }}</td>
-            <td>{{ $productionReport['unit_symbol'] ?? $productionReport['unit_name'] ?? '—' }}</td>
+            <td>{{ $productionReport['section_name'] ?? '—' }}</td>
             <td>{{ $formatCostingNumber($productionReport['produced_quantity']) }}</td>
             <td>{{ $formatCostingNumber($productionReport['received_quantity']) }}</td>
             <td>{{ $formatCostingNumber($productionReport['scrap_quantity']) }}</td>
             <td>{{ $formatCostingNumber($productionReport['labor_cost']) }}</td>
-            <td>{{ $productionReport['warehouse_name'] ?? '—' }}</td>
           </tr>
         @endforeach
         </tbody>
       </table>
     @endif
   </div>
-  <p style="font-size:10px;color:#91a6b9;margin:12px 0 0">هزینه دستمزد گزارش بر اساس کارگر و نرخ معتبر در تاریخ کار محاسبه می‌شود. با انتخاب کارگر، تعداد تولید و دستمزد به گزارش‌های همان کارگر محدود می‌شود؛ مواد، ضایعات و هزینه‌های خرید فعلاً در سطح محصول قابل ردیابی‌اند و به کارگر مشخصی وصل نیستند. فی تمام‌شده از تقسیم جمع هزینه‌های محصول در بازه انتخابی بر تعداد تولید ثبت‌شده در گزارش‌های تأییدشده و تحویل‌شده در همان بازه به دست می‌آید.</p>
+  <p style="font-size:10px;color:#91a6b9;margin:12px 0 0">دستمزد هر گزارش بر اساس کارگر و نرخ معتبر در تاریخ کار محاسبه می‌شود. با انتخاب کارگر، تعداد تولید و دستمزد به گزارش‌های همان کارگر محدود می‌شود؛ مواد، ضایعات و هزینه‌های خرید فعلاً در سطح محصول قابل ردیابی‌اند. فی تمام‌شده در خلاصه محصول از تقسیم جمع هزینه‌های محصول بر تعداد تولید ثبت‌شده در گزارش‌های تأییدشده و تحویل‌شده در بازه انتخابی به دست می‌آید.</p>
 </div>
 
 <div class="costing-panel">
