@@ -12,7 +12,7 @@
 <style>
 .costing-filters,.costing-panel,.costing-card{background:#0a1b2b;border:1px solid #1b354b;border-radius:17px;padding:18px}
 .costing-filters{margin-bottom:16px}
-.costing-filters form{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.costing-filters form{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px}
 .costing-filters label{display:block;color:#7890a5;font-size:10px;margin-bottom:6px}
 .costing-filters select,.costing-filters input,.costing-filters button{width:100%;background:#0d2235;color:#dcebf6;border:1px solid #29465e;border-radius:10px;padding:10px;font-family:inherit;font-size:11px}
 .costing-filters input{direction:ltr;text-align:right;cursor:pointer}
@@ -29,7 +29,7 @@
 @media(max-width:500px){.costing-filters form,.costing-cards{grid-template-columns:1fr}}
 </style>
 <div class="page-heading">
-  <div><h1>گزارش بهای تمام‌شده</h1><p>ردیابی بهای تمام‌شده بر اساس گزارش تولید تحویل‌شده به انبار</p></div>
+  <div><h1>گزارش بهای تمام‌شده</h1><p>ردیابی بهای تمام‌شده بر اساس گزارش‌های تولید تأییدشده و تحویل‌شده</p></div>
 </div>
 
 <div class="costing-filters">
@@ -39,6 +39,8 @@
     <div><label for="costing-start-date">از تاریخ</label><input id="costing-start-date-picker" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="{{ request('start_date') }}"><input id="costing-start-date" type="hidden" name="start_date" value="{{ request('start_date') }}"></div>
     <div><label for="costing-end-date">تا تاریخ</label><input id="costing-end-date-picker" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="{{ request('end_date') }}"><input id="costing-end-date" type="hidden" name="end_date" value="{{ request('end_date') }}"></div>
     <div><label for="costing-personnel">کارگر</label><select id="costing-personnel" name="personnel_id"><option value="">همه کارگران</option>@foreach($personnel as $worker)<option value="{{ $worker->id }}" @selected((int)request('personnel_id')===(int)$worker->id)>{{ $worker->code }} — {{ $worker->name }}</option>@endforeach</select></div>
+    <div><label for="costing-production-section">قسمت تولید</label><select id="costing-production-section" name="production_section_id"><option value="">همه قسمت‌ها</option>@foreach($productionSections as $section)<option value="{{ $section->id }}" @selected((int)request('production_section_id')===(int)$section->id)>{{ $section->name }}</option>@endforeach</select></div>
+    <div><label for="costing-production-stage">مرحله تولید</label><select id="costing-production-stage" name="production_stage_id"><option value="">همه مراحل</option>@foreach($productionStages as $stage)<option value="{{ $stage->id }}" @selected((int)request('production_stage_id')===(int)$stage->id)>{{ $stage->route_name }} — {{ $stage->name }}</option>@endforeach</select></div>
     <div style="display:flex;align-items:end"><button type="submit">نمایش گزارش</button></div>
   </form>
 </div>
@@ -48,7 +50,7 @@
   <div class="costing-card"><small>دستمزد تأییدشده</small><b>{{ $formatCostingNumber($report['totals']['labor_cost']) }}</b></div>
   <div class="costing-card"><small>بهای تمام‌شده</small><b>{{ $formatCostingNumber($report['totals']['total_cost']) }}</b></div>
   <div class="costing-card"><small>مصرف بدون ارزش‌گذاری</small><b>{{ $formatCostingNumber($report['totals']['unvalued_material_quantity']) }}</b></div>
-  <div class="costing-card"><small>تعداد کل تولید ثبت‌شده در گزارش‌های تحویل‌شده</small><b>{{ $formatCostingNumber(collect($report['production_reports'])->sum('produced_quantity')) }}</b></div>
+  <div class="costing-card"><small>تعداد کل تولید در گزارش‌های تأییدشده و تحویل‌شده</small><b>{{ $formatCostingNumber(collect($report['production_reports'])->sum('produced_quantity')) }}</b></div>
 </div>
 
 @if(!empty($report['valuation_methods']))
@@ -59,10 +61,10 @@
 @endif
 
 <div class="costing-panel">
-  <h2 style="font-size:14px;margin:0 0 12px">گزارش‌های تولید تحویل‌شده به انبار</h2>
+  <h2 style="font-size:14px;margin:0 0 12px">گزارش‌های تولید تأییدشده و تحویل‌شده</h2>
   <div class="costing-table-wrap">
     @if(empty($report['production_reports']))
-      <div class="costing-empty">گزارش تولیدی که تحویل انبار آن ثبت نهایی شده باشد، برای این فیلتر پیدا نشد.</div>
+      <div class="costing-empty">گزارش تولید تأییدشده یا تحویل‌شده‌ای برای این فیلتر پیدا نشد.</div>
     @else
       <table class="costing-table">
         <thead><tr><th>شماره گزارش</th><th>تاریخ تولید</th><th>تاریخ تحویل انبار</th><th>بخش تولید</th><th>کارگر</th><th>محصول</th><th>تعداد تولید</th><th>تعداد تحویل‌شده</th><th>ضایعات</th><th>دستمزد این گزارش</th><th>انبار</th></tr></thead>
@@ -86,7 +88,7 @@
       </table>
     @endif
   </div>
-  <p style="font-size:10px;color:#91a6b9;margin:12px 0 0">هزینه دستمزد گزارش بر اساس کارگر و نرخ معتبر در تاریخ کار محاسبه می‌شود. با انتخاب کارگر، تعداد تولید و دستمزد به گزارش‌های همان کارگر محدود می‌شود؛ مواد، ضایعات و هزینه‌های خرید فعلاً در سطح محصول قابل ردیابی‌اند و به کارگر مشخصی وصل نیستند. فی تمام‌شده از تقسیم جمع هزینه‌های محصول در بازه انتخابی بر تعداد تولید تحویل‌شده در همان بازه به دست می‌آید.</p>
+  <p style="font-size:10px;color:#91a6b9;margin:12px 0 0">هزینه دستمزد گزارش بر اساس کارگر و نرخ معتبر در تاریخ کار محاسبه می‌شود. با انتخاب کارگر، تعداد تولید و دستمزد به گزارش‌های همان کارگر محدود می‌شود؛ مواد، ضایعات و هزینه‌های خرید فعلاً در سطح محصول قابل ردیابی‌اند و به کارگر مشخصی وصل نیستند. فی تمام‌شده از تقسیم جمع هزینه‌های محصول در بازه انتخابی بر تعداد تولید ثبت‌شده در گزارش‌های تأییدشده و تحویل‌شده در همان بازه به دست می‌آید.</p>
 </div>
 
 <div class="costing-panel">
