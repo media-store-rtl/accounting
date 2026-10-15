@@ -40,8 +40,9 @@ class DeliveryController extends Controller
             ->latest('o.id')->get();
 
         $canCreateDeliveryRequest = $request->user()->hasCompanyPermission($companyId, 'delivery_request.create');
+        $canIssueDelivery = $request->user()->hasCompanyPermission($companyId, 'delivery_request.issue');
 
-        return view('sales.deliveries.index',compact('deliveries','eligibleOrders','canCreateDeliveryRequest'));
+        return view('sales.deliveries.index',compact('deliveries','eligibleOrders','canCreateDeliveryRequest','canIssueDelivery'));
     }
 
     public function receipt(Request $request,int $delivery): \Illuminate\Http\JsonResponse
