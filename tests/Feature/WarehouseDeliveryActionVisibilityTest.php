@@ -20,6 +20,11 @@ class WarehouseDeliveryActionVisibilityTest extends TestCase
             'account_id' => $account, 'name' => 'Test Company', 'code' => 'COM'.uniqid(),
             'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
+        $fiscalYear = DB::table('fiscal_years')->insertGetId([
+            'company_id' => $company, 'name' => '1405', 'code' => 'FY'.uniqid(),
+            'starts_at' => '2026-03-21', 'ends_at' => '2027-03-20', 'is_closed' => false,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
 
         $viewPermission = DB::table('permissions')->where('slug', 'delivery_request.view')->first();
         if (!$viewPermission) {
@@ -68,8 +73,8 @@ class WarehouseDeliveryActionVisibilityTest extends TestCase
             'created_at' => now(), 'updated_at' => now(),
         ]);
         $order = DB::table('orders')->insertGetId([
-            'company_id' => $company, 'customer_id' => $customer, 'number' => 'SO-'.uniqid(),
-            'status' => 'delivery_requested', 'requested_delivery_at' => '2026-10-20',
+            'company_id' => $company, 'fiscal_year_id' => $fiscalYear, 'customer_id' => $customer,
+            'number' => 'SO-'.uniqid(), 'status' => 'delivery_requested', 'requested_delivery_at' => '2026-10-20',
             'created_at' => now(), 'updated_at' => now(),
         ]);
         $delivery = DB::table('delivery_requests')->insertGetId([
