@@ -24,7 +24,8 @@ class OrderController extends Controller
         $ordersQuery = DB::table('orders as o')->join('customers as c','c.id','=','o.customer_id')
             ->where('o.company_id',$companyId)->select('o.*','c.name as customer_name')
             ->addSelect(['delivery_request_id' => DB::table('delivery_requests')->select('id')->whereColumn('order_id','o.id')->latest('id')->limit(1)])
-            ->addSelect(['delivery_request_status' => DB::table('delivery_requests')->select('status')->whereColumn('order_id','o.id')->latest('id')->limit(1)]);
+            ->addSelect(['delivery_request_status' => DB::table('delivery_requests')->select('status')->whereColumn('order_id','o.id')->latest('id')->limit(1)])
+            ->addSelect(['delivery_request_sales_approved_at' => DB::table('delivery_requests')->select('sales_approved_at')->whereColumn('order_id','o.id')->latest('id')->limit(1)]);
         if (isset($statusGroups[$selectedStatus])) {
             $ordersQuery->whereIn('o.status', $statusGroups[$selectedStatus]);
         }
@@ -244,7 +245,11 @@ class OrderController extends Controller
                 ->first();
 
             abort_unless($row, 404);
-            abort_unless($row->status === 'awaiting_sales_approval', 422, 'این درخواست قبلاً تأیید شده یا در وضعیت مجاز نیست.');
+            abort_unless(
+                $row->status === 'awaiting_sales_approval' || ($row->status === 'pending' && $row->sales_approved_at === null),
+                422,
+                'این درخواست قبلاً تأیید شده یا در وضعیت مجاز نیست.'
+            );
 
             DB::table('delivery_requests')->where('id', $delivery)->update([
                 'status' => 'pending',
