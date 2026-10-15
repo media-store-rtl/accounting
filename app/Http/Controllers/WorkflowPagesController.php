@@ -148,7 +148,7 @@ class WorkflowPagesController extends Controller {
     $join->on('i.goods_id','=','g.id')->on('i.location_id','=','l.id')->where('i.company_id','=',$cid);
    })
    ->where('g.company_id',$cid)->where('g.is_active',true)
-   ->where('l.company_id',$cid)->where('l.is_active',true)->whereRaw('LOWER(TRIM(l.type)) = ?', ['warehouse'])
+   ->where('l.company_id',$cid)->where('l.is_active',true)
    ->select('i.id as inventory_id','g.id as goods_id','l.id as location_id','g.name as goods_name','g.code as goods_code','l.name as location_name',DB::raw('COALESCE(i.quantity, 0) as quantity'),DB::raw('COALESCE(i.reorder_point, 0) as reorder_point'))
    ->orderBy('g.name')->orderBy('l.name')->paginate(30);
   return view('workflows.inventory',compact('rows'));
