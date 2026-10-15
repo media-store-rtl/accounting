@@ -75,6 +75,7 @@ class DeliveryController extends Controller
             'vehicle_plate'=>$data['vehicle_plate']??null,
             'driver_phone'=>$data['driver_phone']??null,
             'handover_note'=>$data['handover_note']??null,
+            'prepared_at'=>now(),
             'updated_at'=>now(),
         ]);
         abort_unless($updated,422,'درخواست تحویل در وضعیت قابل ویرایش نیست.');
@@ -88,6 +89,7 @@ class DeliveryController extends Controller
             DB::table('companies')->where('id',$companyId)->lockForUpdate()->first();
             $d=DB::table('delivery_requests')->where('id',$delivery)->where('company_id',$companyId)->lockForUpdate()->first();
             abort_unless($d,404); abort_unless($d->status==='pending',422,'درخواست تحویل در وضعیت قابل خروج نیست.');
+            abort_unless(!empty($d->prepared_at) && trim((string)$d->recipient_name)!=='',422,'ابتدا مشخصات تحویل‌گیرنده را ثبت کنید.');
             $items=DB::table('delivery_request_items')->where('delivery_request_id',$delivery)->get();
             foreach($items as $item){
                 $rows=DB::table('inventory')->join('locations','locations.id','=','inventory.location_id')
