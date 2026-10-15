@@ -10,6 +10,52 @@
 .delivery-request-fields input{box-sizing:border-box;width:100%;min-width:0;min-height:42px;margin-top:0!important;padding:9px 11px;border:1px solid #52677b;border-radius:8px;background:rgba(255,255,255,.04);color:inherit;font:inherit}
 .delivery-request-fields input:focus{outline:2px solid #60a5fa;outline-offset:1px;border-color:#60a5fa}
 .delivery-request-form>.btn{margin-top:18px!important}
+
+/* Handover modal: clear hierarchy, RTL layout, and touch-friendly controls */
+.handover-modal{display:none;position:fixed;inset:0;z-index:1000;background:rgba(8,18,32,.68);backdrop-filter:blur(3px);overflow-y:auto;padding:24px;align-items:center;justify-content:center;direction:rtl}
+.handover-dialog{box-sizing:border-box;width:min(100%,720px);margin:auto;padding:0!important;overflow:hidden;border:1px solid rgba(148,163,184,.28);border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.3)}
+.handover-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:22px 24px;border-bottom:1px solid rgba(148,163,184,.22)}
+.handover-title-wrap{display:flex;align-items:flex-start;gap:12px;min-width:0}
+.handover-title-icon{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border-radius:12px;background:rgba(59,130,246,.12);color:#60a5fa;font-size:21px}
+.handover-header h2{margin:0;font-size:20px;line-height:1.6}
+.handover-subtitle{margin:4px 0 0;color:#8da2b7;font-size:13px;line-height:1.9}
+.handover-close{flex:0 0 auto;min-width:38px;min-height:38px;padding:0!important;font-size:22px;line-height:1}
+.handover-body{padding:22px 24px 8px}
+.handover-section-title{margin:0 0 14px;font-size:14px;font-weight:700}
+.handover-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.handover-field{display:flex;flex-direction:column;gap:7px;min-width:0;font-size:13px;font-weight:600;line-height:1.8}
+.handover-field input,.handover-field textarea{box-sizing:border-box;width:100%;min-width:0;min-height:44px;margin:0!important;padding:10px 12px;border:1px solid #52677b;border-radius:10px;background:rgba(255,255,255,.035);color:inherit;font:inherit;font-weight:400;transition:border-color .15s,box-shadow .15s}
+.handover-field textarea{min-height:88px;resize:vertical}
+.handover-field input::placeholder,.handover-field textarea::placeholder{color:#8295a8;font-weight:400}
+.handover-field input:focus,.handover-field textarea:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(96,165,250,.16)}
+.handover-required{color:#f87171;margin-right:3px}
+.handover-optional{font-size:11px;font-weight:400;color:#8da2b7;margin-right:4px}
+.handover-note-field{margin-top:18px}
+.handover-signature{margin-top:22px}
+.handover-signature-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:9px}
+.handover-signature-heading label{font-size:13px;font-weight:700}
+.handover-signature-help{font-size:12px;color:#8da2b7;font-weight:400}
+.handover-signature-pad{padding:10px;border:1px solid rgba(148,163,184,.35);border-radius:12px;background:rgba(148,163,184,.06)}
+#signatureCanvas{display:block;width:100%;height:170px;border:1px dashed #9aaabd;border-radius:8px;background:#fff;touch-action:none;cursor:crosshair}
+.handover-signature-tools{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:10px}
+#signatureHint{font-size:12px;color:#8da2b7}
+.handover-footer{display:flex;justify-content:flex-start;align-items:center;gap:10px;padding:18px 24px 22px;margin-top:12px;border-top:1px solid rgba(148,163,184,.18)}
+.handover-footer .btn{min-height:42px;padding:9px 18px}
+.handover-footer .btn.primary{min-width:175px}
+@media(max-width:600px){
+ .handover-modal{padding:10px;align-items:flex-start}
+ .handover-dialog{border-radius:14px;margin:auto}
+ .handover-header{padding:17px 16px}
+ .handover-header h2{font-size:17px}
+ .handover-title-icon{flex-basis:36px;width:36px;height:36px}
+ .handover-body{padding:18px 16px 4px}
+ .handover-fields{grid-template-columns:minmax(0,1fr);gap:13px}
+ .handover-signature-heading{align-items:flex-start;flex-direction:column;gap:3px}
+ #signatureCanvas{height:150px}
+ .handover-footer{padding:16px;margin-top:10px}
+ .handover-footer .btn{flex:1;padding:9px 10px}
+ .handover-footer .btn.primary{min-width:0}
+}
 @media(max-width:900px){.delivery-request-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.delivery-request-fields{grid-template-columns:minmax(0,1fr);gap:12px}}
 @media(max-width:650px){.datepicker-container{position:fixed!important;top:50%!important;left:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)!important;z-index:10000!important;max-width:calc(100vw - 20px)!important}.datepicker-plot-area{max-width:calc(100vw - 20px)!important;box-sizing:border-box!important}}
@@ -77,35 +123,57 @@
 @endforelse
 </tbody></table></div></div>
 
-<div id="handoverModal" style="display:none;position:fixed;inset:0;z-index:1000;background:#0008;overflow:auto;padding:20px">
-  <div class="panel" style="max-width:680px;margin:30px auto;padding:24px">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 style="margin:0">فرم ثبت تحویل سفارش</h2><button class="btn" type="button" onclick="closeHandover()">بستن</button></div>
-    <p style="color:#71879d">مشخصات راننده و خودرو را وارد کنید و امضای تحویل‌گیرنده را ثبت کنید.</p>
+<div id="handoverModal" class="handover-modal" role="dialog" aria-modal="true" aria-labelledby="handoverTitle">
+  <div class="panel handover-dialog">
+    <header class="handover-header">
+      <div class="handover-title-wrap">
+        <span class="handover-title-icon" aria-hidden="true">✍</span>
+        <div>
+          <h2 id="handoverTitle">ثبت نهایی تحویل سفارش</h2>
+          <p class="handover-subtitle">اطلاعات تحویل را تکمیل کنید و امضای تحویل‌گیرنده را ثبت کنید.</p>
+        </div>
+      </div>
+      <button class="btn handover-close" type="button" aria-label="بستن فرم" onclick="closeHandover()">×</button>
+    </header>
     <form id="handoverForm" onsubmit="submitHandover(event)">
-      <input type="hidden" id="handoverDeliveryId">
-      <div class="form-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
-        <label>نام تحویل‌گیرنده *
-          <input id="receivedBy" required maxlength="255" autocomplete="name" style="width:100%">
+      <div class="handover-body">
+        <input type="hidden" id="handoverDeliveryId">
+        <h3 class="handover-section-title">مشخصات تحویل و حمل‌ونقل</h3>
+        <div class="handover-fields">
+          <label class="handover-field" for="receivedBy">نام تحویل‌گیرنده <span class="handover-required">*</span>
+            <input id="receivedBy" required maxlength="255" autocomplete="name" placeholder="نام و نام خانوادگی تحویل‌گیرنده">
+          </label>
+          <label class="handover-field" for="driverName">نام راننده <span class="handover-required">*</span>
+            <input id="driverName" required maxlength="255" autocomplete="name" placeholder="نام و نام خانوادگی راننده">
+          </label>
+          <label class="handover-field" for="vehiclePlate">شماره پلاک خودرو <span class="handover-required">*</span>
+            <input id="vehiclePlate" required maxlength="30" placeholder="مثلاً ۱۲ ب ۳۴۵ ایران ۶۷" autocomplete="off">
+          </label>
+          <label class="handover-field" for="driverPhone">شماره تماس راننده <span class="handover-optional">(اختیاری)</span>
+            <input id="driverPhone" maxlength="30" inputmode="tel" autocomplete="tel" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷">
+          </label>
+        </div>
+        <label class="handover-field handover-note-field" for="handoverNote">توضیحات <span class="handover-optional">(اختیاری)</span>
+          <textarea id="handoverNote" rows="3" maxlength="2000" placeholder="در صورت نیاز، توضیحات مربوط به تحویل را بنویسید"></textarea>
         </label>
-        <label>نام راننده *
-          <input id="driverName" required maxlength="255" style="width:100%">
-        </label>
-        <label>شماره پلاک خودرو *
-          <input id="vehiclePlate" required maxlength="30" placeholder="مثلاً ۱۲ ب ۳۴۵ ایران ۶۷" style="width:100%">
-        </label>
-        <label>شماره تماس راننده
-          <input id="driverPhone" maxlength="30" inputmode="tel" style="width:100%">
-        </label>
+        <section class="handover-signature" aria-labelledby="signatureLabel">
+          <div class="handover-signature-heading">
+            <label id="signatureLabel">امضای تحویل‌گیرنده <span class="handover-required">*</span></label>
+            <span class="handover-signature-help">با ماوس یا لمس صفحه، داخل کادر امضا کنید.</span>
+          </div>
+          <div class="handover-signature-pad">
+            <canvas id="signatureCanvas" width="620" height="180" aria-label="محل امضای تحویل‌گیرنده"></canvas>
+            <div class="handover-signature-tools">
+              <button type="button" class="btn" onclick="clearSignature()">پاک‌کردن امضا</button>
+              <span id="signatureHint" role="status" aria-live="polite">امضا الزامی است.</span>
+            </div>
+          </div>
+        </section>
       </div>
-      <label style="display:block;margin-top:14px">توضیحات (اختیاری)
-        <textarea id="handoverNote" rows="2" maxlength="2000" style="width:100%"></textarea>
-      </label>
-      <div style="margin-top:16px">
-        <label style="display:block;margin-bottom:8px">امضای تحویل‌گیرنده * <small>(با ماوس یا لمس روی صفحه امضا کنید)</small></label>
-        <canvas id="signatureCanvas" width="620" height="180" aria-label="محل امضای تحویل‌گیرنده" style="display:block;width:100%;max-width:620px;height:180px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;touch-action:none"></canvas>
-        <div style="display:flex;gap:8px;margin-top:8px"><button type="button" class="btn" onclick="clearSignature()">پاک‌کردن امضا</button><span id="signatureHint" style="align-self:center;color:#71879d;font-size:13px">امضا الزامی است.</span></div>
-      </div>
-      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px"><button class="btn" type="button" onclick="closeHandover()">انصراف</button><button id="saveHandover" class="btn primary" type="submit">ثبت نهایی تحویل</button></div>
+      <footer class="handover-footer">
+        <button class="btn" type="button" onclick="closeHandover()">انصراف</button>
+        <button id="saveHandover" class="btn primary" type="submit">ثبت نهایی تحویل</button>
+      </footer>
     </form>
   </div>
 </div>
@@ -174,8 +242,10 @@ canvas.addEventListener('pointerdown',e=>{drawing=true;hasSignature=true;canvas.
 canvas.addEventListener('pointermove',e=>{if(!drawing)return;const p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke()});
 for(const name of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(name,()=>{drawing=false});
 function clearSignature(){ctx.clearRect(0,0,canvas.width,canvas.height);hasSignature=false;document.getElementById('signatureHint').textContent='امضا الزامی است.'}
-function openHandover(id,button){document.getElementById('handoverDeliveryId').value=id;document.getElementById('receivedBy').value=button.dataset.recipient||'';document.getElementById('driverName').value='';document.getElementById('driverPhone').value='';document.getElementById('vehiclePlate').value='';document.getElementById('handoverNote').value='';clearSignature();modal.style.display='block'}
-function closeHandover(){modal.style.display='none'}
+function openHandover(id,button){document.getElementById('handoverDeliveryId').value=id;document.getElementById('receivedBy').value=button.dataset.recipient||'';document.getElementById('driverName').value='';document.getElementById('driverPhone').value='';document.getElementById('vehiclePlate').value='';document.getElementById('handoverNote').value='';clearSignature();modal.style.display='flex';document.body.style.overflow='hidden';document.getElementById('receivedBy').focus()}
+function closeHandover(){modal.style.display='none';document.body.style.overflow=''}
+modal.addEventListener('click',e=>{if(e.target===modal)closeHandover()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.style.display==='flex')closeHandover()});
 async function submitHandover(e){e.preventDefault();if(!hasSignature){alert('لطفاً امضای تحویل‌گیرنده را ثبت کنید.');return}const button=document.getElementById('saveHandover');button.disabled=true;button.textContent='در حال ثبت…';try{await post('/api/delivery-requests/'+document.getElementById('handoverDeliveryId').value+'/handover',{received_by:document.getElementById('receivedBy').value.trim(),driver_name:document.getElementById('driverName').value.trim(),driver_phone:document.getElementById('driverPhone').value.trim()||null,vehicle_plate:document.getElementById('vehiclePlate').value.trim(),handover_note:document.getElementById('handoverNote').value.trim()||null,recipient_signature:canvas.toDataURL('image/png')});location.reload()}catch(e){alert(e.message);button.disabled=false;button.textContent='ثبت نهایی تحویل'}}
 async function showReceipt(id){try{const response=await fetch('/api/delivery-requests/'+id+'/receipt',{headers:{'Accept':'application/json'}});const payload=await response.json();if(!response.ok)throw Error(payload.message||'دریافت رسید ناموفق بود');const r=payload.data;const details=document.getElementById('receiptDetails');details.replaceChildren();for(const [label,value] of [['تحویل‌گیرنده',r.received_by],['راننده',r.driver_name],['شماره تماس راننده',r.driver_phone],['پلاک خودرو',r.vehicle_plate],['زمان تحویل',r.handed_over_at]]){if(!value)continue;const row=document.createElement('div');const strong=document.createElement('strong');strong.textContent=label+' : ';row.append(strong,document.createTextNode(value));details.append(row)}document.getElementById('receiptSignature').src=r.recipient_signature;document.getElementById('receiptModal').style.display='block'}catch(e){alert(e.message)}}
 </script>
