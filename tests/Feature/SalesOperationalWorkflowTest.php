@@ -95,6 +95,7 @@ class SalesOperationalWorkflowTest extends TestCase
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertStatus(422);
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/prepare',['received_by'=>'Customer Receiver'])->assertOk();
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertOk();
+        $this->get('/sales/deliveries')->assertOk()->assertSee('ثبت امضای تحویل');
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>6]);
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'delivery_issue','quantity'=>-4]);
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/handover',[
@@ -103,6 +104,7 @@ class SalesOperationalWorkflowTest extends TestCase
         ])->assertOk();
         $this->assertDatabaseHas('deliveries',['delivery_request_id'=>$delivery->id,'vehicle_plate'=>'12ب345ایران67','driver_name'=>'Test Driver','received_by'=>'Customer Receiver']);
         $this->get('/api/delivery-requests/'.$delivery->id.'/receipt')->assertOk()->assertJsonPath('data.driver_name','Test Driver');
+        $this->get('/sales/deliveries')->assertOk()->assertSee('مشاهده رسید');
         $this->assertDatabaseHas('delivery_requests',['id'=>$delivery->id,'status'=>'completed']);
         $this->assertDatabaseHas('orders',['id'=>$order,'status'=>'completed']);
     }
