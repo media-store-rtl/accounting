@@ -221,9 +221,9 @@ elseif ($can['production_operations']) $productionHome = route('master.index', '
 <script>
 (function () {
   const digitMap = {'0':'۰','1':'۱','2':'۲','3':'۳','4':'۴','5':'۵','6':'۶','7':'۷','8':'۸','9':'۹'};
-  const localizeNumbers = (value) => value.replace(/(^|[^\\p{L}\\p{N}_])([0-9]+(?:\\.[0-9]+)?)(?=$|[^\\p{L}\\p{N}_])/gu, function (match, prefix, number) {
-    if (number.includes('.')) number = number.replace(/(\\.\\d*?[1-9])0+$|\\.0+$/, '$1');
-    number = number.replace(/\\./g, '٫').replace(/[0-9]/g, digit => digitMap[digit]);
+  const localizeNumbers = (value) => value.replace(/(^|[^\p{L}\p{N}_])([0-9]+(?:\.[0-9]+)?)(?=$|[^\p{L}\p{N}_])/gu, function (match, prefix, number) {
+    if (number.includes('.')) number = number.replace(/(\.\d*?[1-9])0+$|\.0+$/, '$1');
+    number = number.replace(/\./g, '٫').replace(/[0-9]/g, digit => digitMap[digit]);
     return prefix + number;
   });
   function formatVisibleNumbers(root) {
