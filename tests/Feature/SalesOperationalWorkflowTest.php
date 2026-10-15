@@ -92,6 +92,7 @@ class SalesOperationalWorkflowTest extends TestCase
             return $data['event'] === 'delivery.requested' && (int) $data['order_id'] === (int) $order;
         });
         $this->assertDatabaseHas('delivery_requests',['id'=>$delivery->id,'sales_approved_by_user_id'=>$c['user']]);
+        $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertStatus(422);
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/prepare',['received_by'=>'Customer Receiver'])->assertOk();
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertOk();
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>6]);
