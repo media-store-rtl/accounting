@@ -65,7 +65,6 @@
 <tr>
 <td>{{ $d->order_number }}</td><td>{{ $d->customer_name }}</td><td>{{ $d->requested_delivery_at ? \\Carbon\\Carbon::parse($d->requested_delivery_at)->format(\'Y-m-d\') : \'—\' }}</td>
 <td>@if($d->status === 'awaiting_sales_approval')<span class="status inactive">در انتظار مجوز خروج فروش</span>@elseif($d->status === 'pending')<span class="status inactive">در انتظار خروج انبار</span>@elseif($d->status === 'issued')<span class="status active">خارج‌شده از انبار</span>@elseif(in_array($d->status, ['completed','delivered']))<span class="status active">تحویل‌شده</span>@else<span class="status">{{ $d->status }}</span>@endif</td>
-<td>@if($d->vehicle_plate){{ $d->vehicle_plate }}<br><small>{{ $d->driver_name }}</small>@else<span style="color:#71879d">—</span>@endif</td>
 <td>
 @if($d->status === 'issued')<button class="btn primary" type="button" data-recipient="{{ $d->recipient_name }}" onclick="openHandover({{ $d->id }}, this)">ثبت تحویل و امضا</button>
 @elseif($d->received_by)<button class="btn" type="button" onclick="showReceipt({{ $d->id }})">مشاهده رسید</button>
