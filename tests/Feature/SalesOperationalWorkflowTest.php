@@ -33,7 +33,8 @@ class SalesOperationalWorkflowTest extends TestCase
         $goods=DB::table('goods')->insertGetId(['company_id'=>$company,'category_id'=>$category,'code'=>'FG1','name'=>'Finished Good','purchasable'=>false,'producible'=>true,'sellable'=>true,'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $customer=DB::table('customers')->insertGetId(['company_id'=>$company,'name'=>'Customer','code'=>'CU1','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $warehouse=DB::table('locations')->insertGetId(['company_id'=>$company,'code'=>'W1','name'=>'Warehouse','type'=>'warehouse','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
-        DB::table('inventory')->insert(['company_id'=>$company,'location_id'=>$warehouse,'goods_id'=>$goods,'quantity'=>$stock,'created_at'=>now(),'updated_at'=>now()]);
+        $inventoryId=DB::table('inventory')->insertGetId(['company_id'=>$company,'location_id'=>$warehouse,'goods_id'=>$goods,'quantity'=>$stock,'created_at'=>now(),'updated_at'=>now()]);
+        if ($stock > 0) DB::table('inventory_movements')->insert(['company_id'=>$company,'location_id'=>$warehouse,'goods_id'=>$goods,'quantity'=>$stock,'movement_type'=>'opening_balance','reference_type'=>'inventory','reference_id'=>$inventoryId,'occurred_at'=>now(),'metadata'=>json_encode(['source'=>'test opening balance']),'created_at'=>now(),'updated_at'=>now()]);
         $this->actingAs(User::findOrFail($user))->withSession(['company_id'=>$company]);
         return compact('company','user','fy','goods','customer','warehouse');
     }
@@ -96,7 +97,8 @@ class SalesOperationalWorkflowTest extends TestCase
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/prepare',['received_by'=>'Customer Receiver'])->assertOk();
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertOk();
         $this->get('/sales/deliveries')->assertOk()->assertSee('ثبت امضای تحویل');
-        $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>6]);
+        $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>10]);
+        $this->assertSame(6.0,(float)DB::table('inventory_movements')->where('company_id',$c['company'])->where('location_id',$c['warehouse'])->where('goods_id',$c['goods'])->sum('quantity'));
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'delivery_issue','quantity'=>-4]);
         // Existing warehouse roles may have issue permission without the separate handover permission.
         $roleId = DB::table('company_user')->where('company_id', $c['company'])->where('user_id', $c['user'])->value('role_id');
@@ -142,7 +144,8 @@ class SalesOperationalWorkflowTest extends TestCase
 
         $this->assertDatabaseHas('production_outputs',['id'=>$output->id,'status'=>'received','order_id'=>$order]);
         $this->assertDatabaseHas('finished_goods_receipts',['production_output_id'=>$output->id,'status'=>'approved']);
-        $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>4]);
+        $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>0]);
+        $this->assertSame(4.0,(float)DB::table('inventory_movements')->where('company_id',$c['company'])->where('location_id',$c['warehouse'])->where('goods_id',$c['goods'])->sum('quantity'));
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'finished_goods_receipt','reference_type'=>'production_outputs','reference_id'=>$output->id,'quantity'=>4]);
 
         $this->postJson('/api/orders/'.$order.'/refresh')->assertOk()->assertJsonPath('data.status','ready_for_delivery');
@@ -153,6 +156,7 @@ class SalesOperationalWorkflowTest extends TestCase
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/prepare',['received_by'=>'Customer Receiver'])->assertOk();
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertOk();
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>0]);
+        $this->assertSame(0.0,(float)DB::table('inventory_movements')->where('company_id',$c['company'])->where('location_id',$c['warehouse'])->where('goods_id',$c['goods'])->sum('quantity'));
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'delivery_issue','reference_type'=>'delivery_request','reference_id'=>$delivery->id,'quantity'=>-4]);
 
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/handover',[
@@ -175,7 +179,7 @@ class SalesOperationalWorkflowTest extends TestCase
         Notification::assertSentTo(User::find($supervisorId), \App\Notifications\WorkflowNotification::class);
         $order=$response->json('data.id');
         $this->postJson('/api/orders/'.$order.'/production-due',['production_due_at'=>'2026-10-18'])->assertOk()->assertJsonPath('data.status','awaiting_production');
-        DB::table('inventory')->where('location_id',$c['warehouse'])->where('goods_id',$c['goods'])->update(['quantity'=>5]);
+        app(\App\Services\InventoryService::class)->adjust($c['company'],$c['warehouse'],$c['goods'],5,'restore stock for test',$c['user']);
         $this->postJson('/api/orders/'.$order.'/refresh')->assertOk()->assertJsonPath('data.status','ready_for_delivery');
         $this->assertDatabaseHas('order_items',['order_id'=>$order,'shortage_quantity'=>0,'fulfillment_status'=>'ready_for_delivery']);
     }
@@ -342,8 +346,9 @@ class SalesOperationalWorkflowTest extends TestCase
 
         $this->assertDatabaseHas('inventory', [
             'company_id' => $c['company'], 'location_id' => $productLocation,
-            'goods_id' => $c['goods'], 'quantity' => 4,
+            'goods_id' => $c['goods'], 'quantity' => 0,
         ]);
+        $this->assertSame(4.0,(float)DB::table('inventory_movements')->where('company_id',$c['company'])->where('location_id',$productLocation)->where('goods_id',$c['goods'])->sum('quantity'));
         $this->assertDatabaseHas('inventory_movements', [
             'company_id' => $c['company'], 'location_id' => $productLocation,
             'goods_id' => $c['goods'], 'movement_type' => 'finished_goods_receipt', 'quantity' => 4,
@@ -369,11 +374,12 @@ class SalesOperationalWorkflowTest extends TestCase
             'name' => 'Finished Products', 'type' => 'محصول', 'is_active' => true,
             'created_at' => now(), 'updated_at' => now(),
         ]);
-        DB::table('inventory')->insert([
+        $productInventoryId=DB::table('inventory')->insertGetId([
             'company_id' => $c['company'], 'location_id' => $productLocation,
             'goods_id' => $c['goods'], 'quantity' => 10,
             'created_at' => now(), 'updated_at' => now(),
         ]);
+        DB::table('inventory_movements')->insert(['company_id'=>$c['company'],'location_id'=>$productLocation,'goods_id'=>$c['goods'],'quantity'=>10,'movement_type'=>'opening_balance','reference_type'=>'inventory','reference_id'=>$productInventoryId,'occurred_at'=>now(),'metadata'=>json_encode(['source'=>'test opening balance']),'created_at'=>now(),'updated_at'=>now()]);
 
         $orderId = $this->postJson('/api/orders', [
             'fiscal_year_id' => $c['fy'],
@@ -395,8 +401,9 @@ class SalesOperationalWorkflowTest extends TestCase
 
         $this->assertDatabaseHas('inventory', [
             'company_id' => $c['company'], 'location_id' => $productLocation,
-            'goods_id' => $c['goods'], 'quantity' => 9,
+            'goods_id' => $c['goods'], 'quantity' => 10,
         ]);
+        $this->assertSame(9.0,(float)DB::table('inventory_movements')->where('company_id',$c['company'])->where('location_id',$productLocation)->where('goods_id',$c['goods'])->sum('quantity'));
         $this->assertDatabaseHas('inventory_movements', [
             'company_id' => $c['company'], 'location_id' => $productLocation,
             'goods_id' => $c['goods'], 'movement_type' => 'delivery_issue',

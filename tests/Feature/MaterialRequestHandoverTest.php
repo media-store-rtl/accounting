@@ -49,9 +49,10 @@ class MaterialRequestHandoverTest extends TestCase
         $warehouse = DB::table('locations')->insertGetId([
             'company_id' => $company, 'code' => 'W1', 'name' => 'Warehouse', 'type' => 'warehouse', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
-        DB::table('inventory')->insert([
+        $inventoryId = DB::table('inventory')->insertGetId([
             'company_id' => $company, 'location_id' => $warehouse, 'goods_id' => $goods, 'quantity' => 10, 'created_at' => now(), 'updated_at' => now(),
         ]);
+        DB::table('inventory_movements')->insert(['company_id'=>$company,'location_id'=>$warehouse,'goods_id'=>$goods,'quantity'=>10,'movement_type'=>'opening_balance','reference_type'=>'inventory','reference_id'=>$inventoryId,'occurred_at'=>now(),'metadata'=>json_encode(['source'=>'test opening balance']),'created_at'=>now(),'updated_at'=>now()]);
         DB::table('supply_requests')->insert([
             'company_id' => $company, 'fiscal_year_id' => $fy, 'requested_by_user_id' => $user, 'requested_at' => now(),
             'needed_at' => '2026-10-10', 'status' => 'stock_available', 'notes' => null, 'created_at' => now(), 'updated_at' => now(),
@@ -76,7 +77,8 @@ class MaterialRequestHandoverTest extends TestCase
         ]);
         $response->assertCreated()->assertJsonPath('data.status', 'completed')
             ->assertJsonPath('data.delivered_by_user_id', $c['user'])->assertJsonPath('data.received_by_user_id', $c['user']);
-        $this->assertDatabaseHas('inventory', ['location_id' => $c['warehouse'], 'goods_id' => $c['goods'], 'quantity' => 6]);
+        $this->assertDatabaseHas('inventory', ['location_id' => $c['warehouse'], 'goods_id' => $c['goods'], 'quantity' => 10]);
+        $this->assertSame(6.0,(float)DB::table('inventory_movements')->where('company_id',$c['company'])->where('location_id',$c['warehouse'])->where('goods_id',$c['goods'])->sum('quantity'));
         $this->assertDatabaseHas('inventory_movements', ['goods_id' => $c['goods'], 'location_id' => $c['warehouse'], 'movement_type' => 'material_handover', 'quantity' => -4, 'reference_type' => 'material_handovers']);
         $this->assertDatabaseHas('supply_request_items', ['supply_request_id' => $requestId, 'goods_id' => $c['goods'], 'supplied_quantity' => 4]);
         $this->assertDatabaseHas('supply_requests', ['id' => $requestId, 'status' => 'fulfilled']);

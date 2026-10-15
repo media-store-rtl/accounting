@@ -100,7 +100,7 @@ class DashboardController extends Controller
 
         if ($company) {
             if ($can['inventory']) {
-                $stats['inventory_quantity'] = (float) DB::table('inventory')
+                $stats['inventory_quantity'] = (float) DB::table('inventory_movements')
                 ->where('company_id', $company->id)
                 ->sum('quantity');
             }

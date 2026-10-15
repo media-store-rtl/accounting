@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Notifications\WorkflowNotification;
 use App\Support\CompanyAuthorization;
+use App\Services\InventoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -91,27 +92,11 @@ class DeliveryController extends Controller
             abort_unless($d,404); abort_unless($d->status==='pending',422,'درخواست تحویل در وضعیت قابل خروج نیست.');
             abort_unless(!empty($d->prepared_at) && trim((string)$d->recipient_name)!=='',422,'ابتدا مشخصات تحویل‌گیرنده را ثبت کنید.');
             $items=DB::table('delivery_request_items')->where('delivery_request_id',$delivery)->get();
-            foreach($items as $item){
-                $rows=DB::table('inventory')->join('locations','locations.id','=','inventory.location_id')
-                    ->where('inventory.company_id',$companyId)->where('inventory.goods_id',$item->goods_id)->where('locations.company_id',$companyId)
-                    ->where(function($query){
-                        $query->whereRaw('LOWER(TRIM(locations.type)) = ?', ['warehouse'])
-                            ->orWhereRaw('TRIM(locations.type) = ?', ['محصول']);
-                    })->where('locations.is_active',true)->where('inventory.quantity','>',0)
-                    ->select('inventory.*')->lockForUpdate()->get();
-                $remaining=(float)$item->quantity;
-                foreach($rows as $row){
-                    if($remaining<=0) break;
-                    $take=min($remaining,(float)$row->quantity);
-                    DB::table('inventory')->where('id',$row->id)->update(['quantity'=>DB::raw('quantity - '.(float)$take),'updated_at'=>now()]);
-                    DB::table('inventory_movements')->insert([
-                        'company_id'=>$companyId,'goods_id'=>$item->goods_id,'location_id'=>$row->location_id,'quantity'=>-$take,
-                        'movement_type'=>'delivery_issue','reference_type'=>'delivery_request','reference_id'=>$delivery,'occurred_at'=>now(),
-                        'metadata'=>json_encode(['order_id'=>$d->order_id]),'created_at'=>now(),'updated_at'=>now()
-                    ]);
-                    $remaining-=$take;
-                }
-                abort_unless($remaining<=0,422,'موجودی کافی برای خروج کالا وجود ندارد.');
+            foreach ($items as $item) {
+                app(InventoryService::class)->issueAcrossWarehouseAndProductLocations(
+                    $companyId, (int) $item->goods_id, (float) $item->quantity,
+                    'delivery_request', $delivery, ['order_id' => (int) $d->order_id]
+                );
             }
             $deliveryId=DB::table('deliveries')->insertGetId([
                 'company_id'=>$companyId,'delivery_request_id'=>$delivery,'issued_by_user_id'=>$request->user()->id,'issued_at'=>now(),

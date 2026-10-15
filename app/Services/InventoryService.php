@@ -13,19 +13,7 @@ class InventoryService
 {
     public function available(int $companyId,int $goodsId): float
     {
-        return (float) DB::table('inventory as i')
-            ->join('locations as l', 'l.id', '=', 'i.location_id')
-            ->where('i.company_id', $companyId)
-            ->where('i.goods_id', $goodsId)
-            ->where('l.company_id', $companyId)
-            ->where('l.is_active', true)
-            // Finished goods may be received into a dedicated Persian "محصول" location.
-            // Count that stock for order allocation, but keep raw-material and scrap locations excluded.
-            ->where(function ($query) {
-                $query->whereRaw('LOWER(TRIM(l.type)) = ?', ['warehouse'])
-                    ->orWhereRaw('TRIM(l.type) = ?', ['محصول']);
-            })
-            ->sum('i.quantity');
+        return app(InventoryBalanceService::class)->available($companyId, $goodsId);
     }
 
     public function receive(int $companyId,int $locationId,int $goodsId,float $quantity,string $referenceType,int $referenceId,array $metadata=[]): void
@@ -35,97 +23,86 @@ class InventoryService
 
     public function issue(int $companyId,int $locationId,int $goodsId,float $quantity,string $referenceType,int $referenceId,array $metadata=[]): void
     {
-        if($quantity<=0) throw new RuntimeException('مقدار خروج کالا باید بیشتر از صفر باشد.');
+        if ($quantity <= 0) throw new RuntimeException('مقدار خروج کالا باید بیشتر از صفر باشد.');
         abort_unless(DB::table('locations')->where('id',$locationId)->where('company_id',$companyId)->where('type','warehouse')->where('is_active',true)->exists(),422,'انبار معتبر نیست.');
+        DB::table('inventory')->insertOrIgnore(['company_id'=>$companyId,'location_id'=>$locationId,'goods_id'=>$goodsId,'quantity'=>0,'reorder_point'=>0,'created_at'=>now(),'updated_at'=>now()]);
         $row=DB::table('inventory')->where('company_id',$companyId)->where('location_id',$locationId)->where('goods_id',$goodsId)->lockForUpdate()->first();
-        abort_unless($row && (float)$row->quantity + 0.0000001 >= $quantity,422,'موجودی انبار کافی نیست.');
-        DB::table('inventory')->where('id',$row->id)->update(['quantity'=>DB::raw('quantity - '.(float)$quantity),'updated_at'=>now()]);
-        $newQuantity=(float)$row->quantity-(float)$quantity;
-        $this->notifyIfReorderPointReached($companyId,$locationId,$goodsId,(float)$row->quantity,$newQuantity,(float)($row->reorder_point??0));
+        abort_unless($row,422,'ثبت ردیف کنترل انبار ممکن نشد.');
+        $previous=app(InventoryBalanceService::class)->quantityAtLocation($companyId,$locationId,$goodsId);
+        abort_unless($previous+0.0000001 >= $quantity,422,'موجودی انبار کافی نیست.');
         DB::table('inventory_movements')->insert([
             'company_id'=>$companyId,'goods_id'=>$goodsId,'location_id'=>$locationId,'quantity'=>-$quantity,'movement_type'=>'material_handover',
             'reference_type'=>$referenceType,'reference_id'=>$referenceId,'occurred_at'=>now(),'metadata'=>json_encode($metadata),'created_at'=>now(),'updated_at'=>now()
         ]);
+        $this->notifyIfReorderPointReached($companyId,$locationId,$goodsId,$previous,$previous-$quantity,(float)($row->reorder_point??0));
     }
 
-    public function transferToProductionSection(int $companyId, int $warehouseLocationId, int $sectionId, int $goodsId, float $quantity, string $referenceType, int $referenceId, array $metadata = []): void
+    public function issueAcrossWarehouseAndProductLocations(int $companyId,int $goodsId,float $quantity,string $referenceType,int $referenceId,array $metadata=[]): void
     {
-        if ($quantity <= 0) throw new RuntimeException('مقدار انتقال باید بیشتر از صفر باشد.');
-        $section = DB::table('production_sections as s')
-            ->join('locations as target', 'target.id', '=', 's.location_id')
-            ->where('s.id', $sectionId)->where('target.company_id', $companyId)->where('target.is_active', true)
-            ->select('target.id as location_id')->first();
-        abort_unless($section, 422, 'قسمت تولید مقصد معتبر یا فعال نیست.');
-        abort_unless(DB::table('locations')->where('id', $warehouseLocationId)->where('company_id', $companyId)
-            ->where('type', 'warehouse')->where('is_active', true)->exists(), 422, 'انبار مبدأ معتبر نیست.');
-
-        $this->issue($companyId, $warehouseLocationId, $goodsId, $quantity, $referenceType, $referenceId,
-            $metadata + ['production_section_id' => $sectionId, 'movement_leg' => 'out']);
-        DB::table('inventory')->insertOrIgnore([
-            'company_id' => $companyId, 'location_id' => (int) $section->location_id, 'goods_id' => $goodsId,
-            'quantity' => 0, 'created_at' => now(), 'updated_at' => now(),
-        ]);
-        $targetRow = DB::table('inventory')->where('company_id', $companyId)->where('location_id', (int) $section->location_id)
-            ->where('goods_id', $goodsId)->lockForUpdate()->first();
-        abort_unless($targetRow, 422, 'ثبت موجودی قسمت تولید ممکن نشد.');
-        DB::table('inventory')->where('id', $targetRow->id)->update([
-            'quantity' => DB::raw('quantity + '.(float) $quantity), 'updated_at' => now(),
-        ]);
-        DB::table('inventory_movements')->insert([
-            'company_id' => $companyId, 'goods_id' => $goodsId, 'location_id' => (int) $section->location_id,
-            'quantity' => $quantity, 'movement_type' => 'production_material_receipt',
-            'reference_type' => $referenceType, 'reference_id' => $referenceId, 'occurred_at' => now(),
-            'metadata' => json_encode($metadata + ['production_section_id' => $sectionId, 'movement_leg' => 'in']),
-            'created_at' => now(), 'updated_at' => now(),
-        ]);
-    }
-
-    public function consumeFromProductionSection(int $companyId, int $sectionId, int $goodsId, float $quantity, string $referenceType, int $referenceId, array $metadata = []): void
-    {
-        if ($quantity <= 0) throw new RuntimeException('مقدار مصرف باید بیشتر از صفر باشد.');
-
-        $section = DB::table('production_sections as s')
-            ->join('locations as l', 'l.id', '=', 's.location_id')
-            ->where('s.id', $sectionId)
-            ->where('l.company_id', $companyId)
-            ->where('l.is_active', true)
-            ->select('l.id as location_id')
-            ->first();
-        if (!$section) throw ValidationException::withMessages(['operation' => 'قسمت تولید برای کسر مواد اولیه معتبر یا فعال نیست.']);
-
-        $row = DB::table('inventory')
-            ->where('company_id', $companyId)
-            ->where('location_id', (int) $section->location_id)
-            ->where('goods_id', $goodsId)
-            ->lockForUpdate()
-            ->first();
-        if (!$row || (float) $row->quantity + 0.0000001 < $quantity) {
-            throw ValidationException::withMessages(['operation' => 'موجودی مواد اولیه در قسمت تولید کافی نیست.']);
+        if ($quantity <= 0) throw new RuntimeException('مقدار خروج کالا باید بیشتر از صفر باشد.');
+        $locations=DB::table('locations')->where('company_id',$companyId)->where('is_active',true)
+            ->where(function($q){$q->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])->orWhereRaw('TRIM(type) = ?', ['محصول']);})
+            ->orderBy('id')->get(['id']);
+        $remaining=$quantity;
+        foreach($locations as $location){
+            if($remaining<=0.0000001) break;
+            $locationId=(int)$location->id;
+            DB::table('inventory')->insertOrIgnore(['company_id'=>$companyId,'location_id'=>$locationId,'goods_id'=>$goodsId,'quantity'=>0,'reorder_point'=>0,'created_at'=>now(),'updated_at'=>now()]);
+            $row=DB::table('inventory')->where('company_id',$companyId)->where('location_id',$locationId)->where('goods_id',$goodsId)->lockForUpdate()->first();
+            if(!$row) continue;
+            $previous=app(InventoryBalanceService::class)->quantityAtLocation($companyId,$locationId,$goodsId);
+            if($previous<=0.0000001) continue;
+            $take=min($remaining,$previous);
+            DB::table('inventory_movements')->insert([
+                'company_id'=>$companyId,'goods_id'=>$goodsId,'location_id'=>$locationId,'quantity'=>-$take,'movement_type'=>'delivery_issue',
+                'reference_type'=>$referenceType,'reference_id'=>$referenceId,'occurred_at'=>now(),
+                'metadata'=>json_encode($metadata+['location_id'=>$locationId]),'created_at'=>now(),'updated_at'=>now(),
+            ]);
+            $this->notifyIfReorderPointReached($companyId,$locationId,$goodsId,$previous,$previous-$take,(float)($row->reorder_point??0));
+            $remaining-=$take;
         }
+        abort_unless($remaining<=0.0000001,422,'موجودی کافی برای خروج کالا وجود ندارد.');
+    }
 
-        $previous = (float) $row->quantity;
-        $current = $previous - $quantity;
-        DB::table('inventory')->where('id', $row->id)->update([
-            'quantity' => $current,
-            'updated_at' => now(),
-        ]);
-        $this->notifyIfReorderPointReached(
-            $companyId, (int) $section->location_id, $goodsId, $previous, $current,
-            (float) ($row->reorder_point ?? 0)
-        );
+    public function transferToProductionSection(int $companyId,int $warehouseLocationId,int $sectionId,int $goodsId,float $quantity,string $referenceType,int $referenceId,array $metadata=[]): void
+    {
+        if($quantity<=0) throw new RuntimeException('مقدار انتقال باید بیشتر از صفر باشد.');
+        $section=DB::table('production_sections as s')->join('locations as target','target.id','=','s.location_id')
+            ->where('s.id',$sectionId)->where('target.company_id',$companyId)->where('target.is_active',true)->select('target.id as location_id')->first();
+        abort_unless($section,422,'قسمت تولید مقصد معتبر یا فعال نیست.');
+        abort_unless(DB::table('locations')->where('id',$warehouseLocationId)->where('company_id',$companyId)->where('type','warehouse')->where('is_active',true)->exists(),422,'انبار مبدأ معتبر نیست.');
+        $this->issue($companyId,$warehouseLocationId,$goodsId,$quantity,$referenceType,$referenceId,$metadata+['production_section_id'=>$sectionId,'movement_leg'=>'out']);
+        $targetId=(int)$section->location_id;
+        DB::table('inventory')->insertOrIgnore(['company_id'=>$companyId,'location_id'=>$targetId,'goods_id'=>$goodsId,'quantity'=>0,'reorder_point'=>0,'created_at'=>now(),'updated_at'=>now()]);
+        $targetRow=DB::table('inventory')->where('company_id',$companyId)->where('location_id',$targetId)->where('goods_id',$goodsId)->lockForUpdate()->first();
+        abort_unless($targetRow,422,'ثبت موجودی قسمت تولید ممکن نشد.');
+        $previous=app(InventoryBalanceService::class)->quantityAtLocation($companyId,$targetId,$goodsId);
         DB::table('inventory_movements')->insert([
-            'company_id' => $companyId,
-            'goods_id' => $goodsId,
-            'location_id' => (int) $section->location_id,
-            'quantity' => -$quantity,
-            'movement_type' => 'production_consumption',
-            'reference_type' => $referenceType,
-            'reference_id' => $referenceId,
-            'occurred_at' => now(),
-            'metadata' => json_encode($metadata + ['production_section_id' => $sectionId, 'movement_leg' => 'consumption']),
-            'created_at' => now(),
-            'updated_at' => now(),
+            'company_id'=>$companyId,'goods_id'=>$goodsId,'location_id'=>$targetId,'quantity'=>$quantity,'movement_type'=>'production_material_receipt',
+            'reference_type'=>$referenceType,'reference_id'=>$referenceId,'occurred_at'=>now(),
+            'metadata'=>json_encode($metadata+['production_section_id'=>$sectionId,'movement_leg'=>'in']),'created_at'=>now(),'updated_at'=>now(),
         ]);
+        $this->notifyIfReorderPointReached($companyId,$targetId,$goodsId,$previous,$previous+$quantity,(float)($targetRow->reorder_point??0));
+    }
+
+    public function consumeFromProductionSection(int $companyId,int $sectionId,int $goodsId,float $quantity,string $referenceType,int $referenceId,array $metadata=[]): void
+    {
+        if($quantity<=0) throw new RuntimeException('مقدار مصرف باید بیشتر از صفر باشد.');
+        $section=DB::table('production_sections as s')->join('locations as l','l.id','=','s.location_id')
+            ->where('s.id',$sectionId)->where('l.company_id',$companyId)->where('l.is_active',true)->select('l.id as location_id')->first();
+        if(!$section) throw ValidationException::withMessages(['operation'=>'قسمت تولید برای کسر مواد اولیه معتبر یا فعال نیست.']);
+        $locationId=(int)$section->location_id;
+        DB::table('inventory')->insertOrIgnore(['company_id'=>$companyId,'location_id'=>$locationId,'goods_id'=>$goodsId,'quantity'=>0,'reorder_point'=>0,'created_at'=>now(),'updated_at'=>now()]);
+        $row=DB::table('inventory')->where('company_id',$companyId)->where('location_id',$locationId)->where('goods_id',$goodsId)->lockForUpdate()->first();
+        if(!$row) throw ValidationException::withMessages(['operation'=>'ردیف کنترل موجودی قسمت تولید پیدا نشد.']);
+        $previous=app(InventoryBalanceService::class)->quantityAtLocation($companyId,$locationId,$goodsId);
+        if($previous+0.0000001<$quantity) throw ValidationException::withMessages(['operation'=>'موجودی مواد اولیه در قسمت تولید کافی نیست.']);
+        DB::table('inventory_movements')->insert([
+            'company_id'=>$companyId,'goods_id'=>$goodsId,'location_id'=>$locationId,'quantity'=>-$quantity,'movement_type'=>'production_consumption',
+            'reference_type'=>$referenceType,'reference_id'=>$referenceId,'occurred_at'=>now(),
+            'metadata'=>json_encode($metadata+['production_section_id'=>$sectionId,'movement_leg'=>'consumption']),'created_at'=>now(),'updated_at'=>now(),
+        ]);
+        $this->notifyIfReorderPointReached($companyId,$locationId,$goodsId,$previous,$previous-$quantity,(float)($row->reorder_point??0));
     }
 
     public function receiveFinishedGoods(int $companyId,int $locationId,int $goodsId,float $quantity,string $referenceType,int $referenceId,array $metadata=[]): void
@@ -135,41 +112,35 @@ class InventoryService
 
     public function adjust(int $companyId,int $locationId,int $goodsId,float $newQuantity,string $reason,int $userId): void
     {
-        if ($newQuantity < 0) throw new RuntimeException('موجودی نهایی نمی‌تواند منفی باشد.');
-        DB::transaction(function () use ($companyId,$locationId,$goodsId,$newQuantity,$reason,$userId) {
+        if($newQuantity<0) throw new RuntimeException('موجودی نهایی نمی‌تواند منفی باشد.');
+        DB::transaction(function()use($companyId,$locationId,$goodsId,$newQuantity,$reason,$userId){
             abort_unless(DB::table('locations')->where('id',$locationId)->where('company_id',$companyId)->where('type','warehouse')->where('is_active',true)->exists(),422,'انبار معتبر نیست.');
+            DB::table('inventory')->insertOrIgnore(['company_id'=>$companyId,'location_id'=>$locationId,'goods_id'=>$goodsId,'quantity'=>0,'reorder_point'=>0,'created_at'=>now(),'updated_at'=>now()]);
             $row=DB::table('inventory')->where('company_id',$companyId)->where('location_id',$locationId)->where('goods_id',$goodsId)->lockForUpdate()->first();
-            $previous=(float)($row->quantity??0);
-            $reorderPoint=(float)($row->reorder_point??0);
-            $delta=$newQuantity-$previous;
-            if($row) {
-                DB::table('inventory')->where('id',$row->id)->update(['quantity'=>$newQuantity,'updated_at'=>now()]);
-            } else {
-                DB::table('inventory')->insert(['company_id'=>$companyId,'location_id'=>$locationId,'goods_id'=>$goodsId,'quantity'=>$newQuantity,'reorder_point'=>0,'created_at'=>now(),'updated_at'=>now()]);
-            }
+            abort_unless($row,422,'ردیف کنترل موجودی پیدا نشد.');
+            $previous=app(InventoryBalanceService::class)->quantityAtLocation($companyId,$locationId,$goodsId);
+            $reorderPoint=(float)($row->reorder_point??0); $delta=$newQuantity-$previous;
             DB::table('inventory_movements')->insert([
-                'company_id'=>$companyId,'goods_id'=>$goodsId,'location_id'=>$locationId,'quantity'=>$delta,
-                'movement_type'=>'inventory_adjustment','reference_type'=>'inventory','reference_id'=>$row->id??0,
-                'occurred_at'=>now(),'metadata'=>json_encode(['reason'=>$reason,'adjusted_by_user_id'=>$userId]),
-                'created_at'=>now(),'updated_at'=>now(),
+                'company_id'=>$companyId,'goods_id'=>$goodsId,'location_id'=>$locationId,'quantity'=>$delta,'movement_type'=>'inventory_adjustment',
+                'reference_type'=>'inventory','reference_id'=>$row->id,'occurred_at'=>now(),
+                'metadata'=>json_encode(['reason'=>$reason,'adjusted_by_user_id'=>$userId]),'created_at'=>now(),'updated_at'=>now(),
             ]);
-            app(AuditTrailService::class)->recordDirect($companyId,$userId,'warehouse','inventory.adjustment',(int)($row->id??0),
-                ['quantity'=>$previous],['quantity'=>$newQuantity,'reason'=>$reason]);
+            app(AuditTrailService::class)->recordDirect($companyId,$userId,'warehouse','inventory.adjustment',(int)$row->id,['quantity'=>$previous],['quantity'=>$newQuantity,'reason'=>$reason]);
             $this->notifyIfReorderPointReached($companyId,$locationId,$goodsId,$previous,$newQuantity,$reorderPoint);
         });
     }
 
     public function setReorderPoint(int $companyId,int $inventoryId,float $reorderPoint,int $userId): void
     {
-        if ($reorderPoint < 0) throw new RuntimeException('نقطه سفارش نمی‌تواند منفی باشد.');
-        DB::transaction(function () use ($companyId,$inventoryId,$reorderPoint,$userId) {
+        if($reorderPoint<0) throw new RuntimeException('نقطه سفارش نمی‌تواند منفی باشد.');
+        DB::transaction(function()use($companyId,$inventoryId,$reorderPoint,$userId){
             $row=DB::table('inventory as i')->join('locations as l','l.id','=','i.location_id')->where('i.id',$inventoryId)->where('i.company_id',$companyId)->where('l.company_id',$companyId)->lockForUpdate()->select('i.*')->first();
             abort_unless($row,404);
             $old=(float)($row->reorder_point??0);
+            $current=app(InventoryBalanceService::class)->quantityAtLocation($companyId,(int)$row->location_id,(int)$row->goods_id);
             DB::table('inventory')->where('id',$inventoryId)->update(['reorder_point'=>$reorderPoint,'updated_at'=>now()]);
-            app(AuditTrailService::class)->recordDirect($companyId,$userId,'warehouse','inventory.reorder_point.update',$inventoryId,
-                ['reorder_point'=>$old],['reorder_point'=>$reorderPoint]);
-            $this->notifyIfReorderPointReached($companyId,(int)$row->location_id,(int)$row->goods_id,(float)$row->quantity,(float)$row->quantity,$reorderPoint);
+            app(AuditTrailService::class)->recordDirect($companyId,$userId,'warehouse','inventory.reorder_point.update',$inventoryId,['reorder_point'=>$old],['reorder_point'=>$reorderPoint]);
+            $this->notifyIfReorderPointReached($companyId,(int)$row->location_id,(int)$row->goods_id,$current,$current,$reorderPoint);
         });
     }
 
@@ -310,27 +281,18 @@ class InventoryService
     private function receiveIntoInventory(int $companyId,int $locationId,int $goodsId,float $quantity,string $movementType,string $referenceType,int $referenceId,array $metadata=[],bool $allowProductionReceiptLocationTypes=false): void
     {
         if($quantity<=0) throw new RuntimeException('مقدار ورود کالا باید بیشتر از صفر باشد.');
-                $locationQuery = DB::table('locations')->where('id',$locationId)->where('company_id',$companyId)->where('is_active',true);
-        if ($allowProductionReceiptLocationTypes) {
-            $locationQuery->where(function ($query) {
-                $query->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])
-                    ->orWhereIn(DB::raw('TRIM(type)'), ['مواد', 'محصول', 'ضایعات']);
-            });
-        } else {
-            $locationQuery->where('type','warehouse');
-        }
+        $locationQuery=DB::table('locations')->where('id',$locationId)->where('company_id',$companyId)->where('is_active',true);
+        if($allowProductionReceiptLocationTypes){$locationQuery->where(function($q){$q->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])->orWhereIn(DB::raw('TRIM(type)'), ['مواد','محصول','ضایعات']);});}
+        else {$locationQuery->where('type','warehouse');}
         abort_unless($locationQuery->exists(),422,'انبار معتبر نیست.');
-        $row=DB::table('inventory')->where('location_id',$locationId)->where('goods_id',$goodsId)->lockForUpdate()->first();
-        if($row) {
-            $previousQuantity=(float)$row->quantity;
-            DB::table('inventory')->where('id',$row->id)->update(['quantity'=>DB::raw('quantity + '.(float)$quantity),'updated_at'=>now()]);
-            $this->notifyIfReorderPointReached($companyId,$locationId,$goodsId,$previousQuantity,$previousQuantity+(float)$quantity,(float)($row->reorder_point??0));
-        } else {
-            DB::table('inventory')->insert(['company_id'=>$companyId,'location_id'=>$locationId,'goods_id'=>$goodsId,'quantity'=>$quantity,'reorder_point'=>0,'created_at'=>now(),'updated_at'=>now()]);
-        }
+        DB::table('inventory')->insertOrIgnore(['company_id'=>$companyId,'location_id'=>$locationId,'goods_id'=>$goodsId,'quantity'=>0,'reorder_point'=>0,'created_at'=>now(),'updated_at'=>now()]);
+        $row=DB::table('inventory')->where('company_id',$companyId)->where('location_id',$locationId)->where('goods_id',$goodsId)->lockForUpdate()->first();
+        abort_unless($row,422,'ثبت ردیف کنترل موجودی ممکن نشد.');
+        $previous=app(InventoryBalanceService::class)->quantityAtLocation($companyId,$locationId,$goodsId);
         DB::table('inventory_movements')->insert([
             'company_id'=>$companyId,'goods_id'=>$goodsId,'location_id'=>$locationId,'quantity'=>$quantity,'movement_type'=>$movementType,
-            'reference_type'=>$referenceType,'reference_id'=>$referenceId,'occurred_at'=>now(),'metadata'=>json_encode($metadata),'created_at'=>now(),'updated_at'=>now()
+            'reference_type'=>$referenceType,'reference_id'=>$referenceId,'occurred_at'=>now(),'metadata'=>json_encode($metadata),'created_at'=>now(),'updated_at'=>now(),
         ]);
+        $this->notifyIfReorderPointReached($companyId,$locationId,$goodsId,$previous,$previous+$quantity,(float)($row->reorder_point??0));
     }
 }

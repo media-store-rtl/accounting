@@ -62,11 +62,8 @@ class SupplyRequestController extends Controller
             abort_unless($items->isNotEmpty(), 422, 'اقلام درخواست پیدا نشدند.');
             $hasShortage = false;
             foreach ($items as $item) {
-                $available = (float) DB::table('inventory as i')
-                    ->join('locations as l', 'l.id', '=', 'i.location_id')
-                    ->where('i.company_id', $companyId)->where('i.goods_id', $item->goods_id)
-                    ->where('l.company_id', $companyId)->where('l.type', 'warehouse')->where('l.is_active', true)
-                    ->sum('i.quantity');
+                $available = app(\App\Services\InventoryBalanceService::class)
+                    ->availableInWarehouses($companyId, (int) $item->goods_id);
                 $usable = min((float) $item->requested_quantity, max(0, $available));
                 $shortage = max(0, (float) $item->requested_quantity - $usable);
                 $hasShortage = $hasShortage || $shortage > 0;
