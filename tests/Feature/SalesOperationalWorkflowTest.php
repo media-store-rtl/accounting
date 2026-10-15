@@ -348,6 +348,58 @@ class SalesOperationalWorkflowTest extends TestCase
         });
     }
 
+    public function test_delivery_issue_can_deduct_finished_goods_from_product_location(): void
+    {
+        Notification::fake();
+        $c = $this->context(0);
+
+        $productLocation = DB::table('locations')->insertGetId([
+            'company_id' => $c['company'], 'code' => 'FG-PRODUCT-'.uniqid(),
+            'name' => 'Finished Products', 'type' => 'محصول', 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('inventory')->insert([
+            'company_id' => $c['company'], 'location_id' => $productLocation,
+            'goods_id' => $c['goods'], 'quantity' => 10,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $orderId = $this->postJson('/api/orders', [
+            'fiscal_year_id' => $c['fy'],
+            'customer_id' => $c['customer'],
+            'number' => 'SO-PRODUCT-'.uniqid(),
+            'ordered_at' => '2026-10-07',
+            'requested_delivery_at' => '2026-10-20',
+            'items' => [['goods_id' => $c['goods'], 'quantity' => 1]],
+        ])->assertCreated()->assertJsonPath('data.status', 'ready_for_delivery')->json('data.id');
+
+        $this->postJson('/api/orders/'.$orderId.'/delivery-request', [
+            'scheduled_at' => '2026-10-20 10:00:00',
+            'recipient_name' => 'Receiver',
+        ])->assertCreated()->assertJsonPath('data.status', 'pending');
+
+        $delivery = DB::table('delivery_requests')->where('order_id', $orderId)->first();
+        $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertOk();
+
+        $this->assertDatabaseHas('inventory', [
+            'company_id' => $c['company'], 'location_id' => $productLocation,
+            'goods_id' => $c['goods'], 'quantity' => 9,
+        ]);
+        $this->assertDatabaseHas('inventory_movements', [
+            'company_id' => $c['company'], 'location_id' => $productLocation,
+            'goods_id' => $c['goods'], 'movement_type' => 'delivery_issue',
+            'reference_type' => 'delivery_request', 'reference_id' => $delivery->id,
+            'quantity' => -1,
+        ]);
+        $this->assertDatabaseHas('delivery_requests', ['id' => $delivery->id, 'status' => 'issued']);
+        $this->postJson('/api/delivery-requests/'.$delivery->id.'/handover', [
+            'received_by' => 'Customer Receiver', 'vehicle_plate' => '12ب345ایران67',
+            'driver_name' => 'Test Driver',
+            'recipient_signature' => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/f2sAAAAASUVORK5CYII=',
+        ])->assertOk();
+        $this->assertDatabaseHas('delivery_requests', ['id' => $delivery->id, 'status' => 'completed']);
+    }
+
     public function test_sales_pages_are_user_facing_and_server_authorized(): void
     {
         $c=$this->context(5);
