@@ -112,8 +112,8 @@
 <td>{{ $d->order_number }}</td><td>{{ $d->customer_name }}</td><td><time class="jalali-delivery-date" data-iso-date="{{ $d->requested_delivery_at ? substr((string) $d->requested_delivery_at, 0, 10) : '' }}">{{ $d->requested_delivery_at ? substr((string) $d->requested_delivery_at, 0, 10) : '—' }}</time></td>
 <td>@if($d->status === 'awaiting_sales_approval')<span class="status inactive">در انتظار مجوز خروج فروش</span>@elseif($d->status === 'pending')<span class="status inactive">در انتظار خروج انبار</span>@elseif($d->status === 'issued')<span class="status active">خارج‌شده از انبار</span>@elseif(in_array($d->status, ['completed','delivered']))<span class="status active">تحویل‌شده</span>@else<span class="status">{{ $d->status }}</span>@endif</td>
 <td>
-@if($d->status === 'pending' && $canIssueDelivery)<button class="btn primary" type="button" onclick="issue({{ $d->id }})">ثبت خروج از انبار</button>
-@elseif($d->status === 'issued')<button class="btn primary" type="button" data-recipient="{{ $d->recipient_name }}" onclick="openHandover({{ $d->id }}, this)">ثبت تحویل و امضا</button>
+@if($d->status === 'pending' && $canIssueDelivery)<button class="btn primary" type="button" data-recipient="{{ $d->recipient_name }}" data-driver="{{ $d->driver_name }}" data-plate="{{ $d->vehicle_plate }}" data-phone="{{ $d->driver_phone }}" data-note="{{ $d->handover_note }}" onclick="openPrepare({{ $d->id }}, this)">تکمیل مشخصات و خروج</button>
+@elseif($d->status === 'issued')<button class="btn primary" type="button" data-recipient="{{ $d->recipient_name }}" data-driver="{{ $d->driver_name }}" data-plate="{{ $d->vehicle_plate }}" data-phone="{{ $d->driver_phone }}" data-note="{{ $d->handover_note }}" onclick="openHandover({{ $d->id }}, this)">ثبت امضای تحویل</button>
 @elseif($d->received_by)<button class="btn" type="button" onclick="showReceipt({{ $d->id }})">مشاهده رسید</button>
 @else<span style="color:#71879d">—</span>@endif
 </td>
@@ -122,6 +122,27 @@
 <tr><td colspan="5" style="text-align:center;color:#71879d;padding:28px">درخواستی برای تحویل ثبت نشده است.</td></tr>
 @endforelse
 </tbody></table></div></div>
+
+<div id="prepareModal" class="handover-modal" role="dialog" aria-modal="true" aria-labelledby="prepareTitle">
+  <div class="panel handover-dialog">
+    <header class="handover-header"><div class="handover-title-wrap"><span class="handover-title-icon" aria-hidden="true">▤</span><div>
+      <h2 id="prepareTitle">تکمیل مشخصات پیش از خروج</h2>
+      <p class="handover-subtitle">ابتدا نام تحویل‌گیرنده را ثبت کنید. سپس خروج انبار انجام می‌شود؛ امضا هنگام تحویل نهایی ثبت خواهد شد.</p>
+    </div></div><button class="btn handover-close" type="button" aria-label="بستن فرم" onclick="closePrepare()">×</button></header>
+    <form id="prepareForm" onsubmit="submitPrepare(event)">
+      <div class="handover-body"><input type="hidden" id="prepareDeliveryId"><h3 class="handover-section-title">مشخصات تحویل و حمل‌ونقل</h3>
+        <div class="handover-fields">
+          <label class="handover-field" for="prepareRecipient">نام تحویل‌گیرنده <span class="handover-required">*</span><input id="prepareRecipient" required maxlength="255" autocomplete="name" placeholder="نام و نام خانوادگی تحویل‌گیرنده"></label>
+          <label class="handover-field" for="prepareDriver">نام راننده <span class="handover-optional">(اختیاری)</span><input id="prepareDriver" maxlength="255" placeholder="نام و نام خانوادگی راننده"></label>
+          <label class="handover-field" for="preparePlate">شماره پلاک خودرو <span class="handover-optional">(اختیاری)</span><input id="preparePlate" maxlength="30" placeholder="مثلاً ۱۲ ب ۳۴۵ ایران ۶۷"></label>
+          <label class="handover-field" for="preparePhone">شماره تماس راننده <span class="handover-optional">(اختیاری)</span><input id="preparePhone" maxlength="30" inputmode="tel" autocomplete="tel" placeholder="شماره تماس راننده"></label>
+        </div>
+        <label class="handover-field handover-note-field" for="prepareNote">توضیحات <span class="handover-optional">(اختیاری)</span><textarea id="prepareNote" rows="3" maxlength="2000" placeholder="توضیحات مربوط به ارسال یا تحویل"></textarea></label>
+      </div>
+      <footer class="handover-footer"><button class="btn" type="button" onclick="closePrepare()">انصراف</button><button id="savePrepare" class="btn primary" type="submit">ثبت مشخصات و اجازه خروج</button></footer>
+    </form>
+  </div>
+</div>
 
 <div id="handoverModal" class="handover-modal" role="dialog" aria-modal="true" aria-labelledby="handoverTitle">
   <div class="panel handover-dialog">
@@ -143,11 +164,11 @@
           <label class="handover-field" for="receivedBy">نام تحویل‌گیرنده <span class="handover-required">*</span>
             <input id="receivedBy" required maxlength="255" autocomplete="name" placeholder="نام و نام خانوادگی تحویل‌گیرنده">
           </label>
-          <label class="handover-field" for="driverName">نام راننده <span class="handover-required">*</span>
-            <input id="driverName" required maxlength="255" autocomplete="name" placeholder="نام و نام خانوادگی راننده">
+          <label class="handover-field" for="driverName">نام راننده <span class="handover-optional">(اختیاری)</span>
+            <input id="driverName" maxlength="255" autocomplete="name" placeholder="نام و نام خانوادگی راننده">
           </label>
-          <label class="handover-field" for="vehiclePlate">شماره پلاک خودرو <span class="handover-required">*</span>
-            <input id="vehiclePlate" required maxlength="30" placeholder="مثلاً ۱۲ ب ۳۴۵ ایران ۶۷" autocomplete="off">
+          <label class="handover-field" for="vehiclePlate">شماره پلاک خودرو <span class="handover-optional">(اختیاری)</span>
+            <input id="vehiclePlate" maxlength="30" placeholder="مثلاً ۱۲ ب ۳۴۵ ایران ۶۷" autocomplete="off">
           </label>
           <label class="handover-field" for="driverPhone">شماره تماس راننده <span class="handover-optional">(اختیاری)</span>
             <input id="driverPhone" maxlength="30" inputmode="tel" autocomplete="tel" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷">
@@ -231,7 +252,11 @@ document.querySelectorAll('.delivery-request-form').forEach(form=>form.addEventL
   }catch(e){alert(e.message);submit.disabled=false;submit.textContent='ثبت درخواست تحویل'}
 }));
 async function post(url,data={}){const r=await fetch(url,{method:'POST',headers:{'Accept':'application/json','Content-Type':'application/json','X-CSRF-TOKEN':token},body:JSON.stringify(data)});const j=await r.json();if(!r.ok){const first=j.errors?Object.values(j.errors).flat()[0]:null;throw Error(first||j.message||'خطا در ثبت اطلاعات')}return j}
-async function issue(id){if(!confirm('خروج این سفارش از انبار ثبت شود؟'))return;try{await post('/api/delivery-requests/'+id+'/issue');location.reload()}catch(e){alert(e.message)}}
+const prepareModal=document.getElementById('prepareModal');
+function openPrepare(id,button){document.getElementById('prepareDeliveryId').value=id;document.getElementById('prepareRecipient').value=button.dataset.recipient||'';document.getElementById('prepareDriver').value=button.dataset.driver||'';document.getElementById('preparePlate').value=button.dataset.plate||'';document.getElementById('preparePhone').value=button.dataset.phone||'';document.getElementById('prepareNote').value=button.dataset.note||'';prepareModal.style.display='flex';document.body.style.overflow='hidden';document.getElementById('prepareRecipient').focus()}
+function closePrepare(){prepareModal.style.display='none';document.body.style.overflow=''}
+prepareModal.addEventListener('click',e=>{if(e.target===prepareModal)closePrepare()});
+async function submitPrepare(e){e.preventDefault();const button=document.getElementById('savePrepare');button.disabled=true;button.textContent='در حال ثبت…';const id=document.getElementById('prepareDeliveryId').value;try{await post('/api/delivery-requests/'+id+'/prepare',{received_by:document.getElementById('prepareRecipient').value.trim(),driver_name:document.getElementById('prepareDriver').value.trim()||null,vehicle_plate:document.getElementById('preparePlate').value.trim()||null,driver_phone:document.getElementById('preparePhone').value.trim()||null,handover_note:document.getElementById('prepareNote').value.trim()||null});await post('/api/delivery-requests/'+id+'/issue');location.reload()}catch(e){alert(e.message);button.disabled=false;button.textContent='ثبت مشخصات و اجازه خروج'}}
 const modal=document.getElementById('handoverModal');
 const canvas=document.getElementById('signatureCanvas');
 const ctx=canvas.getContext('2d');
@@ -242,7 +267,7 @@ canvas.addEventListener('pointerdown',e=>{drawing=true;hasSignature=true;canvas.
 canvas.addEventListener('pointermove',e=>{if(!drawing)return;const p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke()});
 for(const name of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(name,()=>{drawing=false});
 function clearSignature(){ctx.clearRect(0,0,canvas.width,canvas.height);hasSignature=false;document.getElementById('signatureHint').textContent='امضا الزامی است.'}
-function openHandover(id,button){document.getElementById('handoverDeliveryId').value=id;document.getElementById('receivedBy').value=button.dataset.recipient||'';document.getElementById('driverName').value='';document.getElementById('driverPhone').value='';document.getElementById('vehiclePlate').value='';document.getElementById('handoverNote').value='';clearSignature();modal.style.display='flex';document.body.style.overflow='hidden';document.getElementById('receivedBy').focus()}
+function openHandover(id,button){document.getElementById('handoverDeliveryId').value=id;document.getElementById('receivedBy').value=button.dataset.recipient||'';document.getElementById('driverName').value=button.dataset.driver||'';document.getElementById('driverPhone').value=button.dataset.phone||'';document.getElementById('vehiclePlate').value=button.dataset.plate||'';document.getElementById('handoverNote').value=button.dataset.note||'';clearSignature();modal.style.display='flex';document.body.style.overflow='hidden';document.getElementById('receivedBy').focus()}
 function closeHandover(){modal.style.display='none';document.body.style.overflow=''}
 modal.addEventListener('click',e=>{if(e.target===modal)closeHandover()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.style.display==='flex')closeHandover()});
