@@ -92,6 +92,7 @@ class SalesOperationalWorkflowTest extends TestCase
             return $data['event'] === 'delivery.requested' && (int) $data['order_id'] === (int) $order;
         });
         $this->assertDatabaseHas('delivery_requests',['id'=>$delivery->id,'sales_approved_by_user_id'=>$c['user']]);
+        $this->postJson('/api/delivery-requests/'.$delivery->id.'/prepare',['received_by'=>'Customer Receiver'])->assertOk();
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertOk();
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>6]);
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'delivery_issue','quantity'=>-4]);
@@ -140,6 +141,7 @@ class SalesOperationalWorkflowTest extends TestCase
 
         $this->postJson('/api/orders/'.$order.'/delivery-request',['scheduled_at'=>'2026-10-08 10:00:00','recipient_name'=>'Receiver','vehicle'=>'Truck FG'])->assertCreated()->assertJsonPath('data.status','pending');
         $delivery=DB::table('delivery_requests')->where('order_id',$order)->first();
+        $this->postJson('/api/delivery-requests/'.$delivery->id.'/prepare',['received_by'=>'Customer Receiver'])->assertOk();
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertOk();
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>0]);
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'delivery_issue','reference_type'=>'delivery_request','reference_id'=>$delivery->id,'quantity'=>-4]);
@@ -379,6 +381,7 @@ class SalesOperationalWorkflowTest extends TestCase
         ])->assertCreated()->assertJsonPath('data.status', 'pending');
 
         $delivery = DB::table('delivery_requests')->where('order_id', $orderId)->first();
+        $this->postJson('/api/delivery-requests/'.$delivery->id.'/prepare',['received_by'=>'Customer Receiver'])->assertOk();
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertOk();
 
         $this->assertDatabaseHas('inventory', [
