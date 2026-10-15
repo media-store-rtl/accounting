@@ -47,6 +47,18 @@ class ProductionExecutionTest extends TestCase
         $this->assertDatabaseHas('production_operation_outputs',['production_operation_run_id'=>$run,'goods_id'=>$goods,'quantity'=>9]);
         $this->assertDatabaseHas('scraps',['production_operation_run_id'=>$run,'goods_id'=>$goods,'quantity'=>1]);
 
+        DB::table('inventory')->where('company_id',$company)->where('location_id',$location)->where('goods_id',$goods)->update(['quantity'=>9]);
+        try {
+            app(ProductionExecutionService::class)->review($company,$run,$user,true);
+            $this->fail('تأیید عملیات با موجودی ناکافی نباید موفق شود.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('operation', $exception->errors());
+        }
+        $this->assertSame('pending_review', DB::table('production_operation_runs')->where('id',$run)->value('status'));
+        $this->assertSame(9.0, (float) DB::table('inventory')->where('company_id',$company)->where('location_id',$location)->where('goods_id',$goods)->value('quantity'));
+        $this->assertSame(0, DB::table('inventory_movements')->where('reference_type','production_operation_runs')->where('reference_id',$run)->where('movement_type','production_consumption')->count());
+        DB::table('inventory')->where('company_id',$company)->where('location_id',$location)->where('goods_id',$goods)->update(['quantity'=>18]);
+
         app(ProductionExecutionService::class)->review($company,$run,$user,true);
 
         $this->assertSame('completed',DB::table('production_operation_runs')->where('id',$run)->value('status'));
