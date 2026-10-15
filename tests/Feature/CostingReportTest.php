@@ -169,6 +169,7 @@ class CostingReportTest extends TestCase
         $this->assertSame(90.0,$report['rows'][0]['total_cost']);
         $this->assertSame(['fifo'],$report['rows'][0]['valuation_methods']);
         $this->assertSame(0.0,$report['totals']['unvalued_material_quantity']);
+        $this->assertSame(2.0, $report['totals']['production_report_unvalued_material_quantity']);
         $this->assertCount(1,$report['production_reports']);
         $this->assertSame(['Stage'], $report['production_reports'][0]['stage_names']);
         $this->assertCount(2, $report['production_reports'][0]['materials']);
