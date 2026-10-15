@@ -70,7 +70,10 @@ class DeliveryController extends Controller
             foreach($items as $item){
                 $rows=DB::table('inventory')->join('locations','locations.id','=','inventory.location_id')
                     ->where('inventory.company_id',$companyId)->where('inventory.goods_id',$item->goods_id)->where('locations.company_id',$companyId)
-                    ->where('locations.type','warehouse')->where('locations.is_active',true)->where('inventory.quantity','>',0)
+                    ->where(function($query){
+                        $query->whereRaw('LOWER(TRIM(locations.type)) = ?', ['warehouse'])
+                            ->orWhereRaw('TRIM(locations.type) = ?', ['محصول']);
+                    })->where('locations.is_active',true)->where('inventory.quantity','>',0)
                     ->select('inventory.*')->lockForUpdate()->get();
                 $remaining=(float)$item->quantity;
                 foreach($rows as $row){
