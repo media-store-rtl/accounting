@@ -254,6 +254,16 @@ class OrderController extends Controller
             ]);
         });
 
+        // Legacy requests awaiting approval also notify the warehouse only after approval.
+        $approvedRequest = DB::table('delivery_requests')->where('id', $delivery)->where('company_id', $companyId)->first();
+        app(NotificationRecipientService::class)->send(
+            $companyId,
+            'delivery.requested',
+            ['delivery_request_id' => $delivery, 'order_id' => (int) $approvedRequest->order_id],
+            (int) $request->user()->id,
+            'warehouse.delivery.manage'
+        );
+
         if ($request->expectsJson()) {
             return response()->json(['data' => DB::table('delivery_requests')->find($delivery)]);
         }
@@ -263,11 +273,11 @@ class OrderController extends Controller
 
     public function deliveryRequest(Request $request,int $order): JsonResponse
     {
-        $companyId=CompanyAuthorization::authorize($request,'delivery_request.create');
+        $companyId=CompanyAuthorization::authorize($request,'delivery_request.sales_approve');
         $data=$request->validate([
-            'scheduled_at'=>'required|date',
+            'scheduled_at'=>'nullable|date',
             'vehicle'=>'nullable|string|max:255',
-            'recipient_name'=>'required|string|max:255',
+            'recipient_name'=>'nullable|string|max:255',
             'recipient_code'=>'nullable|string|max:100',
             'driver_name'=>'nullable|string|max:255',
             'waybill_number'=>'nullable|string|max:100',
@@ -282,11 +292,12 @@ class OrderController extends Controller
             abort_unless($items->isNotEmpty(),422,'سفارش فاقد قلم است.');
             $id=DB::table('delivery_requests')->insertGetId([
                 'company_id'=>$companyId,'order_id'=>$order,'customer_id'=>$row->customer_id,'requested_by_user_id'=>$request->user()->id,
-                'requested_at'=>now(),'scheduled_at'=>$data['scheduled_at'],'vehicle'=>$data['vehicle']??null,
-                'recipient_name'=>$data['recipient_name'],'recipient_code'=>$data['recipient_code']??null,
+                'requested_at'=>now(),'scheduled_at'=>$data['scheduled_at']??now(),'vehicle'=>$data['vehicle']??null,
+                'recipient_name'=>$data['recipient_name']??'','recipient_code'=>$data['recipient_code']??null,
                 'driver_name'=>$data['driver_name']??null,'waybill_number'=>$data['waybill_number']??null,
                 'vehicle_number'=>$data['vehicle_number']??null,'vehicle_type'=>$data['vehicle_type']??null,
-                'status'=>'awaiting_sales_approval','notes'=>$data['notes']??null,'created_at'=>now(),'updated_at'=>now()
+                'status'=>'pending','sales_approved_by_user_id'=>$request->user()->id,'sales_approved_at'=>now(),
+                'notes'=>$data['notes']??null,'created_at'=>now(),'updated_at'=>now()
             ]);
             foreach($items as $item) DB::table('delivery_request_items')->insert([
                 'delivery_request_id'=>$id,'goods_id'=>$item->goods_id,'quantity'=>$item->quantity,'created_at'=>now(),'updated_at'=>now()
@@ -294,6 +305,7 @@ class OrderController extends Controller
             DB::table('orders')->where('id',$order)->update(['status'=>'delivery_requested','updated_at'=>now()]);
             return $id;
         });
+        // The request is created already approved; only now notify the warehouse.
         app(NotificationRecipientService::class)->send($companyId, 'delivery.requested', ['delivery_request_id' => $requestId, 'order_id' => $order], (int) $request->user()->id, 'warehouse.delivery.manage');
         return response()->json(['data'=>DB::table('delivery_requests')->find($requestId)],201);
     }

@@ -85,7 +85,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/sales/deliveries', [DeliveryController::class, 'index'])->middleware('company.permission:delivery_request.view')->name('sales.deliveries.index');
     Route::post('/api/orders/{order}/refresh', [OrderController::class, 'refreshFulfillment'])->middleware('company.permission:order.refresh')->name('sales.orders.refresh');
     Route::post('/api/orders/{order}/production-due', [OrderController::class, 'setProductionDue'])->middleware('company.permission:production.supervise')->name('sales.orders.production-due');
-    Route::post('/api/orders/{order}/delivery-request', [OrderController::class, 'deliveryRequest'])->middleware('company.permission:delivery_request.create')->name('sales.orders.delivery-request');
+    Route::post('/api/orders/{order}/delivery-request', [OrderController::class, 'deliveryRequest'])->middleware('company.permission:delivery_request.sales_approve')->name('sales.orders.delivery-request');
     Route::post('/sales/delivery-requests/{delivery}/sales-approve', [OrderController::class, 'approveDeliveryRelease'])->middleware('company.permission:delivery_request.sales_approve')->whereNumber('delivery')->name('sales.delivery.sales-approve');
     Route::post('/api/delivery-requests/{delivery}/issue', [DeliveryController::class, 'issue'])->middleware('company.permission:delivery_request.issue')->name('sales.delivery.issue');
     Route::post('/api/delivery-requests/{delivery}/handover', [DeliveryController::class, 'handover'])->middleware('company.permission:delivery_request.handover')->name('sales.delivery.handover');

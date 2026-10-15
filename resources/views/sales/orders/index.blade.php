@@ -40,13 +40,13 @@ $statusLabels = [
             <td>@if($o->production_due_at)<time class="jalali-date" datetime="{{ $o->production_due_at }}">{{ $o->production_due_at }}</time>@else — @endif</td>
             <td><span class="status">{{ $statusLabels[$o->status] ?? 'در حال بررسی' }}</span></td>
             <td style="white-space:nowrap"><a class="btn" href="{{ route('sales.orders.show', $o->id) }}">مشاهده جزئیات</a>
+              @if($canApproveDeliveryRelease && $o->status === 'ready_for_delivery' && !$o->delivery_request_id)
+                <button class="btn primary" type="button" onclick="authorizeDelivery({{ $o->id }})">مجوز خروج</button>
+              @endif
               @if($canApproveDeliveryRelease && $o->status === 'delivery_requested' && $o->delivery_request_status === 'awaiting_sales_approval' && $o->delivery_request_id)
                 <form method="POST" action="{{ route('sales.delivery.sales-approve', $o->delivery_request_id) }}" style="display:inline" onsubmit="return confirm('مجوز خروج این سفارش از سمت فروش صادر شود؟');">@csrf
                   <button class="btn primary" type="submit">مجوز خروج</button>
                 </form>
-              @endif
-              @if($o->delivery_request_id && $o->delivery_request_status === 'pending')
-                <button class="btn primary" type="button" onclick="issueDelivery({{ $o->delivery_request_id }})">خروج از انبار</button>
               @endif
               @if(in_array($o->status, ['checking_stock','production_required','awaiting_production','ready_for_delivery'], true))
                 <form method="POST" action="{{ route('sales.orders.cancel', $o->id) }}" style="display:inline" onsubmit="return confirm('آیا از لغو این سفارش مطمئن هستید؟');">@csrf
@@ -64,23 +64,19 @@ $statusLabels = [
   <div class="pagination">{{ $orders->links() }}</div>
 </div>
 <script>
-async function issueDelivery(id) {
-  if (!confirm('خروج این سفارش از انبار ثبت شود؟')) return;
+async function authorizeDelivery(orderId) {
+  if (!confirm('مجوز خروج این سفارش صادر و درخواست برای انبار ارسال شود؟')) return;
   try {
-    const response = await fetch('/api/delivery-requests/' + id + '/issue', {
+    const response = await fetch('/api/orders/' + orderId + '/delivery-request', {
       method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-      },
+      headers: {'Accept':'application/json','Content-Type':'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}'},
       body: JSON.stringify({})
     });
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload.message || 'ثبت خروج از انبار ناموفق بود');
+    if (!response.ok) throw new Error(payload.message || 'صدور مجوز خروج ناموفق بود');
     location.reload();
   } catch (error) {
-    alert(error.message || 'خطا در ثبت خروج از انبار');
+    alert(error.message || 'خطا در صدور مجوز خروج');
   }
 }
 document.querySelectorAll('.jalali-date').forEach((el) => {
