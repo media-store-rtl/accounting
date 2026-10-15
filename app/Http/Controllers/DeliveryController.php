@@ -59,6 +59,28 @@ class DeliveryController extends Controller
         return response()->json(['data'=>$receipt]);
     }
 
+    public function prepare(Request $request,int $delivery): \Illuminate\Http\JsonResponse
+    {
+        $companyId=CompanyAuthorization::authorize($request,'delivery_request.issue');
+        $data=$request->validate([
+            'received_by'=>'required|string|max:255',
+            'driver_name'=>'nullable|string|max:255',
+            'vehicle_plate'=>'nullable|string|max:30',
+            'driver_phone'=>'nullable|string|max:30',
+            'handover_note'=>'nullable|string|max:2000',
+        ]);
+        $updated=DB::table('delivery_requests')->where('id',$delivery)->where('company_id',$companyId)->where('status','pending')->update([
+            'recipient_name'=>$data['received_by'],
+            'driver_name'=>$data['driver_name']??null,
+            'vehicle_plate'=>$data['vehicle_plate']??null,
+            'driver_phone'=>$data['driver_phone']??null,
+            'handover_note'=>$data['handover_note']??null,
+            'updated_at'=>now(),
+        ]);
+        abort_unless($updated,422,'درخواست تحویل در وضعیت قابل ویرایش نیست.');
+        return response()->json(['data'=>DB::table('delivery_requests')->where('id',$delivery)->first()]);
+    }
+
     public function issue(Request $request,int $delivery): \Illuminate\Http\JsonResponse
     {
         $companyId=CompanyAuthorization::authorize($request,'delivery_request.issue');
@@ -91,7 +113,9 @@ class DeliveryController extends Controller
             }
             $deliveryId=DB::table('deliveries')->insertGetId([
                 'company_id'=>$companyId,'delivery_request_id'=>$delivery,'issued_by_user_id'=>$request->user()->id,'issued_at'=>now(),
-                'status'=>'issued','created_at'=>now(),'updated_at'=>now()
+                'status'=>'issued','received_by'=>$d->recipient_name,'driver_name'=>$d->driver_name,
+                'vehicle_plate'=>$d->vehicle_plate,'driver_phone'=>$d->driver_phone,'handover_note'=>$d->handover_note,
+                'created_at'=>now(),'updated_at'=>now()
             ]);
             DB::table('delivery_requests')->where('id',$delivery)->update(['status'=>'issued','updated_at'=>now()]);
             DB::table('orders')->where('id',$d->order_id)->update(['status'=>'issued','updated_at'=>now()]);
@@ -105,8 +129,8 @@ class DeliveryController extends Controller
         $companyId=CompanyAuthorization::authorize($request,'delivery_request.handover');
         $data=$request->validate([
             'received_by'=>'required|string|max:255',
-            'vehicle_plate'=>'required|string|max:30',
-            'driver_name'=>'required|string|max:255',
+            'vehicle_plate'=>'nullable|string|max:30',
+            'driver_name'=>'nullable|string|max:255',
             'driver_phone'=>'nullable|string|max:30',
             'recipient_signature'=>'required|string|max:700000',
             'handover_note'=>'nullable|string|max:2000',
@@ -124,10 +148,10 @@ class DeliveryController extends Controller
             abort_unless($deliveryRow,422,'رکورد تحویل فیزیکی یافت نشد.');
             DB::table('deliveries')->where('id',$deliveryRow->id)->update([
                 'status'=>'handed_over','handed_over_at'=>now(),'handed_over_by_user_id'=>$request->user()->id,
-                'received_by'=>$data['received_by'],'vehicle_plate'=>$data['vehicle_plate'],
-                'driver_name'=>$data['driver_name'],'driver_phone'=>$data['driver_phone']??null,
+                'received_by'=>$data['received_by'],'vehicle_plate'=>$data['vehicle_plate']??$deliveryRow->vehicle_plate,
+                'driver_name'=>$data['driver_name']??$deliveryRow->driver_name,'driver_phone'=>$data['driver_phone']??$deliveryRow->driver_phone,
                 'recipient_signature'=>$data['recipient_signature'],
-                'handover_note'=>$data['handover_note']??null,'updated_at'=>now()
+                'handover_note'=>$data['handover_note']??$deliveryRow->handover_note,'updated_at'=>now()
             ]);
             DB::table('delivery_requests')->where('id',$delivery)->update(['status'=>'completed','updated_at'=>now()]);
             DB::table('orders')->where('id',$d->order_id)->update(['status'=>'completed','updated_at'=>now()]);
