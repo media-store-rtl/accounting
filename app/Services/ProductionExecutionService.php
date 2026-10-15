@@ -120,6 +120,29 @@ final class ProductionExecutionService
                 return;
             }
 
+            $inputs = DB::table('production_operation_inputs')
+                ->where('production_operation_run_id', $operationRunId)
+                ->select('goods_id', DB::raw('SUM(quantity) as quantity'))
+                ->groupBy('goods_id')
+                ->orderBy('goods_id')
+                ->get();
+
+            if ($inputs->isNotEmpty() && empty($context->production_section_id)) {
+                throw ValidationException::withMessages(['operation' => 'برای کسر مواد مصرفی، قسمت عملیات باید به محل موجودی متصل باشد.']);
+            }
+
+            foreach ($inputs as $input) {
+                app(InventoryService::class)->consumeFromProductionSection(
+                    $companyId,
+                    (int) $context->production_section_id,
+                    (int) $input->goods_id,
+                    (float) $input->quantity,
+                    'production_operation_runs',
+                    $operationRunId,
+                    ['production_id' => (int) $context->production_id, 'production_stage_run_id' => (int) $context->production_stage_run_id, 'approved_by_user_id' => $reviewerId]
+                );
+            }
+
             $before=(array)$context;
             DB::table('production_operation_runs')->where('id',$operationRunId)->update(['status'=>'completed','updated_at'=>now()]);
             $after=(array)DB::table('production_operation_runs')->where('id',$operationRunId)->first();

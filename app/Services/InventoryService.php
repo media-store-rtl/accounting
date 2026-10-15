@@ -6,6 +6,7 @@ use App\Notifications\WorkflowNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use RuntimeException;
+use Illuminate\Validation\ValidationException;
 
 class InventoryService
 {
@@ -75,6 +76,54 @@ class InventoryService
             'reference_type' => $referenceType, 'reference_id' => $referenceId, 'occurred_at' => now(),
             'metadata' => json_encode($metadata + ['production_section_id' => $sectionId, 'movement_leg' => 'in']),
             'created_at' => now(), 'updated_at' => now(),
+        ]);
+    }
+
+    public function consumeFromProductionSection(int $companyId, int $sectionId, int $goodsId, float $quantity, string $referenceType, int $referenceId, array $metadata = []): void
+    {
+        if ($quantity <= 0) throw new RuntimeException('مقدار مصرف باید بیشتر از صفر باشد.');
+
+        $section = DB::table('production_sections as s')
+            ->join('locations as l', 'l.id', '=', 's.location_id')
+            ->where('s.id', $sectionId)
+            ->where('l.company_id', $companyId)
+            ->where('l.is_active', true)
+            ->select('l.id as location_id')
+            ->first();
+        if (!$section) throw ValidationException::withMessages(['operation' => 'قسمت تولید برای کسر مواد اولیه معتبر یا فعال نیست.']);
+
+        $row = DB::table('inventory')
+            ->where('company_id', $companyId)
+            ->where('location_id', (int) $section->location_id)
+            ->where('goods_id', $goodsId)
+            ->lockForUpdate()
+            ->first();
+        if (!$row || (float) $row->quantity + 0.0000001 < $quantity) {
+            throw ValidationException::withMessages(['operation' => 'موجودی مواد اولیه در قسمت تولید کافی نیست.']);
+        }
+
+        $previous = (float) $row->quantity;
+        $current = $previous - $quantity;
+        DB::table('inventory')->where('id', $row->id)->update([
+            'quantity' => $current,
+            'updated_at' => now(),
+        ]);
+        $this->notifyIfReorderPointReached(
+            $companyId, (int) $section->location_id, $goodsId, $previous, $current,
+            (float) ($row->reorder_point ?? 0)
+        );
+        DB::table('inventory_movements')->insert([
+            'company_id' => $companyId,
+            'goods_id' => $goodsId,
+            'location_id' => (int) $section->location_id,
+            'quantity' => -$quantity,
+            'movement_type' => 'production_consumption',
+            'reference_type' => $referenceType,
+            'reference_id' => $referenceId,
+            'occurred_at' => now(),
+            'metadata' => json_encode($metadata + ['production_section_id' => $sectionId, 'movement_leg' => 'consumption']),
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
     }
 
