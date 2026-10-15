@@ -28,7 +28,8 @@ class OrdersSupplyWorkflowTest extends TestCase
         $goods=DB::table('goods')->insertGetId(['company_id'=>$company,'category_id'=>$category,'code'=>'G1','name'=>'Material','purchasable'=>true,'producible'=>false,'sellable'=>true,'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $customer=DB::table('customers')->insertGetId(['company_id'=>$company,'name'=>'Customer','code'=>'CU1','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $warehouse=DB::table('locations')->insertGetId(['company_id'=>$company,'code'=>'W1','name'=>'Warehouse','type'=>'warehouse','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
-        DB::table('inventory')->insert(['company_id'=>$company,'location_id'=>$warehouse,'goods_id'=>$goods,'quantity'=>5,'created_at'=>now(),'updated_at'=>now()]);
+        $inventoryId=DB::table('inventory')->insertGetId(['company_id'=>$company,'location_id'=>$warehouse,'goods_id'=>$goods,'quantity'=>5,'created_at'=>now(),'updated_at'=>now()]);
+        DB::table('inventory_movements')->insert(['company_id'=>$company,'location_id'=>$warehouse,'goods_id'=>$goods,'quantity'=>5,'movement_type'=>'opening_balance','reference_type'=>'inventory','reference_id'=>$inventoryId,'occurred_at'=>now(),'metadata'=>json_encode(['source'=>'test opening balance']),'created_at'=>now(),'updated_at'=>now()]);
         $supplier=DB::table('suppliers')->insertGetId(['company_id'=>$company,'name'=>'Supplier','code'=>'SUP1','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $this->actingAs(\App\Models\User::findOrFail($user))->withSession(['company_id'=>$company]);
         return compact('company','user','fy','goods','customer','warehouse','supplier');
@@ -153,7 +154,8 @@ class OrdersSupplyWorkflowTest extends TestCase
         DB::table('purchase_items')->insert(['purchase_id'=>$purchase,'goods_id'=>$c['goods'],'quantity'=>3,'unit_price'=>100,'line_total'=>300,'created_at'=>now(),'updated_at'=>now()]);
         $receipt=$this->postJson('/api/purchase-receipts',['purchase_id'=>$purchase,'warehouse_location_id'=>$c['warehouse'],'received_at'=>'2026-10-06 10:00:00','items'=>[['goods_id'=>$c['goods'],'quantity'=>3]]])->assertCreated()->json('data.id');
         $this->postJson('/api/purchase-receipts/'.$receipt.'/approve')->assertOk();
-        $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>8]);
+        $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>5]);
+        $this->assertSame(8.0,(float)DB::table('inventory_movements')->where('company_id',$c['company'])->where('location_id',$c['warehouse'])->where('goods_id',$c['goods'])->sum('quantity'));
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'purchase_receipt','quantity'=>3]);
         $this->assertDatabaseHas('purchases',['id'=>$purchase,'status'=>'received']);
         $this->assertDatabaseHas('supply_requests',['id'=>$sr,'status'=>'fulfilled']);
