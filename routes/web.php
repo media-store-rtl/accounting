@@ -89,7 +89,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/sales/delivery-requests/{delivery}/sales-approve', [OrderController::class, 'approveDeliveryRelease'])->middleware('company.permission:delivery_request.sales_approve')->whereNumber('delivery')->name('sales.delivery.sales-approve');
     Route::post('/api/delivery-requests/{delivery}/prepare', [DeliveryController::class, 'prepare'])->middleware('company.permission:delivery_request.issue')->name('sales.delivery.prepare');
     Route::post('/api/delivery-requests/{delivery}/issue', [DeliveryController::class, 'issue'])->middleware('company.permission:delivery_request.issue')->name('sales.delivery.issue');
-    Route::post('/api/delivery-requests/{delivery}/handover', [DeliveryController::class, 'handover'])->middleware('company.permission:delivery_request.handover')->name('sales.delivery.handover');
+    Route::post('/api/delivery-requests/{delivery}/handover', [DeliveryController::class, 'handover'])->middleware('company.permission:delivery_request.issue')->name('sales.delivery.handover');
     Route::get('/api/delivery-requests/{delivery}/receipt', [DeliveryController::class, 'receipt'])->middleware('company.permission:delivery_request.view')->name('sales.delivery.receipt');
 
     Route::prefix('api')->name('api.')->group(function () {
