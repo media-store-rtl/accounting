@@ -128,7 +128,7 @@ class DeliveryController extends Controller
 
     public function handover(Request $request,int $delivery): \Illuminate\Http\JsonResponse
     {
-        $companyId=CompanyAuthorization::authorize($request,'delivery_request.handover');
+        $companyId=CompanyAuthorization::authorize($request,'delivery_request.issue');
         $data=$request->validate([
             'received_by'=>'required|string|max:255',
             'vehicle_plate'=>'nullable|string|max:30',
