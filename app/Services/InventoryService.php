@@ -6,6 +6,7 @@ use App\Notifications\WorkflowNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use RuntimeException;
+use Illuminate\Validation\ValidationException;
 
 class InventoryService
 {
@@ -89,7 +90,7 @@ class InventoryService
             ->where('l.is_active', true)
             ->select('l.id as location_id')
             ->first();
-        abort_unless($section, 422, 'قسمت تولید برای کسر مواد اولیه معتبر یا فعال نیست.');
+        if (!$section) throw ValidationException::withMessages(['operation' => 'قسمت تولید برای کسر مواد اولیه معتبر یا فعال نیست.']);
 
         $row = DB::table('inventory')
             ->where('company_id', $companyId)
@@ -97,7 +98,9 @@ class InventoryService
             ->where('goods_id', $goodsId)
             ->lockForUpdate()
             ->first();
-        abort_unless($row && (float) $row->quantity + 0.0000001 >= $quantity, 422, 'موجودی مواد اولیه در قسمت تولید کافی نیست.');
+        if (!$row || (float) $row->quantity + 0.0000001 < $quantity) {
+            throw ValidationException::withMessages(['operation' => 'موجودی مواد اولیه در قسمت تولید کافی نیست.']);
+        }
 
         $previous = (float) $row->quantity;
         $current = $previous - $quantity;
