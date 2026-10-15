@@ -12,13 +12,14 @@ return new class extends Migration
             $table->string('vehicle_plate', 30)->nullable();
             $table->string('driver_phone', 30)->nullable();
             $table->text('handover_note')->nullable();
+            $table->timestamp('prepared_at')->nullable();
         });
     }
 
     public function down(): void
     {
         Schema::table('delivery_requests', function (Blueprint $table) {
-            $table->dropColumn(['vehicle_plate', 'driver_phone', 'handover_note']);
+            $table->dropColumn(['vehicle_plate', 'driver_phone', 'handover_note', 'prepared_at']);
         });
     }
 };
