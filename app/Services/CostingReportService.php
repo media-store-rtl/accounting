@@ -72,6 +72,7 @@ final class CostingReportService
         // The detail table is specifically for reports already received by the warehouse.
         // Approved-but-not-received reports still contribute to product produced quantity above.
         $productionReports=$this->productionShiftReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId,true);
+        $productionReports = $this->attachReportMaterialDetails($companyId, $productionReports);
 
         $valuationMethods=[];
         foreach($rows as $row){
@@ -169,6 +170,235 @@ final class CostingReportService
             $this->row($rows,$key,$oid,$targetGoodsId);
             $rows[$key]['unvalued_material_quantity']+=abs((float)$m->quantity);
         }
+    }
+
+    /**
+     * Attach report-level material usage to existing valued handovers without
+     * adding these amounts to product totals a second time.
+     *
+     * Allocation is deterministic and conservative: same company, section,
+     * material and order; handovers dated no later than the report; and only
+     * the quantity not already allocated to earlier approved/received reports.
+     * Missing or unvalued stock remains visible instead of receiving a guessed rate.
+     */
+    private function attachReportMaterialDetails(int $companyId, array $productionReports): array
+    {
+        if (empty($productionReports) || !DB::getSchemaBuilder()->hasTable('production_shift_report_materials')) {
+            foreach ($productionReports as &$report) {
+                $report['materials'] = [];
+                $report['material_cost'] = 0.0;
+                $report['material_unvalued_quantity'] = 0.0;
+                $report['material_cost_complete'] = false;
+            }
+            unset($report);
+            return $productionReports;
+        }
+
+        $usageRows = DB::table('production_shift_report_materials as rm')
+            ->join('production_shift_reports as r', 'r.id', '=', 'rm.production_shift_report_id')
+            ->join('goods as mg', 'mg.id', '=', 'rm.goods_id')
+            ->leftJoin('goods_units as gu', function ($join) {
+                $join->on('gu.goods_id', '=', 'mg.id')->where('gu.is_base', true);
+            })
+            ->leftJoin('units as u', 'u.id', '=', 'gu.unit_id')
+            ->where('r.company_id', $companyId)
+            ->whereIn('r.status', ['approved', 'received'])
+            ->orderBy('r.work_date')->orderBy('r.id')->orderBy('rm.id')
+            ->get([
+                'rm.id as material_row_id', 'rm.production_shift_report_id as report_id',
+                'rm.goods_id as material_id', 'rm.quantity', 'rm.scrap_quantity',
+                'r.production_section_id', 'r.order_id', 'r.work_date',
+                'mg.code as material_code', 'mg.name as material_name',
+                'u.name as unit_name', 'u.symbol as unit_symbol',
+            ]);
+
+        if ($usageRows->isEmpty()) {
+            foreach ($productionReports as &$report) {
+                $report['materials'] = [];
+                $report['material_cost'] = 0.0;
+                $report['material_unvalued_quantity'] = 0.0;
+                $report['material_cost_complete'] = false;
+            }
+            unset($report);
+            return $productionReports;
+        }
+
+        $details = [];
+        $reportIdsByMaterialRow = [];
+        $groups = [];
+        foreach ($usageRows as $usage) {
+            $id = (int) $usage->material_row_id;
+            $quantity = max(0.0, (float) $usage->quantity);
+            $details[$id] = [
+                'material_id' => (int) $usage->material_id,
+                'material_code' => $usage->material_code,
+                'material_name' => $usage->material_name,
+                'unit_name' => $usage->unit_name,
+                'unit_symbol' => $usage->unit_symbol,
+                'quantity' => $quantity,
+                'scrap_quantity' => (float) ($usage->scrap_quantity ?? 0),
+                'allocated_quantity' => 0.0,
+                'valued_quantity' => 0.0,
+                'unmatched_quantity' => $quantity,
+                'unvalued_quantity' => $quantity,
+                'unit_cost' => null,
+                'material_cost' => 0.0,
+                'valuation_methods' => [],
+                'cost_complete' => false,
+            ];
+            $reportIdsByMaterialRow[$id] = (int) $usage->report_id;
+            $key = (int) $usage->production_section_id . ':' . (int) $usage->material_id . ':' . (int) ($usage->order_id ?? 0);
+            $groups[$key][] = $id;
+        }
+
+        $requiredTables = ['material_handovers', 'material_handover_items', 'supply_requests', 'inventory_movements', 'inventory_consumption_costs'];
+        $canAllocate = true;
+        foreach ($requiredTables as $table) {
+            if (!DB::getSchemaBuilder()->hasTable($table)) {
+                $canAllocate = false;
+                break;
+            }
+        }
+        if ($canAllocate && DB::getSchemaBuilder()->hasColumn('supply_requests', 'production_section_id')) {
+            $handoverRows = DB::table('material_handover_items as hi')
+                ->join('material_handovers as h', 'h.id', '=', 'hi.material_handover_id')
+                ->join('supply_requests as sr', 'sr.id', '=', 'h.supply_request_id')
+                ->leftJoin('inventory_movements as m', function ($join) {
+                    $join->on('m.company_id', '=', 'h.company_id')
+                        ->on('m.reference_id', '=', 'h.id')
+                        ->on('m.goods_id', '=', 'hi.goods_id')
+                        ->where('m.reference_type', '=', 'material_handovers')
+                        ->where('m.movement_type', '=', 'material_handover')
+                        ->where('m.quantity', '<', 0);
+                })
+                ->leftJoin('inventory_consumption_costs as c', 'c.inventory_movement_id', '=', 'm.id')
+                ->where('h.company_id', $companyId)
+                ->where('h.status', 'completed')
+                ->whereNotNull('sr.production_section_id')
+                ->orderBy('h.handed_over_at')->orderBy('h.id')->orderBy('hi.id')
+                ->get([
+                    'hi.id as handover_item_id', 'hi.goods_id as material_id', 'hi.quantity',
+                    'sr.production_section_id', 'sr.order_id', 'h.handed_over_at',
+                    'm.quantity as movement_quantity', 'c.id as cost_id',
+                    'c.quantity as cost_quantity', 'c.unit_cost', 'c.valuation_method',
+                ]);
+
+            $costIds = $handoverRows->pluck('cost_id')->filter()->unique()->values();
+            $costSlicesById = [];
+            if ($costIds->isNotEmpty() && DB::getSchemaBuilder()->hasTable('inventory_consumption_cost_items')) {
+                $costSlices = DB::table('inventory_consumption_cost_items')
+                    ->whereIn('inventory_consumption_cost_id', $costIds)
+                    ->orderBy('id')
+                    ->get(['inventory_consumption_cost_id', 'quantity', 'unit_cost']);
+                foreach ($costSlices as $slice) {
+                    $costSlicesById[(int) $slice->inventory_consumption_cost_id][] = [
+                        'remaining_quantity' => (float) $slice->quantity,
+                        'unit_cost' => (float) $slice->unit_cost,
+                    ];
+                }
+            }
+
+            $handoverGroups = [];
+            foreach ($handoverRows as $handover) {
+                $sectionId = (int) $handover->production_section_id;
+                $materialId = (int) $handover->material_id;
+                $orderKey = (int) ($handover->order_id ?? 0);
+                $key = $sectionId . ':' . $materialId . ':' . $orderKey;
+                $availableQuantity = (float) $handover->quantity;
+                if ($handover->movement_quantity !== null) {
+                    $availableQuantity = min($availableQuantity, abs((float) $handover->movement_quantity));
+                }
+                if ($availableQuantity <= 0) continue;
+
+                $costId = $handover->cost_id !== null ? (int) $handover->cost_id : null;
+                $slices = $costId !== null ? ($costSlicesById[$costId] ?? []) : [];
+                if ($costId !== null && empty($slices) && $handover->cost_quantity !== null && (float) $handover->cost_quantity > 0) {
+                    $slices[] = [
+                        'remaining_quantity' => (float) $handover->cost_quantity,
+                        'unit_cost' => (float) $handover->unit_cost,
+                    ];
+                }
+                $handoverGroups[$key][] = [
+                    'handed_over_date' => substr((string) $handover->handed_over_at, 0, 10),
+                    'remaining_quantity' => $availableQuantity,
+                    'valuation_method' => $handover->valuation_method,
+                    'cost_slices' => $slices,
+                ];
+            }
+
+            $nextHandoverByGroup = [];
+            $activeHandoversByGroup = [];
+            foreach ($usageRows as $usage) {
+                $materialRowId = (int) $usage->material_row_id;
+                $key = (int) $usage->production_section_id . ':' . (int) $usage->material_id . ':' . (int) ($usage->order_id ?? 0);
+                $sourceRows = $handoverGroups[$key] ?? [];
+                if (empty($sourceRows)) continue;
+
+                $next = $nextHandoverByGroup[$key] ?? 0;
+                $active = $activeHandoversByGroup[$key] ?? [];
+                $workDate = substr((string) $usage->work_date, 0, 10);
+                while ($next < count($sourceRows) && $sourceRows[$next]['handed_over_date'] <= $workDate) {
+                    $active[] = $next;
+                    $next++;
+                }
+                $nextHandoverByGroup[$key] = $next;
+                $activeHandoversByGroup[$key] = $active;
+
+                $remainingUsage = (float) $usage->quantity;
+                foreach ($active as $sourceIndex) {
+                    if ($remainingUsage <= 0.0000001) break;
+                    if (($handoverGroups[$key][$sourceIndex]['remaining_quantity'] ?? 0) <= 0.0000001) continue;
+
+                    $allocated = min($remainingUsage, (float) $handoverGroups[$key][$sourceIndex]['remaining_quantity']);
+                    $handoverGroups[$key][$sourceIndex]['remaining_quantity'] -= $allocated;
+                    $details[$materialRowId]['allocated_quantity'] += $allocated;
+                    $remainingUsage -= $allocated;
+
+                    $valuedRemaining = $allocated;
+                    foreach ($handoverGroups[$key][$sourceIndex]['cost_slices'] as &$slice) {
+                        if ($valuedRemaining <= 0.0000001) break;
+                        if ($slice['remaining_quantity'] <= 0.0000001) continue;
+                        $valued = min($valuedRemaining, (float) $slice['remaining_quantity']);
+                        $slice['remaining_quantity'] -= $valued;
+                        $valuedRemaining -= $valued;
+                        $details[$materialRowId]['valued_quantity'] += $valued;
+                        $details[$materialRowId]['material_cost'] += $valued * (float) $slice['unit_cost'];
+                        if (!empty($handoverGroups[$key][$sourceIndex]['valuation_method'])) {
+                            $details[$materialRowId]['valuation_methods'][$handoverGroups[$key][$sourceIndex]['valuation_method']] = true;
+                        }
+                    }
+                    unset($slice);
+                }
+            }
+        }
+
+        $byReport = [];
+        foreach ($details as $materialRowId => &$detail) {
+            $detail['allocated_quantity'] = round($detail['allocated_quantity'], 4);
+            $detail['valued_quantity'] = round($detail['valued_quantity'], 4);
+            $detail['unmatched_quantity'] = round(max(0.0, $detail['quantity'] - $detail['allocated_quantity']), 4);
+            $detail['unvalued_quantity'] = round(max(0.0, $detail['quantity'] - $detail['valued_quantity']), 4);
+            $detail['material_cost'] = round($detail['material_cost'], 4);
+            $detail['unit_cost'] = $detail['valued_quantity'] > 0
+                ? round($detail['material_cost'] / $detail['valued_quantity'], 6)
+                : null;
+            $detail['valuation_methods'] = array_keys($detail['valuation_methods']);
+            $detail['cost_complete'] = $detail['unvalued_quantity'] <= 0.0001;
+            $byReport[$reportIdsByMaterialRow[$materialRowId]][] = $detail;
+        }
+        unset($detail);
+
+        foreach ($productionReports as &$report) {
+            $reportMaterials = $byReport[(int) $report['report_id']] ?? [];
+            usort($reportMaterials, fn ($a, $b) => [$a['material_name'], $a['material_id']] <=> [$b['material_name'], $b['material_id']]);
+            $report['materials'] = $reportMaterials;
+            $report['material_cost'] = round(array_sum(array_column($reportMaterials, 'material_cost')), 4);
+            $report['material_unvalued_quantity'] = round(array_sum(array_column($reportMaterials, 'unvalued_quantity')), 4);
+            $report['material_cost_complete'] = !empty($reportMaterials) && !array_filter($reportMaterials, fn ($material) => !$material['cost_complete']);
+        }
+        unset($report);
+
+        return $productionReports;
     }
 
     private function labor(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId,?string $startDate,?string $endDate,?int $personnelId): void
@@ -341,7 +571,7 @@ final class CostingReportService
                     ->where('rs.production_stage_id', $productionStageId);
             }))
             ->select([
-                'r.id as report_id', 'r.work_date', 'r.warehouse_received_at',
+                'r.id as report_id', 'r.production_section_id', 'r.order_id', 'r.work_date', 'r.warehouse_received_at',
                 'r.produced_quantity', 'r.scrap_quantity', 'r.warehouse_quantity',
                 'r.worked_hours', 'r.overtime_hours', 'r.holiday_hours',
                 'r.personnel_id', 'r.goods_id', 'r.order_id',
@@ -384,6 +614,8 @@ final class CostingReportService
             }
             return [
                 'report_id' => (int) $report->report_id,
+                'production_section_id' => (int) $report->production_section_id,
+                'order_id' => $report->order_id !== null ? (int) $report->order_id : null,
                 'goods_id' => (int) $report->goods_id,
                 'personnel_id' => $report->personnel_id !== null ? (int) $report->personnel_id : null,
                 'work_date' => $date,
