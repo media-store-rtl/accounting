@@ -90,6 +90,18 @@ class CostingReportTest extends TestCase
         $section=DB::table('production_sections')->insertGetId([
             'location_id'=>$sectionLocation,'created_at'=>now(),'updated_at'=>now(),
         ]);
+        DB::table('supply_requests')->where('id', $supply)->update(['production_section_id' => $section]);
+        $handover = DB::table('material_handovers')->insertGetId([
+            'company_id'=>$company,'fiscal_year_id'=>$fy,'supply_request_id'=>$supply,
+            'warehouse_location_id'=>$location,'delivered_by_user_id'=>$user,'received_by_user_id'=>$user,
+            'handed_over_at'=>'2026-10-06 08:00:00','status'=>'completed','notes'=>null,
+            'created_at'=>now(),'updated_at'=>now(),
+        ]);
+        DB::table('material_handover_items')->insert([
+            'material_handover_id'=>$handover,'goods_id'=>$rawMaterial,'quantity'=>2,
+            'created_at'=>now(),'updated_at'=>now(),
+        ]);
+        DB::table('inventory_movements')->where('id', $movement)->update(['reference_id' => $handover]);
         DB::table('personnel_labor_rates')->insert([
             'company_id'=>$company,'personnel_id'=>$personnel,'rate_type'=>'regular','rate'=>15,
             'effective_from'=>'2026-10-01','effective_to'=>null,'created_at'=>now(),'updated_at'=>now(),
@@ -118,6 +130,17 @@ class CostingReportTest extends TestCase
                 'updated_at' => now(),
             ]);
         }
+        if ($receivedShiftReportId !== null) {
+            DB::table('production_shift_report_materials')->insert([
+                'company_id' => $company,
+                'production_shift_report_id' => $receivedShiftReportId,
+                'goods_id' => $rawMaterial,
+                'quantity' => 2,
+                'scrap_quantity' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         // Approved labor without a sales order must still appear under a null order.
         DB::table('production_shift_reports')->insert([
@@ -138,6 +161,14 @@ class CostingReportTest extends TestCase
         $this->assertSame(0.0,$report['totals']['unvalued_material_quantity']);
         $this->assertCount(1,$report['production_reports']);
         $this->assertSame(['Stage'], $report['production_reports'][0]['stage_names']);
+        $this->assertCount(1, $report['production_reports'][0]['materials']);
+        $this->assertSame('Raw Material', $report['production_reports'][0]['materials'][0]['material_name']);
+        $this->assertSame(2.0, $report['production_reports'][0]['materials'][0]['allocated_quantity']);
+        $this->assertSame(2.0, $report['production_reports'][0]['materials'][0]['valued_quantity']);
+        $this->assertSame(20.0, $report['production_reports'][0]['materials'][0]['material_cost']);
+        $this->assertSame(10.0, $report['production_reports'][0]['materials'][0]['unit_cost']);
+        $this->assertTrue($report['production_reports'][0]['materials'][0]['cost_complete']);
+        $this->assertSame(20.0, $report['production_reports'][0]['material_cost']);
         $this->assertSame(1.0,$report['product_rows'][0]['produced_quantity']);
         $this->assertSame(90.0,$report['product_rows'][0]['unit_cost']);
 
