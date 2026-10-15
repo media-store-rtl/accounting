@@ -23,12 +23,14 @@ final class CostingReportService
         $this->scraps($rows,$companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate);
 
         $ids=array_values(array_unique(array_filter(array_column($rows,'goods_id'))));
-        $goods=$ids ? DB::table('goods')->where('company_id',$companyId)->whereIn('id',$ids)->get(['id','code','name'])->keyBy('id') : collect();
+        $goods=$ids ? DB::table('goods as g')->leftJoin('goods_units as gu', function ($join) { $join->on('gu.goods_id','=','g.id')->where('gu.is_base',true); })->leftJoin('units as u','u.id','=','gu.unit_id')->where('g.company_id',$companyId)->whereIn('g.id',$ids)->get(['g.id','g.code','g.name','u.name as unit_name','u.symbol as unit_symbol'])->keyBy('id') : collect();
 
         foreach($rows as &$row){
             $g=$goods->get($row['goods_id']);
             $row['goods_code']=$g?->code;
             $row['goods_name']=$g?->name;
+            $row['unit_name']=$g?->unit_name;
+            $row['unit_symbol']=$g?->unit_symbol;
             $row['valuation_methods']=array_keys($row['valuation_methods'] ?? []);
             $row['material_cost']=round($row['material_cost'],4);
             $row['labor_cost']=round($row['labor_cost'],4);
@@ -341,6 +343,7 @@ final class CostingReportService
                 'r.personnel_id', 'r.goods_id', 'r.order_id',
                 'pe.name as worker_name', 'section_location.name as section_name',
                 'warehouse.name as warehouse_name', 'g.code as goods_code', 'g.name as goods_name',
+                'u.name as unit_name', 'u.symbol as unit_symbol',
             ])
             ->orderByDesc('r.work_date')->orderByDesc('r.id')
             ->get();
@@ -374,6 +377,8 @@ final class CostingReportService
                 'warehouse_name' => $report->warehouse_name,
                 'goods_code' => $report->goods_code,
                 'goods_name' => $report->goods_name,
+                'unit_name' => $report->unit_name,
+                'unit_symbol' => $report->unit_symbol,
                 'produced_quantity' => (float) $report->produced_quantity,
                 'scrap_quantity' => (float) $report->scrap_quantity,
                 'received_quantity' => (float) ($report->warehouse_quantity ?? 0),
