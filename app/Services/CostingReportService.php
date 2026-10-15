@@ -50,8 +50,8 @@ final class CostingReportService
             foreach($row['valuation_methods'] as $method){$productRows[$gid]['valuation_methods'][$method]=true;}
         }
         foreach($productRows as &$productRow){$productRow['valuation_methods']=array_keys($productRow['valuation_methods']);} unset($productRow);
-        $productionReports=$this->productionShiftReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId);
-        foreach($productionReports as $productionReport){
+        $productionQuantityReports=$this->productionShiftReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId);
+        foreach($productionQuantityReports as $productionReport){
             $gid=(int)$productionReport['goods_id'];
             if(!isset($productRows[$gid])){
                 $productRows[$gid]=[
@@ -66,6 +66,10 @@ final class CostingReportService
             $productRow['produced_quantity']=round((float)($productRow['produced_quantity']??0),4);
             $productRow['unit_cost']=$productRow['produced_quantity']>0?round($productRow['total_cost']/$productRow['produced_quantity'],4):null;
         } unset($productRow);
+
+        // The detail table is specifically for reports already received by the warehouse.
+        // Approved-but-not-received reports still contribute to product produced quantity above.
+        $productionReports=$this->productionShiftReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId,true);
 
         $valuationMethods=[];
         foreach($rows as $row){
@@ -299,7 +303,7 @@ final class CostingReportService
      * Warehouse-accepted production shift reports are the traceable output records.
      * Labor is calculated per report and worker using the rate effective on work_date.
      */
-    private function productionShiftReports(int $companyId, ?int $fy, ?int $orderId, ?int $goodsId, ?string $startDate, ?string $endDate, ?int $personnelId, ?int $productionSectionId, ?int $productionStageId): array
+    private function productionShiftReports(int $companyId, ?int $fy, ?int $orderId, ?int $goodsId, ?string $startDate, ?string $endDate, ?int $personnelId, ?int $productionSectionId, ?int $productionStageId, bool $warehouseReceivedOnly = false): array
     {
         if (!DB::getSchemaBuilder()->hasTable('production_shift_reports')
             || !DB::getSchemaBuilder()->hasColumn('production_shift_reports', 'warehouse_received_at')) return [];
@@ -312,6 +316,7 @@ final class CostingReportService
             ->leftJoin('locations as warehouse', 'warehouse.id', '=', 'r.warehouse_location_id')
             ->where('r.company_id', $companyId)
             ->whereIn('r.status', ['approved', 'received'])
+            ->when($warehouseReceivedOnly, fn($q) => $q->where('r.status', 'received')->whereNotNull('r.warehouse_received_at'))
             ->when($fy, function ($q) use ($fy) {
                 $start = DB::table('fiscal_years')->where('id', $fy)->value('starts_at');
                 $end = DB::table('fiscal_years')->where('id', $fy)->value('ends_at');
