@@ -58,7 +58,11 @@ class SalesOperationalWorkflowTest extends TestCase
         $this->get('/sales/deliveries')
             ->assertOk()
             // The legacy delivery-management page is intentionally outside this sales-only change.
-            ->assertSee('درخواست‌های ثبت‌شده');
+            ->assertSee('درخواست‌های ثبت‌شده')
+            ->assertSee('تاریخ درخواستی تحویل')
+            ->assertSee('jalali-delivery-date')
+            ->assertSee('fa-IR-u-ca-persian')
+            ->assertDontSee('راننده / خودرو');
     }
 
     public function test_in_stock_order_can_create_delivery_issue_and_customer_handover(): void
