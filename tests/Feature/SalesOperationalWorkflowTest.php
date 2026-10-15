@@ -60,6 +60,8 @@ class SalesOperationalWorkflowTest extends TestCase
             // The legacy delivery-management page is intentionally outside this sales-only change.
             ->assertSee('درخواست‌های ثبت‌شده')
             ->assertSee('تاریخ درخواستی تحویل')
+            ->assertSee('jalali-delivery-date')
+            ->assertSee('fa-IR-u-ca-persian')
             ->assertDontSee('راننده / خودرو');
     }
 
