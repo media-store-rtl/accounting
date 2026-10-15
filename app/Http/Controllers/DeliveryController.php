@@ -20,7 +20,7 @@ class DeliveryController extends Controller
             ->leftJoin('deliveries as physical','physical.delivery_request_id','=','d.id')
             ->where('d.company_id',$companyId)
             ->select(
-                'd.*','o.number as order_number','c.name as customer_name',
+                'd.*','o.number as order_number','o.requested_delivery_at as requested_delivery_at','c.name as customer_name',
                 'physical.driver_name','physical.driver_phone','physical.vehicle_plate',
                 'physical.received_by','physical.handover_note',
                 'physical.handed_over_at'
