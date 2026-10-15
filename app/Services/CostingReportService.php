@@ -52,7 +52,7 @@ final class CostingReportService
             foreach($row['valuation_methods'] as $method){$productRows[$gid]['valuation_methods'][$method]=true;}
         }
         foreach($productRows as &$productRow){$productRow['valuation_methods']=array_keys($productRow['valuation_methods']);} unset($productRow);
-        $productionQuantityReports=$this->productionShiftReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId);
+        $productionQuantityReports=$this->productionShiftReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId,true);
         foreach($productionQuantityReports as $productionReport){
             $gid=(int)$productionReport['goods_id'];
             if(!isset($productRows[$gid])){
@@ -352,7 +352,19 @@ final class CostingReportService
             ->orderByDesc('r.work_date')->orderByDesc('r.id')
             ->get();
 
-        return $query->map(function ($report) use ($companyId) {
+        $stageNamesByReport = collect();
+        if ($query->isNotEmpty() && DB::getSchemaBuilder()->hasTable('production_shift_report_stages')) {
+            $stageNamesByReport = DB::table('production_shift_report_stages as rs')
+                ->join('production_stages as st', 'st.id', '=', 'rs.production_stage_id')
+                ->where('rs.company_id', $companyId)
+                ->whereIn('rs.production_shift_report_id', $query->pluck('report_id')->map(fn ($id) => (int) $id)->all())
+                ->orderBy('st.sequence')
+                ->get(['rs.production_shift_report_id', 'st.name'])
+                ->groupBy('production_shift_report_id')
+                ->map(fn ($stages) => $stages->pluck('name')->unique()->values()->all());
+        }
+
+        return $query->map(function ($report) use ($companyId, $stageNamesByReport) {
             $date = substr((string) $report->work_date, 0, 10);
             $labor = 0.0;
             foreach ([
@@ -378,6 +390,7 @@ final class CostingReportService
                 'warehouse_received_at' => $report->warehouse_received_at,
                 'worker_name' => $report->worker_name,
                 'section_name' => $report->section_name,
+                'stage_names' => $stageNamesByReport->get((int) $report->report_id, []),
                 'warehouse_name' => $report->warehouse_name,
                 'goods_code' => $report->goods_code,
                 'goods_name' => $report->goods_name,

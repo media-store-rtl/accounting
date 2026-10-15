@@ -94,8 +94,9 @@ class CostingReportTest extends TestCase
             'company_id'=>$company,'personnel_id'=>$personnel,'rate_type'=>'regular','rate'=>15,
             'effective_from'=>'2026-10-01','effective_to'=>null,'created_at'=>now(),'updated_at'=>now(),
         ]);
+        $receivedShiftReportId = null;
         foreach (['approved','received','pending'] as $shiftStatus) {
-            DB::table('production_shift_reports')->insert([
+            $shiftReportId = DB::table('production_shift_reports')->insertGetId([
                 'company_id'=>$company,'production_section_id'=>$section,'goods_id'=>$goods,
                 'order_id'=>$order,'personnel_id'=>$personnel,'reported_by_user_id'=>$user,
                 'shift_name'=>'Day Shift','worked_hours'=>1,'overtime_hours'=>0,'holiday_hours'=>0,
@@ -105,6 +106,16 @@ class CostingReportTest extends TestCase
                 'warehouse_received_at'=>$shiftStatus==='received'?now():null,
                 'warehouse_quantity'=>$shiftStatus==='received'?1:null,
                 'created_at'=>now(),'updated_at'=>now(),
+            ]);
+            if ($shiftStatus === 'received') $receivedShiftReportId = $shiftReportId;
+        }
+        if ($receivedShiftReportId !== null && DB::getSchemaBuilder()->hasTable('production_shift_report_stages')) {
+            DB::table('production_shift_report_stages')->insert([
+                'company_id' => $company,
+                'production_shift_report_id' => $receivedShiftReportId,
+                'production_stage_id' => $stage,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
 
@@ -126,6 +137,7 @@ class CostingReportTest extends TestCase
         $this->assertSame(['fifo'],$report['rows'][0]['valuation_methods']);
         $this->assertSame(0.0,$report['totals']['unvalued_material_quantity']);
         $this->assertCount(1,$report['production_reports']);
+        $this->assertSame(['Stage'], $report['production_reports'][0]['stage_names']);
         $this->assertSame(1.0,$report['product_rows'][0]['produced_quantity']);
         $this->assertSame(90.0,$report['product_rows'][0]['unit_cost']);
 
