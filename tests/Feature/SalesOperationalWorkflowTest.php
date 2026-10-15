@@ -372,11 +372,12 @@ class SalesOperationalWorkflowTest extends TestCase
             'name' => 'Finished Products', 'type' => 'محصول', 'is_active' => true,
             'created_at' => now(), 'updated_at' => now(),
         ]);
-        DB::table('inventory')->insert([
+        $productInventoryId=DB::table('inventory')->insertGetId([
             'company_id' => $c['company'], 'location_id' => $productLocation,
             'goods_id' => $c['goods'], 'quantity' => 10,
             'created_at' => now(), 'updated_at' => now(),
         ]);
+        DB::table('inventory_movements')->insert(['company_id'=>$c['company'],'location_id'=>$productLocation,'goods_id'=>$c['goods'],'quantity'=>10,'movement_type'=>'opening_balance','reference_type'=>'inventory','reference_id'=>$productInventoryId,'occurred_at'=>now(),'metadata'=>json_encode(['source'=>'test opening balance']),'created_at'=>now(),'updated_at'=>now()]);
 
         $orderId = $this->postJson('/api/orders', [
             'fiscal_year_id' => $c['fy'],
@@ -400,6 +401,7 @@ class SalesOperationalWorkflowTest extends TestCase
             'company_id' => $c['company'], 'location_id' => $productLocation,
             'goods_id' => $c['goods'], 'quantity' => 10,
         ]);
+        $this->assertSame(9.0,(float)DB::table('inventory_movements')->where('company_id',$c['company'])->where('location_id',$productLocation)->where('goods_id',$c['goods'])->sum('quantity'));
         $this->assertDatabaseHas('inventory_movements', [
             'company_id' => $c['company'], 'location_id' => $productLocation,
             'goods_id' => $c['goods'], 'movement_type' => 'delivery_issue',
