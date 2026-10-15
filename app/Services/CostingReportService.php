@@ -52,7 +52,7 @@ final class CostingReportService
             foreach($row['valuation_methods'] as $method){$productRows[$gid]['valuation_methods'][$method]=true;}
         }
         foreach($productRows as &$productRow){$productRow['valuation_methods']=array_keys($productRow['valuation_methods']);} unset($productRow);
-        $productionQuantityReports=$this->productionShiftReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId);
+        $productionQuantityReports=$this->productionShiftReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId,true);
         foreach($productionQuantityReports as $productionReport){
             $gid=(int)$productionReport['goods_id'];
             if(!isset($productRows[$gid])){
