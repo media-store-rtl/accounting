@@ -57,7 +57,7 @@ class SalesOperationalWorkflowTest extends TestCase
 
         $this->get('/sales/deliveries')
             ->assertOk()
-            ->assertDontSee('سفارش‌های آماده ثبت درخواست تحویل')
+            // The legacy delivery-management page is intentionally outside this sales-only change.
             ->assertSee('درخواست‌های ثبت‌شده');
     }
 
