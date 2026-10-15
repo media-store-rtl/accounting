@@ -254,6 +254,16 @@ class OrderController extends Controller
             ]);
         });
 
+        // Legacy requests awaiting approval also notify the warehouse only after approval.
+        $approvedRequest = DB::table('delivery_requests')->where('id', $delivery)->where('company_id', $companyId)->first();
+        app(NotificationRecipientService::class)->send(
+            $companyId,
+            'delivery.requested',
+            ['delivery_request_id' => $delivery, 'order_id' => (int) $approvedRequest->order_id],
+            (int) $request->user()->id,
+            'warehouse.delivery.manage'
+        );
+
         if ($request->expectsJson()) {
             return response()->json(['data' => DB::table('delivery_requests')->find($delivery)]);
         }
