@@ -29,6 +29,7 @@ class ProductionExecutionTest extends TestCase
         $production=DB::table('productions')->insertGetId(['company_id'=>$company,'fiscal_year_id'=>$fy,'goods_id'=>$goods,'production_route_id'=>$route,'number'=>'P'.uniqid(),'planned_quantity'=>10,'produced_quantity'=>0,'rejected_quantity'=>0,'status'=>'in_progress','created_at'=>now(),'updated_at'=>now()]);
         $stageRun=DB::table('production_stage_runs')->insertGetId(['production_id'=>$production,'production_stage_id'=>$stage,'sequence'=>1,'status'=>'pending','planned_quantity'=>10,'created_at'=>now(),'updated_at'=>now()]);
         $run=DB::table('production_operation_runs')->insertGetId(['production_stage_run_id'=>$stageRun,'production_operation_id'=>$operation,'sequence'=>1,'status'=>'pending','planned_quantity'=>10,'created_at'=>now(),'updated_at'=>now()]);
+        DB::table('inventory')->insert(['company_id'=>$company,'location_id'=>$location,'goods_id'=>$goods,'quantity'=>18,'reorder_point'=>0,'created_at'=>now(),'updated_at'=>now()]);
         $stage2=DB::table('production_stages')->insertGetId(['production_route_id'=>$route,'production_section_id'=>$section,'code'=>'S2'.uniqid(),'name'=>'Stage 2','sequence'=>2,'status'=>'active','created_at'=>now(),'updated_at'=>now()]);
         $operation2=DB::table('production_operations')->insertGetId(['production_stage_id'=>$stage2,'code'=>'O2'.uniqid(),'name'=>'Operation 2','sequence'=>1,'status'=>'active','created_at'=>now(),'updated_at'=>now()]);
         $stageRun2=DB::table('production_stage_runs')->insertGetId(['production_id'=>$production,'production_stage_id'=>$stage2,'sequence'=>2,'status'=>'pending','planned_quantity'=>10,'created_at'=>now(),'updated_at'=>now()]);
@@ -49,6 +50,8 @@ class ProductionExecutionTest extends TestCase
         app(ProductionExecutionService::class)->review($company,$run,$user,true);
 
         $this->assertSame('completed',DB::table('production_operation_runs')->where('id',$run)->value('status'));
+        $this->assertSame(8.0,(float)DB::table('inventory')->where('company_id',$company)->where('location_id',$location)->where('goods_id',$goods)->value('quantity'));
+        $this->assertDatabaseHas('inventory_movements',['company_id'=>$company,'location_id'=>$location,'goods_id'=>$goods,'movement_type'=>'production_consumption','reference_type'=>'production_operation_runs','reference_id'=>$run,'quantity'=>-10]);
         $this->assertSame('completed',DB::table('production_stage_runs')->where('id',$stageRun)->value('status'));
         $this->assertSame('in_progress',DB::table('productions')->where('id',$production)->value('status'));
         $handover=DB::table('production_stage_handovers')->where('from_stage_run_id',$stageRun)->where('to_stage_run_id',$stageRun2)->first();
@@ -71,6 +74,8 @@ class ProductionExecutionTest extends TestCase
         );
         app(ProductionExecutionService::class)->review($company,$run2,$user,true);
         $this->assertSame('completed',DB::table('production_operation_runs')->where('id',$run2)->value('status'));
+        $this->assertSame(0.0,(float)DB::table('inventory')->where('company_id',$company)->where('location_id',$location)->where('goods_id',$goods)->value('quantity'));
+        $this->assertDatabaseHas('inventory_movements',['company_id'=>$company,'location_id'=>$location,'goods_id'=>$goods,'movement_type'=>'production_consumption','reference_type'=>'production_operation_runs','reference_id'=>$run2,'quantity'=>-8]);
         $this->assertSame('completed',DB::table('production_stage_runs')->where('id',$stageRun2)->value('status'));
         $this->assertSame('completed',DB::table('productions')->where('id',$production)->value('status'));
         $this->assertDatabaseHas('audit_trails',['module'=>'production','action'=>'operation.approve','auditable_id'=>$run]);
