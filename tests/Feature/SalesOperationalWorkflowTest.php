@@ -53,11 +53,12 @@ class SalesOperationalWorkflowTest extends TestCase
             ->assertOk()
             ->assertDontSee('درخواست تحویل سفارش');
 
+        $this->get('/sales/orders')->assertOk()->assertSee('مجوز خروج')->assertSee('authorizeDelivery');
+
         $this->get('/sales/deliveries')
             ->assertOk()
-            ->assertSee('سفارش‌های آماده ثبت درخواست تحویل')
-            ->assertSee('ثبت درخواست تحویل')
-            ->assertSee('Customer');
+            ->assertDontSee('سفارش‌های آماده ثبت درخواست تحویل')
+            ->assertSee('درخواست‌های ثبت‌شده');
     }
 
     public function test_in_stock_order_can_create_delivery_issue_and_customer_handover(): void
@@ -66,11 +67,11 @@ class SalesOperationalWorkflowTest extends TestCase
         $response=$this->postJson('/api/orders',['fiscal_year_id'=>$c['fy'],'customer_id'=>$c['customer'],'number'=>'SO-1','ordered_at'=>'2026-10-07','requested_delivery_at'=>'2026-10-20','items'=>[['goods_id'=>$c['goods'],'quantity'=>4]]]);
         $response->assertCreated()->assertJsonPath('data.status','ready_for_delivery');
         $order=$response->json('data.id');
-        $this->postJson('/api/orders/'.$order.'/delivery-request',['scheduled_at'=>'2026-10-08 10:00:00','recipient_name'=>'Receiver','vehicle'=>'Truck 1'])->assertCreated()->assertJsonPath('data.status','awaiting_sales_approval');
-        $delivery=DB::table('delivery_requests')->where('order_id',$order)->first();
         $this->get('/sales/orders')->assertOk()->assertSee('مجوز خروج');
-        $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertStatus(422);
-        $this->postJson('/sales/delivery-requests/'.$delivery->id.'/sales-approve')->assertOk()->assertJsonPath('data.status','pending');
+        $this->postJson('/api/orders/'.$order.'/delivery-request',[])->assertCreated()->assertJsonPath('data.status','pending');
+        $delivery=DB::table('delivery_requests')->where('order_id',$order)->first();
+        $this->assertNotNull($delivery->sales_approved_at);
+        $this->assertSame((int)$c['user'], (int)$delivery->sales_approved_by_user_id);
         $this->assertDatabaseHas('delivery_requests',['id'=>$delivery->id,'sales_approved_by_user_id'=>$c['user']]);
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertOk();
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>6]);
