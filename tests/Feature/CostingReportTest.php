@@ -140,6 +140,16 @@ class CostingReportTest extends TestCase
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+            // A second usage row must not reuse the same two-unit handover.
+            DB::table('production_shift_report_materials')->insert([
+                'company_id' => $company,
+                'production_shift_report_id' => $receivedShiftReportId,
+                'goods_id' => $rawMaterial,
+                'quantity' => 2,
+                'scrap_quantity' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
 
         // Approved labor without a sales order must still appear under a null order.
@@ -161,13 +171,19 @@ class CostingReportTest extends TestCase
         $this->assertSame(0.0,$report['totals']['unvalued_material_quantity']);
         $this->assertCount(1,$report['production_reports']);
         $this->assertSame(['Stage'], $report['production_reports'][0]['stage_names']);
-        $this->assertCount(1, $report['production_reports'][0]['materials']);
+        $this->assertCount(2, $report['production_reports'][0]['materials']);
         $this->assertSame('Raw Material', $report['production_reports'][0]['materials'][0]['material_name']);
         $this->assertSame(2.0, $report['production_reports'][0]['materials'][0]['allocated_quantity']);
         $this->assertSame(2.0, $report['production_reports'][0]['materials'][0]['valued_quantity']);
         $this->assertSame(20.0, $report['production_reports'][0]['materials'][0]['material_cost']);
         $this->assertSame(10.0, $report['production_reports'][0]['materials'][0]['unit_cost']);
         $this->assertTrue($report['production_reports'][0]['materials'][0]['cost_complete']);
+        $this->assertSame(0.0, $report['production_reports'][0]['materials'][1]['allocated_quantity']);
+        $this->assertSame(2.0, $report['production_reports'][0]['materials'][1]['unmatched_quantity']);
+        $this->assertSame(2.0, $report['production_reports'][0]['materials'][1]['unvalued_quantity']);
+        $this->assertSame(0.0, $report['production_reports'][0]['materials'][1]['material_cost']);
+        $this->assertFalse($report['production_reports'][0]['materials'][1]['cost_complete']);
+        $this->assertFalse($report['production_reports'][0]['material_cost_complete']);
         $this->assertSame(20.0, $report['production_reports'][0]['material_cost']);
         $this->assertSame(1.0,$report['product_rows'][0]['produced_quantity']);
         $this->assertSame(90.0,$report['product_rows'][0]['unit_cost']);
