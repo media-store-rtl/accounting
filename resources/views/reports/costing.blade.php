@@ -3,6 +3,9 @@
 @section('title', 'گزارش بهای تمام‌شده')
 
 @section('content')
+@php
+  $formatCostingNumber = static fn ($value) => rtrim(rtrim(number_format((float) ($value ?? 0), 2, '.', ','), '0'), '.');
+@endphp
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
 @endpush
@@ -41,11 +44,11 @@
 </div>
 
 <div class="costing-cards">
-  <div class="costing-card"><small>مواد مصرف‌شده</small><b>{{ number_format($report['totals']['material_cost'],2) }}</b></div>
-  <div class="costing-card"><small>دستمزد تأییدشده</small><b>{{ number_format($report['totals']['labor_cost'],2) }}</b></div>
-  <div class="costing-card"><small>بهای تمام‌شده</small><b>{{ number_format($report['totals']['total_cost'],2) }}</b></div>
-  <div class="costing-card"><small>مصرف بدون ارزش‌گذاری</small><b>{{ number_format($report['totals']['unvalued_material_quantity'],2) }}</b></div>
-  <div class="costing-card"><small>تعداد کل تولید ثبت‌شده در گزارش‌های تحویل‌شده</small><b>{{ number_format(collect($report['production_reports'])->sum('produced_quantity'),2) }}</b></div>
+  <div class="costing-card"><small>مواد مصرف‌شده</small><b>{{ $formatCostingNumber($report['totals']['material_cost']) }}</b></div>
+  <div class="costing-card"><small>دستمزد تأییدشده</small><b>{{ $formatCostingNumber($report['totals']['labor_cost']) }}</b></div>
+  <div class="costing-card"><small>بهای تمام‌شده</small><b>{{ $formatCostingNumber($report['totals']['total_cost']) }}</b></div>
+  <div class="costing-card"><small>مصرف بدون ارزش‌گذاری</small><b>{{ $formatCostingNumber($report['totals']['unvalued_material_quantity']) }}</b></div>
+  <div class="costing-card"><small>تعداد کل تولید ثبت‌شده در گزارش‌های تحویل‌شده</small><b>{{ $formatCostingNumber(collect($report['production_reports'])->sum('produced_quantity')) }}</b></div>
 </div>
 
 @if(!empty($report['valuation_methods']))
@@ -72,10 +75,10 @@
             <td>{{ $productionReport['section_name'] }}</td>
             <td>{{ $productionReport['worker_name'] ?? 'ثبت نشده' }}</td>
             <td>{{ $productionReport['goods_code'] }} — {{ $productionReport['goods_name'] }}</td>
-            <td>{{ number_format($productionReport['produced_quantity'],2) }}</td>
-            <td>{{ number_format($productionReport['received_quantity'],2) }}</td>
-            <td>{{ number_format($productionReport['scrap_quantity'],2) }}</td>
-            <td>{{ number_format($productionReport['labor_cost'],2) }}</td>
+            <td>{{ $formatCostingNumber($productionReport['produced_quantity']) }}</td>
+            <td>{{ $formatCostingNumber($productionReport['received_quantity']) }}</td>
+            <td>{{ $formatCostingNumber($productionReport['scrap_quantity']) }}</td>
+            <td>{{ $formatCostingNumber($productionReport['labor_cost']) }}</td>
             <td>{{ $productionReport['warehouse_name'] ?? '—' }}</td>
           </tr>
         @endforeach
@@ -96,7 +99,7 @@
         <thead><tr><th>محصول</th><th>تعداد تولیدشده</th><th>مواد</th><th>دستمزد</th><th>ضایعات</th><th>هزینه مستقیم</th><th>جمع بهای تمام‌شده</th><th>فی تمام‌شده هر عدد</th><th>روش</th><th>مصرف بدون ارزش‌گذاری</th></tr></thead>
         <tbody>
         @foreach($report['product_rows'] as $row)
-          <tr><td>{{ $row['goods_code'] }} — {{ $row['goods_name'] }}</td><td>{{ number_format($row['produced_quantity'] ?? 0,2) }}</td><td>{{ number_format($row['material_cost'],2) }}</td><td>{{ number_format($row['labor_cost'],2) }}</td><td>{{ number_format($row['scrap_cost'],2) }}</td><td>{{ number_format($row['direct_cost'],2) }}</td><td><strong>{{ number_format($row['total_cost'],2) }}</strong></td><td><strong>{{ isset($row['unit_cost']) && $row['unit_cost'] !== null ? number_format($row['unit_cost'],2) : '—' }}</strong></td><td>{{ implode('، ',$row['valuation_methods']) ?: '—' }}</td><td>{{ number_format($row['unvalued_material_quantity'],2) }}</td></tr>
+          <tr><td>{{ $row['goods_code'] }} — {{ $row['goods_name'] }}</td><td>{{ $formatCostingNumber($row['produced_quantity'] ?? 0) }}</td><td>{{ $formatCostingNumber($row['material_cost']) }}</td><td>{{ $formatCostingNumber($row['labor_cost']) }}</td><td>{{ $formatCostingNumber($row['scrap_cost']) }}</td><td>{{ $formatCostingNumber($row['direct_cost']) }}</td><td><strong>{{ $formatCostingNumber($row['total_cost']) }}</strong></td><td><strong>{{ isset($row['unit_cost']) && $row['unit_cost'] !== null ? $formatCostingNumber($row['unit_cost']) : '—' }}</strong></td><td>{{ implode('، ',$row['valuation_methods']) ?: '—' }}</td><td>{{ $formatCostingNumber($row['unvalued_material_quantity']) }}</td></tr>
         @endforeach
         </tbody>
       </table>
