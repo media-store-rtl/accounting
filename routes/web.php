@@ -122,7 +122,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/production/labor', [WorkflowPagesController::class,'labor'])->middleware('company.permission:production.labor.create')->name('workflows.labor');
     Route::post('/production/labor', [WorkflowPagesController::class,'storeLabor'])->middleware('company.permission:production.labor.create')->name('workflows.labor.store');
     Route::get('/inventory', [WorkflowPagesController::class,'inventory'])->middleware('company.permission:inventory.view')->name('inventory.index');
-    Route::post('/inventory/{inventory}/reorder-point', [WorkflowPagesController::class,'setReorderPoint'])->middleware('company.permission:inventory.reorder_point.manage')->name('inventory.reorder-point');
+    Route::post('/inventory/{location}/{goods}/reorder-point', [WorkflowPagesController::class,'setReorderPoint'])->middleware('company.permission:inventory.reorder_point.manage')->whereNumber('location')->whereNumber('goods')->name('inventory.reorder-point');
     Route::get('/handovers', [WorkflowPagesController::class,'handovers'])->middleware('company.permission:supply_request.handover.view')->name('workflows.handovers');
     Route::post('/handovers', [WorkflowPagesController::class,'storeHandover'])->middleware('company.permission:supply_request.handover.create')->name('workflows.handovers.store');
     Route::get('/receipts', [WorkflowPagesController::class,'receipts'])->middleware('company.permission:purchase.receipt.create')->name('workflows.receipts');

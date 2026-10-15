@@ -127,6 +127,30 @@ class WorkflowPagesController extends Controller {
  public function storeSupply(Request $r){app(SupplyRequestController::class)->store($r);return back()->with('success','درخواست تأمین ثبت شد.');}
  public function storePurchase(Request $r){app(PurchaseController::class)->store($r);return back()->with('success','خرید ثبت شد.');}
  public function storeLabor(Request $r){$cid=CompanyAuthorization::authorize($r,'production.labor.create');$d=$r->validate(['production_operation_run_id'=>'required|integer','personnel_id'=>'required|integer','measure_type'=>'required|in:hours,quantity','labor_rate_type'=>'nullable|in:regular,overtime,holiday','measure_quantity'=>'required|numeric|gt:0','worked_at'=>'required|date','notes'=>'nullable|string']);$run=DB::table('production_operation_runs as r')->join('production_stage_runs as sr','sr.id','=','r.production_stage_run_id')->join('productions as p','p.id','=','sr.production_id')->where('r.id',$d['production_operation_run_id'])->where('p.company_id',$cid)->exists();abort_unless($run,422,'عملیات تولید نامعتبر است.');app(\App\Services\LaborCostService::class)->record($cid,(int)$d['production_operation_run_id'],(int)$d['personnel_id'],$d['measure_type'],(float)$d['measure_quantity'],$d['worked_at'],(int)$r->user()->id,$d['notes']??null,$d['labor_rate_type']??'regular');return back()->with('success','کارکرد ثبت شد.');}
- public function setReorderPoint(Request $r,int $inventoryId){$cid=CompanyAuthorization::authorize($r,'inventory.reorder_point.manage');$data=$r->validate(['reorder_point'=>['required','numeric','min:0']]);app(\App\Services\InventoryService::class)->setReorderPoint($cid,$inventoryId,(float)$data['reorder_point'],(int)$r->user()->id);return back()->with('success','نقطه سفارش ذخیره شد.');}
- public function inventory(Request $r){$cid=CompanyAuthorization::authorize($r,'inventory.view');$rows=DB::table('inventory as i')->join('goods as g','g.id','=','i.goods_id')->join('locations as l','l.id','=','i.location_id')->where('i.company_id',$cid)->select('i.*','g.name as goods_name','g.code as goods_code','l.name as location_name')->orderBy('g.name')->paginate(30);return view('workflows.inventory',compact('rows'));}
+ public function setReorderPoint(Request $r,int $locationId,int $goodsId){
+  $cid=CompanyAuthorization::authorize($r,'inventory.reorder_point.manage');
+  $data=$r->validate(['reorder_point'=>['required','numeric','min:0']]);
+  $location=DB::table('locations')->where('id',$locationId)->where('company_id',$cid)->where('is_active',true)->exists();
+  abort_unless($location,422,'انبار انتخاب‌شده معتبر یا فعال نیست.');
+  $goods=DB::table('goods')->where('id',$goodsId)->where('company_id',$cid)->where('is_active',true)->exists();
+  abort_unless($goods,422,'کالای انتخاب‌شده معتبر یا فعال نیست.');
+  $inventory=DB::table('inventory')->where('company_id',$cid)->where('location_id',$locationId)->where('goods_id',$goodsId)->first();
+  if(!$inventory){
+   $inventoryId=DB::table('inventory')->insertGetId(['company_id'=>$cid,'location_id'=>$locationId,'goods_id'=>$goodsId,'quantity'=>0,'reorder_point'=>0,'created_at'=>now(),'updated_at'=>now()]);
+  }else{$inventoryId=(int)$inventory->id;}
+  app(\App\Services\InventoryService::class)->setReorderPoint($cid,$inventoryId,(float)$data['reorder_point'],(int)$r->user()->id);
+  return back()->with('success','نقطه سفارش ذخیره شد.');
+ }
+ public function inventory(Request $r){
+  $cid=CompanyAuthorization::authorize($r,'inventory.view');
+  $rows=DB::table('goods as g')->crossJoin('locations as l')
+   ->leftJoin('inventory as i',function($join)use($cid){
+    $join->on('i.goods_id','=','g.id')->on('i.location_id','=','l.id')->where('i.company_id','=',$cid);
+   })
+   ->where('g.company_id',$cid)->where('g.is_active',true)
+   ->where('l.company_id',$cid)->where('l.is_active',true)
+   ->select('i.id as inventory_id','g.id as goods_id','l.id as location_id','g.name as goods_name','g.code as goods_code','l.name as location_name',DB::raw('COALESCE(i.quantity, 0) as quantity'),DB::raw('COALESCE(i.reorder_point, 0) as reorder_point'))
+   ->orderBy('g.name')->orderBy('l.name')->paginate(30);
+  return view('workflows.inventory',compact('rows'));
+ }
 }

@@ -11,7 +11,7 @@
 <tr><td>{{ $row->goods_code }}</td><td>{{ $row->goods_name }}</td><td>{{ $row->location_name }}</td>
 <td><span class="status {{ (float)($row->reorder_point ?? 0)>0 && (float)$row->quantity <= (float)$row->reorder_point ? 'inactive' : 'active' }}">{{ $row->quantity }}</span></td><td>{{ $row->reorder_point ?? 0 }}</td><td style="min-width:280px;white-space:normal">
 @if(auth()->user()->hasCompanyPermission((int)session('company_id'),'inventory.reorder_point.manage'))
-<form method="POST" action="{{ route('inventory.reorder-point',$row->id) }}" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:7px">@csrf<input name="reorder_point" type="number" min="0" step="0.0001" value="{{ $row->reorder_point ?? 0 }}" aria-label="نقطه سفارش" style="width:110px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:8px;padding:8px;font:inherit"><button class="btn" type="submit">ذخیره نقطه سفارش</button></form>
+<form method="POST" action="{{ route('inventory.reorder-point',[$row->location_id,$row->goods_id]) }}" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:7px">@csrf<input name="reorder_point" type="number" min="0" step="0.0001" value="{{ $row->reorder_point ?? 0 }}" aria-label="نقطه سفارش" style="width:110px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:8px;padding:8px;font:inherit"><button class="btn" type="submit">ذخیره نقطه سفارش</button></form>
 @endif
 </td></tr>
 @empty<tr><td colspan="6" style="text-align:center;padding:28px;color:#8198ac">موجودی برای نمایش ثبت نشده است.</td></tr>@endforelse
