@@ -67,7 +67,7 @@
       <div class="costing-empty">گزارش تولید تأییدشده یا تحویل‌شده‌ای برای این فیلتر پیدا نشد.</div>
     @else
       <table class="costing-table">
-        <thead><tr><th>شماره گزارش</th><th>تاریخ تولید</th><th>تاریخ تحویل انبار</th><th>بخش تولید</th><th>کارگر</th><th>محصول</th><th>تعداد تولید</th><th>تعداد تحویل‌شده</th><th>ضایعات</th><th>دستمزد این گزارش</th><th>انبار</th></tr></thead>
+        <thead><tr><th>شماره گزارش</th><th>تاریخ تولید</th><th>تاریخ تحویل انبار</th><th>بخش تولید</th><th>کارگر</th><th>محصول</th><th>واحد</th><th>تعداد تولید</th><th>تعداد تحویل‌شده</th><th>ضایعات</th><th>دستمزد این گزارش</th><th>انبار</th></tr></thead>
         <tbody>
         @foreach($report['production_reports'] as $productionReport)
           <tr>
@@ -77,6 +77,7 @@
             <td>{{ $productionReport['section_name'] }}</td>
             <td>{{ $productionReport['worker_name'] ?? 'ثبت نشده' }}</td>
             <td>{{ $productionReport['goods_code'] }} — {{ $productionReport['goods_name'] }}</td>
+            <td>{{ $productionReport['unit_symbol'] ?? $productionReport['unit_name'] ?? '—' }}</td>
             <td>{{ $formatCostingNumber($productionReport['produced_quantity']) }}</td>
             <td>{{ $formatCostingNumber($productionReport['received_quantity']) }}</td>
             <td>{{ $formatCostingNumber($productionReport['scrap_quantity']) }}</td>
@@ -98,10 +99,10 @@
       <div class="costing-empty">برای فیلتر انتخاب‌شده داده هزینه‌ای ثبت نشده است.</div>
     @else
       <table class="costing-table">
-        <thead><tr><th>محصول</th><th>تعداد تولیدشده</th><th>مواد</th><th>دستمزد</th><th>ضایعات</th><th>هزینه مستقیم</th><th>جمع بهای تمام‌شده</th><th>فی تمام‌شده هر عدد</th><th>روش</th><th>مصرف بدون ارزش‌گذاری</th></tr></thead>
+        <thead><tr><th>محصول</th><th>واحد</th><th>تعداد تولیدشده</th><th>مواد</th><th>دستمزد</th><th>ضایعات</th><th>هزینه مستقیم</th><th>جمع بهای تمام‌شده</th><th>فی تمام‌شده هر عدد</th><th>روش</th><th>مصرف بدون ارزش‌گذاری</th></tr></thead>
         <tbody>
         @foreach($report['product_rows'] as $row)
-          <tr><td>{{ $row['goods_code'] }} — {{ $row['goods_name'] }}</td><td>{{ $formatCostingNumber($row['produced_quantity'] ?? 0) }}</td><td>{{ $formatCostingNumber($row['material_cost']) }}</td><td>{{ $formatCostingNumber($row['labor_cost']) }}</td><td>{{ $formatCostingNumber($row['scrap_cost']) }}</td><td>{{ $formatCostingNumber($row['direct_cost']) }}</td><td><strong>{{ $formatCostingNumber($row['total_cost']) }}</strong></td><td><strong>{{ isset($row['unit_cost']) && $row['unit_cost'] !== null ? $formatCostingNumber($row['unit_cost']) : '—' }}</strong></td><td>{{ implode('، ',$row['valuation_methods']) ?: '—' }}</td><td>{{ $formatCostingNumber($row['unvalued_material_quantity']) }}</td></tr>
+          <tr><td>{{ $row['goods_code'] }} — {{ $row['goods_name'] }}</td><td>{{ $row['unit_symbol'] ?? $row['unit_name'] ?? '—' }}</td><td>{{ $formatCostingNumber($row['produced_quantity'] ?? 0) }}</td><td>{{ $formatCostingNumber($row['material_cost']) }}</td><td>{{ $formatCostingNumber($row['labor_cost']) }}</td><td>{{ $formatCostingNumber($row['scrap_cost']) }}</td><td>{{ $formatCostingNumber($row['direct_cost']) }}</td><td><strong>{{ $formatCostingNumber($row['total_cost']) }}</strong></td><td><strong>{{ isset($row['unit_cost']) && $row['unit_cost'] !== null ? $formatCostingNumber($row['unit_cost']) : '—' }}</strong></td><td>{{ implode('، ',$row['valuation_methods']) ?: '—' }}</td><td>{{ $formatCostingNumber($row['unvalued_material_quantity']) }}</td></tr>
         @endforeach
         </tbody>
       </table>
