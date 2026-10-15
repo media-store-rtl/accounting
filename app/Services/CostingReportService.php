@@ -316,6 +316,10 @@ final class CostingReportService
             ->leftJoin('production_sections as ps', 'ps.id', '=', 'r.production_section_id')
             ->leftJoin('locations as section_location', 'section_location.id', '=', 'ps.location_id')
             ->leftJoin('locations as warehouse', 'warehouse.id', '=', 'r.warehouse_location_id')
+            ->leftJoin('goods_units as gu', function ($join) {
+                $join->on('gu.goods_id', '=', 'g.id')->where('gu.is_base', true);
+            })
+            ->leftJoin('units as u', 'u.id', '=', 'gu.unit_id')
             ->where('r.company_id', $companyId)
             ->whereIn('r.status', ['approved', 'received'])
             ->when($warehouseReceivedOnly, fn($q) => $q->where('r.status', 'received')->whereNotNull('r.warehouse_received_at'))
