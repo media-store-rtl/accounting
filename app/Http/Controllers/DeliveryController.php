@@ -21,8 +21,7 @@ class DeliveryController extends Controller
             ->where('d.company_id',$companyId)
             ->select(
                 'd.*','o.number as order_number','o.requested_delivery_at as requested_delivery_at','c.name as customer_name',
-                'physical.received_by','physical.handed_over_at',
-                'physical.handed_over_at'
+                'physical.received_by','physical.handed_over_at'
             )
             ->latest('d.id')->paginate(20);
 
