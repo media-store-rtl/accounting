@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Notifications\WorkflowNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Illuminate\Validation\ValidationException;
 
@@ -176,49 +177,134 @@ class InventoryService
     {
         if ($reorderPoint <= 0) return;
 
-        $inventory = DB::table('inventory')
-            ->where('company_id', $companyId)->where('location_id', $locationId)->where('goods_id', $goodsId)
-            ->lockForUpdate()->first();
-        if (!$inventory) return;
+        $result = DB::transaction(function () use ($companyId, $locationId, $goodsId, $current, $reorderPoint) {
+            $inventory = DB::table('inventory')
+                ->where('company_id', $companyId)->where('location_id', $locationId)->where('goods_id', $goodsId)
+                ->lockForUpdate()->first();
+            if (!$inventory) return null;
 
-        if ($current > $reorderPoint) {
-            if ((bool) ($inventory->reorder_alert_active ?? false)) {
-                DB::table('inventory')->where('id', $inventory->id)->update(['reorder_alert_active' => false, 'updated_at' => now()]);
+            // A new alert cycle starts only after stock recovers to the reorder point.
+            if ($current >= $reorderPoint) {
+                if ((bool) ($inventory->reorder_alert_active ?? false)) {
+                    DB::table('inventory')->where('id', $inventory->id)->update(['reorder_alert_active' => false, 'updated_at' => now()]);
+                }
+                return null;
             }
-            return;
-        }
 
-        if ((bool) ($inventory->reorder_alert_active ?? false)) return;
+            if ((bool) ($inventory->reorder_alert_active ?? false)) return null;
 
-        $goods = DB::table('goods')->where('company_id', $companyId)->where('id', $goodsId)
-            ->select('name', 'purchasable', 'producible', 'sellable')->first();
-        if (!$goods) return;
+            $goods = DB::table('goods')->where('company_id', $companyId)->where('id', $goodsId)
+                ->select('name', 'purchasable', 'producible', 'sellable')->first();
+            if (!$goods) return null;
 
-        if ((bool) $goods->producible && (bool) $goods->sellable) {
-            $event = 'inventory.finished_goods_low';
-            $permission = 'production.supervise';
-        } elseif ((bool) $goods->purchasable && !(bool) $goods->sellable) {
-            $event = 'inventory.raw_material_low';
-            $permission = 'supply.manage';
-        } else {
-            $event = 'inventory_reorder_point_reached';
-            $permission = 'supply.manage';
-        }
+            if ((bool) $goods->producible && (bool) $goods->sellable) {
+                $event = 'inventory.finished_goods_low';
+                $permission = 'production.supervise';
+            } elseif ((bool) $goods->purchasable && !(bool) $goods->sellable) {
+                $event = 'inventory.raw_material_low';
+                $permission = 'supply.manage';
+            } else {
+                $event = 'inventory_reorder_point_reached';
+                $permission = 'supply.manage';
+            }
 
-        DB::table('inventory')->where('id', $inventory->id)->update(['reorder_alert_active' => true, 'updated_at' => now()]);
-        app(NotificationRecipientService::class)->send(
-            $companyId,
-            $event,
-            [
+            $payload = [
                 'location_id' => $locationId,
                 'goods_id' => $goodsId,
                 'goods_name' => $goods->name,
                 'current_quantity' => $current,
                 'reorder_point' => $reorderPoint,
-            ],
+            ];
+
+            // Only purchasable raw materials create an automatic request for procurement.
+            // The request tops stock back up to the reorder point and is directly visible in Purchasing.
+            if ($event === 'inventory.raw_material_low') {
+                $requestQuantity = max(0, $reorderPoint - $current);
+                if ($requestQuantity <= 0) return null;
+
+                $fiscalYear = DB::table('fiscal_years')
+                    ->where('company_id', $companyId)->where('is_closed', false)
+                    ->whereDate('starts_at', '<=', today()->toDateString())
+                    ->whereDate('ends_at', '>=', today()->toDateString())
+                    ->orderByDesc('starts_at')->first();
+
+                // If today's date is outside all open fiscal periods, use the latest open period.
+                if (!$fiscalYear) {
+                    $fiscalYear = DB::table('fiscal_years')->where('company_id', $companyId)
+                        ->where('is_closed', false)->orderByDesc('starts_at')->first();
+                }
+
+                $requesterId = DB::table('company_user as cu')
+                    ->join('users as u', 'u.id', '=', 'cu.user_id')
+                    ->where('cu.company_id', $companyId)->where('cu.is_active', true)->where('u.is_active', true)
+                    ->orderBy('cu.user_id')->value('cu.user_id');
+
+                if (!$fiscalYear || !$requesterId) {
+                    Log::warning('Automatic supply request was not created because an open fiscal year or active company user is missing.', [
+                        'company_id' => $companyId, 'location_id' => $locationId, 'goods_id' => $goodsId,
+                    ]);
+                    return null;
+                }
+
+                $requestId = DB::table('supply_requests')->insertGetId([
+                    'company_id' => $companyId,
+                    'fiscal_year_id' => $fiscalYear->id,
+                    'requested_by_user_id' => $requesterId,
+                    'requested_at' => now(),
+                    'needed_at' => today()->toDateString(),
+                    'status' => 'shortage_pending',
+                    'notes' => 'درخواست خودکار تدارکات به دلیل رسیدن موجودی ماده اولیه به کمتر از نقطه سفارش؛ انبار: '.$locationId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                DB::table('supply_request_items')->insert([
+                    'supply_request_id' => $requestId,
+                    'goods_id' => $goodsId,
+                    'requested_quantity' => $requestQuantity,
+                    'available_quantity' => 0,
+                    'shortage_quantity' => $requestQuantity,
+                    'supplied_quantity' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $payload['supply_request_id'] = $requestId;
+                $payload['requested_quantity'] = $requestQuantity;
+            }
+
+            DB::table('inventory')->where('id', $inventory->id)->update(['reorder_alert_active' => true, 'updated_at' => now()]);
+
+            return ['event' => $event, 'permission' => $permission, 'payload' => $payload];
+        });
+
+        if (!$result) return;
+
+        app(NotificationRecipientService::class)->send(
+            $companyId,
+            $result['event'],
+            $result['payload'],
             null,
-            $permission
+            $result['permission']
         );
+
+        if ($result['event'] === 'inventory.raw_material_low' && !empty($result['payload']['supply_request_id'])) {
+            app(NotificationRecipientService::class)->send(
+                $companyId,
+                'supply.shortage',
+                [
+                    'supply_request_id' => $result['payload']['supply_request_id'],
+                    'needed_at' => today()->toDateString(),
+                    'goods_id' => $goodsId,
+                    'goods_name' => $result['payload']['goods_name'],
+                    'requested_quantity' => $result['payload']['requested_quantity'],
+                    'available_quantity' => 0,
+                    'shortage_quantity' => $result['payload']['requested_quantity'],
+                ],
+                null,
+                'supply.manage'
+            );
+        }
     }
 
     private function receiveIntoInventory(int $companyId,int $locationId,int $goodsId,float $quantity,string $movementType,string $referenceType,int $referenceId,array $metadata=[],bool $allowProductionReceiptLocationTypes=false): void

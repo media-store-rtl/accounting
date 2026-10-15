@@ -29,4 +29,38 @@ class InventoryAdjustmentTest extends TestCase
         $this->assertDatabaseHas('audit_trails',['company_id'=>$company,'user_id'=>$user,'module'=>'warehouse','action'=>'inventory.adjustment','auditable_id'=>$inventory]);
         $this->assertDatabaseHas('audit_trails',['company_id'=>$company,'user_id'=>$user,'module'=>'warehouse','action'=>'inventory.reorder_point.update','auditable_id'=>$inventory]);
     }
+
+    public function test_raw_material_below_reorder_point_creates_one_automatic_procurement_request(): void
+    {
+        $account=DB::table('accounts')->insertGetId(['name'=>'Supply Account','code'=>'SA'.uniqid(),'created_at'=>now(),'updated_at'=>now()]);
+        $company=DB::table('companies')->insertGetId(['account_id'=>$account,'name'=>'Supply Company','code'=>'SC'.uniqid(),'is_active'=>true,'settings'=>json_encode([]),'inventory_valuation_method'=>'fifo','created_at'=>now(),'updated_at'=>now()]);
+        $user=DB::table('users')->insertGetId(['account_id'=>$account,'name'=>'Supply User','username'=>'su'.uniqid(),'email'=>uniqid().'@test.local','password'=>bcrypt('secret'),'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
+        $role=DB::table('roles')->insertGetId(['company_id'=>$company,'name'=>'Supply Role','slug'=>'sr'.uniqid(),'is_system'=>false,'created_at'=>now(),'updated_at'=>now()]);
+        DB::table('company_user')->insert(['company_id'=>$company,'user_id'=>$user,'role_id'=>$role,'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
+        $fiscalYear=DB::table('fiscal_years')->insertGetId([
+            'company_id'=>$company,'name'=>'Current','code'=>'FY'.uniqid(),
+            'starts_at'=>today()->subYear()->toDateString(),'ends_at'=>today()->addYear()->toDateString(),
+            'is_closed'=>false,'created_at'=>now(),'updated_at'=>now(),
+        ]);
+        $category=DB::table('goods_categories')->insertGetId(['company_id'=>$company,'name'=>'Raw Materials','code'=>'RM'.uniqid(),'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
+        $goods=DB::table('goods')->insertGetId(['company_id'=>$company,'category_id'=>$category,'code'=>'RM'.uniqid(),'name'=>'Raw Material','purchasable'=>true,'producible'=>false,'sellable'=>false,'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
+        $location=DB::table('locations')->insertGetId(['company_id'=>$company,'code'=>'W'.uniqid(),'name'=>'Warehouse','type'=>'warehouse','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
+        $inventory=DB::table('inventory')->insertGetId(['company_id'=>$company,'location_id'=>$location,'goods_id'=>$goods,'quantity'=>10,'reorder_point'=>5,'created_at'=>now(),'updated_at'=>now()]);
+
+        app(InventoryService::class)->adjust($company,$location,$goods,4,'stock fell below reorder point',$user);
+
+        $request=DB::table('supply_requests')->where('company_id',$company)->first();
+        $this->assertNotNull($request);
+        $this->assertSame('shortage_pending',$request->status);
+        $this->assertSame((string)$fiscalYear,(string)$request->fiscal_year_id);
+        $this->assertDatabaseHas('supply_request_items',[
+            'supply_request_id'=>$request->id,'goods_id'=>$goods,'requested_quantity'=>1,
+            'available_quantity'=>0,'shortage_quantity'=>1,
+        ]);
+
+        app(InventoryService::class)->adjust($company,$location,$goods,3,'stock remains below reorder point',$user);
+        $this->assertSame(1,DB::table('supply_requests')->where('company_id',$company)->count());
+        $this->assertDatabaseHas('inventory',['id'=>$inventory,'reorder_alert_active'=>true]);
+    }
+
 }
