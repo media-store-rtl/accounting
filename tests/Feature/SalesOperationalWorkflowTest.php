@@ -64,6 +64,17 @@ class SalesOperationalWorkflowTest extends TestCase
     public function test_in_stock_order_can_create_delivery_issue_and_customer_handover(): void
     {
         Notification::fake(); $c=$this->context(10);
+        $warehouseUser = DB::table('users')->insertGetId([
+            'account_id' => DB::table('companies')->where('id', $c['company'])->value('account_id'),
+            'name' => 'Warehouse Receiver', 'username' => 'warehouse'.uniqid(),
+            'email' => uniqid().'@test.local', 'password' => bcrypt('secret'),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('company_user')->insert([
+            'company_id' => $c['company'], 'user_id' => $warehouseUser,
+            'role_id' => DB::table('roles')->where('company_id', $c['company'])->where('slug', 'sales-ops')->value('id'),
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
         $response=$this->postJson('/api/orders',['fiscal_year_id'=>$c['fy'],'customer_id'=>$c['customer'],'number'=>'SO-1','ordered_at'=>'2026-10-07','requested_delivery_at'=>'2026-10-20','items'=>[['goods_id'=>$c['goods'],'quantity'=>4]]]);
         $response->assertCreated()->assertJsonPath('data.status','ready_for_delivery');
         $order=$response->json('data.id');
@@ -72,8 +83,8 @@ class SalesOperationalWorkflowTest extends TestCase
         $delivery=DB::table('delivery_requests')->where('order_id',$order)->first();
         $this->assertNotNull($delivery->sales_approved_at);
         $this->assertSame((int)$c['user'], (int)$delivery->sales_approved_by_user_id);
-        Notification::assertSentTo(\App\Models\User::findOrFail($c['user']), \App\Notifications\WorkflowNotification::class, function ($notification) use ($c, $order) {
-            $data = $notification->toArray(\App\Models\User::findOrFail($c['user']));
+        Notification::assertSentTo(\App\Models\User::findOrFail($warehouseUser), \App\Notifications\WorkflowNotification::class, function ($notification) use ($c, $order, $warehouseUser) {
+            $data = $notification->toArray(\App\Models\User::findOrFail($warehouseUser));
             return $data['event'] === 'delivery.requested' && (int) $data['order_id'] === (int) $order;
         });
         $this->assertDatabaseHas('delivery_requests',['id'=>$delivery->id,'sales_approved_by_user_id'=>$c['user']]);
@@ -123,9 +134,8 @@ class SalesOperationalWorkflowTest extends TestCase
         $this->postJson('/api/orders/'.$order.'/refresh')->assertOk()->assertJsonPath('data.status','ready_for_delivery');
         $this->assertDatabaseHas('order_items',['order_id'=>$order,'shortage_quantity'=>0,'fulfillment_status'=>'ready_for_delivery']);
 
-        $this->postJson('/api/orders/'.$order.'/delivery-request',['scheduled_at'=>'2026-10-08 10:00:00','recipient_name'=>'Receiver','vehicle'=>'Truck FG'])->assertCreated();
+        $this->postJson('/api/orders/'.$order.'/delivery-request',['scheduled_at'=>'2026-10-08 10:00:00','recipient_name'=>'Receiver','vehicle'=>'Truck FG'])->assertCreated()->assertJsonPath('data.status','pending');
         $delivery=DB::table('delivery_requests')->where('order_id',$order)->first();
-        $this->postJson('/sales/delivery-requests/'.$delivery->id.'/sales-approve')->assertOk();
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertOk();
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>0]);
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'delivery_issue','reference_type'=>'delivery_request','reference_id'=>$delivery->id,'quantity'=>-4]);
