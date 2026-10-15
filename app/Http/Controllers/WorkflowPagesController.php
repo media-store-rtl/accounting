@@ -130,7 +130,7 @@ class WorkflowPagesController extends Controller {
  public function setReorderPoint(Request $r,int $locationId,int $goodsId){
   $cid=CompanyAuthorization::authorize($r,'inventory.reorder_point.manage');
   $data=$r->validate(['reorder_point'=>['required','numeric','min:0']]);
-  $location=DB::table('locations')->where('id',$locationId)->where('company_id',$cid)->where('is_active',true)->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])->exists();
+  $location=DB::table('locations')->where('id',$locationId)->where('company_id',$cid)->where('is_active',true)->exists();
   abort_unless($location,422,'انبار انتخاب‌شده معتبر یا فعال نیست.');
   $goods=DB::table('goods')->where('id',$goodsId)->where('company_id',$cid)->where('is_active',true)->exists();
   abort_unless($goods,422,'کالای انتخاب‌شده معتبر یا فعال نیست.');
