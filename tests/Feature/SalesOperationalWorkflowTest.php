@@ -346,8 +346,9 @@ class SalesOperationalWorkflowTest extends TestCase
 
         $this->assertDatabaseHas('inventory', [
             'company_id' => $c['company'], 'location_id' => $productLocation,
-            'goods_id' => $c['goods'], 'quantity' => 4,
+            'goods_id' => $c['goods'], 'quantity' => 0,
         ]);
+        $this->assertSame(4.0,(float)DB::table('inventory_movements')->where('company_id',$c['company'])->where('location_id',$productLocation)->where('goods_id',$c['goods'])->sum('quantity'));
         $this->assertDatabaseHas('inventory_movements', [
             'company_id' => $c['company'], 'location_id' => $productLocation,
             'goods_id' => $c['goods'], 'movement_type' => 'finished_goods_receipt', 'quantity' => 4,
