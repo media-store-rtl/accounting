@@ -138,7 +138,7 @@ class WorkflowPagesController extends Controller {
   if(!$inventory){
    $inventoryId=DB::table('inventory')->insertGetId(['company_id'=>$cid,'location_id'=>$locationId,'goods_id'=>$goodsId,'quantity'=>0,'reorder_point'=>0,'created_at'=>now(),'updated_at'=>now()]);
   }else{$inventoryId=(int)$inventory->id;}
-  app(\\App\\Services\\InventoryService::class)->setReorderPoint($cid,$inventoryId,(float)$data['reorder_point'],(int)$r->user()->id);
+  app(\App\Services\InventoryService::class)->setReorderPoint($cid,$inventoryId,(float)$data['reorder_point'],(int)$r->user()->id);
   return back()->with('success','نقطه سفارش ذخیره شد.');
  }
  public function inventory(Request $r){
