@@ -143,14 +143,29 @@ class WorkflowPagesController extends Controller {
  }
  public function inventory(Request $r){
   $cid=CompanyAuthorization::authorize($r,'inventory.view');
-  $rows=DB::table('goods as g')->crossJoin('locations as l')
+  $data=$r->validate(['location_id'=>['nullable','integer']]);
+  $locations=DB::table('locations')->where('company_id',$cid)->where('is_active',true)->orderBy('name')->get(['id','name']);
+  $locationId=isset($data['location_id'])?(int)$data['location_id']:null;
+  if($locationId!==null){
+   abort_unless($locations->contains('id',$locationId),404);
+  }
+
+  $query=DB::table('goods as g')->crossJoin('locations as l')
    ->leftJoin('inventory as i',function($join)use($cid){
     $join->on('i.goods_id','=','g.id')->on('i.location_id','=','l.id')->where('i.company_id','=',$cid);
    })
    ->where('g.company_id',$cid)->where('g.is_active',true)
-   ->where('l.company_id',$cid)->where('l.is_active',true)
-   ->select('i.id as inventory_id','g.id as goods_id','l.id as location_id','g.name as goods_name','g.code as goods_code','l.name as location_name',DB::raw('COALESCE(i.quantity, 0) as quantity'),DB::raw('COALESCE(i.reorder_point, 0) as reorder_point'))
-   ->orderBy('g.name')->orderBy('l.name')->paginate(30);
-  return view('workflows.inventory',compact('rows'));
+   ->where('l.company_id',$cid)->where('l.is_active',true);
+
+  if($locationId!==null){
+   $query->where('l.id',$locationId)
+    ->select('g.id as goods_id','g.name as goods_name','g.code as goods_code','l.id as location_id','l.name as location_name',DB::raw('COALESCE(i.quantity, 0) as quantity'),DB::raw('COALESCE(i.reorder_point, 0) as reorder_point'));
+  }else{
+   $query->select('g.id as goods_id','g.name as goods_name','g.code as goods_code',DB::raw('NULL as location_id'),DB::raw("'همه انبارها' as location_name"),DB::raw('SUM(COALESCE(i.quantity, 0)) as quantity'),DB::raw('NULL as reorder_point'))
+    ->groupBy('g.id','g.name','g.code');
+  }
+
+  $rows=$query->orderBy('g.name')->paginate(30)->appends($r->only('location_id'));
+  return view('workflows.inventory',compact('rows','locations','locationId'));
  }
 }
