@@ -30,6 +30,7 @@
 .costing-detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
 .costing-detail-item small{display:block;color:#7890a5;font-size:10px;margin-bottom:4px}.costing-detail-item strong{font-size:11px;font-weight:500;overflow-wrap:anywhere}
 .costing-detail-costs{width:100%;border-collapse:collapse}.costing-detail-costs th,.costing-detail-costs td{padding:8px 5px;border-bottom:1px solid #183047;text-align:right;font-size:11px}
+.costing-detail-material-wrap{overflow-x:auto;margin:8px 0}.costing-detail-materials{width:100%;min-width:560px;border-collapse:collapse}.costing-detail-materials th,.costing-detail-materials td{padding:7px 5px;border-bottom:1px solid #183047;text-align:right;font-size:10px;white-space:nowrap}.costing-detail-materials th{color:#7890a5;font-weight:500}
 .costing-detail-note{color:#91a6b9;font-size:10px;line-height:1.9;margin:10px 0 0}
 .costing-empty{text-align:center;padding:35px;color:#71879d;border:1px dashed #29455d;border-radius:12px;font-size:11px}
 @media(max-width:700px){.costing-detail-grid{grid-template-columns:1fr 1fr}}
@@ -99,6 +100,31 @@
                       <tr><td>دستمزد محاسبه‌شده بر اساس نرخ معتبر کارگر</td><td>{{ $formatCostingNumber($productionReport['labor_cost']) }} ریال</td></tr>
                     </tbody>
                   </table>
+                  <h3 style="font-size:12px;margin:14px 0 8px">ریز مواد مصرفی این گزارش</h3>
+                  @if(!empty($productionReport['materials']))
+                    <div class="costing-detail-material-wrap">
+                      <table class="costing-detail-materials">
+                        <thead><tr><th>ماده</th><th>مقدار مصرف</th><th>ضایعات ماده</th><th>واحد</th><th>مقدار ارزش‌گذاری‌شده</th><th>نرخ میانگین (ریال)</th><th>مبلغ ارزش‌گذاری‌شده (ریال)</th><th>وضعیت</th></tr></thead>
+                        <tbody>
+                          @foreach($productionReport['materials'] as $material)
+                            <tr>
+                              <td>{{ $material['material_code'] }} — {{ $material['material_name'] }}</td>
+                              <td>{{ $formatCostingNumber($material['quantity']) }}</td>
+                              <td>{{ $formatCostingNumber($material['scrap_quantity']) }}</td>
+                              <td>{{ $material['unit_symbol'] ?? $material['unit_name'] ?? '—' }}</td>
+                              <td>{{ $formatCostingNumber($material['valued_quantity']) }}</td>
+                              <td>{{ $material['unit_cost'] !== null ? $formatCostingNumber($material['unit_cost']) : '—' }}</td>
+                              <td>{{ $formatCostingNumber($material['material_cost']) }}</td>
+                              <td>{{ $material['cost_complete'] ? 'کامل' : 'ناقص: بدون تطبیق/ارزش‌گذاری ' . $formatCostingNumber($material['unvalued_quantity']) }}</td>
+                            </tr>
+                          @endforeach
+                        </tbody>
+                      </table>
+                    </div>
+                    <p class="costing-detail-note">مقدار ارزش‌گذاری‌شده از حواله‌های منطبق با قسمت تولید، ماده، سفارش و تاریخ تخصیص می‌یابد. مبلغ نشان‌داده‌شده فقط بخش ارزش‌گذاری‌شده است؛ مقدار بدون تطبیق یا ارزش‌گذاری در وضعیت مشخص می‌شود.</p>
+                  @else
+                    <p class="costing-detail-note">برای این گزارش ریز مواد مصرفی ثبت نشده است.</p>
+                  @endif
                   <h3 style="font-size:12px;margin:14px 0 8px">خلاصه هزینه محصول در بازه انتخابی</h3>
                   @if($productCost)
                     <table class="costing-detail-costs">
@@ -114,7 +140,7 @@
                   @else
                     <p class="costing-detail-note">برای این محصول در بازه انتخابی هزینه‌ای ثبت نشده است.</p>
                   @endif
-                  <p class="costing-detail-note">مبلغ مواد و هزینه‌های مستقیم در سطح محصول تجمیع شده و لزوماً به این گزارش یا کارگر مشخص متصل نیست. مقدار و مبلغ هر ماده به تفکیک این گزارش در داده فعلی این جدول موجود نیست. سربار تولید نیز در حال حاضر به‌صورت مستقل در این گزارش ثبت/محاسبه نمی‌شود. جمع هزینه محصول را نباید به‌عنوان هزینه اختصاصی همین گزارش تفسیر کرد.</p>
+                  <p class="costing-detail-note">ریز مواد بالا فقط تفکیک بخشی از هزینه مواد موجود است و دوباره به جمع هزینه محصول اضافه نمی‌شود. حواله‌هایی که به همین قسمت، ماده، سفارش و تاریخ قابل اتصال نباشند یا ارزش‌گذاری نشده باشند، به‌صورت مقدار ناقص نشان داده می‌شوند. سایر هزینه‌های مواد و هزینه‌های مستقیم خرید همچنان در سطح محصول تجمیع می‌شوند و لزوماً هزینه اختصاصی این گزارش یا کارگر نیستند. سربار تولید نیز هنوز به‌صورت مستقل در این گزارش ثبت/محاسبه نمی‌شود.</p>
                 </div>
               </details>
             </td>
