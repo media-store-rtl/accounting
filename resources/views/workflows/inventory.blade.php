@@ -6,7 +6,7 @@
 <div class="page-heading"><div><h1>موجودی انبار</h1><p>بررسی موجودی کالاها و نقاط سفارش</p></div></div>
 @if(session('success'))<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #246451;border-radius:12px;background:#0c282b;color:#8ce8ce;font-size:12px">{{ session('success') }}</div>@endif
 @if($errors->any())<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #714448;border-radius:12px;background:#302126;color:#ffb8a8;font-size:12px">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
-<div class="panel"><div class="table-wrap"><table><thead><tr><th>کد کالا</th><th>کالا</th><th>انبار</th><th>موجودی</th><th>نقطه سفارش</th><th>نقطه سفارش</th></tr></thead><tbody>
+<div class="panel"><div class="table-wrap"><table><thead><tr><th>کد کالا</th><th>کالا</th><th>انبار</th><th>موجودی</th><th>نقطه سفارش</th><th>عملیات</th></tr></thead><tbody>
 @forelse($rows as $row)
 <tr><td>{{ $row->goods_code }}</td><td>{{ $row->goods_name }}</td><td>{{ $row->location_name }}</td>
 <td><span class="status {{ (float)($row->reorder_point ?? 0)>0 && (float)$row->quantity <= (float)$row->reorder_point ? 'inactive' : 'active' }}">{{ $row->quantity }}</span></td><td>{{ $row->reorder_point ?? 0 }}</td><td style="min-width:280px;white-space:normal">
