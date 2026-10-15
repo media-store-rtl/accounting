@@ -98,6 +98,12 @@ class SalesOperationalWorkflowTest extends TestCase
         $this->get('/sales/deliveries')->assertOk()->assertSee('ثبت امضای تحویل');
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>6]);
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'delivery_issue','quantity'=>-4]);
+        // Existing warehouse roles may have issue permission without the separate handover permission.
+        $roleId = DB::table('company_user')->where('company_id', $c['company'])->where('user_id', $c['user'])->value('role_id');
+        $handoverPermissionId = DB::table('permissions')->where('slug', 'delivery_request.handover')->value('id');
+        if ($handoverPermissionId) {
+            DB::table('role_permissions')->where('role_id', $roleId)->where('permission_id', $handoverPermissionId)->delete();
+        }
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/handover',[
             'received_by'=>'Customer Receiver','vehicle_plate'=>'12ب345ایران67','driver_name'=>'Test Driver',
             'driver_phone'=>'09120000000','recipient_signature'=>'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/f2sAAAAASUVORK5CYII=',
