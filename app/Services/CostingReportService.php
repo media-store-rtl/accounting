@@ -94,6 +94,8 @@ final class CostingReportService
                 'direct_cost'=>round(array_sum(array_column($rows,'direct_cost')),4),
                 'total_cost'=>round(array_sum(array_column($rows,'total_cost')),4),
                 'unvalued_material_quantity'=>round(array_sum(array_column($rows,'unvalued_material_quantity')),4),
+                // Report-level usage is a separate traceability measure, not another product cost.
+                'production_report_unvalued_material_quantity'=>round(array_sum(array_column($productionReports,'material_unvalued_quantity')),4),
             ],
             'valuation_methods'=>array_keys($valuationMethods),
         ];
