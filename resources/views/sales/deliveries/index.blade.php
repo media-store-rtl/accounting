@@ -63,7 +63,7 @@
 <div class="panel"><h2 style="font-size:14px;margin:0 0 14px">درخواست‌های ثبت‌شده</h2><div class="table-wrap"><table><thead><tr><th>سفارش</th><th>مشتری</th><th>تاریخ درخواستی تحویل</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
 @forelse($deliveries as $d)
 <tr>
-<td>{{ $d->order_number }}</td><td>{{ $d->customer_name }}</td><td>{{ $d->requested_delivery_at ? substr((string) $d->requested_delivery_at, 0, 10) : '—' }}</td>
+<td>{{ $d->order_number }}</td><td>{{ $d->customer_name }}</td><td><time class="jalali-delivery-date" data-iso-date="{{ $d->requested_delivery_at ? substr((string) $d->requested_delivery_at, 0, 10) : '' }}">{{ $d->requested_delivery_at ? substr((string) $d->requested_delivery_at, 0, 10) : '—' }}</time></td>
 <td>@if($d->status === 'awaiting_sales_approval')<span class="status inactive">در انتظار مجوز خروج فروش</span>@elseif($d->status === 'pending')<span class="status inactive">در انتظار خروج انبار</span>@elseif($d->status === 'issued')<span class="status active">خارج‌شده از انبار</span>@elseif(in_array($d->status, ['completed','delivered']))<span class="status active">تحویل‌شده</span>@else<span class="status">{{ $d->status }}</span>@endif</td>
 <td>
 @if($d->status === 'issued')<button class="btn primary" type="button" data-recipient="{{ $d->recipient_name }}" onclick="openHandover({{ $d->id }}, this)">ثبت تحویل و امضا</button>
@@ -127,6 +127,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const id = form.dataset.orderId;
     setupProductionReportDatePicker('#scheduled_date_picker_' + id, '#scheduled_date_iso_' + id);
   });
+});
+</script>
+<script>
+document.querySelectorAll('.jalali-delivery-date[data-iso-date]').forEach(cell=>{
+  const iso=cell.dataset.isoDate;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(iso))return;
+  const [year,month,day]=iso.split('-').map(Number);
+  const localDate=new Date(year,month-1,day,12);
+  cell.textContent=new Intl.DateTimeFormat('fa-IR-u-ca-persian',{year:'numeric',month:'2-digit',day:'2-digit'}).format(localDate);
 });
 </script>
 <script>
