@@ -83,15 +83,6 @@ class MaterialHandoverController extends Controller
                 $quantity = (float) $item['quantity'];
                 abort_unless($alreadySupplied + $quantity <= (float) $requestItem->requested_quantity + 0.0000001, 422, 'مقدار تحویل بیش از مقدار درخواستی است.');
 
-                $available = (float) DB::table('inventory')
-                    ->where('company_id', $companyId)
-                    ->where('location_id', $data['warehouse_location_id'])
-                    ->where('goods_id', $item['goods_id'])
-                    ->lockForUpdate()
-                    ->value('quantity');
-
-                abort_unless($available + 0.0000001 >= $quantity, 422, 'موجودی انبار برای تحویل کافی نیست.');
-
                 if (!empty($requestRow->production_section_id)) {
                     $inventory->transferToProductionSection($companyId, (int) $data['warehouse_location_id'],
                         (int) $requestRow->production_section_id, (int) $item['goods_id'], $quantity,
