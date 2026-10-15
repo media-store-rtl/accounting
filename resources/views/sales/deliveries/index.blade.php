@@ -66,7 +66,8 @@
 <td>{{ $d->order_number }}</td><td>{{ $d->customer_name }}</td><td><time class="jalali-delivery-date" data-iso-date="{{ $d->requested_delivery_at ? substr((string) $d->requested_delivery_at, 0, 10) : '' }}">{{ $d->requested_delivery_at ? substr((string) $d->requested_delivery_at, 0, 10) : '—' }}</time></td>
 <td>@if($d->status === 'awaiting_sales_approval')<span class="status inactive">در انتظار مجوز خروج فروش</span>@elseif($d->status === 'pending')<span class="status inactive">در انتظار خروج انبار</span>@elseif($d->status === 'issued')<span class="status active">خارج‌شده از انبار</span>@elseif(in_array($d->status, ['completed','delivered']))<span class="status active">تحویل‌شده</span>@else<span class="status">{{ $d->status }}</span>@endif</td>
 <td>
-@if($d->status === 'issued')<button class="btn primary" type="button" data-recipient="{{ $d->recipient_name }}" onclick="openHandover({{ $d->id }}, this)">ثبت تحویل و امضا</button>
+@if($d->status === 'pending' && $canIssueDelivery)<button class="btn primary" type="button" onclick="issue({{ $d->id }})">ثبت خروج از انبار</button>
+@elseif($d->status === 'issued')<button class="btn primary" type="button" data-recipient="{{ $d->recipient_name }}" onclick="openHandover({{ $d->id }}, this)">ثبت تحویل و امضا</button>
 @elseif($d->received_by)<button class="btn" type="button" onclick="showReceipt({{ $d->id }})">مشاهده رسید</button>
 @else<span style="color:#71879d">—</span>@endif
 </td>
