@@ -182,7 +182,7 @@ class InventoryService
                     ->orWhereIn(DB::raw('TRIM(type)'), ['مواد', 'محصول', 'ضایعات']);
             });
         } else {
-            $locationQuery->where('type','warehouse');
+            $locationQuery->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse']);
         }
         abort_unless($locationQuery->exists(),422,'انبار معتبر نیست.');
         $row=DB::table('inventory')->where('location_id',$locationId)->where('goods_id',$goodsId)->lockForUpdate()->first();
