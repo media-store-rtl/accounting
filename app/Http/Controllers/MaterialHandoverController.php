@@ -40,7 +40,7 @@ class MaterialHandoverController extends Controller
                 DB::table('locations')
                     ->where('id', $data['warehouse_location_id'])
                     ->where('company_id', $companyId)
-                    ->where('type', 'warehouse')
+                    ->whereRaw("LOWER(TRIM(type)) = ?", ['warehouse'])
                     ->where('is_active', true)
                     ->exists(),
                 422,
