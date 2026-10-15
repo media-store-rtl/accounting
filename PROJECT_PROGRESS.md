@@ -2,9 +2,9 @@
 
 - روند اصلاح‌شده: فروش از همان ردیف سفارش «آماده تحویل» مجوز خروج را صادر می‌کند؛ لازم نیست ابتدا فرم جداگانهٔ زمان‌بندی و تحویل‌گیرنده تکمیل شود.
 - پس از صدور مجوز، درخواست در وضعیت pending با مشخصات تأیید فروش ثبت می‌شود و سپس اعلان delivery.requested به انبار ارسال می‌شود. زمان و نام تحویل‌گیرنده هنگام تحویل فیزیکی توسط انباردار ثبت می‌شوند.
-- صفحهٔ «تحویل و ارسال» دیگر فرم ثبت درخواست از سمت انبار ندارد؛ جدول آن زمان ثبت درخواست را نشان می‌دهد و فرم رسید تحویل، نام تحویل‌گیرنده را خالی می‌گذارد تا انباردار هنگام تحویل وارد کند. دکمهٔ خروج کالا فقط در صفحهٔ انبار نمایش داده می‌شود.
+- محدودهٔ این تغییر فقط گردش تأیید فروش و نمایش دکمه در صفحه سفارش‌های فروش است. منطق و رابط صفحهٔ انبار/تحویل عمداً دست‌نخورده باقی می‌ماند؛ ثبت خروج و تحویل در همان بخش انبار انجام می‌شود.
 - آزمون Feature گردش تحویل برای مجوز مستقیم از مرحله آماده تحویل و حذف فرم قدیمی به‌روز شد. نتیجهٔ CI هنوز بررسی نشده است؛ تست محلی، مرورگر، سایت زنده و Deploy تأیید نشده‌اند.
-- فایل‌ها: `app/Http/Controllers/OrderController.php`, `app/Http/Controllers/DeliveryController.php`, `routes/web.php`, `resources/views/sales/orders/index.blade.php`, `resources/views/sales/deliveries/index.blade.php`, `tests/Feature/SalesOperationalWorkflowTest.php`, `PROJECT_PROGRESS.md`. Migration جدید لازم نیست؛ برای سازگاری با ساختار فعلی، زمان ثبت درخواست در `scheduled_at` ذخیره می‌شود اما رابط آن را به‌عنوان موعد تحویل نمایش نمی‌دهد.
+- فایل‌ها: `app/Http/Controllers/OrderController.php`, `routes/web.php`, `resources/views/sales/orders/index.blade.php`, `tests/Feature/SalesOperationalWorkflowTest.php`, `PROJECT_PROGRESS.md`. فایل‌های `DeliveryController.php` و `sales/deliveries/index.blade.php` از این PR خارج شدند تا بخش انبار دست‌نخورده بماند. Migration جدید لازم نیست؛ برای سازگاری با ساختار فعلی، زمان ثبت درخواست در `scheduled_at` ذخیره می‌شود اما رابط آن را به‌عنوان موعد تحویل نمایش نمی‌دهد.
 - شاخه: `fix/sales-release-notification-flow`. PR [#130](https://github.com/media-store-rtl/accounting/pull/130) باز است؛ ادغام و Deploy انجام نشده‌اند.
 
 ---
