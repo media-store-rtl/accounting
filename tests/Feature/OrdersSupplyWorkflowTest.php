@@ -197,6 +197,56 @@ class OrdersSupplyWorkflowTest extends TestCase
         ]);
     }
 
+    public function test_purchase_from_supply_request_saves_unit_price_and_marks_request_purchased_in_one_submission(): void
+    {
+        $c = $this->context();
+        $requestId = DB::table('supply_requests')->insertGetId([
+            'company_id' => $c['company'],
+            'fiscal_year_id' => $c['fy'],
+            'requested_by_user_id' => $c['user'],
+            'requested_at' => now(),
+            'needed_at' => '2026-10-20',
+            'status' => 'purchasing',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('supply_request_items')->insert([
+            'supply_request_id' => $requestId,
+            'goods_id' => $c['goods'],
+            'requested_quantity' => 8,
+            'available_quantity' => 5,
+            'shortage_quantity' => 3,
+            'supplied_quantity' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->from('/purchasing')->post('/purchasing', [
+            'fiscal_year_id' => $c['fy'],
+            'supplier_id' => '',
+            'supply_request_id' => $requestId,
+            'purchased_at' => '2026-10-16',
+            'items' => [['goods_id' => $c['goods'], 'quantity' => 3, 'unit_price' => 125]],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('purchases', [
+            'company_id' => $c['company'],
+            'supply_request_id' => $requestId,
+            'supplier_id' => null,
+            'total_amount' => 375,
+        ]);
+        $this->assertDatabaseHas('purchase_items', [
+            'goods_id' => $c['goods'],
+            'quantity' => 3,
+            'unit_price' => 125,
+            'line_total' => 375,
+        ]);
+        $this->assertDatabaseHas('supply_requests', [
+            'id' => $requestId,
+            'status' => 'purchased',
+        ]);
+    }
+
     public function test_unpriced_purchase_receipt_cannot_increase_inventory(): void
     {
         $c=$this->context();
