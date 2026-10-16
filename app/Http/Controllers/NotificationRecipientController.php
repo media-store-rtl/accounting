@@ -19,6 +19,7 @@ class NotificationRecipientController extends Controller
         ['key' => 'order.ready_for_delivery', 'name' => 'کسری سفارش برطرف شد و موجودی کافی است (ویژه واحد فروش)'],
         ['key' => 'delivery.requested', 'name' => 'ثبت درخواست تحویل برای انبار'],
         ['key' => 'supply.shortage', 'name' => 'کسری موجودی درخواست تأمین برای تدارکات'],
+        ['key' => 'inventory.raw_material_low', 'name' => 'کمبود موجودی مواد اولیه برای تأمین'],
         ['key' => 'purchase.received_financial_value', 'name' => 'تأیید ورود خرید و اطلاع به مالی'],
     ];
 
