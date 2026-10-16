@@ -93,22 +93,24 @@ class MaterialHandoverController extends Controller
                         'material_handovers', $handoverId, ['supply_request_id' => $requestRow->id]);
                 }
 
-                // Value the warehouse issue immediately so the costing report can include
-                // this material handover. If stock has no cost layer, it remains unvalued
-                // and is surfaced by the report rather than assigned a fabricated cost.
-                $movement = DB::table('inventory_movements')
-                    ->where('company_id', $companyId)
-                    ->where('movement_type', 'material_handover')
-                    ->where('reference_type', 'material_handovers')
-                    ->where('reference_id', $handoverId)
-                    ->where('goods_id', (int) $item['goods_id'])
-                    ->where('location_id', (int) $data['warehouse_location_id'])
-                    ->where('quantity', '<', 0)
-                    ->orderByDesc('id')
-                    ->first();
+                // For legacy requests without a production section, a handover is still
+                // the costing event. Production-section handovers are location transfers;
+                // their cost is recognized only when production actually consumes the stock.
+                if (empty($requestRow->production_section_id)) {
+                    $movement = DB::table('inventory_movements')
+                        ->where('company_id', $companyId)
+                        ->where('movement_type', 'material_handover')
+                        ->where('reference_type', 'material_handovers')
+                        ->where('reference_id', $handoverId)
+                        ->where('goods_id', (int) $item['goods_id'])
+                        ->where('location_id', (int) $data['warehouse_location_id'])
+                        ->where('quantity', '<', 0)
+                        ->orderByDesc('id')
+                        ->first();
 
-                if ($movement) {
-                    $valuation->valueInventoryMovement((int) $movement->id, (int) $requestRow->fiscal_year_id);
+                    if ($movement) {
+                        $valuation->valueInventoryMovement((int) $movement->id, (int) $requestRow->fiscal_year_id);
+                    }
                 }
 
                 DB::table('material_handover_items')->insert([
