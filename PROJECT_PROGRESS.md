@@ -4,8 +4,8 @@
 - اصلاح: کوئری انبارهای صفحه رسید خرید اکنون از `LOWER(TRIM(type)) = 'warehouse'` استفاده می‌کند، مانند مسیرهای انبار دیگر؛ همچنان فقط انبارهای فعال متعلق به شرکت جاری را نمایش می‌دهد.
 - تست رگرسیون: تست Feature برای نمایش انبار با نوع `WAREHOUSE` و ` warehouse ` و رد انبار غیرفعال و انبار شرکت دیگر اضافه شد.
 - فایل‌ها: `app/Http/Controllers/WorkflowPagesController.php`, `tests/Feature/PurchaseReceiptWarehouseOptionsTest.php`, `PROJECT_PROGRESS.md`.
-- تست محلی در این محیط اجرا نشده است؛ نتیجهٔ CI، مرورگر، سایت زنده و Deploy هنوز تأیید نشده‌اند. Migration لازم نیست و داده‌های پایگاه داده تغییر داده نشده‌اند.
-- شاخه: `fix/receipt-warehouse-type-normalization`. وضعیت PR/CI پس از ایجاد بررسی می‌شود؛ ادغام انجام نشده است.
+- تست محلی در این محیط اجرا نشده است. GitHub Actions run [#2570](https://github.com/media-store-rtl/accounting/actions/runs/38940775486) برای commit پیاده‌سازی `a3631add438e03bdf1c8d9b8e50c4fd2eeb785ef` موفق شد: 47 تست PHPUnit و 434 assertion سبز شدند؛ تست جدید `PurchaseReceiptWarehouseOptionsTest` نیز موفق بود. مرورگر، سایت زنده و Deploy تأیید نشده‌اند. Migration لازم نیست و داده‌های پایگاه داده تغییر داده نشده‌اند.
+- شاخه: `fix/receipt-warehouse-type-normalization`. PR [#158](https://github.com/media-store-rtl/accounting/pull/158) باز و ادغام‌نشده است. تغییرات مستقیم روی `main` ثبت نشده‌اند.
 
 ---
 
