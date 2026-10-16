@@ -66,10 +66,10 @@ class MaterialRequestHandoverTest extends TestCase
         return compact('company', 'user', 'fy', 'goods', 'warehouse');
     }
 
-    public function test_material_handover_page_uses_jalali_date_picker_and_lists_persian_warehouse_type(): void
+    public function test_material_handover_page_lists_material_location_type(): void
     {
         $c = $this->context();
-        DB::table('locations')->where('id', $c['warehouse'])->update(['type' => 'انبار']);
+        DB::table('locations')->where('id', $c['warehouse'])->update(['type' => 'مواد']);
 
         $this->get('/handovers')
             ->assertOk()
@@ -82,10 +82,10 @@ class MaterialRequestHandoverTest extends TestCase
             ->assertDontSee('هیچ انبار فعال برای این شرکت پیدا نشد');
     }
 
-    public function test_material_handover_accepts_persian_warehouse_type(): void
+    public function test_material_handover_accepts_material_location_type(): void
     {
         $c = $this->context();
-        DB::table('locations')->where('id', $c['warehouse'])->update(['type' => 'انبار']);
+        DB::table('locations')->where('id', $c['warehouse'])->update(['type' => 'مواد']);
         $requestId = DB::table('supply_requests')->latest('id')->value('id');
 
         $response = $this->postJson('/api/material-handovers', [
