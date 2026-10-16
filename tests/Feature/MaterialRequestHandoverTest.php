@@ -84,7 +84,7 @@ class MaterialRequestHandoverTest extends TestCase
         DB::table('locations')->where('id', $c['warehouse'])->update(['type' => 'انبار']);
         $requestId = DB::table('supply_requests')->latest('id')->value('id');
 
-        $this->postJson('/api/material-handovers', [
+        $response = $this->postJson('/api/material-handovers', [
             'supply_request_id' => $requestId,
             'warehouse_location_id' => $c['warehouse'],
             'delivered_by_user_id' => $c['user'],
@@ -92,7 +92,6 @@ class MaterialRequestHandoverTest extends TestCase
             'handed_over_at' => '2026-10-16 10:00:00',
             'items' => [['goods_id' => $c['goods'], 'quantity' => 4]],
         ]);
-        $response->dump();
         $response->assertCreated()->assertJsonPath('data.status', 'completed');
     }
 
