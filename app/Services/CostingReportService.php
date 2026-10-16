@@ -130,7 +130,9 @@ final class CostingReportService
         $supplies=$ids->isEmpty()?collect():DB::table('supply_requests')
             ->where('company_id',$companyId)->whereIn('id',$ids)
             ->get(['id','order_id','production_id','fiscal_year_id'])->keyBy('id');
-        $prodIds=$supplies->pluck('production_id')->filter()->unique()->values();
+        $metadataProductionIds=$costs->map(fn($item)=>(int)((json_decode((string)$item->metadata,true)['production_id']??0)))
+            ->merge($movements->map(fn($item)=>(int)((json_decode((string)$item->metadata,true)['production_id']??0))));
+        $prodIds=$supplies->pluck('production_id')->merge($metadataProductionIds)->filter()->unique()->values();
         $productions=$prodIds->isEmpty()?collect():DB::table('productions')
             ->where('company_id',$companyId)->whereIn('id',$prodIds)
             ->get(['id','goods_id'])->keyBy('id');
@@ -140,7 +142,7 @@ final class CostingReportService
         $resolveTarget=function($item) use ($supplyIdFromMetadata,$supplies,$productions,$links) {
             $meta=json_decode((string)$item->metadata,true)?:[];
             $supply=$supplies->get($supplyIdFromMetadata($item));
-            $productionId=(int)($supply?->production_id??0);
+            $productionId=(int)($supply?->production_id??($meta['production_id']??0));
             $production=$productions->get($productionId);
             $targetGoodsId=$production?->goods_id!==null?(int)$production->goods_id:(int)$item->goods_id;
             $resolvedOrderId=$supply?->order_id;
