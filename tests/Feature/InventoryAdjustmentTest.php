@@ -83,10 +83,6 @@ class InventoryAdjustmentTest extends TestCase
             'is_active' => true, 'settings' => json_encode([]), 'inventory_valuation_method' => 'fifo',
             'created_at' => now(), 'updated_at' => now(),
         ]);
-        $role = DB::table('roles')->insertGetId([
-            'company_id' => $company, 'name' => 'Notification Test Role', 'slug' => 'nr'.uniqid(),
-            'is_system' => false, 'created_at' => now(), 'updated_at' => now(),
-        ]);
         $supplyPermission = DB::table('permissions')->where('slug', 'supply.manage')->value('id');
         if (!$supplyPermission) {
             $supplyPermission = DB::table('permissions')->insertGetId([
@@ -94,7 +90,6 @@ class InventoryAdjustmentTest extends TestCase
                 'created_at' => now(), 'updated_at' => now(),
             ]);
         }
-        DB::table('role_permissions')->insertOrIgnore(['role_id' => $role, 'permission_id' => $supplyPermission]);
 
         $users = [];
         foreach (['Owner', 'Production', 'Warehouse', 'Procurement'] as $label) {
@@ -103,6 +98,15 @@ class InventoryAdjustmentTest extends TestCase
                 'email' => uniqid().'@test.local', 'password' => bcrypt('secret'),
                 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
             ]);
+            $role = DB::table('roles')->insertGetId([
+                'company_id' => $company, 'name' => $label.' Role', 'slug' => strtolower($label).'-'.uniqid(),
+                'is_system' => false, 'created_at' => now(), 'updated_at' => now(),
+            ]);
+            if (in_array($label, ['Owner', 'Production'], true)) {
+                DB::table('role_permissions')->insert([
+                    'role_id' => $role, 'permission_id' => $supplyPermission,
+                ]);
+            }
             DB::table('company_user')->insert([
                 'company_id' => $company, 'user_id' => $id, 'role_id' => $role,
                 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
