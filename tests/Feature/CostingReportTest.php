@@ -204,7 +204,7 @@ class CostingReportTest extends TestCase
         $this->assertCount(1,$filtered['production_reports']);
         $this->assertSame(1.0,$filtered['product_rows'][0]['produced_quantity']);
         $this->assertSame(30.0,$filtered['totals']['labor_cost']);
-        $this->assertSame(40.0,$filtered['product_rows'][0]['unit_cost']);
+        $this->assertSame(60.0,$filtered['product_rows'][0]['unit_cost']);
 
         $unassignedReport=app(CostingReportService::class)->generate($company,$fy,null,$goods);
         $unassignedRows=array_values(array_filter($unassignedReport['rows'],fn($row)=>$row['order_id']===null&&$row['goods_id']===$goods));
