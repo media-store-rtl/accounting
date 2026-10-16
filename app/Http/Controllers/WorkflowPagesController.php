@@ -124,24 +124,12 @@ class WorkflowPagesController extends Controller {
  }
  public function updateSupplyPurchaseStatus(Request $r,int $supplyRequest){
   $cid=CompanyAuthorization::authorize($r,'supply.manage');
-  $data=$r->validate(['status'=>'required|in:purchasing,purchased']);
+  $data=$r->validate(['status'=>'required|in:purchasing']);
   $row=DB::table('supply_requests')->where('company_id',$cid)->where('id',$supplyRequest)->lockForUpdate()->first();
   abort_unless($row,404);
-  if($data['status']==='purchasing'){abort_unless($row->status==='shortage_pending',422,'فقط درخواست دارای کسری تأییدشده وارد مرحله خرید می‌شود.');}
-  else{
-   abort_unless($row->status==='purchasing',422,'ابتدا وضعیت درخواست را «در حال خرید» کنید.');
-   $hasPricedPurchase=DB::table('purchases as p')
-    ->where('p.company_id',$cid)->where('p.supply_request_id',$supplyRequest)->where('p.total_amount','>',0)
-    ->whereExists(function($q){$q->selectRaw('1')->from('purchase_items as pi')->whereColumn('pi.purchase_id','p.id');})
-    ->whereNotExists(function($q){$q->selectRaw('1')->from('purchase_items as pi')->whereColumn('pi.purchase_id','p.id')->where('pi.unit_price','<=',0);})
-    ->exists();
-   abort_unless($hasPricedPurchase,422,'ابتدا خرید را با قیمت واحد معتبر ثبت کنید؛ این دکمه به‌تنهایی کالا را وارد انبار نمی‌کند.');
-  }
-  DB::table('supply_requests')->where('id',$supplyRequest)->where('company_id',$cid)->update(['status'=>$data['status'],'updated_at'=>now()]);
-  if($data['status']==='purchased'){
-   app(\App\Services\NotificationRecipientService::class)->send($cid,'supply.purchased',['supply_request_id'=>$supplyRequest,'needed_at'=>$row->needed_at],(int)$r->user()->id,'supply_request.create');
-  }
-  return back()->with('success',$data['status']==='purchasing'?'درخواست وارد مرحله «در حال خرید» شد.':'درخواست با وضعیت «خریداری شده» ثبت شد.');
+  abort_unless(in_array($row->status,['shortage_pending','partially_supplied'],true),422,'فقط درخواست دارای کسری باقی‌مانده می‌تواند وارد مرحله خرید شود.');
+  DB::table('supply_requests')->where('id',$supplyRequest)->where('company_id',$cid)->update(['status'=>'purchasing','updated_at'=>now()]);
+  return back()->with('success','درخواست وارد مرحله «در حال خرید» شد. اکنون قیمت واحد را در همان فرم ثبت خرید وارد کنید.');
  }
  public function storeSupply(Request $r){app(SupplyRequestController::class)->store($r);return back()->with('success','درخواست تأمین ثبت شد.');}
  public function storePurchase(Request $r){app(PurchaseController::class)->store($r);return back()->with('success','خرید ثبت شد.');}
