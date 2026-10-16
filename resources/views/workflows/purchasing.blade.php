@@ -38,7 +38,7 @@
 <form method="POST" action="{{ route('workflows.purchasing.store') }}" style="margin-top:12px;padding:12px;border:1px solid #29465e;border-radius:10px;min-width:280px">@csrf
 <input type="hidden" name="fiscal_year_id" value="{{ $activeFiscalYearId }}"><input type="hidden" name="supply_request_id" value="{{ $request->id }}">
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px">
-<label style="display:flex;flex-direction:column;gap:5px;color:#9eb2c4;font-size:11px">تاریخ خرید<input type="date" name="purchased_at" value="{{ now()->toDateString() }}" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:8px;padding:9px;font:inherit"></label>
+<label style="display:flex;flex-direction:column;gap:5px;color:#9eb2c4;font-size:11px">تاریخ خرید<input id="purchased_request_date_picker_{{ $request->id }}" data-purchase-date-picker data-iso-target="purchased_request_date_iso_{{ $request->id }}" type="text" class="purchase-date-picker" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:8px;padding:9px;font:inherit"><input id="purchased_request_date_iso_{{ $request->id }}" type="hidden" name="purchased_at" value="{{ now()->toDateString() }}"></label>
 <label style="display:flex;flex-direction:column;gap:5px;color:#9eb2c4;font-size:11px">تأمین‌کننده (اختیاری)<select name="supplier_id" style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:8px;padding:9px;font:inherit"><option value="">بدون تأمین‌کننده</option>@foreach($suppliers as $supplier)<option value="{{ $supplier->id }}">{{ $supplier->name }}</option>@endforeach</select></label>
 </div>
 @foreach($remainingItems as $index=>$item)
@@ -62,6 +62,9 @@
 import { setupProductionReportDatePicker } from '/js/production-report-date-filters.js';
 document.addEventListener('DOMContentLoaded', function () {
     setupProductionReportDatePicker('#purchased_date_picker', '#purchased_date_iso');
+    document.querySelectorAll('[data-purchase-date-picker]').forEach(function (picker) {
+        setupProductionReportDatePicker('#' + picker.id, '#' + picker.dataset.isoTarget);
+    });
 });
 </script>
 <script>

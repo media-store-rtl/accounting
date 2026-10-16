@@ -23,6 +23,13 @@ These instructions apply to every AI assistant or coding agent working in this r
 9. Before any merge, give the user a concise summary of the changes and real verification results and obtain explicit approval for that merge.
 10. After an approved merge, verify the actual merged state and merge commit SHA on GitHub, then update/check the progress record accordingly. If access or tooling prevents this, say so; do not bypass the restriction.
 
+## Persian/Jalali date standard (mandatory)
+
+- This is a Persian-language, RTL accounting application. Every date a user sees or enters in the UI must use the Jalali/Persian calendar by default, including purchase dates, fiscal-year boundaries, receipts, requests, reports, filters, tables, exports, and print views. Do not wait for the user to request this per page.
+- For date entry, use the shared Persian date-picker helper in `public/js/production-report-date-filters.js` whenever possible. Keep the visible field Jalali and submit a validated Gregorian ISO date through a hidden named field so existing database and API contracts remain stable.
+- For date display, convert Gregorian ISO dates to Jalali consistently; never merely relabel a Gregorian date as Persian. Avoid native `type="date"` controls in Persian UI.
+- When adding or modifying a date-bearing feature, audit both its input and every visible output, add/adjust regression tests, and record the result in `PROJECT_PROGRESS.md`.
+
 ## Safety and reporting rules
 
 - Never merge or close a pull request without the user's explicit permission. Approval to implement or open a PR is not approval to merge it.
