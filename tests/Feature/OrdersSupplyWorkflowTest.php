@@ -31,7 +31,7 @@ class OrdersSupplyWorkflowTest extends TestCase
         $inventoryId=DB::table('inventory')->insertGetId(['company_id'=>$company,'location_id'=>$warehouse,'goods_id'=>$goods,'quantity'=>5,'created_at'=>now(),'updated_at'=>now()]);
         DB::table('inventory_movements')->insert(['company_id'=>$company,'location_id'=>$warehouse,'goods_id'=>$goods,'quantity'=>5,'movement_type'=>'opening_balance','reference_type'=>'inventory','reference_id'=>$inventoryId,'occurred_at'=>now(),'metadata'=>json_encode(['source'=>'test opening balance']),'created_at'=>now(),'updated_at'=>now()]);
         $supplier=DB::table('suppliers')->insertGetId(['company_id'=>$company,'name'=>'Supplier','code'=>'SUP1','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
-        $this->actingAs(\App\Models\User::findOrFail($user))->withSession(['company_id'=>$company]);
+        $this->actingAs(\App\Models\User::findOrFail($user))->withSession(['company_id'=>$company,'fiscal_year_id'=>$fy]);
         return compact('company','user','fy','goods','customer','warehouse','supplier');
     }
 
@@ -159,5 +159,64 @@ class OrdersSupplyWorkflowTest extends TestCase
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'purchase_receipt','quantity'=>3]);
         $this->assertDatabaseHas('purchases',['id'=>$purchase,'status'=>'received']);
         $this->assertDatabaseHas('supply_requests',['id'=>$sr,'status'=>'fulfilled']);
+    }
+
+
+    public function test_purchase_can_be_registered_without_a_supply_request_and_requires_positive_unit_price(): void
+    {
+        $c=$this->context();
+        $payload=[
+            'fiscal_year_id'=>$c['fy'],
+            'supplier_id'=>$c['supplier'],
+            'supply_request_id'=>'',
+            'purchased_at'=>'2026-10-16',
+            'items'=>[['goods_id'=>$c['goods'],'quantity'=>2,'unit_price'=>125]],
+        ];
+        $this->from('/purchasing')->post('/purchasing',$payload)->assertRedirect();
+        $purchaseId=(int)DB::table('purchases')->where('company_id',$c['company'])->whereNull('supply_request_id')->orderByDesc('id')->value('id');
+        $this->assertDatabaseHas('purchases',['id'=>$purchaseId,'supply_request_id'=>null,'total_amount'=>250]);
+
+        $zeroPrice=$payload;
+        $zeroPrice['items'][0]['unit_price']=0;
+        $this->from('/purchasing')->post('/purchasing',$zeroPrice)->assertRedirect()->assertSessionHasErrors('items.0.unit_price');
+    }
+
+
+
+    public function test_purchase_can_be_registered_without_supplier_or_explicit_fiscal_year(): void
+    {
+        $c=$this->context();
+        $this->from('/purchasing')->post('/purchasing',[
+            'purchased_at'=>'2026-10-16',
+            'items'=>[['goods_id'=>$c['goods'],'quantity'=>1,'unit_price'=>50]],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('purchases',[
+            'company_id'=>$c['company'],'fiscal_year_id'=>$c['fy'],'supplier_id'=>null,
+            'supply_request_id'=>null,'total_amount'=>50,
+        ]);
+    }
+
+    public function test_unpriced_purchase_receipt_cannot_increase_inventory(): void
+    {
+        $c=$this->context();
+        $purchase=DB::table('purchases')->insertGetId([
+            'company_id'=>$c['company'],'fiscal_year_id'=>$c['fy'],'supplier_id'=>$c['supplier'],
+            'supply_request_id'=>null,'purchased_at'=>'2026-10-16','subtotal'=>0,'direct_cost_total'=>0,
+            'total_amount'=>0,'status'=>'draft','created_at'=>now(),'updated_at'=>now(),
+        ]);
+        DB::table('purchase_items')->insert([
+            'purchase_id'=>$purchase,'goods_id'=>$c['goods'],'quantity'=>2,'unit_price'=>0,'line_total'=>0,
+            'created_at'=>now(),'updated_at'=>now(),
+        ]);
+        $this->from('/receipts')->post('/receipts',[
+            'purchase_id'=>$purchase,'warehouse_location_id'=>$c['warehouse'],'received_at'=>'2026-10-16 10:00:00',
+            'items'=>[['goods_id'=>$c['goods'],'quantity'=>2]],
+        ])->assertRedirect();
+        $receipt=(int)DB::table('purchase_receipts')->where('purchase_id',$purchase)->value('id');
+
+        $this->postJson('/receipts/'.$receipt.'/approve')->assertUnprocessable();
+        $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>5]);
+        $this->assertDatabaseHas('purchase_receipts',['id'=>$receipt,'status'=>'pending']);
     }
 }

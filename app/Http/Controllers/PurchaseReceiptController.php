@@ -47,6 +47,9 @@ class PurchaseReceiptController extends Controller
             $receipt=DB::table('purchase_receipts')->where('id',$purchaseReceipt)->where('company_id',$companyId)->lockForUpdate()->first();
             abort_unless($receipt&&$receipt->status==='pending',422,'این رسید قبلاً تعیین تکلیف شده است.');
             $purchase=DB::table('purchases')->where('id',$receipt->purchase_id)->where('company_id',$companyId)->lockForUpdate()->firstOrFail();
+            $hasItems=DB::table('purchase_items')->where('purchase_id',$purchase->id)->exists();
+            $hasUnpricedItems=DB::table('purchase_items')->where('purchase_id',$purchase->id)->where('unit_price','<=',0)->exists();
+            abort_unless($hasItems && !$hasUnpricedItems && (float)$purchase->subtotal>0,422,'تا زمانی که قیمت واحد معتبر برای تمام اقلام خرید ثبت نشده باشد، تأیید رسید و ورود کالا به انبار مجاز نیست.');
             foreach(DB::table('purchase_receipt_items')->where('purchase_receipt_id',$receipt->id)->get() as $item){
                 $pi=DB::table('purchase_items')->where('purchase_id',$purchase->id)->where('goods_id',$item->goods_id)->lockForUpdate()->firstOrFail();
                 $approved=(float)DB::table('purchase_receipt_items as x')->join('purchase_receipts as r','r.id','=','x.purchase_receipt_id')
