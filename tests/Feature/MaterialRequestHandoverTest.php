@@ -74,6 +74,10 @@ class MaterialRequestHandoverTest extends TestCase
         $this->get('/handovers')
             ->assertOk()
             ->assertSee('انتخاب تاریخ شمسی')
+            ->assertSee('jquery@3.7.1/dist/jquery.min.js', false)
+            ->assertSee('persian-date@1.1.0/dist/persian-date.min.js', false)
+            ->assertSee('persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js', false)
+            ->assertSee('persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css', false)
             ->assertSee('Warehouse')
             ->assertDontSee('هیچ انبار فعال برای این شرکت پیدا نشد');
     }
