@@ -175,11 +175,11 @@ final class CostingReportService
     }
 
     /**
-     * Attach report-level material usage to existing valued handovers without
-     * adding these amounts to product totals a second time.
+     * Attach report-level material usage to valued production-consumption movements
+     * without adding these amounts to product totals a second time.
      *
      * Allocation is deterministic and conservative: same company, section,
-     * material and order; handovers dated no later than the report; and only
+     * material and order; consumption dated no later than the report; and only
      * the quantity not already allocated to earlier approved/received reports.
      * Missing or unvalued stock remains visible instead of receiving a guessed rate.
      */
@@ -253,39 +253,38 @@ final class CostingReportService
             $groups[$key][] = $id;
         }
 
-        $requiredTables = ['material_handovers', 'material_handover_items', 'supply_requests', 'inventory_movements', 'inventory_consumption_costs'];
-        $canAllocate = true;
-        foreach ($requiredTables as $table) {
-            if (!DB::getSchemaBuilder()->hasTable($table)) {
-                $canAllocate = false;
-                break;
-            }
-        }
+        $canAllocate = DB::getSchemaBuilder()->hasTable('inventory_movements')
+            && DB::getSchemaBuilder()->hasTable('inventory_consumption_costs')
+            && DB::getSchemaBuilder()->hasTable('supply_requests');
         if ($canAllocate && DB::getSchemaBuilder()->hasColumn('supply_requests', 'production_section_id')) {
-            $handoverRows = DB::table('material_handover_items as hi')
-                ->join('material_handovers as h', 'h.id', '=', 'hi.material_handover_id')
-                ->join('supply_requests as sr', 'sr.id', '=', 'h.supply_request_id')
-                ->leftJoin('inventory_movements as m', function ($join) {
-                    $join->on('m.company_id', '=', 'h.company_id')
-                        ->on('m.reference_id', '=', 'h.id')
-                        ->on('m.goods_id', '=', 'hi.goods_id')
-                        ->where('m.reference_type', '=', 'material_handovers')
-                        ->where('m.movement_type', '=', 'material_handover')
-                        ->where('m.quantity', '<', 0);
-                })
+            // Production costs are recorded against the approved consumption movement,
+            // not against the earlier warehouse handover/transfer movement.
+            $consumptionRows = DB::table('inventory_movements as m')
                 ->leftJoin('inventory_consumption_costs as c', 'c.inventory_movement_id', '=', 'm.id')
-                ->where('h.company_id', $companyId)
-                ->where('h.status', 'completed')
-                ->whereNotNull('sr.production_section_id')
-                ->orderBy('h.handed_over_at')->orderBy('h.id')->orderBy('hi.id')
+                ->join('locations as l', function ($join) use ($companyId) {
+                    $join->on('l.id', '=', 'm.location_id')->where('l.company_id', '=', $companyId);
+                })
+                ->leftJoin('production_sections as ps', 'ps.location_id', '=', 'l.id')
+                ->where('m.company_id', $companyId)
+                ->where('m.movement_type', 'production_consumption')
+                ->where('m.quantity', '<', 0)
+                ->orderBy('m.occurred_at')->orderBy('m.id')
                 ->get([
-                    'hi.id as handover_item_id', 'hi.goods_id as material_id', 'hi.quantity',
-                    'sr.production_section_id', 'sr.order_id', 'h.handed_over_at',
-                    'm.quantity as movement_quantity', 'c.id as cost_id',
-                    'c.quantity as cost_quantity', 'c.unit_cost', 'c.valuation_method',
+                    'm.id as movement_id', 'm.goods_id as material_id', 'm.quantity',
+                    'm.location_id', 'm.occurred_at', 'm.metadata',
+                    'ps.id as location_section_id',
+                    'c.id as cost_id', 'c.quantity as cost_quantity', 'c.unit_cost',
+                    'c.valuation_method',
                 ]);
 
-            $costIds = $handoverRows->pluck('cost_id')->filter()->unique()->values();
+            $supplyIds = $consumptionRows->map(function ($movement) {
+                return (int) (json_decode((string) $movement->metadata, true)['supply_request_id'] ?? 0);
+            })->filter()->unique()->values();
+            $supplies = $supplyIds->isEmpty() ? collect() : DB::table('supply_requests')
+                ->where('company_id', $companyId)->whereIn('id', $supplyIds)
+                ->get(['id', 'production_section_id', 'order_id'])->keyBy('id');
+
+            $costIds = $consumptionRows->pluck('cost_id')->filter()->unique()->values();
             $costSlicesById = [];
             if ($costIds->isNotEmpty() && DB::getSchemaBuilder()->hasTable('inventory_consumption_cost_items')) {
                 $costSlices = DB::table('inventory_consumption_cost_items')
@@ -301,29 +300,28 @@ final class CostingReportService
             }
 
             $handoverGroups = [];
-            foreach ($handoverRows as $handover) {
-                $sectionId = (int) $handover->production_section_id;
-                $materialId = (int) $handover->material_id;
-                $orderKey = (int) ($handover->order_id ?? 0);
-                $key = $sectionId . ':' . $materialId . ':' . $orderKey;
-                $availableQuantity = (float) $handover->quantity;
-                if ($handover->movement_quantity !== null) {
-                    $availableQuantity = min($availableQuantity, abs((float) $handover->movement_quantity));
-                }
-                if ($availableQuantity <= 0) continue;
+            foreach ($consumptionRows as $movement) {
+                $metadata = json_decode((string) $movement->metadata, true) ?: [];
+                $supply = $supplies->get((int) ($metadata['supply_request_id'] ?? 0));
+                $sectionId = (int) ($supply->production_section_id ?? $movement->location_section_id ?? 0);
+                if ($sectionId <= 0) continue;
+                $orderKey = (int) ($supply->order_id ?? 0);
+                $key = $sectionId . ':' . (int) $movement->material_id . ':' . $orderKey;
+                $quantity = abs((float) $movement->quantity);
+                if ($quantity <= 0.0000001) continue;
 
-                $costId = $handover->cost_id !== null ? (int) $handover->cost_id : null;
+                $costId = $movement->cost_id !== null ? (int) $movement->cost_id : null;
                 $slices = $costId !== null ? ($costSlicesById[$costId] ?? []) : [];
-                if ($costId !== null && empty($slices) && $handover->cost_quantity !== null && (float) $handover->cost_quantity > 0) {
+                if ($costId !== null && empty($slices) && $movement->cost_quantity !== null && (float) $movement->cost_quantity > 0) {
                     $slices[] = [
-                        'remaining_quantity' => (float) $handover->cost_quantity,
-                        'unit_cost' => (float) $handover->unit_cost,
+                        'remaining_quantity' => (float) $movement->cost_quantity,
+                        'unit_cost' => (float) $movement->unit_cost,
                     ];
                 }
                 $handoverGroups[$key][] = [
-                    'handed_over_date' => substr((string) $handover->handed_over_at, 0, 10),
-                    'remaining_quantity' => $availableQuantity,
-                    'valuation_method' => $handover->valuation_method,
+                    'handed_over_date' => substr((string) $movement->occurred_at, 0, 10),
+                    'remaining_quantity' => $quantity,
+                    'valuation_method' => $movement->valuation_method,
                     'cost_slices' => $slices,
                 ];
             }
