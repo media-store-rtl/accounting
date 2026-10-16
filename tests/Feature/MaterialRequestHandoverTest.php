@@ -91,7 +91,9 @@ class MaterialRequestHandoverTest extends TestCase
             'received_by_user_id' => $c['user'],
             'handed_over_at' => '2026-10-16 10:00:00',
             'items' => [['goods_id' => $c['goods'], 'quantity' => 4]],
-        ])->assertCreated()->assertJsonPath('data.status', 'completed');
+        ]);
+        $response->dump();
+        $response->assertCreated()->assertJsonPath('data.status', 'completed');
     }
 
     public function test_material_handover_records_deliverer_receiver_and_decreases_inventory(): void
