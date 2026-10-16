@@ -110,6 +110,16 @@ class InventoryService
         if(!$row) throw ValidationException::withMessages(['operation'=>'ردیف کنترل موجودی قسمت تولید پیدا نشد.']);
         $previous=app(InventoryBalanceService::class)->quantityAtLocation($companyId,$locationId,$goodsId);
         if($previous+0.0000001<$quantity) throw ValidationException::withMessages(['operation'=>'موجودی مواد اولیه در قسمت تولید کافی نیست.']);
+        // Carry the relevant supply request into the consumption ledger so the costing
+        // report can attribute the valued raw material to its production/order.
+        if (empty($metadata['supply_request_id'])) {
+            $supplyRequestId = DB::table('supply_requests as sr')
+                ->join('supply_request_items as sri','sri.supply_request_id','=','sr.id')
+                ->where('sr.company_id',$companyId)->where('sr.production_section_id',$sectionId)
+                ->where('sri.goods_id',$goodsId)->whereNotIn('sr.status',['cancelled'])
+                ->orderByDesc('sr.id')->value('sr.id');
+            if ($supplyRequestId) $metadata['supply_request_id'] = (int) $supplyRequestId;
+        }
         $movementId = DB::table('inventory_movements')->insertGetId([
             'company_id'=>$companyId,'goods_id'=>$goodsId,'location_id'=>$locationId,'quantity'=>-$quantity,'movement_type'=>'production_consumption',
             'reference_type'=>$referenceType,'reference_id'=>$referenceId,'occurred_at'=>now(),
