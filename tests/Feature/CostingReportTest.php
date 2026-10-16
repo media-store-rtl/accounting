@@ -101,7 +101,18 @@ class CostingReportTest extends TestCase
             'material_handover_id'=>$handover,'goods_id'=>$rawMaterial,'quantity'=>2,
             'created_at'=>now(),'updated_at'=>now(),
         ]);
-        DB::table('inventory_movements')->where('id', $movement)->update(['reference_id' => $handover]);
+        // Cost is recognized at confirmed production consumption, not at warehouse handover.
+        DB::table('inventory_movements')->where('id', $movement)->update([
+            'location_id' => $sectionLocation,
+            'movement_type' => 'production_consumption',
+            'reference_type' => 'production_operation_runs',
+            'reference_id' => $run,
+            'occurred_at' => '2026-10-07 08:00:00',
+        ]);
+        DB::table('inventory_consumption_costs')->where('inventory_movement_id', $movement)->update([
+            'location_id' => $sectionLocation,
+            'consumed_at' => '2026-10-07 08:00:00',
+        ]);
         DB::table('personnel_labor_rates')->insert([
             'company_id'=>$company,'personnel_id'=>$personnel,'rate_type'=>'regular','rate'=>15,
             'effective_from'=>'2026-10-01','effective_to'=>null,'created_at'=>now(),'updated_at'=>now(),
