@@ -88,7 +88,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.persian-display-date').forEach(function (element) {
-        const match = String(element.dateTime || '').match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
+        const match = String(element.dateTime || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
         if (!match) return;
         const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
         element.textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
