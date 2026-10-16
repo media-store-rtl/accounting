@@ -30,7 +30,7 @@ class PurchaseController extends Controller
             $sr=null;
             if (!empty($data['supply_request_id'])) {
                 $sr=DB::table('supply_requests')->where('id',$data['supply_request_id'])->where('company_id',$companyId)->lockForUpdate()->first();
-                abort_unless($sr&&in_array($sr->status,['shortage_pending','purchasing','partially_supplied'],true),422,'درخواست تأمین برای خرید آماده نیست.');
+                abort_unless($sr && $sr->status === 'purchasing',422,'ابتدا درخواست را وارد مرحله «در حال خرید» کنید.');
             }
             abort_unless($fiscalYearId && DB::table('fiscal_years')->where('id',$fiscalYearId)->where('company_id',$companyId)->where('is_closed',false)->exists(),422,'سال مالی فعال نامعتبر است یا تعریف نشده است.');
             $id=DB::table('purchases')->insertGetId([
@@ -54,8 +54,21 @@ class PurchaseController extends Controller
             $direct=0;
             foreach($data['direct_costs']??[] as $cost){$direct+=(float)$cost['amount'];DB::table('purchase_direct_costs')->insert(['purchase_id'=>$id,'type'=>$cost['type'],'description'=>$cost['description']??null,'amount'=>$cost['amount'],'created_at'=>now(),'updated_at'=>now()]);}
             DB::table('purchases')->where('id',$id)->update(['subtotal'=>$subtotal,'direct_cost_total'=>$direct,'total_amount'=>$subtotal+$direct,'updated_at'=>now()]);
-            return DB::table('purchases')->where('id',$id)->first();
+            if ($sr) {
+                DB::table('supply_requests')->where('id',$sr->id)->where('company_id',$companyId)->where('status','purchasing')->update(['status'=>'purchased','updated_at'=>now()]);
+            }
+            return [
+                'purchase' => DB::table('purchases')->where('id',$id)->first(),
+                'supply_request' => $sr,
+            ];
         });
+        $purchase = $purchase['purchase'];
+        if (!empty($purchase->supply_request_id)) {
+            $supplyRequest = DB::table('supply_requests')->where('id',$purchase->supply_request_id)->where('company_id',$companyId)->first();
+            if ($supplyRequest && $supplyRequest->status === 'purchased') {
+                app(\\App\\Services\\NotificationRecipientService::class)->send($companyId,'supply.purchased',['supply_request_id'=>$supplyRequest->id,'needed_at'=>$supplyRequest->needed_at],(int)$request->user()->id,'supply_request.create');
+            }
+        }
         return response()->json(['data'=>$purchase],201);
     }
 
