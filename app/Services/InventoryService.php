@@ -72,6 +72,19 @@ class InventoryService
         abort_unless($section,422,'قسمت تولید مقصد معتبر یا فعال نیست.');
         abort_unless(DB::table('locations')->where('id',$warehouseLocationId)->where('company_id',$companyId)->where('type','warehouse')->where('is_active',true)->exists(),422,'انبار مبدأ معتبر نیست.');
         $this->issue($companyId,$warehouseLocationId,$goodsId,$quantity,$referenceType,$referenceId,$metadata+['production_section_id'=>$sectionId,'movement_leg'=>'out']);
+        // A handover to production is a location transfer, not material consumption.
+        // Keep the warehouse issue out of costing totals and move its cost layers.
+        $sourceMovement = DB::table('inventory_movements')->where('company_id',$companyId)
+            ->where('reference_type',$referenceType)->where('reference_id',$referenceId)
+            ->where('goods_id',$goodsId)->where('location_id',$warehouseLocationId)
+            ->where('quantity','<',0)->orderByDesc('id')->first();
+        if ($sourceMovement) {
+            DB::table('inventory_movements')->where('id',$sourceMovement->id)->update([
+                'movement_type'=>'production_material_transfer_out',
+                'updated_at'=>now(),
+            ]);
+        }
+        app(InventoryValuationService::class)->transferLayers($companyId,$goodsId,$warehouseLocationId,(int)$section->location_id,$quantity);
         $targetId=(int)$section->location_id;
         DB::table('inventory')->insertOrIgnore(['company_id'=>$companyId,'location_id'=>$targetId,'goods_id'=>$goodsId,'quantity'=>0,'reorder_point'=>0,'created_at'=>now(),'updated_at'=>now()]);
         $targetRow=DB::table('inventory')->where('company_id',$companyId)->where('location_id',$targetId)->where('goods_id',$goodsId)->lockForUpdate()->first();
@@ -97,11 +110,23 @@ class InventoryService
         if(!$row) throw ValidationException::withMessages(['operation'=>'ردیف کنترل موجودی قسمت تولید پیدا نشد.']);
         $previous=app(InventoryBalanceService::class)->quantityAtLocation($companyId,$locationId,$goodsId);
         if($previous+0.0000001<$quantity) throw ValidationException::withMessages(['operation'=>'موجودی مواد اولیه در قسمت تولید کافی نیست.']);
-        DB::table('inventory_movements')->insert([
+        $movementId = DB::table('inventory_movements')->insertGetId([
             'company_id'=>$companyId,'goods_id'=>$goodsId,'location_id'=>$locationId,'quantity'=>-$quantity,'movement_type'=>'production_consumption',
             'reference_type'=>$referenceType,'reference_id'=>$referenceId,'occurred_at'=>now(),
             'metadata'=>json_encode($metadata+['production_section_id'=>$sectionId,'movement_leg'=>'consumption']),'created_at'=>now(),'updated_at'=>now(),
         ]);
+        $fiscalYearId = (int) ($metadata['fiscal_year_id'] ?? 0);
+        if (!$fiscalYearId && !empty($metadata['supply_request_id'])) {
+            $fiscalYearId = (int) DB::table('supply_requests')->where('company_id',$companyId)
+                ->where('id',(int)$metadata['supply_request_id'])->value('fiscal_year_id');
+        }
+        if (!$fiscalYearId) {
+            $fiscalYearId = (int) DB::table('fiscal_years')->where('company_id',$companyId)
+                ->where('is_closed',false)->orderByDesc('starts_at')->value('id');
+        }
+        if ($fiscalYearId) {
+            app(InventoryValuationService::class)->valueInventoryMovement($movementId,$fiscalYearId);
+        }
         $this->notifyIfReorderPointReached($companyId,$locationId,$goodsId,$previous,$previous-$quantity,(float)($row->reorder_point??0));
     }
 
