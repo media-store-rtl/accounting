@@ -95,6 +95,21 @@ class CostingReportTest extends TestCase
             'location_id'=>$sectionLocation,'created_at'=>now(),'updated_at'=>now(),
         ]);
         DB::table('supply_requests')->where('id', $supply)->update(['production_section_id' => $section]);
+        // Actual production-operation consumption carries production_id even when no
+        // supply request is attached; its value must still be attributed to the product.
+        $productionConsumption = DB::table('inventory_movements')->insertGetId([
+            'company_id' => $company, 'goods_id' => $rawMaterial, 'location_id' => $sectionLocation,
+            'quantity' => -1, 'movement_type' => 'production_consumption',
+            'reference_type' => 'production_operation_runs', 'reference_id' => $run,
+            'occurred_at' => now(), 'metadata' => json_encode(['production_id' => $production]),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('inventory_consumption_costs')->insert([
+            'company_id' => $company, 'fiscal_year_id' => $fy, 'goods_id' => $rawMaterial,
+            'location_id' => $sectionLocation, 'inventory_movement_id' => $productionConsumption,
+            'valuation_method' => 'fifo', 'quantity' => 1, 'unit_cost' => 7, 'total_cost' => 7,
+            'consumed_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+        ]);
         $handover = DB::table('material_handovers')->insertGetId([
             'company_id'=>$company,'fiscal_year_id'=>$fy,'supply_request_id'=>$supply,
             'warehouse_location_id'=>$location,'delivered_by_user_id'=>$user,'received_by_user_id'=>$user,
@@ -178,10 +193,10 @@ class CostingReportTest extends TestCase
 
         $report=app(CostingReportService::class)->generate($company,$fy,$order,$goods);
         $this->assertCount(1,$report['rows']);
-        $this->assertSame(20.0,$report['rows'][0]['material_cost']);
+        $this->assertSame(27.0,$report['rows'][0]['material_cost']);
         $this->assertSame(60.0,$report['rows'][0]['labor_cost']);
         $this->assertSame(5.0,$report['rows'][0]['direct_cost']);
-        $this->assertSame(85.0,$report['rows'][0]['total_cost']);
+        $this->assertSame(92.0,$report['rows'][0]['total_cost']);
         $this->assertSame(['fifo'],$report['rows'][0]['valuation_methods']);
         $this->assertSame(0.0,$report['totals']['unvalued_material_quantity']);
         $this->assertSame(2.0, $report['totals']['production_report_unvalued_material_quantity']);
@@ -202,7 +217,7 @@ class CostingReportTest extends TestCase
         $this->assertFalse($report['production_reports'][0]['material_cost_complete']);
         $this->assertSame(20.0, $report['production_reports'][0]['material_cost']);
         $this->assertSame(1.0,$report['product_rows'][0]['produced_quantity']);
-        $this->assertSame(85.0,$report['product_rows'][0]['unit_cost']);
+        $this->assertSame(92.0,$report['product_rows'][0]['unit_cost']);
         $allGoodsReport=app(CostingReportService::class)->generate($company,$fy,$order);
         $this->assertSame(10.0,$allGoodsReport['totals']['direct_cost'],'Purchase-level direct costs must not multiply by the number of purchase lines.');
 
@@ -219,8 +234,8 @@ class CostingReportTest extends TestCase
 
         $calculation=app(\App\Services\CostCalculationService::class)->calculate($company,$user,$fy,$order,$goods);
         $this->assertSame(1,$calculation['count']);
-        $this->assertDatabaseHas('cost_calculations',['id'=>$calculation['ids'][0],'company_id'=>$company,'order_id'=>$order,'goods_id'=>$goods,'total_cost'=>85]);
-        $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'material','amount'=>20]);
+        $this->assertDatabaseHas('cost_calculations',['id'=>$calculation['ids'][0],'company_id'=>$company,'order_id'=>$order,'goods_id'=>$goods,'total_cost'=>92]);
+        $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'material','amount'=>27]);
         $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'labor','amount'=>60]);
         $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'direct','amount'=>5]);
     }
