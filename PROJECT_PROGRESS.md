@@ -974,4 +974,4 @@
 - فرم ایجاد/ویرایش سال مالی نیز به انتخاب‌گر شمسی برای تاریخ شروع و پایان تغییر کرد؛ مقادیر ارسالی همچنان ISO میلادی باقی می‌مانند. در `AGENTS.md` و `PROJECT_DEFINITION.md` استاندارد اجباری تقویم شمسی برای تغییرات آینده ثبت شد.
 - فایل‌های تغییرکرده: `resources/views/workflows/purchasing.blade.php`, `resources/views/fiscal-years/form.blade.php`, `AGENTS.md`, `PROJECT_DEFINITION.md`, `PROJECT_PROGRESS.md`.
 - تست محلی، مرورگر، CI و سایت زنده هنوز اجرا/تأیید نشده‌اند. این تغییر فقط فرم خرید متصل به درخواست تأمین و فرم سال مالی را پوشش می‌دهد؛ بازبینی سراسری تمام فیلدهای تاریخ پروژه هنوز باید تکمیل شود.
-- شاخه: `fix/consistent-jalali-date-inputs`. PR پس از بررسی diff و تست‌ها ایجاد می‌شود؛ ادغام و انتشار انجام نشده‌اند.
+- شاخه: `fix/consistent-jalali-date-inputs`. PR [#155](https://github.com/media-store-rtl/accounting/pull/155) باز است. CI اجرا با شناسه `38937359413` هنوز `in_progress` است؛ ادغام و انتشار انجام نشده‌اند.
