@@ -68,7 +68,7 @@ class InventoryAdjustmentTest extends TestCase
 
     public function test_raw_material_shortage_notifications_only_go_to_configured_warehouse_and_procurement_users(): void
     {
-        \\Illuminate\\Support\\Facades\\Notification::fake();
+        Notification::fake();
 
         $account = DB::table('accounts')->insertGetId([
             'name' => 'Notification Account', 'code' => 'NA'.uniqid(),
@@ -95,7 +95,7 @@ class InventoryAdjustmentTest extends TestCase
                 'company_id' => $company, 'user_id' => $id, 'role_id' => $role,
                 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
             ]);
-            $users[$label] = \\App\\Models\\User::findOrFail($id);
+            $users[$label] = User::findOrFail($id);
         }
 
         $fiscalYear = DB::table('fiscal_years')->insertGetId([
@@ -144,16 +144,16 @@ class InventoryAdjustmentTest extends TestCase
 
         foreach (['inventory.raw_material_low', 'supply.shortage'] as $event) {
             foreach (['Warehouse', 'Procurement'] as $label) {
-                \\Illuminate\\Support\\Facades\\Notification::assertSentTo(
+                Notification::assertSentTo(
                     $users[$label],
-                    \\App\\Notifications\\WorkflowNotification::class,
+                    WorkflowNotification::class,
                     fn ($notification) => $notification->toArray($users[$label])['event'] === $event
                 );
             }
             foreach (['Owner', 'Production'] as $label) {
-                \\Illuminate\\Support\\Facades\\Notification::assertNotSentTo(
+                Notification::assertNotSentTo(
                     $users[$label],
-                    \\App\\Notifications\\WorkflowNotification::class,
+                    WorkflowNotification::class,
                     fn ($notification) => $notification->toArray($users[$label])['event'] === $event
                 );
             }
