@@ -57,12 +57,10 @@ class NotificationRecipientService
             'production.shift_report_pending' => 'production.operation.review',
             'production.shift_report_warehouse_receipt' => 'production.output.receive',
             'supply.stock_check_required' => 'supply_request.handover.create',
-            'supply.shortage' => 'supply.manage',
             'supply.stock_rejected' => 'supply_request.create',
             'supply.stock_available' => 'supply_request.create',
             'supply.purchased' => 'supply_request.create',
             'inventory.finished_goods_low' => 'production.supervise',
-            'inventory.raw_material_low' => 'supply.manage',
             default => null,
         };
         if ($requiredPermission && $ids->isNotEmpty()) {
