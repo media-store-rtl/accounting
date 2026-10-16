@@ -53,7 +53,13 @@
 <div class="panel"><h2 style="font-size:15px;margin:0 0 14px">تحویل‌های ثبت‌شده</h2><div class="table-wrap"><table><thead><tr><th>شناسه</th><th>درخواست</th><th>وضعیت</th><th>زمان تحویل</th></tr></thead><tbody>
 @forelse($rows as $x)<tr><td>#{{ $x->id }}</td><td>#{{ $x->supply_request_id }}</td><td><span class="status {{ in_array($x->status, ['completed','approved','delivered'], true) ? 'active' : 'inactive' }}">{{ $x->status }}</span></td><td>{{ $x->handed_over_at }}</td></tr>@empty<tr><td colspan="4" style="text-align:center;padding:28px;color:#8198ac">تحویلی برای نمایش وجود ندارد.</td></tr>@endforelse
 </tbody></table></div>@if(method_exists($rows, 'links'))<div class="pagination">{{ $rows->links() }}</div>@endif</div>
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
+@endpush
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
 <script type="module">
 import { setupProductionReportDatePicker } from '/js/production-report-date-filters.js';
 const picker = document.getElementById('handed_over_date_picker');
