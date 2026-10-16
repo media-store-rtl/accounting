@@ -180,4 +180,27 @@ class OrdersSupplyWorkflowTest extends TestCase
         $zeroPrice['items'][0]['unit_price']=0;
         $this->postJson('/purchases',$zeroPrice)->assertUnprocessable()->assertJsonValidationErrors(['items.0.unit_price']);
     }
+
+
+    public function test_unpriced_purchase_receipt_cannot_increase_inventory(): void
+    {
+        $c=$this->context();
+        $purchase=DB::table('purchases')->insertGetId([
+            'company_id'=>$c['company'],'fiscal_year_id'=>$c['fy'],'supplier_id'=>$c['supplier'],
+            'supply_request_id'=>null,'purchased_at'=>'2026-10-16','subtotal'=>0,'direct_cost_total'=>0,
+            'total_amount'=>0,'status'=>'draft','created_at'=>now(),'updated_at'=>now(),
+        ]);
+        DB::table('purchase_items')->insert([
+            'purchase_id'=>$purchase,'goods_id'=>$c['goods'],'quantity'=>2,'unit_price'=>0,'line_total'=>0,
+            'created_at'=>now(),'updated_at'=>now(),
+        ]);
+        $receipt=$this->postJson('/purchase-receipts',[
+            'purchase_id'=>$purchase,'warehouse_location_id'=>$c['warehouse'],'received_at'=>'2026-10-16 10:00:00',
+            'items'=>[['goods_id'=>$c['goods'],'quantity'=>2]],
+        ])->assertCreated()->json('data.id');
+
+        $this->postJson('/purchase-receipts/'.$receipt.'/approve')->assertUnprocessable();
+        $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>5]);
+        $this->assertDatabaseHas('purchase_receipts',['id'=>$receipt,'status'=>'pending']);
+    }
 }
