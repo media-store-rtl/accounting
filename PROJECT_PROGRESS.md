@@ -5,8 +5,8 @@
 - اصلاح: در `NotificationRecipientService` اگر قاعدهٔ یکی از این دو رویداد وجود نداشته باشد یا هنوز پیکربندی نشده باشد، دیگر به ارسال قدیمی بر اساس مجوز `supply.manage` برنمی‌گردیم؛ چون این مسیر می‌تواند کاربران دیگری مانند مدیر یا تولید را گیرنده کند. به‌جای آن هشدار در log ثبت و ارسال متوقف می‌شود. مسیر قدیمی سایر رویدادها بدون تغییر باقی مانده است.
 - تست رگرسیون: مسیر کمبود مواد اولیه را با گیرندگان انتخاب‌شدهٔ انبار و تدارکات بررسی می‌کند و اطمینان می‌دهد مدیر و تولید برای هر دو رویداد اعلان نمی‌گیرند؛ همچنین حالت قاعدهٔ پیکربندی‌نشده و خطر fallback قدیمی را پوشش می‌دهد.
 - فایل‌های تغییرکرده: `app/Services/NotificationRecipientService.php`, `tests/Feature/InventoryAdjustmentTest.php`, `PROJECT_PROGRESS.md`.
-- تست محلی، اجرای CI، مرورگر، سایت زنده و Deploy هنوز انجام/تأیید نشده‌اند؛ تا پیش از گزارش نتیجهٔ CI، موفقیت تست‌ها ادعا نمی‌شود.
-- شاخهٔ کاری: `fix/inventory-shortage-recipient-routing`. تغییرات در `main` ثبت نشده‌اند؛ PR پس از تکمیل بررسی آماده خواهد شد.
+- تست محلی در این محیط اجرا نشد. GitHub Actions run [#2493](https://github.com/media-store-rtl/accounting/actions/runs/38924302264) برای commit کد `617e2510e48b31ed614fcdcfae5fd385888e4011` موفق شد؛ job `phpunit` سبز بود. مرورگر، سایت زنده و Deploy انجام/تأیید نشده‌اند.
+- شاخهٔ کاری: `fix/inventory-shortage-recipient-routing`. PR [#152](https://github.com/media-store-rtl/accounting/pull/152) باز و ادغام‌نشده است؛ تغییرات مستقیم روی `main` ثبت نشده‌اند.
 
 ---
 
