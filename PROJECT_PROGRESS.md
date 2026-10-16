@@ -983,4 +983,4 @@
 - تاریخ `datetime-local` با انتخاب‌گر شمسی مشترک جایگزین شد؛ تاریخ میلادی ISO و ساعت جداگانه ترکیب می‌شوند تا قرارداد سرور حفظ شود.
 - مسیر ثبت فرم نیز به سرویس ارزش‌گذاری موجودی متصل شد تا فراخوانی کنترلر با امضای واقعی آن سازگار باشد.
 - فایل‌ها: `resources/views/workflows/handovers.blade.php`, `app/Http/Controllers/WorkflowPagesController.php`, `app/Http/Controllers/MaterialHandoverController.php`, `PROJECT_PROGRESS.md`.
-- تست خودکار، CI، مرورگر، سایت زنده، Migration و Deploy در این محیط اجرا/تأیید نشده‌اند؛ تست رگرسیون و CI باید بررسی شوند. تغییرات روی شاخه `fix/jalali-material-handover-warehouse` است و هنوز PR ایجاد نشده است.
+- دو تست رگرسیون به `tests/Feature/MaterialRequestHandoverTest.php` اضافه شد: رندر فرم با نوع فارسی انبار و ثبت تحویل با نوع فارسی انبار. اجرای محلی تست‌ها در این محیط ممکن نبود؛ CI، مرورگر، سایت زنده، Migration و Deploy هنوز اجرا/تأیید نشده‌اند. تغییرات روی شاخه `fix/jalali-material-handover-warehouse` است و هنوز PR ایجاد نشده است.
