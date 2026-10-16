@@ -112,10 +112,14 @@ class InventoryService
         if($previous+0.0000001<$quantity) throw ValidationException::withMessages(['operation'=>'موجودی مواد اولیه در قسمت تولید کافی نیست.']);
         // Carry the relevant supply request into the consumption ledger so the costing
         // report can attribute the valued raw material to its production/order.
-        if (empty($metadata['supply_request_id'])) {
+        if (empty($metadata['supply_request_id']) && !empty($metadata['production_id'])
+            && DB::getSchemaBuilder()->hasColumn('supply_requests', 'production_id')) {
+            // Never attach consumption to an unrelated "latest" request for the same
+            // section/material. Restrict attribution to the production being executed.
             $supplyRequestId = DB::table('supply_requests as sr')
                 ->join('supply_request_items as sri','sri.supply_request_id','=','sr.id')
                 ->where('sr.company_id',$companyId)->where('sr.production_section_id',$sectionId)
+                ->where('sr.production_id',(int)$metadata['production_id'])
                 ->where('sri.goods_id',$goodsId)->whereNotIn('sr.status',['cancelled'])
                 ->orderByDesc('sr.id')->value('sr.id');
             if ($supplyRequestId) $metadata['supply_request_id'] = (int) $supplyRequestId;
