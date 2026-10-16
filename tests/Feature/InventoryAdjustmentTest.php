@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Services\InventoryService;
+use App\Models\User;
+use App\Notifications\WorkflowNotification;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
