@@ -95,6 +95,57 @@ final class InventoryValuationService
         );
     }
 
+    /** Move existing cost-layer balances between locations without recognizing consumption. */
+    public function transferLayers(int $companyId, int $goodsId, int $fromLocationId, int $toLocationId, float $quantity): void
+    {
+        if ($quantity <= 0) {
+            throw new RuntimeException('مقدار انتقال برای ارزش‌گذاری معتبر نیست.');
+        }
+
+        DB::transaction(function () use ($companyId, $goodsId, $fromLocationId, $toLocationId, $quantity) {
+            $method = $this->methodForCompany($companyId);
+            $column = $method === self::FIFO ? 'fifo_quantity_remaining' : 'weighted_average_quantity_remaining';
+            $layers = DB::table('inventory_cost_layers')
+                ->where('company_id', $companyId)->where('goods_id', $goodsId)
+                ->where('location_id', $fromLocationId)->where($column, '>', 0)
+                ->orderBy('received_at')->orderBy('id')->lockForUpdate()->get();
+            $available = (float) $layers->sum($column);
+            if ($available + 0.0000001 < $quantity) {
+                throw new RuntimeException('بهای ریالی کافی برای انتقال این مقدار ماده در لایه‌های انبار وجود ندارد.');
+            }
+
+            $remaining = $quantity;
+            foreach ($layers as $layer) {
+                if ($remaining <= 0.0000001) break;
+                $take = min($remaining, (float) $layer->{$column});
+                DB::table('inventory_cost_layers')->where('id', $layer->id)->update([
+                    'fifo_quantity_remaining' => DB::raw('fifo_quantity_remaining - '.(float) $take),
+                    'weighted_average_quantity_remaining' => DB::raw('weighted_average_quantity_remaining - '.(float) $take),
+                    'updated_at' => now(),
+                ]);
+                DB::table('inventory_cost_layers')->insert([
+                    'company_id' => $layer->company_id,
+                    'fiscal_year_id' => $layer->fiscal_year_id,
+                    'goods_id' => $layer->goods_id,
+                    'location_id' => $toLocationId,
+                    'purchase_id' => $layer->purchase_id,
+                    'purchase_item_id' => $layer->purchase_item_id,
+                    'purchase_receipt_id' => $layer->purchase_receipt_id,
+                    'purchase_receipt_item_id' => $layer->purchase_receipt_item_id,
+                    'quantity_received' => $take,
+                    'fifo_quantity_remaining' => $take,
+                    'weighted_average_quantity_remaining' => $take,
+                    'unit_cost' => $layer->unit_cost,
+                    'total_cost' => $take * (float) $layer->unit_cost,
+                    'received_at' => $layer->received_at,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $remaining -= $take;
+            }
+        });
+    }
+
     public function valueInventoryMovement(int $movementId, int $fiscalYearId): array
     {
         $movement = DB::table('inventory_movements')->where('id', $movementId)->lockForUpdate()->firstOrFail();
