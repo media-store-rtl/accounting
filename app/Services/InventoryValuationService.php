@@ -110,11 +110,10 @@ final class InventoryValuationService
                 ->where('location_id', $fromLocationId)->where($column, '>', 0)
                 ->orderBy('received_at')->orderBy('id')->lockForUpdate()->get();
             $available = (float) $layers->sum($column);
-            if ($available + 0.0000001 < $quantity) {
-                throw new RuntimeException('بهای ریالی کافی برای انتقال این مقدار ماده در لایه‌های انبار وجود ندارد.');
-            }
-
-            $remaining = $quantity;
+            // Legacy/adjusted stock may not have valuation layers; transfer the valued
+            // portion only and leave consumption explicitly unvalued when necessary.
+            $remaining = min($quantity, $available);
+            if ($remaining <= 0.0000001) return;
             foreach ($layers as $layer) {
                 if ($remaining <= 0.0000001) break;
                 $take = min($remaining, (float) $layer->{$column});
