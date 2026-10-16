@@ -172,13 +172,13 @@ class OrdersSupplyWorkflowTest extends TestCase
             'purchased_at'=>'2026-10-16',
             'items'=>[['goods_id'=>$c['goods'],'quantity'=>2,'unit_price'=>125]],
         ];
-        $response=$this->postJson('/purchases',$payload)->assertCreated();
-        $purchaseId=$response->json('data.id');
+        $this->from('/purchasing')->post('/purchasing',$payload)->assertRedirect();
+        $purchaseId=(int)DB::table('purchases')->where('company_id',$c['company'])->whereNull('supply_request_id')->orderByDesc('id')->value('id');
         $this->assertDatabaseHas('purchases',['id'=>$purchaseId,'supply_request_id'=>null,'total_amount'=>250]);
 
         $zeroPrice=$payload;
         $zeroPrice['items'][0]['unit_price']=0;
-        $this->postJson('/purchases',$zeroPrice)->assertUnprocessable()->assertJsonValidationErrors(['items.0.unit_price']);
+        $this->from('/purchasing')->post('/purchasing',$zeroPrice)->assertRedirect()->assertSessionHasErrors('items.0.unit_price');
     }
 
 
@@ -194,12 +194,13 @@ class OrdersSupplyWorkflowTest extends TestCase
             'purchase_id'=>$purchase,'goods_id'=>$c['goods'],'quantity'=>2,'unit_price'=>0,'line_total'=>0,
             'created_at'=>now(),'updated_at'=>now(),
         ]);
-        $receipt=$this->postJson('/purchase-receipts',[
+        $this->from('/receipts')->post('/receipts',[
             'purchase_id'=>$purchase,'warehouse_location_id'=>$c['warehouse'],'received_at'=>'2026-10-16 10:00:00',
             'items'=>[['goods_id'=>$c['goods'],'quantity'=>2]],
-        ])->assertCreated()->json('data.id');
+        ])->assertRedirect();
+        $receipt=(int)DB::table('purchase_receipts')->where('purchase_id',$purchase)->value('id');
 
-        $this->postJson('/purchase-receipts/'.$receipt.'/approve')->assertUnprocessable();
+        $this->postJson('/receipts/'.$receipt.'/approve')->assertUnprocessable();
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>5]);
         $this->assertDatabaseHas('purchase_receipts',['id'=>$receipt,'status'=>'pending']);
     }
