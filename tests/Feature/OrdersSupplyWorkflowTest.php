@@ -31,7 +31,7 @@ class OrdersSupplyWorkflowTest extends TestCase
         $inventoryId=DB::table('inventory')->insertGetId(['company_id'=>$company,'location_id'=>$warehouse,'goods_id'=>$goods,'quantity'=>5,'created_at'=>now(),'updated_at'=>now()]);
         DB::table('inventory_movements')->insert(['company_id'=>$company,'location_id'=>$warehouse,'goods_id'=>$goods,'quantity'=>5,'movement_type'=>'opening_balance','reference_type'=>'inventory','reference_id'=>$inventoryId,'occurred_at'=>now(),'metadata'=>json_encode(['source'=>'test opening balance']),'created_at'=>now(),'updated_at'=>now()]);
         $supplier=DB::table('suppliers')->insertGetId(['company_id'=>$company,'name'=>'Supplier','code'=>'SUP1','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
-        $this->actingAs(\App\Models\User::findOrFail($user))->withSession(['company_id'=>$company]);
+        $this->actingAs(\App\Models\User::findOrFail($user))->withSession(['company_id'=>$company,'fiscal_year_id'=>$fy]);
         return compact('company','user','fy','goods','customer','warehouse','supplier');
     }
 
@@ -181,6 +181,21 @@ class OrdersSupplyWorkflowTest extends TestCase
         $this->from('/purchasing')->post('/purchasing',$zeroPrice)->assertRedirect()->assertSessionHasErrors('items.0.unit_price');
     }
 
+
+
+    public function test_purchase_can_be_registered_without_supplier_or_explicit_fiscal_year(): void
+    {
+        $c=$this->context();
+        $this->from('/purchasing')->post('/purchasing',[
+            'purchased_at'=>'2026-10-16',
+            'items'=>[['goods_id'=>$c['goods'],'quantity'=>1,'unit_price'=>50]],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('purchases',[
+            'company_id'=>$c['company'],'fiscal_year_id'=>$c['fy'],'supplier_id'=>null,
+            'supply_request_id'=>null,'total_amount'=>50,
+        ]);
+    }
 
     public function test_unpriced_purchase_receipt_cannot_increase_inventory(): void
     {
