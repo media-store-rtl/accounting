@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Services\InventoryService;
+use App\Services\NotificationRecipientService;
 use App\Models\User;
 use App\Notifications\WorkflowNotification;
 use Illuminate\Support\Facades\Notification;
@@ -86,6 +87,14 @@ class InventoryAdjustmentTest extends TestCase
             'company_id' => $company, 'name' => 'Notification Test Role', 'slug' => 'nr'.uniqid(),
             'is_system' => false, 'created_at' => now(), 'updated_at' => now(),
         ]);
+        $supplyPermission = DB::table('permissions')->where('slug', 'supply.manage')->value('id');
+        if (!$supplyPermission) {
+            $supplyPermission = DB::table('permissions')->insertGetId([
+                'name' => 'Manage Supply', 'slug' => 'supply.manage', 'module' => 'supply',
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+        DB::table('role_permissions')->insertOrIgnore(['role_id' => $role, 'permission_id' => $supplyPermission]);
 
         $users = [];
         foreach (['Owner', 'Production', 'Warehouse', 'Procurement'] as $label) {
@@ -163,6 +172,22 @@ class InventoryAdjustmentTest extends TestCase
         }
 
         $this->assertSame(1, DB::table('supply_requests')->where('company_id', $company)->count());
+
+        // An unconfigured shortage rule must not silently fall back to every user with supply.manage.
+        DB::table('notification_recipient_rules')->where('company_id', $company)
+            ->whereIn('event_key', ['inventory.raw_material_low', 'supply.shortage'])
+            ->update(['is_configured' => false]);
+        Notification::fake();
+        foreach (['inventory.raw_material_low', 'supply.shortage'] as $event) {
+            app(NotificationRecipientService::class)->send($company, $event, [], null, 'supply.manage');
+            foreach (['Owner', 'Production', 'Warehouse', 'Procurement'] as $label) {
+                Notification::assertNotSentTo(
+                    $users[$label],
+                    WorkflowNotification::class,
+                    fn ($notification) => $notification->toArray($users[$label])['event'] === $event
+                );
+            }
+        }
     }
 
 }
