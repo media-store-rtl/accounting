@@ -975,3 +975,12 @@
 - فایل‌های تغییرکرده: `resources/views/workflows/purchasing.blade.php`, `resources/views/fiscal-years/form.blade.php`, `AGENTS.md`, `PROJECT_DEFINITION.md`, `PROJECT_PROGRESS.md`.
 - تست محلی، مرورگر، CI و سایت زنده هنوز اجرا/تأیید نشده‌اند. این تغییر فقط فرم خرید متصل به درخواست تأمین و فرم سال مالی را پوشش می‌دهد؛ بازبینی سراسری تمام فیلدهای تاریخ پروژه هنوز باید تکمیل شود.
 - شاخه: `fix/consistent-jalali-date-inputs`. PR [#155](https://github.com/media-store-rtl/accounting/pull/155) باز است. CI اجرا با شناسه `38937359413` هنوز `in_progress` است؛ ادغام و انتشار انجام نشده‌اند.
+
+
+# 114. اصلاح تاریخ شمسی و انتخاب انبار در تحویل مواد به تولید — 2026-10-16
+- درخواست: در صفحه «تحویل مواد به تولید»، تاریخ تحویل شمسی باشد و فهرست انبار با وجود محل‌های تعریف‌شده خالی نباشد.
+- علت انبار خالی: فهرست و اعتبارسنجی ثبت تحویل فقط مقدار انگلیسی `warehouse` را قبول می‌کردند؛ در حالی که تعریف محل می‌تواند نوع فارسی «انبار» داشته باشد. فهرست و اعتبارسنجی مقادیر `warehouse` و `انبار` را می‌پذیرند و محدودیت شرکت و فعال بودن محل حفظ می‌شود.
+- تاریخ `datetime-local` با انتخاب‌گر شمسی مشترک جایگزین شد؛ تاریخ میلادی ISO و ساعت جداگانه ترکیب می‌شوند تا قرارداد سرور حفظ شود.
+- مسیر ثبت فرم نیز به سرویس ارزش‌گذاری موجودی متصل شد تا فراخوانی کنترلر با امضای واقعی آن سازگار باشد.
+- فایل‌ها: `resources/views/workflows/handovers.blade.php`, `app/Http/Controllers/WorkflowPagesController.php`, `app/Http/Controllers/MaterialHandoverController.php`, `PROJECT_PROGRESS.md`.
+- تست خودکار، CI، مرورگر، سایت زنده، Migration و Deploy در این محیط اجرا/تأیید نشده‌اند؛ تست رگرسیون و CI باید بررسی شوند. تغییرات روی شاخه `fix/jalali-material-handover-warehouse` است و هنوز PR ایجاد نشده است.
