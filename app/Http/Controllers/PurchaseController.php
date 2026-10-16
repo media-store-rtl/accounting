@@ -66,7 +66,7 @@ class PurchaseController extends Controller
         if (!empty($purchase->supply_request_id)) {
             $supplyRequest = DB::table('supply_requests')->where('id',$purchase->supply_request_id)->where('company_id',$companyId)->first();
             if ($supplyRequest && $supplyRequest->status === 'purchased') {
-                app(\\App\\Services\\NotificationRecipientService::class)->send($companyId,'supply.purchased',['supply_request_id'=>$supplyRequest->id,'needed_at'=>$supplyRequest->needed_at],(int)$request->user()->id,'supply_request.create');
+                app(\App\Services\NotificationRecipientService::class)->send($companyId,'supply.purchased',['supply_request_id'=>$supplyRequest->id,'needed_at'=>$supplyRequest->needed_at],(int)$request->user()->id,'supply_request.create');
             }
         }
         return response()->json(['data'=>$purchase],201);
