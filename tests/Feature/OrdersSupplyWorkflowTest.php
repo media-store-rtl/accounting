@@ -160,4 +160,24 @@ class OrdersSupplyWorkflowTest extends TestCase
         $this->assertDatabaseHas('purchases',['id'=>$purchase,'status'=>'received']);
         $this->assertDatabaseHas('supply_requests',['id'=>$sr,'status'=>'fulfilled']);
     }
+
+
+    public function test_purchase_can_be_registered_without_a_supply_request_and_requires_positive_unit_price(): void
+    {
+        $c=$this->context();
+        $payload=[
+            'fiscal_year_id'=>$c['fy'],
+            'supplier_id'=>$c['supplier'],
+            'supply_request_id'=>'',
+            'purchased_at'=>'2026-10-16',
+            'items'=>[['goods_id'=>$c['goods'],'quantity'=>2,'unit_price'=>125]],
+        ];
+        $response=$this->postJson('/purchases',$payload)->assertCreated();
+        $purchaseId=$response->json('data.id');
+        $this->assertDatabaseHas('purchases',['id'=>$purchaseId,'supply_request_id'=>null,'total_amount'=>250]);
+
+        $zeroPrice=$payload;
+        $zeroPrice['items'][0]['unit_price']=0;
+        $this->postJson('/purchases',$zeroPrice)->assertUnprocessable()->assertJsonValidationErrors(['items.0.unit_price']);
+    }
 }
