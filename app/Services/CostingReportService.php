@@ -175,11 +175,11 @@ final class CostingReportService
     }
 
     /**
-     * Attach report-level material usage to existing valued handovers without
-     * adding these amounts to product totals a second time.
+     * Attach report-level material usage to valued production-consumption movements
+     * without adding these amounts to product totals a second time.
      *
      * Allocation is deterministic and conservative: same company, section,
-     * material and order; handovers dated no later than the report; and only
+     * material and order; consumption dated no later than the report; and only
      * the quantity not already allocated to earlier approved/received reports.
      * Missing or unvalued stock remains visible instead of receiving a guessed rate.
      */
@@ -299,6 +299,7 @@ final class CostingReportService
                 }
             }
 
+            $handoverGroups = [];
             foreach ($consumptionRows as $movement) {
                 $metadata = json_decode((string) $movement->metadata, true) ?: [];
                 $supply = $supplies->get((int) ($metadata['supply_request_id'] ?? 0));
