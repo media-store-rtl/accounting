@@ -53,8 +53,8 @@
                         <tr>
                             <td>{{ $year->name }}</td>
                             <td>{{ $year->code }}</td>
-                            <td>{{ $year->starts_at?->format('Y/m/d') }}</td>
-                            <td>{{ $year->ends_at?->format('Y/m/d') }}</td>
+                            <td><time class="persian-display-date" datetime="{{ $year->starts_at?->format('Y-m-d') }}">{{ $year->starts_at?->format('Y/m/d') }}</time></td>
+                            <td><time class="persian-display-date" datetime="{{ $year->ends_at?->format('Y-m-d') }}">{{ $year->ends_at?->format('Y/m/d') }}</time></td>
                             <td>
                                 <span class="fiscal-badge {{ $year->is_closed ? 'closed' : '' }}">{{ $year->is_closed ? 'بسته' : 'باز' }}</span>
                                 @if(!$year->is_closed && $currentFiscalYearId === (int) $year->id)
@@ -85,4 +85,16 @@
         </div>
     @endif
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.persian-display-date').forEach(function (element) {
+        const match = String(element.dateTime || '').match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
+        if (!match) return;
+        const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+        element.textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+            year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'UTC'
+        }).format(date);
+    });
+});
+</script>
 @endsection
