@@ -18,8 +18,20 @@ class NotificationRecipientService
             ->where('event_key', $event)
             ->first();
 
-        // Preserve existing delivery until the company explicitly saves this event's rule.
+        // Shortage alerts are explicitly routed by company settings. Falling back to a
+        // permission-based audience can notify the owner/production team even when the
+        // warehouse/procurement recipients have not been configured yet.
         if (! $rule || ! $rule->is_configured) {
+            if (in_array($event, ['inventory.raw_material_low', 'supply.shortage'], true)) {
+                Log::warning('Shortage notification skipped because its recipient rule is not configured.', [
+                    'company_id' => $companyId,
+                    'event' => $event,
+                    'rule_id' => $rule->id ?? null,
+                ]);
+                return;
+            }
+
+            // Preserve legacy delivery for unrelated events until their rules are configured.
             $this->sendLegacy($companyId, $event, $payload, $actorId, $legacyPermission);
             return;
         }
