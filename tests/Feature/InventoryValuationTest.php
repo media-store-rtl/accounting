@@ -73,4 +73,56 @@ class InventoryValuationTest extends TestCase
         $service->setMethod($c['company'],InventoryValuationService::WEIGHTED_AVERAGE);
         $this->assertSame(InventoryValuationService::WEIGHTED_AVERAGE,$service->methodForCompany($c['company']));
     }
+
+    public function test_receipt_cost_layers_follow_transfer_to_production_and_value_consumption(): void
+    {
+        $c = $this->context(InventoryValuationService::FIFO);
+        $this->layer($c, 10, 25, '2026-10-01 10:00:00');
+
+        $sectionLocation = DB::table('locations')->insertGetId([
+            'company_id' => $c['company'],
+            'code' => 'P'.uniqid(),
+            'name' => 'Production section',
+            'type' => 'production',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $valuation = app(InventoryValuationService::class);
+        $valuation->transferLayers($c['company'], $c['goods'], $c['warehouse'], $sectionLocation, 4);
+
+        $this->assertSame(6.0, (float) DB::table('inventory_cost_layers')
+            ->where('location_id', $c['warehouse'])->sum('fifo_quantity_remaining'));
+        $this->assertSame(4.0, (float) DB::table('inventory_cost_layers')
+            ->where('location_id', $sectionLocation)->sum('fifo_quantity_remaining'));
+
+        $movementId = DB::table('inventory_movements')->insertGetId([
+            'company_id' => $c['company'],
+            'goods_id' => $c['goods'],
+            'location_id' => $sectionLocation,
+            'quantity' => -3,
+            'movement_type' => 'production_consumption',
+            'reference_type' => 'production_shift_reports',
+            'reference_id' => 1,
+            'occurred_at' => now(),
+            'metadata' => json_encode(['production_section_id' => 1]),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $result = $valuation->valueInventoryMovement($movementId, $c['fy']);
+
+        $this->assertTrue($result['valued']);
+        $this->assertSame(75.0, round($result['total_cost'], 4));
+        $this->assertSame(25.0, round($result['unit_cost'], 4));
+        $this->assertSame(1, DB::table('inventory_consumption_costs')->where('inventory_movement_id', $movementId)->count());
+        $this->assertSame(1, DB::table('inventory_consumption_cost_items')->whereIn(
+            'inventory_consumption_cost_id',
+            DB::table('inventory_consumption_costs')->select('id')->where('inventory_movement_id', $movementId)
+        )->count());
+        $this->assertSame(1.0, (float) DB::table('inventory_cost_layers')
+            ->where('location_id', $sectionLocation)->sum('fifo_quantity_remaining'));
+    }
+
 }
