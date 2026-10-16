@@ -66,6 +66,35 @@ class MaterialRequestHandoverTest extends TestCase
         return compact('company', 'user', 'fy', 'goods', 'warehouse');
     }
 
+    public function test_material_handover_page_uses_jalali_date_picker_and_lists_persian_warehouse_type(): void
+    {
+        $c = $this->context();
+        DB::table('locations')->where('id', $c['warehouse'])->update(['type' => 'انبار']);
+
+        $this->get('/handovers')
+            ->assertOk()
+            ->assertSee('انتخاب تاریخ شمسی')
+            ->assertSee('Warehouse')
+            ->assertDontSee('هیچ انبار فعال برای این شرکت پیدا نشد');
+    }
+
+    public function test_material_handover_accepts_persian_warehouse_type(): void
+    {
+        $c = $this->context();
+        DB::table('locations')->where('id', $c['warehouse'])->update(['type' => 'انبار']);
+        $requestId = DB::table('supply_requests')->latest('id')->value('id');
+
+        $response = $this->postJson('/api/material-handovers', [
+            'supply_request_id' => $requestId,
+            'warehouse_location_id' => $c['warehouse'],
+            'delivered_by_user_id' => $c['user'],
+            'received_by_user_id' => $c['user'],
+            'handed_over_at' => '2026-10-16 10:00:00',
+            'items' => [['goods_id' => $c['goods'], 'quantity' => 4]],
+        ]);
+        $response->assertCreated()->assertJsonPath('data.status', 'completed');
+    }
+
     public function test_material_handover_records_deliverer_receiver_and_decreases_inventory(): void
     {
         $c = $this->context();

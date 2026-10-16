@@ -39,7 +39,7 @@
 @foreach($users as $x)<option value="{{ $x->id }}" @selected((string)old('received_by_user_id')===(string)$x->id)>{{ $x->name }}</option>@endforeach
 </select></label>
 <label style="display:flex;flex-direction:column;gap:8px;color:#c0d0df;font-size:12px;font-weight:600">زمان تحویل
-<input name="handed_over_at" type="datetime-local" value="{{ old('handed_over_at') }}" required style="box-sizing:border-box;width:100%;min-height:44px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit;color-scheme:dark"></label>
+<input id="handed_over_date_picker" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="{{ old('handed_over_at') ? substr(old('handed_over_at'), 0, 10) : now()->toDateString() }}" required style="box-sizing:border-box;width:100%;min-height:44px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit"><input id="handed_over_date_iso" type="hidden" value="{{ old('handed_over_at') ? substr(old('handed_over_at'), 0, 10) : now()->toDateString() }}"><div style="display:flex;align-items:center;gap:8px"><span>ساعت</span><input id="handed_over_time" type="time" value="{{ old('handed_over_at') ? substr(old('handed_over_at'), 11, 5) : now()->format('H:i') }}" required style="box-sizing:border-box;width:100%;min-height:40px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:8px;font:inherit"></div><input id="handed_over_at" name="handed_over_at" type="hidden" value="{{ old('handed_over_at') }}"></label>
 <label style="display:flex;flex-direction:column;gap:8px;color:#c0d0df;font-size:12px;font-weight:600">کالا
 <select name="items[0][goods_id]" required @disabled($goods->isEmpty()) style="box-sizing:border-box;width:100%;min-height:44px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
 <option value="">انتخاب کالا</option>
@@ -53,4 +53,28 @@
 <div class="panel"><h2 style="font-size:15px;margin:0 0 14px">تحویل‌های ثبت‌شده</h2><div class="table-wrap"><table><thead><tr><th>شناسه</th><th>درخواست</th><th>وضعیت</th><th>زمان تحویل</th></tr></thead><tbody>
 @forelse($rows as $x)<tr><td>#{{ $x->id }}</td><td>#{{ $x->supply_request_id }}</td><td><span class="status {{ in_array($x->status, ['completed','approved','delivered'], true) ? 'active' : 'inactive' }}">{{ $x->status }}</span></td><td>{{ $x->handed_over_at }}</td></tr>@empty<tr><td colspan="4" style="text-align:center;padding:28px;color:#8198ac">تحویلی برای نمایش وجود ندارد.</td></tr>@endforelse
 </tbody></table></div>@if(method_exists($rows, 'links'))<div class="pagination">{{ $rows->links() }}</div>@endif</div>
+@push('scripts')
+<script type="module">
+import { setupProductionReportDatePicker } from '/js/production-report-date-filters.js';
+const picker = document.getElementById('handed_over_date_picker');
+const isoDate = document.getElementById('handed_over_date_iso');
+const time = document.getElementById('handed_over_time');
+const dateTime = document.getElementById('handed_over_at');
+const form = picker?.closest('form');
+if (picker && isoDate && time && dateTime && form) {
+    setupProductionReportDatePicker('#handed_over_date_picker', '#handed_over_date_iso');
+    form.addEventListener('submit', function (event) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate.value) || !time.value) {
+            event.preventDefault();
+            picker.setCustomValidity('تاریخ شمسی و ساعت تحویل را انتخاب کنید.');
+            picker.reportValidity();
+            return;
+        }
+        picker.setCustomValidity('');
+        dateTime.value = isoDate.value + ' ' + time.value;
+    });
+    picker.addEventListener('change', () => picker.setCustomValidity(''));
+}
+</script>
+@endpush
 @endsection
