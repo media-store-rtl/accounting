@@ -474,28 +474,44 @@ final class CostingReportService
 
     private function directPurchaseCosts(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId,?string $startDate,?string $endDate): void
     {
+        // Keep purchase lines and purchase-level direct costs separate: joining
+        // both one-to-many tables multiplies each direct-cost row by the item count.
+        // A purchase may also be standalone (without a supply request), so retain it
+        // and report its cost under the unassigned order bucket.
         $purchases=DB::table('purchases as p')
-            ->join('supply_requests as sr','sr.id','=','p.supply_request_id')
+            ->leftJoin('supply_requests as sr','sr.id','=','p.supply_request_id')
             ->join('purchase_items as pi','pi.purchase_id','=','p.id')
-            ->join('purchase_direct_costs as dc','dc.purchase_id','=','p.id')
             ->where('p.company_id',$companyId)
             ->when($fy,fn($q)=>$q->where('p.fiscal_year_id',$fy))
             ->when($startDate,fn($q)=>$q->whereDate('p.purchased_at','>=',$startDate))
             ->when($endDate,fn($q)=>$q->whereDate('p.purchased_at','<=',$endDate))
             ->when($goodsId,fn($q)=>$q->where('pi.goods_id',$goodsId))
-            ->select('p.id as purchase_id','sr.order_id','sr.production_id','pi.goods_id','pi.line_total','p.subtotal','dc.amount')
+            ->select('p.id as purchase_id','sr.order_id','sr.production_id','pi.goods_id','pi.line_total','p.subtotal')
             ->get();
+        if ($purchases->isEmpty()) return;
+
+        $purchaseIds=$purchases->pluck('purchase_id')->unique()->values();
+        $directCosts=DB::table('purchase_direct_costs')
+            ->whereIn('purchase_id',$purchaseIds)
+            ->selectRaw('purchase_id, SUM(amount) as amount')
+            ->groupBy('purchase_id')
+            ->pluck('amount','purchase_id');
         $prodIds=$purchases->pluck('production_id')->filter()->unique()->values();
         $links=$prodIds->isEmpty()?collect():DB::table('production_order')->whereIn('production_id',$prodIds)->get(['production_id','order_id'])->groupBy('production_id');
         foreach($purchases->groupBy('purchase_id') as $purchaseRows){
-            $subtotal=(float)$purchaseRows->first()->subtotal;
+            $first=$purchaseRows->first();
+            $subtotal=(float)$first->subtotal;
             if($subtotal<=0) continue;
-            $directTotal=(float)$purchaseRows->sum('amount');
-            foreach($purchaseRows->unique('goods_id') as $line){
+            $directTotal=(float)($directCosts->get($first->purchase_id) ?? 0);
+            foreach($purchaseRows->groupBy('goods_id') as $goodsLines){
+                $line=$goodsLines->first();
                 $oid=$line->order_id;
                 if($oid===null && $line->production_id) $oid=$links->get((int)$line->production_id)?->first()?->order_id;
                 if($orderId!==null && (int)$oid!==$orderId) continue;
-                $lineShare=max(0.0,(float)$line->line_total)/$subtotal;
+                // Aggregate duplicate lines for the same goods before allocating
+                // the purchase's direct cost by each goods' share of subtotal.
+                $goodsLineTotal=(float)$goodsLines->sum('line_total');
+                $lineShare=max(0.0,$goodsLineTotal)/$subtotal;
                 $key=$this->key($oid,(int)$line->goods_id);
                 $this->row($rows,$key,$oid,(int)$line->goods_id);
                 $rows[$key]['direct_cost'] += $directTotal*$lineShare;

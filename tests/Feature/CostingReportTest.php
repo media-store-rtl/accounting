@@ -71,8 +71,12 @@ class CostingReportTest extends TestCase
         $location=DB::table('locations')->insertGetId(['company_id'=>$company,'code'=>'W'.uniqid(),'name'=>'Warehouse','type'=>'warehouse','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $movement=DB::table('inventory_movements')->insertGetId(['company_id'=>$company,'goods_id'=>$rawMaterial,'location_id'=>$location,'quantity'=>-2,'movement_type'=>'material_handover','reference_type'=>'material_handovers','reference_id'=>1,'occurred_at'=>now(),'metadata'=>json_encode(['supply_request_id'=>$supply]),'created_at'=>now(),'updated_at'=>now()]);
         DB::table('inventory_consumption_costs')->insert(['company_id'=>$company,'fiscal_year_id'=>$fy,'goods_id'=>$rawMaterial,'location_id'=>$location,'inventory_movement_id'=>$movement,'valuation_method'=>'fifo','quantity'=>2,'unit_cost'=>10,'total_cost'=>20,'consumed_at'=>now(),'created_at'=>now(),'updated_at'=>now()]);
-        $purchase=DB::table('purchases')->insertGetId(['company_id'=>$company,'fiscal_year_id'=>$fy,'supplier_id'=>DB::table('suppliers')->insertGetId(['company_id'=>$company,'code'=>'SUP'.uniqid(),'name'=>'Supplier','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]),'supply_request_id'=>$supply,'invoice_number'=>'INV-1','invoice_date'=>'2026-10-07','purchased_at'=>'2026-10-07','subtotal'=>20,'direct_cost_total'=>10,'total_amount'=>30,'status'=>'received','created_at'=>now(),'updated_at'=>now()]);
+        $purchase=DB::table('purchases')->insertGetId(['company_id'=>$company,'fiscal_year_id'=>$fy,'supplier_id'=>DB::table('suppliers')->insertGetId(['company_id'=>$company,'code'=>'SUP'.uniqid(),'name'=>'Supplier','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]),'supply_request_id'=>$supply,'invoice_number'=>'INV-1','invoice_date'=>'2026-10-07','purchased_at'=>'2026-10-07','subtotal'=>40,'direct_cost_total'=>10,'total_amount'=>50,'status'=>'received','created_at'=>now(),'updated_at'=>now()]);
         $pi=DB::table('purchase_items')->insertGetId(['purchase_id'=>$purchase,'goods_id'=>$goods,'quantity'=>2,'unit_price'=>10,'line_total'=>20,'created_at'=>now(),'updated_at'=>now()]);
+        DB::table('purchase_items')->insert([
+            'purchase_id'=>$purchase,'goods_id'=>$rawMaterial,'quantity'=>2,'unit_price'=>10,'line_total'=>20,
+            'created_at'=>now(),'updated_at'=>now(),
+        ]);
         DB::table('purchase_direct_costs')->insert(['purchase_id'=>$purchase,'type'=>'freight','description'=>'حمل','amount'=>10,'created_at'=>now(),'updated_at'=>now()]);
 
         $stageRun=DB::table('production_stage_runs')->insertGetId(['production_id'=>$production,'production_stage_id'=>$stage,'sequence'=>1,'status'=>'completed','planned_quantity'=>10,'input_quantity'=>10,'output_quantity'=>10,'rejected_quantity'=>0,'created_at'=>now(),'updated_at'=>now()]);
@@ -176,8 +180,8 @@ class CostingReportTest extends TestCase
         $this->assertCount(1,$report['rows']);
         $this->assertSame(20.0,$report['rows'][0]['material_cost']);
         $this->assertSame(60.0,$report['rows'][0]['labor_cost']);
-        $this->assertSame(10.0,$report['rows'][0]['direct_cost']);
-        $this->assertSame(90.0,$report['rows'][0]['total_cost']);
+        $this->assertSame(5.0,$report['rows'][0]['direct_cost']);
+        $this->assertSame(85.0,$report['rows'][0]['total_cost']);
         $this->assertSame(['fifo'],$report['rows'][0]['valuation_methods']);
         $this->assertSame(0.0,$report['totals']['unvalued_material_quantity']);
         $this->assertSame(2.0, $report['totals']['production_report_unvalued_material_quantity']);
@@ -198,13 +202,15 @@ class CostingReportTest extends TestCase
         $this->assertFalse($report['production_reports'][0]['material_cost_complete']);
         $this->assertSame(20.0, $report['production_reports'][0]['material_cost']);
         $this->assertSame(1.0,$report['product_rows'][0]['produced_quantity']);
-        $this->assertSame(90.0,$report['product_rows'][0]['unit_cost']);
+        $this->assertSame(85.0,$report['product_rows'][0]['unit_cost']);
+        $allGoodsReport=app(CostingReportService::class)->generate($company,$fy,$order);
+        $this->assertSame(10.0,$allGoodsReport['totals']['direct_cost'],'Purchase-level direct costs must not multiply by the number of purchase lines.');
 
         $filtered=app(CostingReportService::class)->generate($company,$fy,$order,$goods,'2026-10-07','2026-10-07',$personnel);
         $this->assertCount(1,$filtered['production_reports']);
         $this->assertSame(1.0,$filtered['product_rows'][0]['produced_quantity']);
         $this->assertSame(30.0,$filtered['totals']['labor_cost']);
-        $this->assertSame(60.0,$filtered['product_rows'][0]['unit_cost']);
+        $this->assertSame(55.0,$filtered['product_rows'][0]['unit_cost']);
 
         $unassignedReport=app(CostingReportService::class)->generate($company,$fy,null,$goods);
         $unassignedRows=array_values(array_filter($unassignedReport['rows'],fn($row)=>$row['order_id']===null&&$row['goods_id']===$goods));
@@ -213,9 +219,9 @@ class CostingReportTest extends TestCase
 
         $calculation=app(\App\Services\CostCalculationService::class)->calculate($company,$user,$fy,$order,$goods);
         $this->assertSame(1,$calculation['count']);
-        $this->assertDatabaseHas('cost_calculations',['id'=>$calculation['ids'][0],'company_id'=>$company,'order_id'=>$order,'goods_id'=>$goods,'total_cost'=>90]);
+        $this->assertDatabaseHas('cost_calculations',['id'=>$calculation['ids'][0],'company_id'=>$company,'order_id'=>$order,'goods_id'=>$goods,'total_cost'=>85]);
         $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'material','amount'=>20]);
         $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'labor','amount'=>60]);
-        $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'direct','amount'=>10]);
+        $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'direct','amount'=>5]);
     }
 }
