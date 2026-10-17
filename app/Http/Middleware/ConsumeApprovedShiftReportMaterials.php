@@ -13,7 +13,7 @@ final class ConsumeApprovedShiftReportMaterials
     {
         if ($request->routeIs('production.shift-reports.review') && $request->boolean('approve')) {
             $reportId = (int) $request->route('report');
-            $companyId = (int) $request->user()?->currentCompanyId();
+            $companyId = (int) $request->session()->get('company_id');
 
             if ($reportId > 0 && $companyId > 0) {
                 return DB::transaction(function () use ($request, $next, $companyId, $reportId) {
