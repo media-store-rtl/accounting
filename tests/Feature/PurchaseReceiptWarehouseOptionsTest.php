@@ -50,6 +50,26 @@ class PurchaseReceiptWarehouseOptionsTest extends TestCase
             ['company_id' => $company, 'code' => 'W3', 'name' => 'Inactive Warehouse', 'type' => 'مواد اولیه', 'is_active' => false, 'created_at' => now(), 'updated_at' => now()],
         ]);
 
+        $categoryId = DB::table('goods_categories')->insertGetId([
+            'company_id' => $company, 'name' => 'مواد اولیه', 'code' => 'CAT'.uniqid(),
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $unitId = DB::table('units')->insertGetId([
+            'company_id' => $company, 'name' => 'کیلوگرم', 'code' => 'KG'.uniqid(),
+            'symbol' => 'kg', 'unit_type' => 'weight', 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $goodsId = DB::table('goods')->insertGetId([
+            'company_id' => $company, 'category_id' => $categoryId, 'code' => 'MAT-001',
+            'name' => 'مواد آزمایشی', 'purchasable' => true, 'producible' => false,
+            'sellable' => false, 'is_active' => true, 'attributes' => json_encode([]),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('goods_units')->insert([
+            'goods_id' => $goodsId, 'unit_id' => $unitId, 'conversion_factor' => 1,
+            'is_base' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
         $otherAccount = DB::table('accounts')->insertGetId([
             'name' => 'Other Account', 'code' => 'OA'.uniqid(), 'created_at' => now(), 'updated_at' => now(),
         ]);
@@ -70,6 +90,8 @@ class PurchaseReceiptWarehouseOptionsTest extends TestCase
             ->assertSee('Warehouse Spaces')
             ->assertSee('انبار مواد اولیه')
             ->assertSee('انبار1')
+            ->assertSee('data-unit-label="کیلوگرم (kg)"', false)
+            ->assertSee('واحد انتخابی کالا')
             ->assertDontSee('Inactive Warehouse')
             ->assertDontSee('Other Company Warehouse');
     }
