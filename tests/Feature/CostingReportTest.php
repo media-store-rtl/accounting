@@ -120,6 +120,20 @@ class CostingReportTest extends TestCase
             'metadata' => json_encode(['production_id' => $production]),
             'created_at' => now(), 'updated_at' => now(),
         ]);
+        // Shift-report consumption can lack a production row; movement metadata
+        // must still attribute the unvalued quantity to its product, order and year.
+        DB::table('inventory_movements')->insert([
+            'company_id' => $company, 'goods_id' => $rawMaterial, 'location_id' => $sectionLocation,
+            'quantity' => -1, 'movement_type' => 'production_consumption',
+            'reference_type' => 'production_shift_reports', 'reference_id' => 999,
+            'occurred_at' => '2026-10-09 23:59:59',
+            'metadata' => json_encode([
+                'produced_goods_id' => $goods,
+                'order_id' => $order,
+                'fiscal_year_id' => $fy,
+            ]),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
         $handover = DB::table('material_handovers')->insertGetId([
             'company_id'=>$company,'fiscal_year_id'=>$fy,'supply_request_id'=>$supply,
             'warehouse_location_id'=>$location,'delivered_by_user_id'=>$user,'received_by_user_id'=>$user,
@@ -208,7 +222,7 @@ class CostingReportTest extends TestCase
         $this->assertSame(5.0,$report['rows'][0]['direct_cost']);
         $this->assertSame(92.0,$report['rows'][0]['total_cost']);
         $this->assertSame(['fifo'],$report['rows'][0]['valuation_methods']);
-        $this->assertSame(3.0,$report['totals']['unvalued_material_quantity']);
+        $this->assertSame(4.0,$report['totals']['unvalued_material_quantity']);
         $this->assertSame(1.0, $report['totals']['production_report_unvalued_material_quantity']);
         $this->assertCount(1,$report['production_reports']);
         $this->assertSame(['Stage'], $report['production_reports'][0]['stage_names']);
