@@ -26,7 +26,7 @@ class MaterialRequestHandoverTest extends TestCase
         $role = DB::table('roles')->insertGetId([
             'company_id' => $company, 'name' => 'Production', 'slug' => 'production', 'is_system' => false, 'created_at' => now(), 'updated_at' => now(),
         ]);
-        foreach (['supply_request.handover.create', 'supply_request.handover.view', 'location.create'] as $slug) {
+        foreach (['supply_request.handover.create', 'supply_request.handover.view', 'location.create', 'production_section.create'] as $slug) {
             $permission = DB::table('permissions')->insertGetId([
                 'name' => $slug, 'slug' => $slug, 'module' => 'production-supply', 'created_at' => now(), 'updated_at' => now(),
             ]);
