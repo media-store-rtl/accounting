@@ -76,7 +76,7 @@ class ConsumeApprovedShiftReportMaterialsMiddlewareTest extends TestCase
         DB::table('production_shift_reports')->insert([
             'id' => 8,
             'company_id' => 1,
-            'status' => 'approved',
+            'status' => 'pending',
         ]);
 
         $service = Mockery::mock(ProductionShiftReportMaterialConsumption::class);
@@ -85,12 +85,12 @@ class ConsumeApprovedShiftReportMaterialsMiddlewareTest extends TestCase
             ->with(1, 8, 42);
         $this->app->instance(ProductionShiftReportMaterialConsumption::class, $service);
 
-        $response = $this->runMiddleware(8);
+        $response = $this->runMiddleware(8, true);
 
         $this->assertSame(302, $response->getStatusCode());
     }
 
-    private function runMiddleware(int $reportId): RedirectResponse
+    private function runMiddleware(int $reportId, bool $persistApproval = false): RedirectResponse
     {
         $request = Request::create(
             '/production/shift-reports/'.$reportId.'/review',
@@ -116,7 +116,15 @@ class ConsumeApprovedShiftReportMaterialsMiddlewareTest extends TestCase
 
         return $middleware->handle(
             $request,
-            fn () => new RedirectResponse('/production/shift-reports')
+            function () use ($reportId, $persistApproval) {
+                if ($persistApproval) {
+                    DB::table('production_shift_reports')
+                        ->where('id', $reportId)
+                        ->update(['status' => 'approved']);
+                }
+
+                return new RedirectResponse('/production/shift-reports');
+            }
         );
     }
 }
