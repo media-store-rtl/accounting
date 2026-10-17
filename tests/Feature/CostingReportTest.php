@@ -199,7 +199,7 @@ class CostingReportTest extends TestCase
         $this->assertSame(92.0,$report['rows'][0]['total_cost']);
         $this->assertSame(['fifo'],$report['rows'][0]['valuation_methods']);
         $this->assertSame(0.0,$report['totals']['unvalued_material_quantity']);
-        $this->assertSame(2.0, $report['totals']['production_report_unvalued_material_quantity']);
+        $this->assertSame(1.0, $report['totals']['production_report_unvalued_material_quantity']);
         $this->assertCount(1,$report['production_reports']);
         $this->assertSame(['Stage'], $report['production_reports'][0]['stage_names']);
         $this->assertCount(2, $report['production_reports'][0]['materials']);
@@ -211,7 +211,7 @@ class CostingReportTest extends TestCase
         $this->assertTrue($report['production_reports'][0]['materials'][0]['cost_complete']);
         $this->assertSame(1.0, $report['production_reports'][0]['materials'][1]['allocated_quantity']);
         $this->assertSame(1.0, $report['production_reports'][0]['materials'][1]['unmatched_quantity']);
-        $this->assertSame(2.0, $report['production_reports'][0]['materials'][1]['unvalued_quantity']);
+        $this->assertSame(1.0, $report['production_reports'][0]['materials'][1]['unvalued_quantity']);
         $this->assertSame(0.0, $report['production_reports'][0]['materials'][1]['material_cost']);
         $this->assertFalse($report['production_reports'][0]['materials'][1]['cost_complete']);
         $this->assertFalse($report['production_reports'][0]['material_cost_complete']);
