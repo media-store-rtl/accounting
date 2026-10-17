@@ -167,11 +167,8 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 @elseif($f==='type' && ($module ?? null) === 'locations')
 <select name="{{$f}}" class="form-select" required>
     <option value="مواد اولیه" @selected((string)$value==='مواد اولیه')>مواد اولیه</option>
-    <option value="مواد" @selected((string)$value==='مواد')>مواد اولیه (نوع قدیمی)</option>
-    <option value="محصول" @selected((string)$value==='محصول')>محصول نهایی</option>
+    <option value="محصول" @selected((string)$value==='محصول')>محصول</option>
     <option value="ضایعات" @selected((string)$value==='ضایعات')>ضایعات</option>
-    <option value="warehouse" @selected((string)$value==='warehouse')>انبار (نوع قدیمی)</option>
-    <option value="انبار" @selected((string)$value==='انبار')>انبار (نوع قدیمی فارسی)</option>
 </select>
 @elseif($f==='status')
 <select name="{{$f}}" class="form-select" required><option value="active" @selected((string)$value==='active')>فعال</option><option value="inactive" @selected((string)$value==='inactive')>غیرفعال</option></select>
