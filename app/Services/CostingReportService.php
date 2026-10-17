@@ -147,8 +147,12 @@ final class CostingReportService
             $supply=$supplies->get($supplyIdFromMetadata($item));
             $productionId=(int)($supply?->production_id??($meta['production_id']??0));
             $production=$productions->get($productionId);
-            $targetGoodsId=$production?->goods_id!==null?(int)$production->goods_id:(int)$item->goods_id;
-            $resolvedOrderId=$supply?->order_id;
+            // Shift-report consumption can be valid without a linked production row.
+            // In that case use the produced good and order captured on the movement itself.
+            $targetGoodsId=$production?->goods_id!==null
+                ?(int)$production->goods_id
+                :(int)($meta['produced_goods_id']??$item->goods_id);
+            $resolvedOrderId=$supply?->order_id??($meta['order_id']??null);
             if($resolvedOrderId===null&&$productionId){
                 $resolvedOrderId=$links->get($productionId)?->first()?->order_id;
             }
@@ -170,7 +174,9 @@ final class CostingReportService
             $meta=json_decode((string)$m->metadata,true)?:[];
             $productionId=(int)($supply?->production_id??($meta['production_id']??0));
             $production=$productions->get($productionId);
-            $movementFiscalYearId=$supply?->fiscal_year_id??$production?->fiscal_year_id;
+            $movementFiscalYearId=$supply?->fiscal_year_id
+                ??$production?->fiscal_year_id
+                ??($meta['fiscal_year_id']??null);
             if($fy!==null&&$movementFiscalYearId!==null&&(int)$movementFiscalYearId!==$fy)continue;
             if($orderId!==null&&$oid!==$orderId)continue;
             if($goodsId!==null&&$targetGoodsId!==$goodsId)continue;
@@ -328,7 +334,7 @@ final class CostingReportService
                 $productionOrder = $productionOrders->get((int) ($metadata['production_id'] ?? 0));
                 $sectionId = (int) ($supply->production_section_id ?? $movement->location_section_id ?? 0);
                 if ($sectionId <= 0) continue;
-                $orderKey = (int) ($supply->order_id ?? $productionOrder->order_id ?? 0);
+                $orderKey = (int) ($supply->order_id ?? $productionOrder->order_id ?? $metadata['order_id'] ?? 0);
                 $key = $sectionId . ':' . (int) $movement->material_id . ':' . $orderKey;
                 $quantity = abs((float) $movement->quantity);
                 if ($quantity <= 0.0000001) continue;
