@@ -134,6 +134,15 @@ class CostingReportTest extends TestCase
             ]),
             'created_at' => now(), 'updated_at' => now(),
         ]);
+        // A movement with no known fiscal year must not leak into this year's report.
+        DB::table('inventory_movements')->insert([
+            'company_id' => $company, 'goods_id' => $rawMaterial, 'location_id' => $sectionLocation,
+            'quantity' => -2, 'movement_type' => 'production_consumption',
+            'reference_type' => 'production_shift_reports', 'reference_id' => 1000,
+            'occurred_at' => '2026-10-10 23:59:59',
+            'metadata' => json_encode(['produced_goods_id' => $goods, 'order_id' => $order]),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
         $handover = DB::table('material_handovers')->insertGetId([
             'company_id'=>$company,'fiscal_year_id'=>$fy,'supply_request_id'=>$supply,
             'warehouse_location_id'=>$location,'delivered_by_user_id'=>$user,'received_by_user_id'=>$user,
