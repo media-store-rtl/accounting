@@ -17,7 +17,13 @@ return new class extends Migration
         DB::table('production_sections as ps')
             ->join('locations as l', 'l.id', '=', 'ps.location_id')
             ->whereNull('ps.company_id')
-            ->update(['ps.company_id' => DB::raw('l.company_id')]);
+            ->select('ps.id', 'l.company_id')
+            ->get()
+            ->each(function ($section) {
+                DB::table('production_sections')
+                    ->where('id', $section->id)
+                    ->update(['company_id' => $section->company_id]);
+            });
 
         // Keep any pre-existing rows with no resolvable location scoped safely
         // to the company inferred from their old location whenever possible.
