@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Services\ProductionShiftReportMaterialConsumptionService;
+use App\Contracts\ProductionShiftReportMaterialConsumption;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -50,7 +50,7 @@ final class ConsumeApprovedShiftReportMaterials
                         ->value('status');
 
                     if ($status === 'approved') {
-                        app(ProductionShiftReportMaterialConsumptionService::class)->consumeApprovedReport(
+                        app(ProductionShiftReportMaterialConsumption::class)->consumeApprovedReport(
                             $companyId,
                             $reportId,
                             (int) $request->user()->id
