@@ -18,7 +18,7 @@ final class InventoryBalanceService
         return (float) DB::table('inventory_movements as m')->join('locations as l','l.id','=','m.location_id')
             ->where('m.company_id',$companyId)->where('m.goods_id',$goodsId)->where('l.company_id',$companyId)
             ->where('l.is_active',true)->where(function($query){
-                $query->whereRaw('LOWER(TRIM(l.type)) IN (?, ?, ?)', ['warehouse', 'انبار', 'مواد'])->orWhereRaw('TRIM(l.type) = ?', ['محصول']);
+                $query->whereRaw('LOWER(TRIM(l.type)) IN (?, ?, ?, ?)', ['warehouse', 'انبار', 'مواد', 'مواد اولیه'])->orWhereRaw('TRIM(l.type) = ?', ['محصول']);
             })->sum('m.quantity');
     }
 
