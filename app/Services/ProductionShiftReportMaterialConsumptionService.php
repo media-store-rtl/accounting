@@ -93,6 +93,8 @@ final class ProductionShiftReportMaterialConsumptionService
                 'shift_report_id' => $reportId,
                 'approved_by_user_id' => $reviewerId,
                 'production_section_id' => (int) $report->production_section_id,
+                // Preserve attribution even when this shift report has no linked production/order.
+                'produced_goods_id' => (int) $report->goods_id,
                 'work_date' => (string) $report->work_date,
                 // Value only against cost layers received on or before the report date.
                 'effective_occurred_at' => (string) $report->work_date . ' 23:59:59',
