@@ -101,7 +101,7 @@ class CostingReportTest extends TestCase
             'company_id' => $company, 'goods_id' => $rawMaterial, 'location_id' => $sectionLocation,
             'quantity' => -1, 'movement_type' => 'production_consumption',
             'reference_type' => 'production_operation_runs', 'reference_id' => $run,
-            'occurred_at' => now(), 'metadata' => json_encode(['production_id' => $production]),
+            'occurred_at' => '2026-10-07 07:00:00', 'metadata' => json_encode(['production_id' => $production]),
             'created_at' => now(), 'updated_at' => now(),
         ]);
         DB::table('inventory_consumption_costs')->insert([
@@ -209,8 +209,8 @@ class CostingReportTest extends TestCase
         $this->assertSame(20.0, $report['production_reports'][0]['materials'][0]['material_cost']);
         $this->assertSame(10.0, $report['production_reports'][0]['materials'][0]['unit_cost']);
         $this->assertTrue($report['production_reports'][0]['materials'][0]['cost_complete']);
-        $this->assertSame(0.0, $report['production_reports'][0]['materials'][1]['allocated_quantity']);
-        $this->assertSame(2.0, $report['production_reports'][0]['materials'][1]['unmatched_quantity']);
+        $this->assertSame(1.0, $report['production_reports'][0]['materials'][1]['allocated_quantity']);
+        $this->assertSame(1.0, $report['production_reports'][0]['materials'][1]['unmatched_quantity']);
         $this->assertSame(2.0, $report['production_reports'][0]['materials'][1]['unvalued_quantity']);
         $this->assertSame(0.0, $report['production_reports'][0]['materials'][1]['material_cost']);
         $this->assertFalse($report['production_reports'][0]['materials'][1]['cost_complete']);
