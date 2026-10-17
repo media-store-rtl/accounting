@@ -12,6 +12,10 @@ final class ConsumeApprovedShiftReportMaterials
 {
     public function handle(Request $request, Closure $next)
     {
+        if (! $request->hasSession()) {
+            return $next($request);
+        }
+
         $reportId = (int) $request->route('report');
         $companyId = (int) $request->session()->get('company_id');
 
