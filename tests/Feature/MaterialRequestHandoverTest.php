@@ -79,6 +79,23 @@ class MaterialRequestHandoverTest extends TestCase
             ->assertSee('value="ضایعات"', false);
     }
 
+    public function test_location_form_accepts_the_new_raw_material_type(): void
+    {
+        $this->context();
+
+        $this->post('/master/locations', [
+            'code' => 'RAWNEW',
+            'name' => 'Raw Materials',
+            'type' => 'مواد اولیه',
+        ])->assertRedirect('/master/locations');
+
+        $this->assertDatabaseHas('locations', [
+            'code' => 'RAWNEW',
+            'name' => 'Raw Materials',
+            'type' => 'مواد اولیه',
+        ]);
+    }
+
     public function test_location_form_rejects_unrecognized_types(): void
     {
         $this->context();
