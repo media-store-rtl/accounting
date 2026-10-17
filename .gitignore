@@ -13,3 +13,6 @@
 .phpunit.cache
 .DS_Store
 /error_log
+
+/bootstrap/cache/*.php
+!/bootstrap/cache/.gitignore
