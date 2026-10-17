@@ -123,9 +123,11 @@ class InventoryService
                 ->orderByDesc('sr.id')->value('sr.id');
             if ($supplyRequestId) $metadata['supply_request_id'] = (int) $supplyRequestId;
         }
+        $occurredAt = $metadata['effective_occurred_at'] ?? now();
+        unset($metadata['effective_occurred_at']);
         $movementId = DB::table('inventory_movements')->insertGetId([
             'company_id'=>$companyId,'goods_id'=>$goodsId,'location_id'=>$locationId,'quantity'=>-$quantity,'movement_type'=>'production_consumption',
-            'reference_type'=>$referenceType,'reference_id'=>$referenceId,'occurred_at'=>now(),
+            'reference_type'=>$referenceType,'reference_id'=>$referenceId,'occurred_at'=>$occurredAt,
             'metadata'=>json_encode($metadata+['production_section_id'=>$sectionId,'movement_leg'=>'consumption']),'created_at'=>now(),'updated_at'=>now(),
         ]);
         $fiscalYearId = (int) ($metadata['fiscal_year_id'] ?? 0);

@@ -169,21 +169,32 @@ final class InventoryValuationService
                 ->where('company_id', $companyId)
                 ->where('location_id', $locationId)
                 ->where('goods_id', $goodsId)
+                // A movement must never be valued from a receipt that occurred after it.
+                // For backdated movements, later receipts are deliberately left unallocated;
+                // a full historical replay is required to reconstruct already-consumed layers.
+                ->where('received_at', '<=', $movement->occurred_at)
                 ->where($column, '>', 0)
                 ->when($method === self::FIFO, fn ($query) => $query->orderBy('received_at')->orderBy('id'))
                 ->lockForUpdate()
                 ->get();
 
             $available = (float) $layers->sum($column);
-            if ($available + 0.0000001 < $quantity) {
-                return ['total_cost' => 0.0, 'unit_cost' => 0.0, 'method' => $method, 'valued' => false];
+            // Inventory can contain a mix of valued receipt layers and legacy or
+            // adjusted stock without layers. Value the traceable portion instead
+            // of discarding its cost merely because the full movement is not covered.
+            $valuedQuantity = min($quantity, $available);
+            if ($valuedQuantity <= 0.0000001) {
+                return [
+                    'total_cost' => 0.0, 'unit_cost' => 0.0, 'method' => $method,
+                    'valued' => false, 'valued_quantity' => 0.0, 'unvalued_quantity' => $quantity,
+                ];
             }
 
             $allocations = [];
             $totalCost = 0.0;
 
             if ($method === self::FIFO) {
-                $remaining = $quantity;
+                $remaining = $valuedQuantity;
                 foreach ($layers as $layer) {
                     if ($remaining <= 0) break;
                     $take = min($remaining, (float) $layer->{$column});
@@ -198,14 +209,14 @@ final class InventoryValuationService
                     $value += (float) $layer->{$column} * (float) $layer->unit_cost;
                 }
                 $average = $available > 0 ? $value / $available : 0.0;
-                $remaining = $quantity;
+                $remaining = $valuedQuantity;
                 foreach ($layers as $layer) {
                     if ($remaining <= 0) break;
                     $take = min($remaining, (float) $layer->{$column});
                     $allocations[] = [$layer, $take, $average];
                     $remaining -= $take;
                 }
-                $totalCost = $quantity * $average;
+                $totalCost = $valuedQuantity * $average;
             }
 
             $costId = DB::table('inventory_consumption_costs')->insertGetId([
@@ -215,8 +226,8 @@ final class InventoryValuationService
                 'location_id' => $locationId,
                 'inventory_movement_id' => $movementId,
                 'valuation_method' => $method,
-                'quantity' => $quantity,
-                'unit_cost' => $totalCost / $quantity,
+                'quantity' => $valuedQuantity,
+                'unit_cost' => $totalCost / $valuedQuantity,
                 'total_cost' => $totalCost,
                 'consumed_at' => $movement->occurred_at,
                 'created_at' => now(),
@@ -239,7 +250,14 @@ final class InventoryValuationService
                 ]);
             }
 
-            return ['total_cost' => $totalCost, 'unit_cost' => $totalCost / $quantity, 'method' => $method, 'valued' => true];
+            return [
+                'total_cost' => $totalCost,
+                'unit_cost' => $totalCost / $valuedQuantity,
+                'method' => $method,
+                'valued' => true,
+                'valued_quantity' => $valuedQuantity,
+                'unvalued_quantity' => max(0.0, $quantity - $valuedQuantity),
+            ];
         });
     }
 

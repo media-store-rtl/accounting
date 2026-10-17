@@ -101,7 +101,7 @@ class CostingReportTest extends TestCase
             'company_id' => $company, 'goods_id' => $rawMaterial, 'location_id' => $sectionLocation,
             'quantity' => -1, 'movement_type' => 'production_consumption',
             'reference_type' => 'production_operation_runs', 'reference_id' => $run,
-            'occurred_at' => now(), 'metadata' => json_encode(['production_id' => $production]),
+            'occurred_at' => '2026-10-07 07:00:00', 'metadata' => json_encode(['production_id' => $production]),
             'created_at' => now(), 'updated_at' => now(),
         ]);
         DB::table('inventory_consumption_costs')->insert([
@@ -109,6 +109,39 @@ class CostingReportTest extends TestCase
             'location_id' => $sectionLocation, 'inventory_movement_id' => $productionConsumption,
             'valuation_method' => 'fifo', 'quantity' => 1, 'unit_cost' => 7, 'total_cost' => 7,
             'consumed_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        // A later production consumption with no valuation must still appear in
+        // the global unvalued-material total, even without a supply_request_id.
+        DB::table('inventory_movements')->insert([
+            'company_id' => $company, 'goods_id' => $rawMaterial, 'location_id' => $sectionLocation,
+            'quantity' => -3, 'movement_type' => 'production_consumption',
+            'reference_type' => 'production_operation_runs', 'reference_id' => $run,
+            'occurred_at' => '2026-10-08 07:00:00',
+            'metadata' => json_encode(['production_id' => $production]),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        // Shift-report consumption can lack a production row; movement metadata
+        // must still attribute the unvalued quantity to its product, order and year.
+        DB::table('inventory_movements')->insert([
+            'company_id' => $company, 'goods_id' => $rawMaterial, 'location_id' => $sectionLocation,
+            'quantity' => -1, 'movement_type' => 'production_consumption',
+            'reference_type' => 'production_shift_reports', 'reference_id' => 999,
+            'occurred_at' => '2026-10-09 23:59:59',
+            'metadata' => json_encode([
+                'produced_goods_id' => $goods,
+                'order_id' => $order,
+                'fiscal_year_id' => $fy,
+            ]),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        // A movement with no known fiscal year must not leak into this year's report.
+        DB::table('inventory_movements')->insert([
+            'company_id' => $company, 'goods_id' => $rawMaterial, 'location_id' => $sectionLocation,
+            'quantity' => -2, 'movement_type' => 'production_consumption',
+            'reference_type' => 'production_shift_reports', 'reference_id' => 1000,
+            'occurred_at' => '2026-10-10 23:59:59',
+            'metadata' => json_encode(['produced_goods_id' => $goods, 'order_id' => $order]),
+            'created_at' => now(), 'updated_at' => now(),
         ]);
         $handover = DB::table('material_handovers')->insertGetId([
             'company_id'=>$company,'fiscal_year_id'=>$fy,'supply_request_id'=>$supply,
@@ -198,24 +231,24 @@ class CostingReportTest extends TestCase
         $this->assertSame(5.0,$report['rows'][0]['direct_cost']);
         $this->assertSame(92.0,$report['rows'][0]['total_cost']);
         $this->assertSame(['fifo'],$report['rows'][0]['valuation_methods']);
-        $this->assertSame(0.0,$report['totals']['unvalued_material_quantity']);
-        $this->assertSame(2.0, $report['totals']['production_report_unvalued_material_quantity']);
+        $this->assertSame(4.0,$report['totals']['unvalued_material_quantity']);
+        $this->assertSame(1.0, $report['totals']['production_report_unvalued_material_quantity']);
         $this->assertCount(1,$report['production_reports']);
         $this->assertSame(['Stage'], $report['production_reports'][0]['stage_names']);
         $this->assertCount(2, $report['production_reports'][0]['materials']);
         $this->assertSame('Raw Material', $report['production_reports'][0]['materials'][0]['material_name']);
         $this->assertSame(2.0, $report['production_reports'][0]['materials'][0]['allocated_quantity']);
         $this->assertSame(2.0, $report['production_reports'][0]['materials'][0]['valued_quantity']);
-        $this->assertSame(20.0, $report['production_reports'][0]['materials'][0]['material_cost']);
-        $this->assertSame(10.0, $report['production_reports'][0]['materials'][0]['unit_cost']);
+        $this->assertSame(17.0, $report['production_reports'][0]['materials'][0]['material_cost']);
+        $this->assertSame(8.5, $report['production_reports'][0]['materials'][0]['unit_cost']);
         $this->assertTrue($report['production_reports'][0]['materials'][0]['cost_complete']);
-        $this->assertSame(0.0, $report['production_reports'][0]['materials'][1]['allocated_quantity']);
-        $this->assertSame(2.0, $report['production_reports'][0]['materials'][1]['unmatched_quantity']);
-        $this->assertSame(2.0, $report['production_reports'][0]['materials'][1]['unvalued_quantity']);
-        $this->assertSame(0.0, $report['production_reports'][0]['materials'][1]['material_cost']);
+        $this->assertSame(1.0, $report['production_reports'][0]['materials'][1]['allocated_quantity']);
+        $this->assertSame(1.0, $report['production_reports'][0]['materials'][1]['unmatched_quantity']);
+        $this->assertSame(1.0, $report['production_reports'][0]['materials'][1]['unvalued_quantity']);
+        $this->assertSame(10.0, $report['production_reports'][0]['materials'][1]['material_cost']);
         $this->assertFalse($report['production_reports'][0]['materials'][1]['cost_complete']);
         $this->assertFalse($report['production_reports'][0]['material_cost_complete']);
-        $this->assertSame(20.0, $report['production_reports'][0]['material_cost']);
+        $this->assertSame(27.0, $report['production_reports'][0]['material_cost']);
         $this->assertSame(1.0,$report['product_rows'][0]['produced_quantity']);
         $this->assertSame(92.0,$report['product_rows'][0]['unit_cost']);
         $allGoodsReport=app(CostingReportService::class)->generate($company,$fy,$order);

@@ -65,6 +65,27 @@ class InventoryValuationTest extends TestCase
         $this->assertSame(80.0,(float)DB::table('inventory_cost_layers')->sum('weighted_average_quantity_remaining'));
     }
 
+    public function test_partial_layer_coverage_values_available_quantity_and_leaves_remainder_unvalued(): void
+    {
+        $c = $this->context(InventoryValuationService::FIFO);
+        $this->layer($c, 5, 10, '2026-10-01 10:00:00');
+
+        $movementId = $this->movement($c, 8);
+        $result = app(InventoryValuationService::class)->valueInventoryMovement($movementId, $c['fy']);
+
+        $this->assertTrue($result['valued']);
+        $this->assertSame(5.0, (float) $result['valued_quantity']);
+        $this->assertSame(3.0, (float) $result['unvalued_quantity']);
+        $this->assertSame(50.0, (float) $result['total_cost']);
+        $this->assertSame(10.0, (float) $result['unit_cost']);
+
+        $cost = DB::table('inventory_consumption_costs')->where('inventory_movement_id', $movementId)->first();
+        $this->assertNotNull($cost);
+        $this->assertSame(5.0, (float) $cost->quantity);
+        $this->assertSame(50.0, (float) $cost->total_cost);
+        $this->assertSame(0.0, (float) DB::table('inventory_cost_layers')->sum('fifo_quantity_remaining'));
+    }
+
     public function test_method_can_be_selected_before_valued_transactions(): void
     {
         $c=$this->context(InventoryValuationService::FIFO);
