@@ -35,6 +35,7 @@ class ConsumeApprovedShiftReportMaterialsMiddlewareTest extends TestCase
             $table->id();
             $table->unsignedBigInteger('company_id');
             $table->string('status');
+            $table->date('work_date')->nullable();
         });
 
         Schema::create('inventory_movements', function (Blueprint $table) {
@@ -105,6 +106,33 @@ class ConsumeApprovedShiftReportMaterialsMiddlewareTest extends TestCase
         $response = $this->runMiddleware(9);
 
         $this->assertSame(302, $response->getStatusCode());
+    }
+
+
+    public function test_backdated_pending_report_is_blocked_before_approval_or_inventory_consumption(): void
+    {
+        DB::table('production_shift_reports')->insert([
+            'id' => 10,
+            'company_id' => 1,
+            'status' => 'pending',
+            'work_date' => now()->subDay()->toDateString(),
+        ]);
+
+        $service = Mockery::mock(ProductionShiftReportMaterialConsumption::class);
+        $service->shouldNotReceive('consumeApprovedReport');
+        $this->app->instance(ProductionShiftReportMaterialConsumption::class, $service);
+
+        try {
+            $this->runMiddleware(10, true);
+            $this->fail('Expected a validation exception for a backdated report.');
+        } catch (\\Illuminate\\Validation\\ValidationException $exception) {
+            $this->assertArrayHasKey('work_date', $exception->errors());
+        }
+
+        $this->assertSame(
+            'pending',
+            DB::table('production_shift_reports')->where('id', 10)->value('status')
+        );
     }
 
     private function runMiddleware(int $reportId, bool $persistApproval = false): RedirectResponse

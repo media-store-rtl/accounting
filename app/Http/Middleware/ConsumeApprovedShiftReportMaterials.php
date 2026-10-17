@@ -40,10 +40,23 @@ final class ConsumeApprovedShiftReportMaterials
 
         if ($reportId > 0 && $companyId > 0 && $request->routeIs('production.shift-reports.review') && $request->boolean('approve')) {
             return DB::transaction(function () use ($request, $next, $companyId, $reportId) {
-                $statusBeforeReview = DB::table('production_shift_reports')
+                $reportBeforeReview = DB::table('production_shift_reports')
                     ->where('company_id', $companyId)
                     ->where('id', $reportId)
-                    ->value('status');
+                    ->first(['status', 'work_date']);
+
+                // Never backdate an automatic stock consumption against today's balance.
+                // Historical reports must use the separately controlled reconciliation flow.
+                if ($reportBeforeReview
+                    && $reportBeforeReview->status === 'pending'
+                    && $reportBeforeReview->work_date !== null
+                    && (string) $reportBeforeReview->work_date < now()->toDateString()) {
+                    throw ValidationException::withMessages([
+                        'work_date' => 'این گزارش تاریخ گذشته دارد؛ برای جلوگیری از مصرف موجودی امروز با تاریخ تاریخی، تأیید خودکار مصرف انبار مجاز نیست. ابتدا باید از مسیر تطبیق تاریخیِ تأییدشده استفاده شود.',
+                    ]);
+                }
+
+                $statusBeforeReview = $reportBeforeReview->status ?? null;
 
                 $response = $next($request);
                 // A redirect can also represent validation failure or a rejected review.
