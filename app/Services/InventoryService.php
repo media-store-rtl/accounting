@@ -24,7 +24,7 @@ class InventoryService
     public function issue(int $companyId,int $locationId,int $goodsId,float $quantity,string $referenceType,int $referenceId,array $metadata=[]): void
     {
         if ($quantity <= 0) throw new RuntimeException('مقدار خروج کالا باید بیشتر از صفر باشد.');
-        abort_unless(DB::table('locations')->where('id',$locationId)->where('company_id',$companyId)->whereRaw('LOWER(TRIM(type)) IN (?, ?)', ['warehouse', 'انبار'])->where('is_active',true)->exists(),422,'انبار معتبر نیست.');
+        abort_unless(DB::table('locations')->where('id',$locationId)->where('company_id',$companyId)->whereRaw('LOWER(TRIM(type)) IN (?, ?, ?)', ['warehouse', 'انبار', 'مواد'])->where('is_active',true)->exists(),422,'انبار معتبر نیست.');
         DB::table('inventory')->insertOrIgnore(['company_id'=>$companyId,'location_id'=>$locationId,'goods_id'=>$goodsId,'quantity'=>0,'reorder_point'=>0,'created_at'=>now(),'updated_at'=>now()]);
         $row=DB::table('inventory')->where('company_id',$companyId)->where('location_id',$locationId)->where('goods_id',$goodsId)->lockForUpdate()->first();
         abort_unless($row,422,'ثبت ردیف کنترل انبار ممکن نشد.');
@@ -41,7 +41,7 @@ class InventoryService
     {
         if ($quantity <= 0) throw new RuntimeException('مقدار خروج کالا باید بیشتر از صفر باشد.');
         $locations=DB::table('locations')->where('company_id',$companyId)->where('is_active',true)
-            ->where(function($q){$q->whereRaw('LOWER(TRIM(type)) IN (?, ?)', ['warehouse', 'انبار'])->orWhereRaw('TRIM(type) = ?', ['محصول']);})
+            ->where(function($q){$q->whereRaw('LOWER(TRIM(type)) IN (?, ?, ?)', ['warehouse', 'انبار', 'مواد'])->orWhereRaw('TRIM(type) = ?', ['محصول']);})
             ->orderBy('id')->get(['id']);
         $remaining=$quantity;
         foreach($locations as $location){
@@ -70,7 +70,7 @@ class InventoryService
         $section=DB::table('production_sections as s')->join('locations as target','target.id','=','s.location_id')
             ->where('s.id',$sectionId)->where('target.company_id',$companyId)->where('target.is_active',true)->select('target.id as location_id')->first();
         abort_unless($section,422,'قسمت تولید مقصد معتبر یا فعال نیست.');
-        abort_unless(DB::table('locations')->where('id',$warehouseLocationId)->where('company_id',$companyId)->whereRaw('LOWER(TRIM(type)) IN (?, ?)', ['warehouse', 'انبار'])->where('is_active',true)->exists(),422,'انبار مبدأ معتبر نیست.');
+        abort_unless(DB::table('locations')->where('id',$warehouseLocationId)->where('company_id',$companyId)->whereRaw('LOWER(TRIM(type)) IN (?, ?, ?)', ['warehouse', 'انبار', 'مواد'])->where('is_active',true)->exists(),422,'انبار مبدأ معتبر نیست.');
         $this->issue($companyId,$warehouseLocationId,$goodsId,$quantity,$referenceType,$referenceId,$metadata+['production_section_id'=>$sectionId,'movement_leg'=>'out']);
         // A handover to production is a location transfer, not material consumption.
         // Keep the warehouse issue out of costing totals and move its cost layers.
@@ -153,7 +153,7 @@ class InventoryService
     {
         if($newQuantity<0) throw new RuntimeException('موجودی نهایی نمی‌تواند منفی باشد.');
         DB::transaction(function()use($companyId,$locationId,$goodsId,$newQuantity,$reason,$userId){
-            abort_unless(DB::table('locations')->where('id',$locationId)->where('company_id',$companyId)->whereRaw('LOWER(TRIM(type)) IN (?, ?)', ['warehouse', 'انبار'])->where('is_active',true)->exists(),422,'انبار معتبر نیست.');
+            abort_unless(DB::table('locations')->where('id',$locationId)->where('company_id',$companyId)->whereRaw('LOWER(TRIM(type)) IN (?, ?, ?)', ['warehouse', 'انبار', 'مواد'])->where('is_active',true)->exists(),422,'انبار معتبر نیست.');
             DB::table('inventory')->insertOrIgnore(['company_id'=>$companyId,'location_id'=>$locationId,'goods_id'=>$goodsId,'quantity'=>0,'reorder_point'=>0,'created_at'=>now(),'updated_at'=>now()]);
             $row=DB::table('inventory')->where('company_id',$companyId)->where('location_id',$locationId)->where('goods_id',$goodsId)->lockForUpdate()->first();
             abort_unless($row,422,'ردیف کنترل موجودی پیدا نشد.');
@@ -321,8 +321,8 @@ class InventoryService
     {
         if($quantity<=0) throw new RuntimeException('مقدار ورود کالا باید بیشتر از صفر باشد.');
         $locationQuery=DB::table('locations')->where('id',$locationId)->where('company_id',$companyId)->where('is_active',true);
-        if($allowProductionReceiptLocationTypes){$locationQuery->where(function($q){$q->whereRaw('LOWER(TRIM(type)) IN (?, ?)', ['warehouse', 'انبار'])->orWhereIn(DB::raw('TRIM(type)'), ['مواد','محصول','ضایعات']);});}
-        else {$locationQuery->whereRaw('LOWER(TRIM(type)) IN (?, ?)', ['warehouse', 'انبار']);}
+        if($allowProductionReceiptLocationTypes){$locationQuery->where(function($q){$q->whereRaw('LOWER(TRIM(type)) IN (?, ?, ?)', ['warehouse', 'انبار', 'مواد'])->orWhereIn(DB::raw('TRIM(type)'), ['مواد','محصول','ضایعات']);});}
+        else {$locationQuery->whereRaw('LOWER(TRIM(type)) IN (?, ?, ?)', ['warehouse', 'انبار', 'مواد']);}
         abort_unless($locationQuery->exists(),422,'انبار معتبر نیست.');
         DB::table('inventory')->insertOrIgnore(['company_id'=>$companyId,'location_id'=>$locationId,'goods_id'=>$goodsId,'quantity'=>0,'reorder_point'=>0,'created_at'=>now(),'updated_at'=>now()]);
         $row=DB::table('inventory')->where('company_id',$companyId)->where('location_id',$locationId)->where('goods_id',$goodsId)->lockForUpdate()->first();

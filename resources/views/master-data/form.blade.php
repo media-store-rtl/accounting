@@ -164,6 +164,14 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 @elseif($f==='supervisor_personnel_id')
 <select id="field-{{$f}}" name="{{$f}}" class="form-select"><option value="">بدون سرپرست</option>@foreach(($options['personnel']??[]) as $o)<option value="{{$o->id}}" @selected((string)$value===(string)$o->id)>{{$o->name}}</option>@endforeach</select>
 @if(($module ?? null) === 'production-sections')<p class="field-help">در صورت مشخص بودن مسئول این قسمت، سرپرست را انتخاب کنید؛ این فیلد اختیاری است.</p>@endif
+@elseif($f==='type' && ($module ?? null) === 'locations')
+<select name="{{$f}}" class="form-select" required>
+    <option value="مواد" @selected((string)$value==='مواد')>مواد اولیه / انبار مواد</option>
+    <option value="محصول" @selected((string)$value==='محصول')>محصول نهایی</option>
+    <option value="ضایعات" @selected((string)$value==='ضایعات')>ضایعات</option>
+    <option value="warehouse" @selected((string)$value==='warehouse')>انبار (نوع قدیمی)</option>
+    <option value="انبار" @selected((string)$value==='انبار')>انبار (نوع قدیمی فارسی)</option>
+</select>
 @elseif($f==='status')
 <select name="{{$f}}" class="form-select" required><option value="active" @selected((string)$value==='active')>فعال</option><option value="inactive" @selected((string)$value==='inactive')>غیرفعال</option></select>
 @elseif(in_array($f,['purchasable','producible','sellable']))
