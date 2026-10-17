@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureAccountOwner;
 use App\Http\Middleware\EnsureCompanyPermission;
 use App\Http\Middleware\AuditTrailMiddleware;
+use App\Http\Middleware\ConsumeApprovedShiftReportMaterials;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -15,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(AuditTrailMiddleware::class)
+        ->append(ConsumeApprovedShiftReportMaterials::class)
         ->alias([
             'company.permission' => EnsureCompanyPermission::class,
             'account.owner' => EnsureAccountOwner::class,
