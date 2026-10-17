@@ -291,7 +291,7 @@ class ProductionShiftReportStagesTest extends TestCase
 
         $warehouse = DB::table('locations')->insertGetId([
             'company_id' => $company, 'code' => 'WH' . uniqid(), 'name' => 'Finished Goods Warehouse',
-            'type' => 'مواد اولیه', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+            'type' => 'محصول', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
 
         // Approving an intermediate good must not transfer it to the finished-goods warehouse.
