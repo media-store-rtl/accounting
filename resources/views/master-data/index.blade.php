@@ -104,9 +104,9 @@
 @if ($module === 'production-sections')
     <div class="master-guide" role="note">
         <strong>راهنمای قسمت‌های تولید</strong>
-        <div>«قسمت تولید» محل یا واحد سازمانی‌ای است که مسئول اجرای بخشی از فرایند ساخت است؛ برای نمونه، کارگاه برش، سالن مونتاژ یا واحد بسته‌بندی. در این صفحه قسمت تولید را به یک محل از فهرست انبارها و محل‌ها وصل می‌کنید.</div>
+        <div>«قسمت تولید» یک واحد مستقل در فرایند ساخت است؛ مانند کارگاه برش، سالن مونتاژ یا واحد بسته‌بندی. نام قسمت را مستقیماً تعریف کنید؛ این بخش به انبارها وابسته نیست.</div>
         <ul>
-            <li><strong>محل / انبار:</strong> محل فیزیکی یا سازمانی مربوط به این قسمت را انتخاب کنید. اگر گزینه مناسبی وجود ندارد، ابتدا آن محل را در بخش «انبارها و محل‌ها» تعریف کنید.</li>
+            <li><strong>نام قسمت:</strong> نام دلخواه این واحد را در فرم ثبت یا ویرایش وارد کنید.</li>
             <li><strong>سرپرست:</strong> در صورت مشخص بودن مسئول، پرسنل سرپرست این قسمت را انتخاب کنید؛ اگر هنوز تعیین نشده، می‌توانید خالی بگذارید.</li>
             <li>پس از ثبت قسمت تولید، در بخش «مراحل تولید» آن را به مرحله مناسب وصل کنید و مسیر و ترتیب مرحله را مشخص کنید.</li>
         </ul>
@@ -143,7 +143,7 @@
             @if ($module === 'productions')
                 <thead><tr><th>شماره دستور</th><th>کالا</th><th>مسیر تولید</th><th>سال مالی</th><th>مقدار برنامه‌ریزی‌شده</th><th>شروع برنامه‌ریزی‌شده</th><th>پایان برنامه‌ریزی‌شده</th><th>یادداشت</th><th>وضعیت</th><th>عملیات</th></tr></thead>
             @else
-                <thead><tr>@if ($module === 'production-sections')<th>نام قسمت تولید</th><th>محل مرتبط</th><th>سرپرست</th>@else @foreach ($definition['fields'] as $field)<th>{{ $fieldLabels[$field] ?? $field }}</th>@endforeach @endif<th>عملیات</th></tr></thead>
+                <thead><tr>@if ($module === 'production-sections')<th>نام قسمت تولید</th><th>سرپرست</th>@else @foreach ($definition['fields'] as $field)<th>{{ $fieldLabels[$field] ?? $field }}</th>@endforeach @endif<th>عملیات</th></tr></thead>
             @endif
             <tbody>
                 @forelse ($rows as $row)
@@ -161,7 +161,6 @@
                         @else
                             @if ($module === 'production-sections')
                                 <td>{{ $row->name ?? '—' }}</td>
-                                <td>{{ $row->location_name ?? $row->location_id ?? '—' }}</td>
                                 <td>{{ $row->supervisor_name ?? $row->supervisor_personnel_id ?? '—' }}</td>
                             @else
                                 @foreach ($definition['fields'] as $field)
@@ -188,7 +187,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="{{ ($module === 'productions' ? 10 : ($module === 'production-sections' ? 4 : count($definition['fields']) + 1)) }}" style="text-align:center;padding:30px;color:#71879d">رکوردی برای نمایش وجود ندارد.</td></tr>
+                    <tr><td colspan="{{ ($module === 'productions' ? 10 : ($module === 'production-sections' ? 3 : count($definition['fields']) + 1)) }}" style="text-align:center;padding:30px;color:#71879d">رکوردی برای نمایش وجود ندارد.</td></tr>
                 @endforelse
             </tbody>
         </table>
