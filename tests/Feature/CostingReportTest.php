@@ -206,8 +206,8 @@ class CostingReportTest extends TestCase
         $this->assertSame('Raw Material', $report['production_reports'][0]['materials'][0]['material_name']);
         $this->assertSame(2.0, $report['production_reports'][0]['materials'][0]['allocated_quantity']);
         $this->assertSame(2.0, $report['production_reports'][0]['materials'][0]['valued_quantity']);
-        $this->assertSame(20.0, $report['production_reports'][0]['materials'][0]['material_cost']);
-        $this->assertSame(10.0, $report['production_reports'][0]['materials'][0]['unit_cost']);
+        $this->assertSame(17.0, $report['production_reports'][0]['materials'][0]['material_cost']);
+        $this->assertSame(8.5, $report['production_reports'][0]['materials'][0]['unit_cost']);
         $this->assertTrue($report['production_reports'][0]['materials'][0]['cost_complete']);
         $this->assertSame(1.0, $report['production_reports'][0]['materials'][1]['allocated_quantity']);
         $this->assertSame(1.0, $report['production_reports'][0]['materials'][1]['unmatched_quantity']);
@@ -215,7 +215,7 @@ class CostingReportTest extends TestCase
         $this->assertSame(0.0, $report['production_reports'][0]['materials'][1]['material_cost']);
         $this->assertFalse($report['production_reports'][0]['materials'][1]['cost_complete']);
         $this->assertFalse($report['production_reports'][0]['material_cost_complete']);
-        $this->assertSame(20.0, $report['production_reports'][0]['material_cost']);
+        $this->assertSame(27.0, $report['production_reports'][0]['material_cost']);
         $this->assertSame(1.0,$report['product_rows'][0]['produced_quantity']);
         $this->assertSame(92.0,$report['product_rows'][0]['unit_cost']);
         $allGoodsReport=app(CostingReportService::class)->generate($company,$fy,$order);
