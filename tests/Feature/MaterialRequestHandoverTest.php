@@ -74,9 +74,11 @@ class MaterialRequestHandoverTest extends TestCase
             ->assertOk()
             ->assertSee('name="type"', false)
             ->assertSee('value="مواد اولیه"', false)
-            ->assertSee('value="مواد"', false)
             ->assertSee('value="محصول"', false)
-            ->assertSee('value="ضایعات"', false);
+            ->assertSee('value="ضایعات"', false)
+            ->assertDontSee('value="warehouse"', false)
+            ->assertDontSee('value="انبار"', false)
+            ->assertDontSee('value="مواد"', false);
     }
 
     public function test_location_form_accepts_the_new_raw_material_type(): void
