@@ -15,8 +15,55 @@ The production database was inspected read-only by the operator through phpMyAdm
 - An all-date handover query found two completed handovers for goods_id = 1, each quantity 1, both on 2026-10-17 (handover IDs 1 and 2; section 1; warehouse location 2).
 - Six cost-layer rows for goods_id = 1 were returned, all received on 2026-10-17. Their displayed quantities sum to 8 and their total_cost values sum to 86,000. These rows are later than the affected reports and cannot be assumed to price earlier consumption.
 - Reports 8-12 and 14 were shown as received, report 13 as approved but not received; report 7 and report 1 were rejected. The report lines should be revalidated against live data and status before any correction.
-- The current ProductionShiftReportMaterialConsumptionService consumes report materials when the review/approve request runs. It does not itself replay old reports already approved/received before that flow existed.
+- In the proposed approval flow on PR #183, the ConsumeApprovedShiftReportMaterials middleware invokes ProductionShiftReportMaterialConsumptionService after a pending report is persisted as approved. On main, ProductionShiftReportController::review() does not itself invoke that service. Neither the service nor the proposed middleware replays old reports that were approved/received before the flow existed.
 - CostingReportService calculates material cost from valued inventory consumption records, not from report material lines alone. InventoryValuationService intentionally excludes cost layers received after the effective movement time.
+
+
+## Report-level reconciliation baseline
+
+The read-only audit output for company 1 and work dates 2026-10-12 through 2026-10-16 reported 14 reports checked, 13 report/material groups, 44 units across all report material lines, zero linked consumption movement quantity, zero valued quantity, and zero linked valuation cost. The report/material rows had no matching `production_consumption` movements or valuation rows.
+
+The reported 32-unit figure is specifically the sum of the received reports below; it is not the sum of every material line in the date range:
+
+| Report ID | Work date | Status | Material goods ID | Reported quantity |
+|---:|---|---|---:|---:|
+| 2 | 2026-10-13 | received | 1 | 5 |
+| 3 | 2026-10-13 | received | 1 | 1 |
+| 4 | 2026-10-13 | received | 1 | 10 |
+| 5 | 2026-10-14 | received | 1 | 10 |
+| 8 | 2026-10-14 | received | 1 | 1 |
+| 9 | 2026-10-14 | received | 1 | 1 |
+| 10 | 2026-10-14 | received | 1 | 1 |
+| 11 | 2026-10-14 | received | 1 | 1 |
+| 12 | 2026-10-14 | received | 1 | 1 |
+| 14 | 2026-10-15 | received | 1 | 1 |
+| **Total** | | | | **32** |
+
+Reports 1 (rejected, 10 units) and 7 (rejected, 1 unit) are excluded from the 32-unit received-report total. Report 13 is approved but not received, records 1 unit of material goods ID 1, and has produced goods ID 4; keep it as a separate unresolved case rather than adding it to the received-report total. The aggregate of 44 units includes report rows outside the 32-unit received subset, so the two totals must not be conflated.
+
+These are a snapshot of previously supplied audit results, not a substitute for revalidating the current database before any proposed correction.
+
+
+## Reconciliation worksheet — do not post inventory changes from this template
+
+Complete one row per report/material line using source documents and the live ledger. Leave fields blank or mark `unverified` when evidence is unavailable. Do not estimate a unit cost from later receipts.
+
+| Report | Qty | Receipt/purchase layer evidence (ID/date/qty) | Transfer into production section (movement/handover ID and date) | Physical consumption evidence | Historical layer quantity available at report time | Supported unit cost and source | Reviewer / decision |
+|---:|---:|---|---|---|---|---|---|
+| 2 | 5 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 3 | 1 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 4 | 10 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 5 | 10 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 8 | 1 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 9 | 1 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 10 | 1 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 11 | 1 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 12 | 1 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 14 | 1 | unverified | unverified | unverified | unverified | unresolved | pending |
+| **Received-report subtotal** | **32** | | | | | | |
+| 13 (separate case; approved, not received) | 1 | unverified | unverified | unverified | unverified | unresolved | review separately |
+
+Before any write-mode repair is considered, reconcile each source receipt and transfer against the movement ledger and the production-section location at the effective time. A finished-goods receipt is not evidence of raw-material consumption. If the historical source layer or stock balance cannot be proven, leave the case unresolved and do not backfill a guessed cost.
 
 ## Root cause assessment
 
