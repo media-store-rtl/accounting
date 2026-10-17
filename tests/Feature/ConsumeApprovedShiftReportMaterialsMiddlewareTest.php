@@ -9,8 +9,6 @@ use Illuminate\\Http\\Request;
 use Illuminate\\Routing\\Route;
 use Illuminate\\Support\\Facades\\DB;
 use Illuminate\\Support\\Facades\\Schema;
-use Illuminate\\Support\\Session\\ArraySessionHandler;
-use Illuminate\\Session\\Store;
 use Mockery;
 use Symfony\\Component\\HttpFoundation\\RedirectResponse;
 use Tests\\TestCase;
@@ -91,7 +89,7 @@ class ConsumeApprovedShiftReportMaterialsMiddlewareTest extends TestCase
             'POST',
             ['approve' => '1']
         );
-        $session = new Store('test-session', new ArraySessionHandler(120));
+        $session = app('session')->driver('array');
         $session->start();
         $session->put('company_id', 1);
         $request->setLaravelSession($session);
