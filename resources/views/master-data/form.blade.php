@@ -137,7 +137,7 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 @foreach($definition['fields'] as $f)
 @php $value=old($f,$row->$f ?? ''); @endphp
 <div class="col-md-6 form-field">
-<label class="form-label fw-semibold" for="field-{{$f}}">{{ $labels[$f] ?? $f }}@if(($module ?? null) === 'production-sections' && in_array($f, ['name', 'location_id'], true)) <span class="text-danger">*</span>@endif</label>
+<label class="form-label fw-semibold" for="field-{{$f}}">{{ ($module ?? null) === 'production-sections' && $f === 'name' ? 'نام قسمت تولید' : (($module ?? null) === 'production-sections' && $f === 'location_id' ? 'محل مرتبط برای موجودی' : ($labels[$f] ?? $f)) }}@if(($module ?? null) === 'production-sections' && in_array($f, ['name', 'location_id'], true)) <span class="text-danger">*</span>@endif</label>
 @if(($module ?? null) === 'productions' && ($row->status ?? null) === 'paused' && !in_array($f, ['planned_start_at', 'planned_end_at'], true))
 <div class="form-control" style="display:flex;align-items:center;min-height:42px;opacity:.75" aria-readonly="true">{{ $value !== '' && $value !== null ? $value : '—' }}</div>
 @else
@@ -191,6 +191,7 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 <textarea name="{{$f}}" class="form-control" rows="3">{{$value}}</textarea>
 @else
 <input name="{{$f}}" value="{{$value}}" class="form-control" @if(in_array($f,['code','name','number'])) required @endif>
+@if(($module ?? null) === 'production-sections' && $f === 'name')<p class="field-help">این نام مستقل از نام انبار یا محل مرتبط است و در فهرست قسمت‌های تولید نمایش داده می‌شود.</p>@endif
 @endif
 @endif
 @error($f)<div class="text-danger small mt-1">{{$message}}</div>@enderror
