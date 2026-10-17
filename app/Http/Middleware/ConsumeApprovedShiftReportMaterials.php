@@ -41,12 +41,21 @@ final class ConsumeApprovedShiftReportMaterials
         if ($reportId > 0 && $companyId > 0 && $request->routeIs('production.shift-reports.review') && $request->boolean('approve')) {
             return DB::transaction(function () use ($request, $next, $companyId, $reportId) {
                 $response = $next($request);
+                // A redirect can also represent validation failure or a rejected review.
+                // Only create inventory consumption after the controller actually persisted approval.
                 if ($response->isSuccessful() || $response->isRedirection()) {
-                    app(ProductionShiftReportMaterialConsumptionService::class)->consumeApprovedReport(
-                        $companyId,
-                        $reportId,
-                        (int) $request->user()->id
-                    );
+                    $status = DB::table('production_shift_reports')
+                        ->where('company_id', $companyId)
+                        ->where('id', $reportId)
+                        ->value('status');
+
+                    if ($status === 'approved') {
+                        app(ProductionShiftReportMaterialConsumptionService::class)->consumeApprovedReport(
+                            $companyId,
+                            $reportId,
+                            (int) $request->user()->id
+                        );
+                    }
                 }
                 return $response;
             });
