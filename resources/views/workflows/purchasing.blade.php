@@ -45,7 +45,7 @@
 <div style="padding:10px 0;border-top:1px solid #29465e">
 <div style="font-size:12px;color:#e9f3fb;margin-bottom:8px">{{ $item->goods_name }} — کسری باقی‌مانده: {{ number_format(max(0,(float)$item->shortage_quantity-(float)$item->supplied_quantity),4,'.',',') }}</div>
 <input type="hidden" name="items[{{ $index }}][goods_id]" value="{{ $item->goods_id }}">
-<label style="display:flex;flex-direction:column;gap:5px;color:#9eb2c4;font-size:11px">مقدار خرید<input name="items[{{ $index }}][quantity]" type="number" min="0.0001" max="{{ max(0,(float)$item->shortage_quantity-(float)$item->supplied_quantity) }}" step="0.0001" value="{{ max(0,(float)$item->shortage_quantity-(float)$item->supplied_quantity) }}" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:8px;padding:9px;font:inherit"></label>
+<label style="display:flex;flex-direction:column;gap:5px;color:#9eb2c4;font-size:11px">مقدار خرید (می‌تواند بیشتر از کسری درخواست باشد)<input name="items[{{ $index }}][quantity]" type="number" min="0.0001" step="0.0001" value="{{ max(0,(float)$item->shortage_quantity-(float)$item->supplied_quantity) }}" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:8px;padding:9px;font:inherit"><small style="color:#8198ac;line-height:1.8">مقدار را بر اساس سفارش واقعی وارد کنید؛ بیشتر بودن از کسری درخواست مجاز است.</small></label>
 <label style="display:flex;flex-direction:column;gap:5px;color:#9eb2c4;font-size:11px;margin-top:8px">قیمت واحد<input name="items[{{ $index }}][unit_price]" type="number" min="0.0001" step="0.0001" required placeholder="قیمت واقعی هر واحد" style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:8px;padding:9px;font:inherit"></label>
 </div>
 @endforeach
