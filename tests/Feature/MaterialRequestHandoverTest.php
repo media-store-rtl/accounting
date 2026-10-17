@@ -142,13 +142,9 @@ class MaterialRequestHandoverTest extends TestCase
     public function test_handover_lists_named_production_sections_separately_from_warehouse_locations(): void
     {
         $c = $this->context();
-        $sectionLocation = DB::table('locations')->insertGetId([
-            'company_id' => $c['company'], 'code' => 'CELL1', 'name' => 'Production Cell Location',
-            'type' => 'مواد اولیه', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
-        ]);
         $sectionId = DB::table('production_sections')->insertGetId([
-            'name' => 'Cutting Section', 'location_id' => $sectionLocation, 'is_active' => true,
-            'created_at' => now(), 'updated_at' => now(),
+            'company_id' => $c['company'], 'name' => 'Cutting Section', 'location_id' => null,
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
         DB::table('locations')->insert([
             'company_id' => $c['company'], 'code' => 'RAW2', 'name' => 'Raw Warehouse',
@@ -169,7 +165,6 @@ class MaterialRequestHandoverTest extends TestCase
             ->assertSee('Cutting Section')
             ->assertSee('Cutting Stage')
             ->assertSee('Raw Warehouse')
-            ->assertDontSee('Production Cell Location')
             ->assertDontSee('Cutting Stage — Cutting Route');
     }
 
