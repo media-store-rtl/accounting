@@ -143,7 +143,7 @@ class MaterialHandoverController extends Controller
                         ->first();
 
                     if ($movement) {
-                        $valuation->valueInventoryMovement((int) $movement->id, (int) $requestRow->fiscal_year_id);
+                        $valuation->valueInventoryMovement((int) $movement->id, $fiscalYearId);
                     }
                 }
 
