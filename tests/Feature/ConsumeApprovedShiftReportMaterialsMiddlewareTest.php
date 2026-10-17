@@ -15,12 +15,21 @@ use Tests\TestCase;
 
 class ConsumeApprovedShiftReportMaterialsMiddlewareTest extends TestCase
 {
+    private string $originalConnection;
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        Schema::dropIfExists('inventory_movements');
-        Schema::dropIfExists('production_shift_reports');
+        $this->originalConnection = config('database.default');
+        config(['database.connections.shift_report_middleware_test' => [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => '',
+            'foreign_key_constraints' => false,
+        ]]);
+        DB::purge('shift_report_middleware_test');
+        DB::setDefaultConnection('shift_report_middleware_test');
 
         Schema::create('production_shift_reports', function (Blueprint $table) {
             $table->id();
@@ -40,9 +49,8 @@ class ConsumeApprovedShiftReportMaterialsMiddlewareTest extends TestCase
 
     protected function tearDown(): void
     {
-        Schema::dropIfExists('inventory_movements');
-        Schema::dropIfExists('production_shift_reports');
-
+        DB::setDefaultConnection($this->originalConnection);
+        DB::purge('shift_report_middleware_test');
         parent::tearDown();
     }
 
