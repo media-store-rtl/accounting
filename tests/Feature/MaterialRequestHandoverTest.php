@@ -114,7 +114,7 @@ class MaterialRequestHandoverTest extends TestCase
     public function test_material_handover_page_lists_material_location_type(): void
     {
         $c = $this->context();
-        DB::table('locations')->where('id', $c['warehouse'])->update(['type' => 'مواد']);
+        DB::table('locations')->where('id', $c['warehouse'])->update(['type' => 'مواد اولیه']);
 
         $this->get('/handovers')
             ->assertOk()
@@ -144,7 +144,7 @@ class MaterialRequestHandoverTest extends TestCase
         $c = $this->context();
         $sectionLocation = DB::table('locations')->insertGetId([
             'company_id' => $c['company'], 'code' => 'CELL1', 'name' => 'Production Cell Location',
-            'type' => 'مواد', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+            'type' => 'مواد اولیه', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
         $sectionId = DB::table('production_sections')->insertGetId([
             'name' => 'Cutting Section', 'location_id' => $sectionLocation, 'is_active' => true,
@@ -176,7 +176,7 @@ class MaterialRequestHandoverTest extends TestCase
     public function test_material_handover_accepts_material_location_type(): void
     {
         $c = $this->context();
-        DB::table('locations')->where('id', $c['warehouse'])->update(['type' => 'مواد']);
+        DB::table('locations')->where('id', $c['warehouse'])->update(['type' => 'مواد اولیه']);
         $requestId = DB::table('supply_requests')->latest('id')->value('id');
 
         $response = $this->postJson('/api/material-handovers', [
