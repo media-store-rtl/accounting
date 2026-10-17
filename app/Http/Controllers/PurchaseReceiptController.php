@@ -22,7 +22,7 @@ class PurchaseReceiptController extends Controller
         $id=DB::transaction(function()use($data,$companyId,$request){
             $purchase=DB::table('purchases')->where('id',$data['purchase_id'])->where('company_id',$companyId)->lockForUpdate()->first();
             abort_unless($purchase&&$purchase->status!=='cancelled',422,'خرید معتبر نیست.');
-            abort_unless(DB::table('locations')->where('id',$data['warehouse_location_id'])->where('company_id',$companyId)->whereRaw("LOWER(TRIM(type)) IN (?, ?, ?, ?)",['warehouse','انبار','مواد','مواد اولیه'])->where('is_active',true)->whereNotExists(function($q){$q->select(DB::raw(1))->from('production_sections as ps')->whereColumn('ps.location_id','locations.id')->where('ps.is_active',true);})->exists(),422,'انبار معتبر نیست.');
+            abort_unless(DB::table('locations')->where('id',$data['warehouse_location_id'])->where('company_id',$companyId)->whereRaw("LOWER(TRIM(type)) = ?",['مواد اولیه'])->where('is_active',true)->whereNotExists(function($q){$q->select(DB::raw(1))->from('production_sections as ps')->whereColumn('ps.location_id','locations.id')->where('ps.is_active',true);})->exists(),422,'انبار معتبر نیست.');
             $id=DB::table('purchase_receipts')->insertGetId([
                 'company_id'=>$companyId,'purchase_id'=>$purchase->id,'warehouse_location_id'=>$data['warehouse_location_id'],'received_by_user_id'=>$request->user()->id,
                 'received_at'=>$data['received_at'],'status'=>'pending','notes'=>$data['notes']??null,'created_at'=>now(),'updated_at'=>now()
