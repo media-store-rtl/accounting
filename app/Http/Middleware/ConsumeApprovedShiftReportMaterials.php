@@ -45,15 +45,25 @@ final class ConsumeApprovedShiftReportMaterials
                     ->where('id', $reportId)
                     ->first(['status', 'work_date']);
 
-                // Never backdate an automatic stock consumption against today's balance.
-                // Historical reports must use the separately controlled reconciliation flow.
+                // Automatic consumption uses today's available stock. Do not post it with a
+                // historical or future effective date; those cases need a separately controlled flow.
+                $today = now()->toDateString();
                 if ($reportBeforeReview
                     && $reportBeforeReview->status === 'pending'
-                    && $reportBeforeReview->work_date !== null
-                    && (string) $reportBeforeReview->work_date < now()->toDateString()) {
-                    throw ValidationException::withMessages([
-                        'work_date' => 'این گزارش تاریخ گذشته دارد؛ برای جلوگیری از مصرف موجودی امروز با تاریخ تاریخی، تأیید خودکار مصرف انبار مجاز نیست. ابتدا باید از مسیر تطبیق تاریخیِ تأییدشده استفاده شود.',
-                    ]);
+                    && $reportBeforeReview->work_date !== null) {
+                    $workDate = (string) $reportBeforeReview->work_date;
+
+                    if ($workDate < $today) {
+                        throw ValidationException::withMessages([
+                            'work_date' => 'این گزارش تاریخ گذشته دارد؛ برای جلوگیری از مصرف موجودی امروز با تاریخ تاریخی، تأیید خودکار مصرف انبار مجاز نیست. ابتدا باید از مسیر تطبیق تاریخیِ تأییدشده استفاده شود.',
+                        ]);
+                    }
+
+                    if ($workDate > $today) {
+                        throw ValidationException::withMessages([
+                            'work_date' => 'تاریخ این گزارش در آینده است؛ تأیید و مصرف خودکار مواد پیش از تاریخ گزارش مجاز نیست.',
+                        ]);
+                    }
                 }
 
                 $statusBeforeReview = $reportBeforeReview->status ?? null;
