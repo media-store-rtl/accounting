@@ -69,6 +69,32 @@ class PurchaseReceiptWarehouseOptionsTest extends TestCase
             'goods_id' => $goodsId, 'unit_id' => $unitId, 'conversion_factor' => 1,
             'is_base' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
+        $fiscalYearId = DB::table('fiscal_years')->insertGetId([
+            'company_id' => $company, 'name' => 'سال آزمایشی', 'code' => 'FY'.uniqid(),
+            'starts_at' => '2026-01-01', 'ends_at' => '2026-12-31',
+            'is_closed' => false, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $supplierId = DB::table('suppliers')->insertGetId([
+            'company_id' => $company, 'name' => 'تأمین‌کننده آزمایشی', 'code' => 'SUP'.uniqid(),
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $purchaseId = DB::table('purchases')->insertGetId([
+            'company_id' => $company, 'fiscal_year_id' => $fiscalYearId, 'supplier_id' => $supplierId,
+            'invoice_number' => null, 'invoice_date' => null, 'purchased_at' => '2026-10-01',
+            'subtotal' => 200, 'direct_cost_total' => 0, 'total_amount' => 200,
+            'status' => 'received', 'notes' => null, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $receiptId = DB::table('purchase_receipts')->insertGetId([
+            'company_id' => $company, 'purchase_id' => $purchaseId,
+            'warehouse_location_id' => DB::table('locations')->where('company_id', $company)->where('code', 'W4')->value('id'),
+            'received_by_user_id' => $userId, 'received_at' => '2026-10-02 10:00:00',
+            'approved_at' => '2026-10-02 10:05:00', 'approved_by_user_id' => $userId,
+            'status' => 'approved', 'notes' => null, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('purchase_receipt_items')->insert([
+            'purchase_receipt_id' => $receiptId, 'goods_id' => $goodsId, 'quantity' => 2,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
 
         $otherAccount = DB::table('accounts')->insertGetId([
             'name' => 'Other Account', 'code' => 'OA'.uniqid(), 'created_at' => now(), 'updated_at' => now(),
@@ -92,6 +118,8 @@ class PurchaseReceiptWarehouseOptionsTest extends TestCase
             ->assertSee('انبار1')
             ->assertSee('data-unit-label="کیلوگرم (kg)"', false)
             ->assertSee('واحد انتخابی کالا')
+            ->assertSee('کیلوگرم (kg)')
+            ->assertSee('2.0000')
             ->assertDontSee('Inactive Warehouse')
             ->assertDontSee('Other Company Warehouse');
     }
