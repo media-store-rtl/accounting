@@ -35,7 +35,7 @@ class MaterialHandoverController extends Controller
             if ($requestId !== null) abort_unless($requestRow && !in_array($requestRow->status, ['fulfilled', 'cancelled'], true), 422, 'درخواست تأمین قابل تحویل نیست.');
 
             $sessionFiscalYearId = (int) $request->session()->get('fiscal_year_id');
-            $fiscalYearId = $requestRow ? $fiscalYearId : (int) DB::table('fiscal_years')->where('company_id', $companyId)->where('is_closed', false)->where('id', $sessionFiscalYearId)->value('id');
+            $fiscalYearId = $requestRow ? (int) $requestRow->fiscal_year_id : (int) DB::table('fiscal_years')->where('company_id', $companyId)->where('is_closed', false)->where('id', $sessionFiscalYearId)->value('id');
             if (!$fiscalYearId && !$requestRow) $fiscalYearId = (int) DB::table('fiscal_years')->where('company_id', $companyId)->where('is_closed', false)->orderByDesc('starts_at')->value('id');
             abort_unless($fiscalYearId, 422, 'برای ثبت تحویل، یک سال مالی فعال انتخاب کنید.');
 
