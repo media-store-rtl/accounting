@@ -11,16 +11,13 @@
 @if($locations->isEmpty())
 <div role="alert" style="padding:12px 14px;margin-bottom:14px;border:1px solid #8b6732;border-radius:10px;background:#332b1d;color:#f6d28b;font-size:12px">هیچ انبار فعال برای این شرکت پیدا نشد. در بخش «انبارها و محل‌ها» یک محل فعال با نوع «مواد اولیه» ایجاد یا فعال کنید.</div>
 @endif
-@if($requests->isEmpty())
-<div role="alert" style="padding:12px 14px;margin-bottom:14px;border:1px solid #8b6732;border-radius:10px;background:#332b1d;color:#f6d28b;font-size:12px">درخواست تأمین قابل تحویل وجود ندارد؛ ابتدا وضعیت درخواست را به «خریداری‌شده» یا «آماده تحویل» برسانید.</div>
-@endif
 @if($users->isEmpty() || $goods->isEmpty())
 <div role="alert" style="padding:12px 14px;margin-bottom:14px;border:1px solid #8b6732;border-radius:10px;background:#332b1d;color:#f6d28b;font-size:12px">{{ $users->isEmpty() ? 'کاربر فعال برای این شرکت وجود ندارد.' : '' }}{{ $users->isEmpty() && $goods->isEmpty() ? ' ' : '' }}{{ $goods->isEmpty() ? 'کالای فعال برای انتخاب وجود ندارد.' : '' }}</div>
 @endif
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px;align-items:start">
 <label style="display:flex;flex-direction:column;gap:8px;color:#c0d0df;font-size:12px;font-weight:600">درخواست تأمین
-<select name="supply_request_id" required @disabled($requests->isEmpty()) style="box-sizing:border-box;width:100%;min-height:44px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
-<option value="">انتخاب درخواست تأمین</option>
+<select name="supply_request_id" style="box-sizing:border-box;width:100%;min-height:44px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
+<option value="">بدون درخواست تأمین</option>
 @foreach($requests as $x)<option value="{{ $x->id }}" data-section-id="{{ $x->production_section_id ?? '' }}" @selected((string)old('supply_request_id')===(string)$x->id)>درخواست #{{ $x->id }} — {{ match($x->status) {'stock_available'=>'موجود در انبار','purchased'=>'خریداری‌شده','partially_supplied'=>'تحویل جزئی',default=>$x->status} }}</option>@endforeach
 </select></label>
 <label style="display:flex;flex-direction:column;gap:8px;color:#c0d0df;font-size:12px;font-weight:600">انبار
@@ -59,9 +56,9 @@
 <input name="items[0][quantity]" type="number" step="0.0001" min="0.0001" value="{{ old('items.0.quantity') }}" required style="box-sizing:border-box;width:100%;min-height:44px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit"></label>
 <label style="display:flex;flex-direction:column;gap:8px;color:#c0d0df;font-size:12px;font-weight:600">توضیحات (اختیاری)
 <input name="notes" value="{{ old('notes') }}" style="box-sizing:border-box;width:100%;min-height:44px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit"></label>
-</div><div style="margin-top:20px"><button class="btn primary" type="submit" @disabled($locations->isEmpty() || $requests->isEmpty() || $users->isEmpty() || $goods->isEmpty())>ثبت تحویل</button></div></form></div>
+</div><div style="margin-top:20px"><button class="btn primary" type="submit" @disabled($locations->isEmpty() || $users->isEmpty() || $goods->isEmpty())>ثبت تحویل</button></div></form></div>
 <div class="panel"><h2 style="font-size:15px;margin:0 0 14px">تحویل‌های ثبت‌شده</h2><div class="table-wrap"><table><thead><tr><th>شناسه</th><th>درخواست</th><th>وضعیت</th><th>زمان تحویل</th></tr></thead><tbody>
-@forelse($rows as $x)<tr><td>#{{ $x->id }}</td><td>#{{ $x->supply_request_id }}</td><td><span class="status {{ in_array($x->status, ['completed','approved','delivered'], true) ? 'active' : 'inactive' }}">{{ $x->status }}</span></td><td>{{ $x->handed_over_at }}</td></tr>@empty<tr><td colspan="4" style="text-align:center;padding:28px;color:#8198ac">تحویلی برای نمایش وجود ندارد.</td></tr>@endforelse
+@forelse($rows as $x)<tr><td>#{{ $x->id }}</td><td>{{ $x->supply_request_id ? '#'.$x->supply_request_id : '—' }}</td><td><span class="status {{ in_array($x->status, ['completed','approved','delivered'], true) ? 'active' : 'inactive' }}">{{ $x->status }}</span></td><td>{{ $x->handed_over_at }}</td></tr>@empty<tr><td colspan="4" style="text-align:center;padding:28px;color:#8198ac">تحویلی برای نمایش وجود ندارد.</td></tr>@endforelse
 </tbody></table></div>@if(method_exists($rows, 'links'))<div class="pagination">{{ $rows->links() }}</div>@endif</div>
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
