@@ -139,6 +139,17 @@ class MaterialRequestHandoverTest extends TestCase
             ->assertSee('مرحله تولید');
     }
 
+    public function test_production_section_form_uses_a_free_name_instead_of_a_warehouse_picker(): void
+    {
+        $this->context();
+
+        $this->get('/master/production-sections/create')
+            ->assertOk()
+            ->assertSee('name="name"', false)
+            ->assertDontSee('name="location_id"', false)
+            ->assertSee('نام قسمت تولید');
+    }
+
     public function test_handover_lists_named_production_sections_separately_from_warehouse_locations(): void
     {
         $c = $this->context();
