@@ -136,6 +136,32 @@ class ConsumeApprovedShiftReportMaterialsMiddlewareTest extends TestCase
         );
     }
 
+    public function test_future_dated_pending_report_is_blocked_before_approval_or_inventory_consumption(): void
+    {
+        DB::table('production_shift_reports')->insert([
+            'id' => 11,
+            'company_id' => 1,
+            'status' => 'pending',
+            'work_date' => now()->addDay()->toDateString(),
+        ]);
+
+        $service = Mockery::mock(ProductionShiftReportMaterialConsumption::class);
+        $service->shouldNotReceive('consumeApprovedReport');
+        $this->app->instance(ProductionShiftReportMaterialConsumption::class, $service);
+
+        try {
+            $this->runMiddleware(11, true);
+            $this->fail('Expected a validation exception for a future-dated report.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('work_date', $exception->errors());
+        }
+
+        $this->assertSame(
+            'pending',
+            DB::table('production_shift_reports')->where('id', 11)->value('status')
+        );
+    }
+
     private function runMiddleware(int $reportId, bool $persistApproval = false): RedirectResponse
     {
         $request = Request::create(
