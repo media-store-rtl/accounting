@@ -71,7 +71,7 @@ final class ProductionOutputController extends Controller
                 'g.sellable as goods_sellable', 'section_location.name as section_name', 'l.name as location_name')
             ->latest('r.reviewed_at')->latest('r.id')->paginate(20, ['*'], 'shift_page');
         $shiftWarehouses = DB::table('locations')->where('company_id', $companyId)->where('is_active', true)
-            ->where(function ($query) { $query->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])->orWhereIn(DB::raw('TRIM(type)'), ['مواد', 'محصول', 'ضایعات']); })
+            ->where(function ($query) { $query->whereRaw('LOWER(TRIM(type)) = ?', ['مواد اولیه'])->orWhereIn(DB::raw('TRIM(type)'), ['مواد اولیه', 'محصول', 'ضایعات']); })
             ->orderBy('name')->get(['id', 'name']);
         return view('production.outputs.index', compact('rows', 'shiftRows', 'shiftWarehouses', 'canReceiveShiftReports'));
     }
@@ -106,7 +106,7 @@ final class ProductionOutputController extends Controller
                 throw \Illuminate\Validation\ValidationException::withMessages(['warehouse_location_id' => 'برای تکمیل تحویل این گزارش باید همان انبار قبلی انتخاب شود.']);
             }
             $warehouse = DB::table('locations')->where('id', (int) $data['warehouse_location_id'])->where('company_id', $companyId)->where('is_active', true)
-                ->where(function ($query) { $query->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])->orWhereIn(DB::raw('TRIM(type)'), ['مواد', 'محصول', 'ضایعات']); })->exists();
+                ->where(function ($query) { $query->whereRaw('LOWER(TRIM(type)) = ?', ['مواد اولیه'])->orWhereIn(DB::raw('TRIM(type)'), ['مواد اولیه', 'محصول', 'ضایعات']); })->exists();
             if (!$warehouse) throw \Illuminate\Validation\ValidationException::withMessages(['warehouse_location_id' => 'انبار مقصد معتبر نیست.']);
             $inventory->receiveFinishedGoods($companyId, (int) $data['warehouse_location_id'], (int) $row->goods_id, $remaining,
                 'production_shift_reports', $report, ['production_section_id' => (int) $row->production_section_id, 'shift_name' => $row->shift_name,
@@ -136,7 +136,7 @@ final class ProductionOutputController extends Controller
         $productions = DB::table('productions as p')->join('goods as g','g.id','=','p.goods_id')
             ->where('p.company_id',$companyId)->where('p.status','completed')
             ->orderByDesc('p.id')->get(['p.id','p.number','p.goods_id','g.code as goods_code','g.name as goods_name']);
-        $locations = DB::table('locations')->where('company_id',$companyId)->where('type','warehouse')->where('is_active',true)->orderBy('name')->get();
+        $locations = DB::table('locations')->where('company_id',$companyId)->where('type','محصول')->where('is_active',true)->orderBy('name')->get();
         return view('production.outputs.create', compact('productions','locations'));
     }
 

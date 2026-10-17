@@ -66,10 +66,10 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 <h2 style="font-size:15px;margin:0 0 8px">راهنمای ثبت قسمت تولید</h2>
 <p>قسمت تولید، محل یا واحدی است که یک بخش از فرایند ساخت در آن انجام می‌شود؛ مانند کارگاه برش، سالن مونتاژ یا واحد بسته‌بندی. بعداً می‌توانید این قسمت را به مرحله مرتبط در مسیر تولید وصل کنید.</p>
 <ul>
-<li><b>محل / انبار:</b> محل فیزیکی یا سازمانی مربوط به این قسمت را انتخاب کنید. اگر فهرست محل‌ها خالی است، ابتدا از بخش «انبارها و محل‌ها» محل مناسب را تعریف کنید.</li>
+<li><b>نام قسمت:</b> نام دلخواه این واحد را مستقیماً وارد کنید؛ مانند «کارگاه برش»، «سالن مونتاژ» یا «واحد بسته‌بندی». تعریف قسمت به ثبت انبار وابسته نیست.</li>
 <li><b>سرپرست:</b> در صورت مشخص بودن مسئول قسمت، پرسنل سرپرست را انتخاب کنید. اگر هنوز تعیین نشده، می‌توانید این مورد را خالی بگذارید.</li>
 </ul>
-<p><b>ترتیب پیشنهادی:</b> ابتدا محل را تعریف کنید؛ سپس قسمت تولید را ثبت کنید؛ بعد در «مراحل تولید» آن را به مرحله مناسب وصل کنید و مرحله را به مسیر مربوط اختصاص دهید.</p>
+<p><b>ترتیب پیشنهادی:</b> ابتدا قسمت تولید را با نام دلخواه ثبت کنید؛ سپس در «مراحل تولید» آن را به مرحله مناسب وصل کنید و مرحله را به مسیر مربوط اختصاص دهید.</p>
 <p style="color:#ffd7a1"><b>توجه:</b> ثبت قسمت تولید به‌تنهایی مرحله فعال ایجاد نمی‌کند. برای شروع دستور تولید، مسیر انتخاب‌شده باید دست‌کم یک مرحله فعال داشته باشد.</p>
 </div>
 @endif
@@ -131,13 +131,13 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 @csrf @if($editing ?? false) @method('PUT') @endif
 @if(($module ?? null) === 'production-sections')
     <h2 class="form-section-title">مشخصات قسمت تولید</h2>
-    <p class="form-section-intro">محل انجام فعالیت و مسئول این قسمت را مشخص کنید. موارد ستاره‌دار الزامی هستند.</p>
+    <p class="form-section-intro">نام مستقل این قسمت و مسئول آن را مشخص کنید. فقط نام قسمت الزامی است.</p>
 @endif
 <div class="row">
 @foreach($definition['fields'] as $f)
 @php $value=old($f,$row->$f ?? ''); @endphp
 <div class="col-md-6 form-field">
-<label class="form-label fw-semibold" for="field-{{$f}}">{{ $labels[$f] ?? $f }}@if(($module ?? null) === 'production-sections' && $f === 'location_id') <span class="text-danger">*</span>@endif</label>
+<label class="form-label fw-semibold" for="field-{{$f}}">{{ ($module ?? null) === 'production-sections' && $f === 'name' ? 'نام قسمت تولید' : ($labels[$f] ?? $f) }}@if(($module ?? null) === 'production-sections' && $f === 'name') <span class="text-danger">*</span>@endif</label>
 @if(($module ?? null) === 'productions' && ($row->status ?? null) === 'paused' && !in_array($f, ['planned_start_at', 'planned_end_at'], true))
 <div class="form-control" style="display:flex;align-items:center;min-height:42px;opacity:.75" aria-readonly="true">{{ $value !== '' && $value !== null ? $value : '—' }}</div>
 @else
@@ -160,17 +160,14 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 <select name="{{$f}}" class="form-select" required>@foreach(($options['fiscalYears']??[]) as $o)<option value="{{$o->id}}" @selected((string)$value===(string)$o->id)>{{$o->name}}</option>@endforeach</select>
 @elseif($f==='location_id')
 <select id="field-{{$f}}" name="{{$f}}" class="form-select" required><option value="">انتخاب محل / انبار</option>@foreach(($options['locations']??[]) as $o)<option value="{{$o->id}}" @selected((string)$value===(string)$o->id)>{{$o->name}}</option>@endforeach</select>
-@if(($module ?? null) === 'production-sections')<p class="field-help">محل فیزیکی یا سازمانی این قسمت را انتخاب کنید. اگر فهرست خالی است، ابتدا محل را در بخش «انبارها و محل‌ها» ثبت کنید.</p>@endif
 @elseif($f==='supervisor_personnel_id')
 <select id="field-{{$f}}" name="{{$f}}" class="form-select"><option value="">بدون سرپرست</option>@foreach(($options['personnel']??[]) as $o)<option value="{{$o->id}}" @selected((string)$value===(string)$o->id)>{{$o->name}}</option>@endforeach</select>
 @if(($module ?? null) === 'production-sections')<p class="field-help">در صورت مشخص بودن مسئول این قسمت، سرپرست را انتخاب کنید؛ این فیلد اختیاری است.</p>@endif
 @elseif($f==='type' && ($module ?? null) === 'locations')
 <select name="{{$f}}" class="form-select" required>
-    <option value="مواد" @selected((string)$value==='مواد')>مواد اولیه / انبار مواد</option>
-    <option value="محصول" @selected((string)$value==='محصول')>محصول نهایی</option>
+    <option value="مواد اولیه" @selected((string)$value==='مواد اولیه')>مواد اولیه</option>
+    <option value="محصول" @selected((string)$value==='محصول')>محصول</option>
     <option value="ضایعات" @selected((string)$value==='ضایعات')>ضایعات</option>
-    <option value="warehouse" @selected((string)$value==='warehouse')>انبار (نوع قدیمی)</option>
-    <option value="انبار" @selected((string)$value==='انبار')>انبار (نوع قدیمی فارسی)</option>
 </select>
 @elseif($f==='status')
 <select name="{{$f}}" class="form-select" required><option value="active" @selected((string)$value==='active')>فعال</option><option value="inactive" @selected((string)$value==='inactive')>غیرفعال</option></select>
@@ -190,6 +187,7 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 <textarea name="{{$f}}" class="form-control" rows="3">{{$value}}</textarea>
 @else
 <input name="{{$f}}" value="{{$value}}" class="form-control" @if(in_array($f,['code','name','number'])) required @endif>
+@if(($module ?? null) === 'production-sections' && $f === 'name')<p class="field-help">این قسمت مستقل از انبارها تعریف می‌شود و نام آن در فهرست قسمت‌های تولید نمایش داده خواهد شد.</p>@endif
 @endif
 @endif
 @error($f)<div class="text-danger small mt-1">{{$message}}</div>@enderror

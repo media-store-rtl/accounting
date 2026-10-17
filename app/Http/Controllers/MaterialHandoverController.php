@@ -48,10 +48,8 @@ class MaterialHandoverController extends Controller
             if ($productionSectionId) {
                 abort_unless(
                     DB::table('production_sections as ps')
-                        ->join('locations as l', 'l.id', '=', 'ps.location_id')
                         ->where('ps.id', $productionSectionId)
-                        ->where('l.company_id', $companyId)
-                        ->where('l.is_active', true)
+                        ->where('ps.company_id', $companyId)
                         ->where('ps.is_active', true)
                         ->exists(),
                     422,
@@ -73,8 +71,9 @@ class MaterialHandoverController extends Controller
                 DB::table('locations')
                     ->where('id', $data['warehouse_location_id'])
                     ->where('company_id', $companyId)
-                    ->whereRaw("LOWER(TRIM(type)) IN (?, ?, ?)", ['warehouse', 'انبار', 'مواد'])
+                    ->whereRaw("LOWER(TRIM(type)) = ?", ['مواد اولیه'])
                     ->where('is_active', true)
+                    ->whereNotExists(function ($query) { $query->select(DB::raw(1))->from('production_sections as ps')->whereColumn('ps.location_id', 'locations.id'); })
                     ->exists(),
                 422,
                 'انبار معتبر نیست.'

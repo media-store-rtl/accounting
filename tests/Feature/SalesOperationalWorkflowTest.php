@@ -32,7 +32,7 @@ class SalesOperationalWorkflowTest extends TestCase
         $category=DB::table('goods_categories')->insertGetId(['company_id'=>$company,'name'=>'Finished','code'=>'FG','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $goods=DB::table('goods')->insertGetId(['company_id'=>$company,'category_id'=>$category,'code'=>'FG1','name'=>'Finished Good','purchasable'=>false,'producible'=>true,'sellable'=>true,'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $customer=DB::table('customers')->insertGetId(['company_id'=>$company,'name'=>'Customer','code'=>'CU1','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
-        $warehouse=DB::table('locations')->insertGetId(['company_id'=>$company,'code'=>'W1','name'=>'Warehouse','type'=>'warehouse','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
+        $warehouse=DB::table('locations')->insertGetId(['company_id'=>$company,'code'=>'W1','name'=>'Warehouse','type'=>'مواد اولیه','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $inventoryId=DB::table('inventory')->insertGetId(['company_id'=>$company,'location_id'=>$warehouse,'goods_id'=>$goods,'quantity'=>$stock,'created_at'=>now(),'updated_at'=>now()]);
         if ($stock > 0) DB::table('inventory_movements')->insert(['company_id'=>$company,'location_id'=>$warehouse,'goods_id'=>$goods,'quantity'=>$stock,'movement_type'=>'opening_balance','reference_type'=>'inventory','reference_id'=>$inventoryId,'occurred_at'=>now(),'metadata'=>json_encode(['source'=>'test opening balance']),'created_at'=>now(),'updated_at'=>now()]);
         $this->actingAs(User::findOrFail($user))->withSession(['company_id'=>$company]);
@@ -120,6 +120,7 @@ class SalesOperationalWorkflowTest extends TestCase
     public function test_production_output_confirmation_feeds_finished_inventory_then_sales_and_delivery(): void
     {
         Notification::fake(); $c=$this->context(0);
+        $productLocation = DB::table('locations')->insertGetId(['company_id'=>$c['company'],'code'=>'FG-'.uniqid(),'name'=>'Finished Products','type'=>'محصول','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $response=$this->postJson('/api/orders',['fiscal_year_id'=>$c['fy'],'customer_id'=>$c['customer'],'number'=>'SO-FG-1','ordered_at'=>'2026-10-07','requested_delivery_at'=>'2026-10-20','items'=>[['goods_id'=>$c['goods'],'quantity'=>4]]]);
         $response->assertCreated()->assertJsonPath('data.status','production_required');
         $order=$response->json('data.id');
@@ -136,16 +137,16 @@ class SalesOperationalWorkflowTest extends TestCase
         DB::table('production_order')->insert(['production_id'=>$production,'order_id'=>$order,'created_at'=>now(),'updated_at'=>now()]);
 
         $service=app(ProductionOutputService::class);
-        $output=$service->create($c['company'],$production,$order,$c['warehouse'],4,$c['user']);
+        $output=$service->create($c['company'],$production,$order,$productLocation,4,$c['user']);
         $this->assertSame('pending',$output->status);
-        $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>0]);
+        $this->assertDatabaseMissing('inventory',['location_id'=>$productLocation,'goods_id'=>$c['goods']]);
 
         $service->confirm($c['company'],$output->id,$c['user']);
 
         $this->assertDatabaseHas('production_outputs',['id'=>$output->id,'status'=>'received','order_id'=>$order]);
         $this->assertDatabaseHas('finished_goods_receipts',['production_output_id'=>$output->id,'status'=>'approved']);
-        $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>0]);
-        $this->assertSame(4.0,(float)DB::table('inventory_movements')->where('company_id',$c['company'])->where('location_id',$c['warehouse'])->where('goods_id',$c['goods'])->sum('quantity'));
+        $this->assertDatabaseHas('inventory',['location_id'=>$productLocation,'goods_id'=>$c['goods'],'quantity'=>0]);
+        $this->assertSame(4.0,(float)DB::table('inventory_movements')->where('company_id',$c['company'])->where('location_id',$productLocation)->where('goods_id',$c['goods'])->sum('quantity'));
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'finished_goods_receipt','reference_type'=>'production_outputs','reference_id'=>$output->id,'quantity'=>4]);
 
         $this->postJson('/api/orders/'.$order.'/refresh')->assertOk()->assertJsonPath('data.status','ready_for_delivery');
@@ -155,8 +156,8 @@ class SalesOperationalWorkflowTest extends TestCase
         $delivery=DB::table('delivery_requests')->where('order_id',$order)->first();
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/prepare',['received_by'=>'Customer Receiver'])->assertOk();
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/issue')->assertOk();
-        $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>0]);
-        $this->assertSame(0.0,(float)DB::table('inventory_movements')->where('company_id',$c['company'])->where('location_id',$c['warehouse'])->where('goods_id',$c['goods'])->sum('quantity'));
+        $this->assertDatabaseHas('inventory',['location_id'=>$productLocation,'goods_id'=>$c['goods'],'quantity'=>0]);
+        $this->assertSame(0.0,(float)DB::table('inventory_movements')->where('company_id',$c['company'])->where('location_id',$productLocation)->where('goods_id',$c['goods'])->sum('quantity'));
         $this->assertDatabaseHas('inventory_movements',['goods_id'=>$c['goods'],'movement_type'=>'delivery_issue','reference_type'=>'delivery_request','reference_id'=>$delivery->id,'quantity'=>-4]);
 
         $this->postJson('/api/delivery-requests/'.$delivery->id.'/handover',[
@@ -188,6 +189,7 @@ class SalesOperationalWorkflowTest extends TestCase
     {
         Notification::fake();
         $c = $this->context(0);
+        $productLocation = DB::table('locations')->insertGetId(['company_id'=>$c['company'],'code'=>'FG-'.uniqid(),'name'=>'Finished Products','type'=>'محصول','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
 
         $salesUserId = DB::table('users')->insertGetId([
             'account_id' => DB::table('companies')->where('id', $c['company'])->value('account_id'),
@@ -228,7 +230,7 @@ class SalesOperationalWorkflowTest extends TestCase
             DB::table('production_order')->insert([
                 'production_id' => $productionId, 'order_id' => $orderId, 'created_at' => now(), 'updated_at' => now(),
             ]);
-            $output = $service->create($c['company'], $productionId, $orderId, $c['warehouse'], $quantity, $c['user']);
+            $output = $service->create($c['company'], $productionId, $orderId, $productLocation, $quantity, $c['user']);
             $service->confirm($c['company'], $output->id, $c['user']);
 
             if ($index === 0) {

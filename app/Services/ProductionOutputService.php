@@ -20,7 +20,7 @@ class ProductionOutputService
             $production = DB::table('productions')->where('id', $productionId)->where('company_id', $companyId)->lockForUpdate()->first();
             if (!$production || $production->status !== 'completed') throw ValidationException::withMessages(['production_id' => 'فقط تولید تکمیل‌شده می‌تواند خروجی داشته باشد.']);
             if ($orderId !== null && !DB::table('production_order')->where('production_id', $productionId)->where('order_id', $orderId)->exists()) throw ValidationException::withMessages(['order_id' => 'سفارش به این تولید متصل نیست.']);
-            if (!DB::table('locations')->where('id', $warehouseLocationId)->where('company_id', $companyId)->where('type', 'warehouse')->where('is_active', true)->exists()) throw ValidationException::withMessages(['warehouse_location_id' => 'انبار معتبر نیست.']);
+            if (!DB::table('locations')->where('id', $warehouseLocationId)->where('company_id', $companyId)->where('type', 'محصول')->where('is_active', true)->exists()) throw ValidationException::withMessages(['warehouse_location_id' => 'انبار معتبر نیست.']);
 
             $pendingQuantity=(float)DB::table('production_outputs')->where('production_id',$productionId)->whereIn('status',['pending','confirmed'])->sum('quantity');
             $remaining=(float)$production->planned_quantity-(float)$production->produced_quantity-$pendingQuantity;

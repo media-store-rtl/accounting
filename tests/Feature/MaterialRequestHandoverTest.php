@@ -26,7 +26,7 @@ class MaterialRequestHandoverTest extends TestCase
         $role = DB::table('roles')->insertGetId([
             'company_id' => $company, 'name' => 'Production', 'slug' => 'production', 'is_system' => false, 'created_at' => now(), 'updated_at' => now(),
         ]);
-        foreach (['supply_request.handover.create', 'supply_request.handover.view', 'location.create'] as $slug) {
+        foreach (['supply_request.handover.create', 'supply_request.handover.view', 'location.create', 'production_section.create'] as $slug) {
             $permission = DB::table('permissions')->insertGetId([
                 'name' => $slug, 'slug' => $slug, 'module' => 'production-supply', 'created_at' => now(), 'updated_at' => now(),
             ]);
@@ -47,7 +47,7 @@ class MaterialRequestHandoverTest extends TestCase
             'purchasable' => true, 'producible' => false, 'sellable' => false, 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
         $warehouse = DB::table('locations')->insertGetId([
-            'company_id' => $company, 'code' => 'W1', 'name' => 'Warehouse', 'type' => 'warehouse', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+            'company_id' => $company, 'code' => 'W1', 'name' => 'Warehouse', 'type' => 'مواد اولیه', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
         $inventoryId = DB::table('inventory')->insertGetId([
             'company_id' => $company, 'location_id' => $warehouse, 'goods_id' => $goods, 'quantity' => 10, 'created_at' => now(), 'updated_at' => now(),
@@ -73,9 +73,29 @@ class MaterialRequestHandoverTest extends TestCase
         $this->get('/master/locations/create')
             ->assertOk()
             ->assertSee('name="type"', false)
-            ->assertSee('value="مواد"', false)
+            ->assertSee('value="مواد اولیه"', false)
             ->assertSee('value="محصول"', false)
-            ->assertSee('value="ضایعات"', false);
+            ->assertSee('value="ضایعات"', false)
+            ->assertDontSee('value="warehouse"', false)
+            ->assertDontSee('value="انبار"', false)
+            ->assertDontSee('value="مواد"', false);
+    }
+
+    public function test_location_form_accepts_the_new_raw_material_type(): void
+    {
+        $this->context();
+
+        $this->post('/master/locations', [
+            'code' => 'RAWNEW',
+            'name' => 'Raw Materials',
+            'type' => 'مواد اولیه',
+        ])->assertRedirect('/master/locations');
+
+        $this->assertDatabaseHas('locations', [
+            'code' => 'RAWNEW',
+            'name' => 'Raw Materials',
+            'type' => 'مواد اولیه',
+        ]);
     }
 
     public function test_location_form_rejects_unrecognized_types(): void
@@ -94,7 +114,7 @@ class MaterialRequestHandoverTest extends TestCase
     public function test_material_handover_page_lists_material_location_type(): void
     {
         $c = $this->context();
-        DB::table('locations')->where('id', $c['warehouse'])->update(['type' => 'مواد']);
+        DB::table('locations')->where('id', $c['warehouse'])->update(['type' => 'مواد اولیه']);
 
         $this->get('/handovers')
             ->assertOk()
@@ -119,10 +139,50 @@ class MaterialRequestHandoverTest extends TestCase
             ->assertSee('مرحله تولید');
     }
 
+    public function test_production_section_form_uses_a_free_name_instead_of_a_warehouse_picker(): void
+    {
+        $this->context();
+
+        $this->get('/master/production-sections/create')
+            ->assertOk()
+            ->assertSee('name="name"', false)
+            ->assertDontSee('name="location_id"', false)
+            ->assertSee('نام قسمت تولید');
+    }
+
+    public function test_handover_lists_named_production_sections_separately_from_warehouse_locations(): void
+    {
+        $c = $this->context();
+        $sectionId = DB::table('production_sections')->insertGetId([
+            'company_id' => $c['company'], 'name' => 'Cutting Section', 'location_id' => null,
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('locations')->insert([
+            'company_id' => $c['company'], 'code' => 'RAW2', 'name' => 'Raw Warehouse',
+            'type' => 'مواد اولیه', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $routeId = DB::table('production_routes')->insertGetId([
+            'company_id' => $c['company'], 'goods_id' => $c['goods'], 'code' => 'ROUTE1',
+            'name' => 'Cutting Route', 'status' => 'active', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('production_stages')->insert([
+            'production_route_id' => $routeId, 'production_section_id' => $sectionId,
+            'code' => 'STAGE1', 'name' => 'Cutting Stage', 'sequence' => 1, 'status' => 'active',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->get('/handovers')
+            ->assertOk()
+            ->assertSee('Cutting Section')
+            ->assertSee('Cutting Stage')
+            ->assertSee('Raw Warehouse')
+            ->assertDontSee('Cutting Stage — Cutting Route');
+    }
+
     public function test_material_handover_accepts_material_location_type(): void
     {
         $c = $this->context();
-        DB::table('locations')->where('id', $c['warehouse'])->update(['type' => 'مواد']);
+        DB::table('locations')->where('id', $c['warehouse'])->update(['type' => 'مواد اولیه']);
         $requestId = DB::table('supply_requests')->latest('id')->value('id');
 
         $response = $this->postJson('/api/material-handovers', [

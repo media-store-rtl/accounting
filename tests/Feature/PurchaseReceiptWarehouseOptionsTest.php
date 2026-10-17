@@ -43,11 +43,11 @@ class PurchaseReceiptWarehouseOptionsTest extends TestCase
         ]);
 
         DB::table('locations')->insert([
-            ['company_id' => $company, 'code' => 'W1', 'name' => 'Warehouse Uppercase', 'type' => 'WAREHOUSE', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
-            ['company_id' => $company, 'code' => 'W2', 'name' => 'Warehouse Spaces', 'type' => ' warehouse ', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
-            ['company_id' => $company, 'code' => 'W4', 'name' => 'انبار مواد اولیه', 'type' => 'انبار', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
-            ['company_id' => $company, 'code' => 'W5', 'name' => 'انبار1', 'type' => 'مواد', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
-            ['company_id' => $company, 'code' => 'W3', 'name' => 'Inactive Warehouse', 'type' => 'warehouse', 'is_active' => false, 'created_at' => now(), 'updated_at' => now()],
+            ['company_id' => $company, 'code' => 'W1', 'name' => 'Warehouse Uppercase', 'type' => 'مواد اولیه', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
+            ['company_id' => $company, 'code' => 'W2', 'name' => 'Warehouse Spaces', 'type' => ' مواد اولیه ', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
+            ['company_id' => $company, 'code' => 'W4', 'name' => 'انبار مواد اولیه', 'type' => 'مواد اولیه', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
+            ['company_id' => $company, 'code' => 'W5', 'name' => 'انبار1', 'type' => 'مواد اولیه', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
+            ['company_id' => $company, 'code' => 'W3', 'name' => 'Inactive Warehouse', 'type' => 'مواد اولیه', 'is_active' => false, 'created_at' => now(), 'updated_at' => now()],
         ]);
 
         $otherAccount = DB::table('accounts')->insertGetId([
@@ -60,7 +60,7 @@ class PurchaseReceiptWarehouseOptionsTest extends TestCase
         ]);
         DB::table('locations')->insert([
             'company_id' => $otherCompany, 'code' => 'OW1', 'name' => 'Other Company Warehouse',
-            'type' => 'warehouse', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+            'type' => 'مواد اولیه', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
 
         $this->actingAs(User::findOrFail($userId))->withSession(['company_id' => $company])

@@ -97,8 +97,8 @@ final class ProductionShiftReportController extends Controller
         $canReview = $request->user()->hasCompanyPermission($companyId, 'production.operation.review');
         $canEdit = $canReview && (in_array($row->status, ['pending', 'rejected'], true) || ($row->status === 'approved' && (float) ($row->warehouse_quantity ?? 0) <= 0));
         $canReceive = $request->user()->hasCompanyPermission($companyId, 'production.output.receive');
-        $warehouses = $canReceive ? DB::table('locations')->where('company_id', $companyId)->where('is_active', true)->where(function ($query) { $query->whereRaw('LOWER(TRIM(type)) = ?', ['warehouse'])
-                ->orWhereIn(DB::raw('TRIM(type)'), ['مواد', 'محصول', 'ضایعات']); })->orderBy('name')->get(['id', 'name']) : collect();
+        $warehouses = $canReceive ? DB::table('locations')->where('company_id', $companyId)->where('is_active', true)->where(function ($query) { $query->whereRaw('LOWER(TRIM(type)) = ?', ['مواد اولیه'])
+                ->orWhereIn(DB::raw('TRIM(type)'), ['مواد اولیه', 'محصول', 'ضایعات']); })->orderBy('name')->get(['id', 'name']) : collect();
         $sections = DB::table('production_sections as s')->leftJoin('locations as l', 'l.id', '=', 's.location_id')
             ->where('l.company_id', $companyId)->orderBy('l.name')->get(['s.id', 'l.name']);
         $goods = DB::table('goods')->where('company_id', $companyId)->where('is_active', true)->where('producible', true)->orderBy('name')->get(['id', 'code', 'name']);
