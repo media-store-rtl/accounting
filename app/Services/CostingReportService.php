@@ -114,16 +114,19 @@ final class CostingReportService
             ->get(['c.goods_id','c.total_cost','c.valuation_method','m.metadata']);
 
         $movements=DB::table('inventory_movements as m')
+            ->leftJoin('inventory_consumption_costs as vc','vc.inventory_movement_id','=','m.id')
             ->where('m.company_id',$companyId)
             ->where('m.quantity','<',0)
-            ->where('m.movement_type','material_handover')
+            ->where(function($q) {
+                $q->where('m.movement_type','production_consumption')
+                    ->orWhere(function($handover) {
+                        $handover->where('m.movement_type','material_handover')
+                            ->whereNull('vc.id');
+                    });
+            })
             ->when($startDate,fn($q)=>$q->whereDate('m.occurred_at','>=',$startDate))
             ->when($endDate,fn($q)=>$q->whereDate('m.occurred_at','<=',$endDate))
-            ->whereNotExists(function($q){
-                $q->selectRaw('1')->from('inventory_consumption_costs as vc')
-                    ->whereColumn('vc.inventory_movement_id','m.id');
-            })
-            ->get(['m.goods_id','m.quantity','m.metadata']);
+            ->get(['m.goods_id','m.quantity','m.metadata','m.movement_type','vc.quantity as valued_quantity']);
 
         $supplyIdFromMetadata=fn($item)=>(int)(json_decode((string)$item->metadata,true)['supply_request_id']??0);
         $ids=$costs->map($supplyIdFromMetadata)->merge($movements->map($supplyIdFromMetadata))->filter()->unique()->values();
@@ -135,7 +138,7 @@ final class CostingReportService
         $prodIds=$supplies->pluck('production_id')->merge($metadataProductionIds)->filter()->unique()->values();
         $productions=$prodIds->isEmpty()?collect():DB::table('productions')
             ->where('company_id',$companyId)->whereIn('id',$prodIds)
-            ->get(['id','goods_id'])->keyBy('id');
+            ->get(['id','goods_id','fiscal_year_id'])->keyBy('id');
         $links=$prodIds->isEmpty()?collect():DB::table('production_order')
             ->whereIn('production_id',$prodIds)->get(['production_id','order_id'])->groupBy('production_id');
 
@@ -163,16 +166,19 @@ final class CostingReportService
         }
 
         foreach($movements as $m){
-            $sid=$supplyIdFromMetadata($m);
-            if(!$sid)continue;
             [$oid,$targetGoodsId,$supply]=$resolveTarget($m);
-            if(!$supply)continue;
-            if($fy!==null&&(int)$supply->fiscal_year_id!==$fy)continue;
+            $meta=json_decode((string)$m->metadata,true)?:[];
+            $productionId=(int)($supply?->production_id??($meta['production_id']??0));
+            $production=$productions->get($productionId);
+            $movementFiscalYearId=$supply?->fiscal_year_id??$production?->fiscal_year_id;
+            if($fy!==null&&$movementFiscalYearId!==null&&(int)$movementFiscalYearId!==$fy)continue;
             if($orderId!==null&&$oid!==$orderId)continue;
             if($goodsId!==null&&$targetGoodsId!==$goodsId)continue;
+            $unvaluedQuantity=max(0.0,abs((float)$m->quantity)-(float)($m->valued_quantity??0));
+            if($unvaluedQuantity<=0.0000001)continue;
             $key=$this->key($oid,$targetGoodsId);
             $this->row($rows,$key,$oid,$targetGoodsId);
-            $rows[$key]['unvalued_material_quantity']+=abs((float)$m->quantity);
+            $rows[$key]['unvalued_material_quantity']+=$unvaluedQuantity;
         }
     }
 
