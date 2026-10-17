@@ -18,6 +18,31 @@ The production database was inspected read-only by the operator through phpMyAdm
 - The current ProductionShiftReportMaterialConsumptionService consumes report materials when the review/approve request runs. It does not itself replay old reports already approved/received before that flow existed.
 - CostingReportService calculates material cost from valued inventory consumption records, not from report material lines alone. InventoryValuationService intentionally excludes cost layers received after the effective movement time.
 
+
+## Report-level reconciliation baseline
+
+The read-only audit output for company 1 and work dates 2026-10-12 through 2026-10-16 reported 14 reports checked, 13 report/material groups, 44 units across all report material lines, zero linked consumption movement quantity, zero valued quantity, and zero linked valuation cost. The report/material rows had no matching `production_consumption` movements or valuation rows.
+
+The reported 32-unit figure is specifically the sum of the received reports below; it is not the sum of every material line in the date range:
+
+| Report ID | Work date | Status | Material goods ID | Reported quantity |
+|---:|---|---|---:|---:|
+| 2 | 2026-10-13 | received | 1 | 5 |
+| 3 | 2026-10-13 | received | 1 | 1 |
+| 4 | 2026-10-13 | received | 1 | 10 |
+| 5 | 2026-10-14 | received | 1 | 10 |
+| 8 | 2026-10-14 | received | 1 | 1 |
+| 9 | 2026-10-14 | received | 1 | 1 |
+| 10 | 2026-10-14 | received | 1 | 1 |
+| 11 | 2026-10-14 | received | 1 | 1 |
+| 12 | 2026-10-14 | received | 1 | 1 |
+| 14 | 2026-10-15 | received | 1 | 1 |
+| **Total** | | | | **32** |
+
+Reports 1 (rejected, 10 units) and 7 (rejected, 1 unit) are excluded from the 32-unit received-report total. Report 13 is approved but not received, records 1 unit of material goods ID 1, and has produced goods ID 4; keep it as a separate unresolved case rather than adding it to the received-report total. The aggregate of 44 units includes report rows outside the 32-unit received subset, so the two totals must not be conflated.
+
+These are a snapshot of previously supplied audit results, not a substitute for revalidating the current database before any proposed correction.
+
 ## Root cause assessment
 
 The immediate reason the costing report has zero material cost is that the report-material rows are not accompanied by matching historical inventory consumption movements and valued consumption records in the queried date range. The available evidence does not establish where the reported 32 units physically came from, whether they were transferred to the production section, or the defensible historical unit cost.
