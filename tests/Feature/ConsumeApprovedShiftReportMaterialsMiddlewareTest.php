@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use Mockery;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Tests\TestCase;
@@ -125,7 +126,7 @@ class ConsumeApprovedShiftReportMaterialsMiddlewareTest extends TestCase
         try {
             $this->runMiddleware(10, true);
             $this->fail('Expected a validation exception for a backdated report.');
-        } catch (\\Illuminate\\Validation\\ValidationException $exception) {
+        } catch (ValidationException $exception) {
             $this->assertArrayHasKey('work_date', $exception->errors());
         }
 
