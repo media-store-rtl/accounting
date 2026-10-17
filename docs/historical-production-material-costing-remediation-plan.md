@@ -43,6 +43,28 @@ Reports 1 (rejected, 10 units) and 7 (rejected, 1 unit) are excluded from the 32
 
 These are a snapshot of previously supplied audit results, not a substitute for revalidating the current database before any proposed correction.
 
+
+## Reconciliation worksheet — do not post inventory changes from this template
+
+Complete one row per report/material line using source documents and the live ledger. Leave fields blank or mark `unverified` when evidence is unavailable. Do not estimate a unit cost from later receipts.
+
+| Report | Qty | Receipt/purchase layer evidence (ID/date/qty) | Transfer into production section (movement/handover ID and date) | Physical consumption evidence | Historical layer quantity available at report time | Supported unit cost and source | Reviewer / decision |
+|---:|---:|---|---|---|---|---|---|
+| 2 | 5 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 3 | 1 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 4 | 10 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 5 | 10 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 8 | 1 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 9 | 1 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 10 | 1 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 11 | 1 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 12 | 1 | unverified | unverified | unverified | unverified | unresolved | pending |
+| 14 | 1 | unverified | unverified | unverified | unverified | unresolved | pending |
+| **Received-report subtotal** | **32** | | | | | | |
+| 13 (separate case; approved, not received) | 1 | unverified | unverified | unverified | unverified | unresolved | review separately |
+
+Before any write-mode repair is considered, reconcile each source receipt and transfer against the movement ledger and the production-section location at the effective time. A finished-goods receipt is not evidence of raw-material consumption. If the historical source layer or stock balance cannot be proven, leave the case unresolved and do not backfill a guessed cost.
+
 ## Root cause assessment
 
 The immediate reason the costing report has zero material cost is that the report-material rows are not accompanied by matching historical inventory consumption movements and valued consumption records in the queried date range. The available evidence does not establish where the reported 32 units physically came from, whether they were transferred to the production section, or the defensible historical unit cost.
