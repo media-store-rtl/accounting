@@ -26,7 +26,7 @@ class MaterialRequestHandoverTest extends TestCase
         $role = DB::table('roles')->insertGetId([
             'company_id' => $company, 'name' => 'Production', 'slug' => 'production', 'is_system' => false, 'created_at' => now(), 'updated_at' => now(),
         ]);
-        foreach (['supply_request.handover.create', 'supply_request.handover.view'] as $slug) {
+        foreach (['supply_request.handover.create', 'supply_request.handover.view', 'location.create'] as $slug) {
             $permission = DB::table('permissions')->insertGetId([
                 'name' => $slug, 'slug' => $slug, 'module' => 'production-supply', 'created_at' => now(), 'updated_at' => now(),
             ]);
@@ -64,6 +64,31 @@ class MaterialRequestHandoverTest extends TestCase
         ]);
         $this->actingAs(\App\Models\User::findOrFail($user))->withSession(['company_id' => $company]);
         return compact('company', 'user', 'fy', 'goods', 'warehouse');
+    }
+
+    public function test_location_form_uses_supported_location_types(): void
+    {
+        $this->context();
+
+        $this->get('/master/locations/create')
+            ->assertOk()
+            ->assertSee('name="type"', false)
+            ->assertSee('value="مواد"', false)
+            ->assertSee('value="محصول"', false)
+            ->assertSee('value="ضایعات"', false);
+    }
+
+    public function test_location_form_rejects_unrecognized_types(): void
+    {
+        $this->context();
+
+        $this->from('/master/locations/create')->post('/master/locations', [
+            'code' => 'BADTYPE',
+            'name' => 'Invalid Location',
+            'type' => 'random-type',
+        ])->assertRedirect('/master/locations/create')->assertSessionHasErrors('type');
+
+        $this->assertDatabaseMissing('locations', ['code' => 'BADTYPE']);
     }
 
     public function test_material_handover_page_lists_material_location_type(): void
