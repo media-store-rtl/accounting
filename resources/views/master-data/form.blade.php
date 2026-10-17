@@ -164,6 +164,18 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 @elseif($f==='supervisor_personnel_id')
 <select id="field-{{$f}}" name="{{$f}}" class="form-select"><option value="">بدون سرپرست</option>@foreach(($options['personnel']??[]) as $o)<option value="{{$o->id}}" @selected((string)$value===(string)$o->id)>{{$o->name}}</option>@endforeach</select>
 @if(($module ?? null) === 'production-sections')<p class="field-help">در صورت مشخص بودن مسئول این قسمت، سرپرست را انتخاب کنید؛ این فیلد اختیاری است.</p>@endif
+@elseif($f==='type' && ($module ?? null) === 'locations')
+<select id="field-{{$f}}" name="{{$f}}" class="form-select" required>
+<option value="">انتخاب نوع محل</option>
+<option value="warehouse" @selected((string)$value==='warehouse')>انبار</option>
+<option value="انبار" @selected((string)$value==='انبار')>انبار (نوع فارسی قدیمی)</option>
+<option value="محل تولید" @selected((string)$value==='محل تولید')>محل تولید</option>
+<option value="سالن تولید" @selected((string)$value==='سالن تولید')>سالن تولید</option>
+<option value="محصول" @selected((string)$value==='محصول')>محصول</option>
+<option value="مواد" @selected((string)$value==='مواد')>مواد</option>
+<option value="مواد اولیه" @selected((string)$value==='مواد اولیه')>مواد اولیه</option>
+</select>
+<p class="field-help">برای نمایش محل در فهرست تحویل مواد و رسید خرید، نوع «انبار» را انتخاب کنید. این تغییر فقط نوعی را که ثبت می‌کنید تعیین می‌کند و اطلاعات قبلی را خودکار تغییر نمی‌دهد.</p>
 @elseif($f==='status')
 <select name="{{$f}}" class="form-select" required><option value="active" @selected((string)$value==='active')>فعال</option><option value="inactive" @selected((string)$value==='inactive')>غیرفعال</option></select>
 @elseif(in_array($f,['purchasable','producible','sellable']))
