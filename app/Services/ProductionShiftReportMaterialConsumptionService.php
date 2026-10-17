@@ -70,6 +70,11 @@ final class ProductionShiftReportMaterialConsumptionService
             ->orderByDesc('id')
             ->value('id');
         $fiscalYearId = $fiscalYearId ? (int) $fiscalYearId : null;
+        if ($fiscalYearId === null) {
+            throw ValidationException::withMessages([
+                'work_date' => 'برای تاریخ این گزارش سال مالی متناظر پیدا نشد؛ ابتدا سال مالی را اصلاح کنید. مصرف انبار ثبت نشد.',
+            ]);
+        }
 
         $stageId = DB::table('production_shift_report_stages')
             ->where('company_id', $companyId)
@@ -89,6 +94,8 @@ final class ProductionShiftReportMaterialConsumptionService
                 'approved_by_user_id' => $reviewerId,
                 'production_section_id' => (int) $report->production_section_id,
                 'work_date' => (string) $report->work_date,
+                // Value only against cost layers received on or before the report date.
+                'effective_occurred_at' => (string) $report->work_date,
             ];
             if ($report->order_id !== null) {
                 $metadata['order_id'] = (int) $report->order_id;
@@ -113,25 +120,6 @@ final class ProductionShiftReportMaterialConsumptionService
                 $metadata
             );
 
-            $movement = DB::table('inventory_movements')
-                ->where('company_id', $companyId)
-                ->where('reference_type', 'production_shift_reports')
-                ->where('reference_id', $reportId)
-                ->where('movement_type', 'production_consumption')
-                ->where('goods_id', (int) $material->goods_id)
-                ->orderByDesc('id')
-                ->first(['id']);
-
-            if ($movement) {
-                DB::table('inventory_movements')->where('id', $movement->id)->update([
-                    'occurred_at' => $report->work_date,
-                    'updated_at' => now(),
-                ]);
-                DB::table('inventory_consumption_costs')->where('inventory_movement_id', $movement->id)->update([
-                    'consumed_at' => $report->work_date,
-                    'updated_at' => now(),
-                ]);
-            }
         }
     }
 }
