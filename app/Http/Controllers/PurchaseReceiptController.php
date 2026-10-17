@@ -9,6 +9,7 @@ use App\Support\CompanyAuthorization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class PurchaseReceiptController extends Controller
 {
@@ -22,17 +23,37 @@ class PurchaseReceiptController extends Controller
         $id=DB::transaction(function()use($data,$companyId,$request){
             $purchase=DB::table('purchases')->where('id',$data['purchase_id'])->where('company_id',$companyId)->lockForUpdate()->first();
             abort_unless($purchase&&$purchase->status!=='cancelled',422,'خرید معتبر نیست.');
-            abort_unless(DB::table('locations')->where('id',$data['warehouse_location_id'])->where('company_id',$companyId)->whereRaw("LOWER(TRIM(type)) = ?",['مواد اولیه'])->where('is_active',true)->exists(),422,'انبار معتبر نیست.');
+            if (!DB::table('locations')->where('id',$data['warehouse_location_id'])->where('company_id',$companyId)->whereRaw("LOWER(TRIM(type)) = ?",['مواد اولیه'])->where('is_active',true)->exists()) {
+                throw ValidationException::withMessages(['warehouse_location_id'=>'انبار انتخاب‌شده معتبر یا فعال نیست. یک انبار فعال از نوع «مواد اولیه» انتخاب کنید.']);
+            }
             $id=DB::table('purchase_receipts')->insertGetId([
                 'company_id'=>$companyId,'purchase_id'=>$purchase->id,'warehouse_location_id'=>$data['warehouse_location_id'],'received_by_user_id'=>$request->user()->id,
                 'received_at'=>$data['received_at'],'status'=>'pending','notes'=>$data['notes']??null,'created_at'=>now(),'updated_at'=>now()
             ]);
-            foreach($data['items'] as $item){
+            foreach($data['items'] as $index=>$item){
                 $pi=DB::table('purchase_items')->where('purchase_id',$purchase->id)->where('goods_id',$item['goods_id'])->first();
-                abort_unless($pi,422,'قلم دریافت خارج از خرید است.');
-                $reserved=(float)DB::table('purchase_receipt_items as x')->join('purchase_receipts as r','r.id','=','x.purchase_receipt_id')
-                    ->where('r.purchase_id',$purchase->id)->whereIn('r.status',['pending','approved'])->where('x.goods_id',$item['goods_id'])->sum('x.quantity');
-                abort_unless($reserved+(float)$item['quantity']<=(float)$pi->quantity+0.0000001,422,'مقدار دریافت از مقدار باقی‌مانده خرید بیشتر است؛ رسیدهای قبلیِ در انتظار تأیید را هم بررسی کنید.');
+                if (!$pi) {
+                    throw ValidationException::withMessages(["items.{$index}.goods_id"=>'این کالا در اقلام خرید انتخاب‌شده وجود ندارد.']);
+                }
+                $approved=(float)DB::table('purchase_receipt_items as x')->join('purchase_receipts as r','r.id','=','x.purchase_receipt_id')
+                    ->where('r.purchase_id',$purchase->id)->where('r.status','approved')->where('x.goods_id',$item['goods_id'])->sum('x.quantity');
+                $pendingReceipts=DB::table('purchase_receipt_items as x')->join('purchase_receipts as r','r.id','=','x.purchase_receipt_id')
+                    ->where('r.purchase_id',$purchase->id)->where('r.status','pending')->where('x.goods_id',$item['goods_id'])
+                    ->select('r.id','x.quantity')->orderBy('r.id')->get();
+                $pending=(float)$pendingReceipts->sum('quantity');
+                $reserved=$approved+$pending;
+                $remaining=max(0,(float)$pi->quantity-$reserved);
+                if ($reserved+(float)$item['quantity']>(float)$pi->quantity+0.0000001) {
+                    $pendingDescription=$pendingReceipts->isEmpty()
+                        ? 'رسید در انتظار تأیید برای این کالا وجود ندارد.'
+                        : 'رسیدهای در انتظار تأیید: '.$pendingReceipts->map(fn($row)=>'#'.$row->id.' ('.number_format((float)$row->quantity,4,'.',',').')')->implode('، ').'.';
+                    $message='مقدار رسید جدید بیش از مقدار باقی‌مانده خرید است. مقدار خرید: '.number_format((float)$pi->quantity,4,'.',',')
+                        .'؛ تأییدشده: '.number_format($approved,4,'.',',')
+                        .'؛ در انتظار تأیید: '.number_format($pending,4,'.',',')
+                        .'؛ باقی‌مانده قابل ثبت: '.number_format($remaining,4,'.',',').'. '.$pendingDescription
+                        .' رسید قبلی را بررسی کنید و در صورت تکراری بودن، آن را از بخش رسیدها تعیین تکلیف کنید؛ یا مقدار این رسید را کاهش دهید.';
+                    throw ValidationException::withMessages(["items.{$index}.quantity"=>$message]);
+                }
                 DB::table('purchase_receipt_items')->insert(['purchase_receipt_id'=>$id,'goods_id'=>$item['goods_id'],'quantity'=>$item['quantity'],'created_at'=>now(),'updated_at'=>now()]);
             }
             return $id;
