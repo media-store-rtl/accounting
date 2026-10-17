@@ -45,8 +45,10 @@ class PurchaseController extends Controller
                 if ($sr) {
                     $ri=DB::table('supply_request_items')->where('supply_request_id',$sr->id)->where('goods_id',$item['goods_id'])->lockForUpdate()->first();
                     abort_unless($ri,422,'قلم خرید خارج از درخواست تأمین است.');
-                    $remaining=(float)$ri->shortage_quantity-(float)$ri->supplied_quantity;
-                    abort_unless($remaining>0 && $qty<=$remaining+0.0000001,422,'مقدار خرید بیش از کسری تأمین است.');
+                    // A supply request expresses the need, not a hard purchase cap.
+                    // Allow procurement to buy more than the shortage when operationally justified.
+                    // Received quantities still determine how much of the request has been supplied.
+
                 }
                 $line=$qty*(float)$item['unit_price'];$subtotal+=$line;
                 DB::table('purchase_items')->insert(['purchase_id'=>$id,'goods_id'=>$item['goods_id'],'quantity'=>$qty,'unit_price'=>$item['unit_price'],'line_total'=>$line,'created_at'=>now(),'updated_at'=>now()]);
