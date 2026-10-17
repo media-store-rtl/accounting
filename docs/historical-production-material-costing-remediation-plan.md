@@ -15,7 +15,7 @@ The production database was inspected read-only by the operator through phpMyAdm
 - An all-date handover query found two completed handovers for goods_id = 1, each quantity 1, both on 2026-10-17 (handover IDs 1 and 2; section 1; warehouse location 2).
 - Six cost-layer rows for goods_id = 1 were returned, all received on 2026-10-17. Their displayed quantities sum to 8 and their total_cost values sum to 86,000. These rows are later than the affected reports and cannot be assumed to price earlier consumption.
 - Reports 8-12 and 14 were shown as received, report 13 as approved but not received; report 7 and report 1 were rejected. The report lines should be revalidated against live data and status before any correction.
-- The current ProductionShiftReportMaterialConsumptionService consumes report materials when the review/approve request runs. It does not itself replay old reports already approved/received before that flow existed.
+- In the proposed approval flow on PR #183, the ConsumeApprovedShiftReportMaterials middleware invokes ProductionShiftReportMaterialConsumptionService after a pending report is persisted as approved. On main, ProductionShiftReportController::review() does not itself invoke that service. Neither the service nor the proposed middleware replays old reports that were approved/received before the flow existed.
 - CostingReportService calculates material cost from valued inventory consumption records, not from report material lines alone. InventoryValuationService intentionally excludes cost layers received after the effective movement time.
 
 
