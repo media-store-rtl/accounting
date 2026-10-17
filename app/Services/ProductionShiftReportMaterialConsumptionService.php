@@ -95,7 +95,7 @@ final class ProductionShiftReportMaterialConsumptionService
                 'production_section_id' => (int) $report->production_section_id,
                 'work_date' => (string) $report->work_date,
                 // Value only against cost layers received on or before the report date.
-                'effective_occurred_at' => (string) $report->work_date,
+                'effective_occurred_at' => (string) $report->work_date . ' 23:59:59',
             ];
             if ($report->order_id !== null) {
                 $metadata['order_id'] = (int) $report->order_id;
