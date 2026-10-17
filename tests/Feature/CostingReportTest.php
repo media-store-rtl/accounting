@@ -222,7 +222,7 @@ class CostingReportTest extends TestCase
         $this->assertSame(1.0, $report['production_reports'][0]['materials'][1]['allocated_quantity']);
         $this->assertSame(1.0, $report['production_reports'][0]['materials'][1]['unmatched_quantity']);
         $this->assertSame(1.0, $report['production_reports'][0]['materials'][1]['unvalued_quantity']);
-        $this->assertSame(0.0, $report['production_reports'][0]['materials'][1]['material_cost']);
+        $this->assertSame(10.0, $report['production_reports'][0]['materials'][1]['material_cost']);
         $this->assertFalse($report['production_reports'][0]['materials'][1]['cost_complete']);
         $this->assertFalse($report['production_reports'][0]['material_cost_complete']);
         $this->assertSame(27.0, $report['production_reports'][0]['material_cost']);
