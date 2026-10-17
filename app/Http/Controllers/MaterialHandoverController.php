@@ -16,7 +16,7 @@ class MaterialHandoverController extends Controller
         $companyId = CompanyAuthorization::authorize($request, 'supply_request.handover.create');
 
         $data = $request->validate([
-            'supply_request_id' => ['required', 'integer'],
+            'supply_request_id' => ['nullable', 'integer'],
             'warehouse_location_id' => ['required', 'integer'],
             'production_section_id' => ['nullable', 'integer'],
             'production_stage_id' => ['nullable', 'integer'],
@@ -29,18 +29,19 @@ class MaterialHandoverController extends Controller
             'items.*.quantity' => ['required', 'numeric', 'gt:0'],
         ]);
 
-        $handoverId = DB::transaction(function () use ($data, $companyId, $inventory, $valuation) {
-            $requestRow = DB::table('supply_requests')
-                ->where('id', $data['supply_request_id'])
-                ->where('company_id', $companyId)
-                ->lockForUpdate()
-                ->first();
+        $handoverId = DB::transaction(function () use ($data, $request, $companyId, $inventory, $valuation) {
+            $requestId = isset($data['supply_request_id']) && $data['supply_request_id'] !== '' ? (int) $data['supply_request_id'] : null;
+            $requestRow = $requestId ? DB::table('supply_requests')->where('id', $requestId)->where('company_id', $companyId)->lockForUpdate()->first() : null;
+            if ($requestId !== null) abort_unless($requestRow && !in_array($requestRow->status, ['fulfilled', 'cancelled'], true), 422, 'درخواست تأمین قابل تحویل نیست.');
 
-            abort_unless($requestRow && !in_array($requestRow->status, ['fulfilled', 'cancelled'], true), 422, 'درخواست تأمین قابل تحویل نیست.');
+            $sessionFiscalYearId = (int) $request->session()->get('fiscal_year_id');
+            $fiscalYearId = $requestRow ? $fiscalYearId : (int) DB::table('fiscal_years')->where('company_id', $companyId)->where('is_closed', false)->where('id', $sessionFiscalYearId)->value('id');
+            if (!$fiscalYearId && !$requestRow) $fiscalYearId = (int) DB::table('fiscal_years')->where('company_id', $companyId)->where('is_closed', false)->orderByDesc('starts_at')->value('id');
+            abort_unless($fiscalYearId, 422, 'برای ثبت تحویل، یک سال مالی فعال انتخاب کنید.');
 
             $productionSectionId = isset($data['production_section_id']) && $data['production_section_id'] !== ''
                 ? (int) $data['production_section_id']
-                : ($requestRow->production_section_id ? (int) $requestRow->production_section_id : null);
+                : ($requestRow && $requestRow->production_section_id ? (int) $requestRow->production_section_id : null);
             $productionStageId = isset($data['production_stage_id']) && $data['production_stage_id'] !== ''
                 ? (int) $data['production_stage_id']
                 : null;
@@ -86,16 +87,12 @@ class MaterialHandoverController extends Controller
                 );
             }
 
-            $requestItems = DB::table('supply_request_items')
-                ->where('supply_request_id', $requestRow->id)
-                ->lockForUpdate()
-                ->get()
-                ->keyBy('goods_id');
+            $requestItems = $requestRow ? DB::table('supply_request_items')->where('supply_request_id', $requestRow->id)->lockForUpdate()->get()->keyBy('goods_id') : collect();
 
             $handoverId = DB::table('material_handovers')->insertGetId([
                 'company_id' => $companyId,
-                'fiscal_year_id' => $requestRow->fiscal_year_id,
-                'supply_request_id' => $requestRow->id,
+                'fiscal_year_id' => $fiscalYearId,
+                'supply_request_id' => $requestRow?->id,
                 'warehouse_location_id' => $data['warehouse_location_id'],
                 'production_section_id' => $productionSectionId,
                 'production_stage_id' => $productionStageId,
@@ -109,21 +106,25 @@ class MaterialHandoverController extends Controller
             ]);
 
             foreach ($data['items'] as $item) {
-                $requestItem = $requestItems->get($item['goods_id']);
-                abort_unless($requestItem, 422, 'کالای تحویل خارج از درخواست است.');
-
-                $alreadySupplied = (float) $requestItem->supplied_quantity;
+                $requestItem = $requestRow ? $requestItems->get($item['goods_id']) : null;
                 $quantity = (float) $item['quantity'];
-                abort_unless($alreadySupplied + $quantity <= (float) $requestItem->requested_quantity + 0.0000001, 422, 'مقدار تحویل بیش از مقدار درخواستی است.');
+                if ($requestRow) {
+                    abort_unless($requestItem, 422, 'کالای تحویل خارج از درخواست است.');
+                    $alreadySupplied = (float) $requestItem->supplied_quantity;
+                    abort_unless($alreadySupplied + $quantity <= (float) $requestItem->requested_quantity + 0.0000001, 422, 'مقدار تحویل بیش از مقدار درخواستی است.');
+                } else {
+                    abort_unless(DB::table('goods')->where('id', (int) $item['goods_id'])->where('company_id', $companyId)->where('is_active', true)->exists(), 422, 'کالای انتخاب‌شده معتبر یا فعال نیست.');
+                }
+                $metadata = array_filter(['supply_request_id' => $requestRow ? (int) $requestRow->id : null, 'production_stage_id' => $productionStageId], static fn ($value) => $value !== null);
 
                 if ($productionSectionId) {
                     $inventory->transferToProductionSection($companyId, (int) $data['warehouse_location_id'],
                         $productionSectionId, (int) $item['goods_id'], $quantity,
-                        'material_handovers', $handoverId, ['supply_request_id' => (int) $requestRow->id, 'production_stage_id' => $productionStageId]);
+                        'material_handovers', $handoverId, $metadata);
                 } else {
                     // Preserve legacy behavior for old requests without a production section.
                     $inventory->issue($companyId, (int) $data['warehouse_location_id'], (int) $item['goods_id'], $quantity,
-                        'material_handovers', $handoverId, ['supply_request_id' => $requestRow->id]);
+                        'material_handovers', $handoverId, $metadata);
                 }
 
                 // For legacy requests without a production section, a handover is still
@@ -154,25 +155,13 @@ class MaterialHandoverController extends Controller
                     'updated_at' => now(),
                 ]);
 
-                DB::table('supply_request_items')
-                    ->where('id', $requestItem->id)
-                    ->update([
-                        'supplied_quantity' => $alreadySupplied + $quantity,
-                        'updated_at' => now(),
-                    ]);
+                if ($requestRow) DB::table('supply_request_items')->where('id', $requestItem->id)->update(['supplied_quantity' => $alreadySupplied + $quantity, 'updated_at' => now()]);
             }
 
-            $remaining = DB::table('supply_request_items')
-                ->where('supply_request_id', $requestRow->id)
-                ->whereColumn('supplied_quantity', '<', 'requested_quantity')
-                ->exists();
-
-            DB::table('supply_requests')
-                ->where('id', $requestRow->id)
-                ->update([
-                    'status' => $remaining ? 'partially_supplied' : 'fulfilled',
-                    'updated_at' => now(),
-                ]);
+            if ($requestRow) {
+                $remaining = DB::table('supply_request_items')->where('supply_request_id', $requestRow->id)->whereColumn('supplied_quantity', '<', 'requested_quantity')->exists();
+                DB::table('supply_requests')->where('id', $requestRow->id)->update(['status' => $remaining ? 'partially_supplied' : 'fulfilled', 'updated_at' => now()]);
+            }
 
             return $handoverId;
         });
