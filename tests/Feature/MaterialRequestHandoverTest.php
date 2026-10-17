@@ -47,7 +47,7 @@ class MaterialRequestHandoverTest extends TestCase
             'purchasable' => true, 'producible' => false, 'sellable' => false, 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
         $warehouse = DB::table('locations')->insertGetId([
-            'company_id' => $company, 'code' => 'W1', 'name' => 'Warehouse', 'type' => 'warehouse', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+            'company_id' => $company, 'code' => 'W1', 'name' => 'Warehouse', 'type' => 'مواد اولیه', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
         $inventoryId = DB::table('inventory')->insertGetId([
             'company_id' => $company, 'location_id' => $warehouse, 'goods_id' => $goods, 'quantity' => 10, 'created_at' => now(), 'updated_at' => now(),
