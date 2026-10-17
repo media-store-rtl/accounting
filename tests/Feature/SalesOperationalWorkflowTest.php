@@ -139,7 +139,7 @@ class SalesOperationalWorkflowTest extends TestCase
         $service=app(ProductionOutputService::class);
         $output=$service->create($c['company'],$production,$order,$productLocation,4,$c['user']);
         $this->assertSame('pending',$output->status);
-        $this->assertDatabaseHas('inventory',['location_id'=>$productLocation,'goods_id'=>$c['goods'],'quantity'=>0]);
+        $this->assertDatabaseMissing('inventory',['location_id'=>$productLocation,'goods_id'=>$c['goods']]);
 
         $service->confirm($c['company'],$output->id,$c['user']);
 
