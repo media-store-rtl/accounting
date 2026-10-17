@@ -79,11 +79,11 @@ class ConsumeApprovedShiftReportMaterialsMiddlewareTest extends TestCase
             'status' => 'approved',
         ]);
 
-        $service = Mockery::mock(ProductionShiftReportMaterialConsumptionService::class);
+        $service = Mockery::mock(ProductionShiftReportMaterialConsumption::class);
         $service->shouldReceive('consumeApprovedReport')
             ->once()
             ->with(1, 8, 42);
-        $this->app->instance(ProductionShiftReportMaterialConsumptionService::class, $service);
+        $this->app->instance(ProductionShiftReportMaterialConsumption::class, $service);
 
         $response = $this->runMiddleware(8);
 
