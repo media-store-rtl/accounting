@@ -73,6 +73,7 @@ class MaterialRequestHandoverTest extends TestCase
         $this->get('/master/locations/create')
             ->assertOk()
             ->assertSee('name="type"', false)
+            ->assertSee('value="مواد اولیه"', false)
             ->assertSee('value="مواد"', false)
             ->assertSee('value="محصول"', false)
             ->assertSee('value="ضایعات"', false);
@@ -117,6 +118,40 @@ class MaterialRequestHandoverTest extends TestCase
             ->assertSee('name="production_stage_id"', false)
             ->assertSee('قسمت تولید')
             ->assertSee('مرحله تولید');
+    }
+
+    public function test_handover_lists_named_production_sections_separately_from_warehouse_locations(): void
+    {
+        $c = $this->context();
+        $sectionLocation = DB::table('locations')->insertGetId([
+            'company_id' => $c['company'], 'code' => 'CELL1', 'name' => 'Production Cell Location',
+            'type' => 'مواد', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $sectionId = DB::table('production_sections')->insertGetId([
+            'name' => 'Cutting Section', 'location_id' => $sectionLocation, 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('locations')->insert([
+            'company_id' => $c['company'], 'code' => 'RAW2', 'name' => 'Raw Warehouse',
+            'type' => 'مواد اولیه', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $routeId = DB::table('production_routes')->insertGetId([
+            'company_id' => $c['company'], 'goods_id' => $c['goods'], 'code' => 'ROUTE1',
+            'name' => 'Cutting Route', 'status' => 'active', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('production_stages')->insert([
+            'production_route_id' => $routeId, 'production_section_id' => $sectionId,
+            'code' => 'STAGE1', 'name' => 'Cutting Stage', 'sequence' => 1, 'status' => 'active',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->get('/handovers')
+            ->assertOk()
+            ->assertSee('Cutting Section')
+            ->assertSee('Cutting Stage')
+            ->assertSee('Raw Warehouse')
+            ->assertDontSee('Production Cell Location')
+            ->assertDontSee('Cutting Stage — Cutting Route');
     }
 
     public function test_material_handover_accepts_material_location_type(): void
