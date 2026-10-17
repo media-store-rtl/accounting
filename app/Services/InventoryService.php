@@ -67,7 +67,7 @@ class InventoryService
     public function transferToProductionSection(int $companyId,int $warehouseLocationId,int $sectionId,int $goodsId,float $quantity,string $referenceType,int $referenceId,array $metadata=[]): void
     {
         if($quantity<=0) throw new RuntimeException('مقدار انتقال باید بیشتر از صفر باشد.');
-        $section=DB::table('production_sections as s')->where('s.id',$sectionId)->where('s.company_id',$companyId)->where('s.is_active',true)->select('s.location_id')->first();
+        $section=DB::table('production_sections as s')->join('locations as target','target.id','=','s.location_id')->where('s.id',$sectionId)->where('target.company_id',$companyId)->where('target.is_active',true)->where('s.is_active',true)->select('target.id as location_id')->first();
         abort_unless($section,422,'قسمت تولید مقصد معتبر یا فعال نیست.');
         abort_unless(DB::table('locations')->where('id',$warehouseLocationId)->where('company_id',$companyId)->whereRaw('LOWER(TRIM(type)) IN (?, ?, ?)', ['warehouse', 'انبار', 'مواد'])->where('is_active',true)->exists(),422,'انبار مبدأ معتبر نیست.');
         $this->issue($companyId,$warehouseLocationId,$goodsId,$quantity,$referenceType,$referenceId,$metadata+['production_section_id'=>$sectionId,'movement_leg'=>'out']);
