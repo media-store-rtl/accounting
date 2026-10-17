@@ -73,7 +73,6 @@ class MaterialHandoverController extends Controller
                     ->where('company_id', $companyId)
                     ->whereRaw("LOWER(TRIM(type)) = ?", ['مواد اولیه'])
                     ->where('is_active', true)
-                    ->whereNotExists(function ($query) { $query->select(DB::raw(1))->from('production_sections as ps')->whereColumn('ps.location_id', 'locations.id'); })
                     ->exists(),
                 422,
                 'انبار معتبر نیست.'
