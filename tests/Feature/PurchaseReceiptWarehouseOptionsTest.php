@@ -43,7 +43,7 @@ class PurchaseReceiptWarehouseOptionsTest extends TestCase
         ]);
 
         DB::table('locations')->insert([
-            ['company_id' => $company, 'code' => 'W1', 'name' => 'Warehouse Uppercase', 'type' => 'WAREHOUSE', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
+            ['company_id' => $company, 'code' => 'W1', 'name' => 'Warehouse Uppercase', 'type' => 'مواد اولیه', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['company_id' => $company, 'code' => 'W2', 'name' => 'Warehouse Spaces', 'type' => ' مواد اولیه ', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['company_id' => $company, 'code' => 'W4', 'name' => 'انبار مواد اولیه', 'type' => 'مواد اولیه', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['company_id' => $company, 'code' => 'W5', 'name' => 'انبار1', 'type' => 'مواد اولیه', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
