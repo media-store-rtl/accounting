@@ -22,7 +22,7 @@ class PurchaseReceiptController extends Controller
         $id=DB::transaction(function()use($data,$companyId,$request){
             $purchase=DB::table('purchases')->where('id',$data['purchase_id'])->where('company_id',$companyId)->lockForUpdate()->first();
             abort_unless($purchase&&$purchase->status!=='cancelled',422,'خرید معتبر نیست.');
-            abort_unless(DB::table('locations')->where('id',$data['warehouse_location_id'])->where('company_id',$companyId)->whereRaw("LOWER(TRIM(type)) = ?",['مواد اولیه'])->where('is_active',true)->whereNotExists(function($q){$q->select(DB::raw(1))->from('production_sections as ps')->whereColumn('ps.location_id','locations.id');})->exists(),422,'انبار معتبر نیست.');
+            abort_unless(DB::table('locations')->where('id',$data['warehouse_location_id'])->where('company_id',$companyId)->whereRaw("LOWER(TRIM(type)) = ?",['مواد اولیه'])->where('is_active',true)->exists(),422,'انبار معتبر نیست.');
             $id=DB::table('purchase_receipts')->insertGetId([
                 'company_id'=>$companyId,'purchase_id'=>$purchase->id,'warehouse_location_id'=>$data['warehouse_location_id'],'received_by_user_id'=>$request->user()->id,
                 'received_at'=>$data['received_at'],'status'=>'pending','notes'=>$data['notes']??null,'created_at'=>now(),'updated_at'=>now()
@@ -30,9 +30,9 @@ class PurchaseReceiptController extends Controller
             foreach($data['items'] as $item){
                 $pi=DB::table('purchase_items')->where('purchase_id',$purchase->id)->where('goods_id',$item['goods_id'])->first();
                 abort_unless($pi,422,'قلم دریافت خارج از خرید است.');
-                $approved=(float)DB::table('purchase_receipt_items as x')->join('purchase_receipts as r','r.id','=','x.purchase_receipt_id')
-                    ->where('r.purchase_id',$purchase->id)->where('r.status','approved')->where('x.goods_id',$item['goods_id'])->sum('x.quantity');
-                abort_unless($approved+(float)$item['quantity']<=(float)$pi->quantity+0.0000001,422,'مقدار دریافت بیش از خرید است.');
+                $reserved=(float)DB::table('purchase_receipt_items as x')->join('purchase_receipts as r','r.id','=','x.purchase_receipt_id')
+                    ->where('r.purchase_id',$purchase->id)->whereIn('r.status',['pending','approved'])->where('x.goods_id',$item['goods_id'])->sum('x.quantity');
+                abort_unless($reserved+(float)$item['quantity']<=(float)$pi->quantity+0.0000001,422,'مقدار دریافت از مقدار باقی‌مانده خرید بیشتر است؛ رسیدهای قبلیِ در انتظار تأیید را هم بررسی کنید.');
                 DB::table('purchase_receipt_items')->insert(['purchase_receipt_id'=>$id,'goods_id'=>$item['goods_id'],'quantity'=>$item['quantity'],'created_at'=>now(),'updated_at'=>now()]);
             }
             return $id;
