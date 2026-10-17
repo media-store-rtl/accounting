@@ -46,6 +46,7 @@ class PurchaseReceiptWarehouseOptionsTest extends TestCase
             ['company_id' => $company, 'code' => 'W1', 'name' => 'Warehouse Uppercase', 'type' => 'WAREHOUSE', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['company_id' => $company, 'code' => 'W2', 'name' => 'Warehouse Spaces', 'type' => ' warehouse ', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['company_id' => $company, 'code' => 'W4', 'name' => 'انبار مواد اولیه', 'type' => 'انبار', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
+            ['company_id' => $company, 'code' => 'W5', 'name' => 'انبار1', 'type' => 'مواد', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['company_id' => $company, 'code' => 'W3', 'name' => 'Inactive Warehouse', 'type' => 'warehouse', 'is_active' => false, 'created_at' => now(), 'updated_at' => now()],
         ]);
 
@@ -68,6 +69,7 @@ class PurchaseReceiptWarehouseOptionsTest extends TestCase
             ->assertSee('Warehouse Uppercase')
             ->assertSee('Warehouse Spaces')
             ->assertSee('انبار مواد اولیه')
+            ->assertSee('انبار1')
             ->assertDontSee('Inactive Warehouse')
             ->assertDontSee('Other Company Warehouse');
     }
