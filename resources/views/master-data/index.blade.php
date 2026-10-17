@@ -143,7 +143,7 @@
             @if ($module === 'productions')
                 <thead><tr><th>شماره دستور</th><th>کالا</th><th>مسیر تولید</th><th>سال مالی</th><th>مقدار برنامه‌ریزی‌شده</th><th>شروع برنامه‌ریزی‌شده</th><th>پایان برنامه‌ریزی‌شده</th><th>یادداشت</th><th>وضعیت</th><th>عملیات</th></tr></thead>
             @else
-                <thead><tr>@if ($module === 'production-sections')<th>محل / انبار</th><th>سرپرست</th>@else @foreach ($definition['fields'] as $field)<th>{{ $fieldLabels[$field] ?? $field }}</th>@endforeach @endif<th>عملیات</th></tr></thead>
+                <thead><tr>@if ($module === 'production-sections')<th>نام قسمت تولید</th><th>محل مرتبط</th><th>سرپرست</th>@else @foreach ($definition['fields'] as $field)<th>{{ $fieldLabels[$field] ?? $field }}</th>@endforeach @endif<th>عملیات</th></tr></thead>
             @endif
             <tbody>
                 @forelse ($rows as $row)
@@ -160,6 +160,7 @@
                             <td>{{ match((string)($row->status ?? '')) { 'draft' => 'پیش‌نویس', 'in_progress' => 'در حال اجرا', 'paused' => 'متوقف موقت', 'completed' => 'تکمیل‌شده', 'cancelled' => 'لغوشده', default => ($row->status ?? 'نامشخص') } }}</td>
                         @else
                             @if ($module === 'production-sections')
+                                <td>{{ $row->name ?? '—' }}</td>
                                 <td>{{ $row->location_name ?? $row->location_id ?? '—' }}</td>
                                 <td>{{ $row->supervisor_name ?? $row->supervisor_personnel_id ?? '—' }}</td>
                             @else
@@ -187,7 +188,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="{{ ($module === 'productions' ? 10 : count($definition['fields']) + 1) }}" style="text-align:center;padding:30px;color:#71879d">رکوردی برای نمایش وجود ندارد.</td></tr>
+                    <tr><td colspan="{{ ($module === 'productions' ? 10 : ($module === 'production-sections' ? 4 : count($definition['fields']) + 1)) }}" style="text-align:center;padding:30px;color:#71879d">رکوردی برای نمایش وجود ندارد.</td></tr>
                 @endforelse
             </tbody>
         </table>
