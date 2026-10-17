@@ -22,7 +22,7 @@ class InventoryAdjustmentTest extends TestCase
         $user=DB::table('users')->insertGetId(['account_id'=>$account,'name'=>'Inventory User','username'=>'iu'.uniqid(),'email'=>uniqid().'@test.local','password'=>bcrypt('secret'),'created_at'=>now(),'updated_at'=>now()]);
         $category=DB::table('goods_categories')->insertGetId(['company_id'=>$company,'name'=>'Goods','code'=>'IG'.uniqid(),'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $goods=DB::table('goods')->insertGetId(['company_id'=>$company,'category_id'=>$category,'code'=>'G'.uniqid(),'name'=>'Material','purchasable'=>true,'producible'=>false,'sellable'=>true,'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
-        $location=DB::table('locations')->insertGetId(['company_id'=>$company,'code'=>'W'.uniqid(),'name'=>'Warehouse','type'=>'warehouse','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
+        $location=DB::table('locations')->insertGetId(['company_id'=>$company,'code'=>'W'.uniqid(),'name'=>'Warehouse','type'=>'مواد اولیه','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $inventory=DB::table('inventory')->insertGetId(['company_id'=>$company,'location_id'=>$location,'goods_id'=>$goods,'quantity'=>10,'reorder_point'=>5,'created_at'=>now(),'updated_at'=>now()]);
         DB::table('inventory_movements')->insert(['company_id'=>$company,'location_id'=>$location,'goods_id'=>$goods,'quantity'=>10,'movement_type'=>'opening_balance','reference_type'=>'inventory','reference_id'=>$inventory,'occurred_at'=>now(),'metadata'=>json_encode(['source'=>'test opening balance']),'created_at'=>now(),'updated_at'=>now()]);
 
@@ -50,7 +50,7 @@ class InventoryAdjustmentTest extends TestCase
         ]);
         $category=DB::table('goods_categories')->insertGetId(['company_id'=>$company,'name'=>'Raw Materials','code'=>'RM'.uniqid(),'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $goods=DB::table('goods')->insertGetId(['company_id'=>$company,'category_id'=>$category,'code'=>'RM'.uniqid(),'name'=>'Raw Material','purchasable'=>true,'producible'=>false,'sellable'=>false,'is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
-        $location=DB::table('locations')->insertGetId(['company_id'=>$company,'code'=>'W'.uniqid(),'name'=>'Warehouse','type'=>'warehouse','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
+        $location=DB::table('locations')->insertGetId(['company_id'=>$company,'code'=>'W'.uniqid(),'name'=>'Warehouse','type'=>'مواد اولیه','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
         $inventory=DB::table('inventory')->insertGetId(['company_id'=>$company,'location_id'=>$location,'goods_id'=>$goods,'quantity'=>10,'reorder_point'=>5,'created_at'=>now(),'updated_at'=>now()]);
 
         app(InventoryService::class)->adjust($company,$location,$goods,4,'stock fell below reorder point',$user);
@@ -130,7 +130,7 @@ class InventoryAdjustmentTest extends TestCase
         ]);
         $location = DB::table('locations')->insertGetId([
             'company_id' => $company, 'code' => 'W'.uniqid(), 'name' => 'Warehouse',
-            'type' => 'warehouse', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+            'type' => 'مواد اولیه', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
         $inventory = DB::table('inventory')->insertGetId([
             'company_id' => $company, 'location_id' => $location, 'goods_id' => $goods,
