@@ -1008,3 +1008,12 @@
 - فایل‌های تغییرکرده: `resources/views/workflows/purchasing.blade.php`, `resources/views/fiscal-years/form.blade.php`, `AGENTS.md`, `PROJECT_DEFINITION.md`, `PROJECT_PROGRESS.md`.
 - تست محلی، مرورگر، CI و سایت زنده هنوز اجرا/تأیید نشده‌اند. این تغییر فقط فرم خرید متصل به درخواست تأمین و فرم سال مالی را پوشش می‌دهد؛ بازبینی سراسری تمام فیلدهای تاریخ پروژه هنوز باید تکمیل شود.
 - شاخه: `fix/consistent-jalali-date-inputs`. PR [#155](https://github.com/media-store-rtl/accounting/pull/155) باز است. CI اجرا با شناسه `38937359413` هنوز `in_progress` است؛ ادغام و انتشار انجام نشده‌اند.
+
+
+# 114. نمایش مقدار و واحد اندازه‌گیری در رسیدهای خرید — 2026-10-17
+- درخواست: در فرم ثبت رسید و جدول رسیدهای ثبت‌شده، مقدار کالا و واحد اندازه‌گیری به‌صورت واضح نمایش داده شود.
+- در `WorkflowPagesController::receipts()` واحد پایه هر کالا از رابطه‌های موجود `goods_units` و `units` بارگذاری می‌شود؛ فرم با تغییر کالای انتخابی، نام واحد پایه و نماد آن را کنار فیلد مقدار نشان می‌دهد.
+- جدول رسیدها اکنون ستون‌های جداگانهٔ «کالا»، «مقدار» و «واحد» دارد. برای داده‌های قدیمی که واحد پایه ندارند، «واحد تعریف نشده» نمایش داده می‌شود؛ داده‌های موجود و منطق محاسبه/ثبت مقدار تغییر نکرده‌اند.
+- فایل‌های تغییرکرده: `app/Http/Controllers/WorkflowPagesController.php`, `resources/views/workflows/receipts.blade.php`, `tests/Feature/PurchaseReceiptWarehouseOptionsTest.php`, `PROJECT_PROGRESS.md`.
+- تست صفحه رسیدها برای نمایش واحد پایه و مقدار رسید گسترش یافته است؛ تست محلی در این محیط اجرا نشده و نتیجهٔ CI هنوز باید بررسی شود. مرورگر، سایت زنده، Migration و Deploy اجرا/تأیید نشده‌اند؛ Migration جدیدی لازم نیست.
+- شاخه: `fix/purchase-receipt-measurement-units`. PR [#180](https://github.com/media-store-rtl/accounting/pull/180) باز است و ادغام نشده است. ادغام فقط پس از تأیید صریح کاربر مجاز است.
