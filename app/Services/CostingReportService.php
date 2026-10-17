@@ -286,6 +286,20 @@ final class CostingReportService
                 ->where('company_id', $companyId)->whereIn('id', $supplyIds)
                 ->get(['id', 'production_section_id', 'order_id'])->keyBy('id');
 
+            // Some valid production-consumption movements link directly to a
+            // production operation and only carry production_id in metadata.
+            // Resolve their order the same way the main costing aggregation does,
+            // otherwise report usage rows for an order can never match them.
+            $productionIds = $consumptionRows->map(function ($movement) {
+                return (int) (json_decode((string) $movement->metadata, true)['production_id'] ?? 0);
+            })->filter()->unique()->values();
+            $productionOrders = $productionIds->isEmpty() ? collect() : DB::table('production_order')
+                ->whereIn('production_id', $productionIds)
+                ->orderBy('order_id')
+                ->get(['production_id', 'order_id'])
+                ->groupBy('production_id')
+                ->map(fn ($links) => $links->first());
+
             $costIds = $consumptionRows->pluck('cost_id')->filter()->unique()->values();
             $costSlicesById = [];
             if ($costIds->isNotEmpty() && DB::getSchemaBuilder()->hasTable('inventory_consumption_cost_items')) {
@@ -305,9 +319,10 @@ final class CostingReportService
             foreach ($consumptionRows as $movement) {
                 $metadata = json_decode((string) $movement->metadata, true) ?: [];
                 $supply = $supplies->get((int) ($metadata['supply_request_id'] ?? 0));
+                $productionOrder = $productionOrders->get((int) ($metadata['production_id'] ?? 0));
                 $sectionId = (int) ($supply->production_section_id ?? $movement->location_section_id ?? 0);
                 if ($sectionId <= 0) continue;
-                $orderKey = (int) ($supply->order_id ?? 0);
+                $orderKey = (int) ($supply->order_id ?? $productionOrder->order_id ?? 0);
                 $key = $sectionId . ':' . (int) $movement->material_id . ':' . $orderKey;
                 $quantity = abs((float) $movement->quantity);
                 if ($quantity <= 0.0000001) continue;
