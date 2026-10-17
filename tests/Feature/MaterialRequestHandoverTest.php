@@ -107,6 +107,18 @@ class MaterialRequestHandoverTest extends TestCase
             ->assertDontSee('هیچ انبار فعال برای این شرکت پیدا نشد');
     }
 
+    public function test_material_handover_form_includes_production_section_and_stage_fields(): void
+    {
+        $this->context();
+
+        $this->get('/handovers')
+            ->assertOk()
+            ->assertSee('name="production_section_id"', false)
+            ->assertSee('name="production_stage_id"', false)
+            ->assertSee('قسمت تولید')
+            ->assertSee('مرحله تولید');
+    }
+
     public function test_material_handover_accepts_material_location_type(): void
     {
         $c = $this->context();

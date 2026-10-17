@@ -18,6 +18,8 @@ class MaterialHandoverController extends Controller
         $data = $request->validate([
             'supply_request_id' => ['required', 'integer'],
             'warehouse_location_id' => ['required', 'integer'],
+            'production_section_id' => ['nullable', 'integer'],
+            'production_stage_id' => ['nullable', 'integer'],
             'delivered_by_user_id' => ['required', 'integer'],
             'received_by_user_id' => ['required', 'integer'],
             'handed_over_at' => ['required', 'date'],
@@ -35,6 +37,37 @@ class MaterialHandoverController extends Controller
                 ->first();
 
             abort_unless($requestRow && !in_array($requestRow->status, ['fulfilled', 'cancelled'], true), 422, 'درخواست تأمین قابل تحویل نیست.');
+
+            $productionSectionId = isset($data['production_section_id']) && $data['production_section_id'] !== ''
+                ? (int) $data['production_section_id']
+                : ($requestRow->production_section_id ? (int) $requestRow->production_section_id : null);
+            $productionStageId = isset($data['production_stage_id']) && $data['production_stage_id'] !== ''
+                ? (int) $data['production_stage_id']
+                : null;
+
+            if ($productionSectionId) {
+                abort_unless(
+                    DB::table('production_sections as ps')
+                        ->join('locations as l', 'l.id', '=', 'ps.location_id')
+                        ->where('ps.id', $productionSectionId)
+                        ->where('l.company_id', $companyId)
+                        ->where('l.is_active', true)
+                        ->where('ps.is_active', true)
+                        ->exists(),
+                    422,
+                    'قسمت تولید معتبر نیست.'
+                );
+            }
+
+            if ($productionStageId) {
+                abort_unless($productionSectionId && DB::table('production_stages as s')
+                    ->join('production_routes as pr', 'pr.id', '=', 's.production_route_id')
+                    ->where('s.id', $productionStageId)
+                    ->where('s.production_section_id', $productionSectionId)
+                    ->where('s.status', 'active')
+                    ->where('pr.company_id', $companyId)
+                    ->exists(), 422, 'مرحله تولید با قسمت انتخاب‌شده سازگار نیست.');
+            }
 
             abort_unless(
                 DB::table('locations')
@@ -66,6 +99,8 @@ class MaterialHandoverController extends Controller
                 'fiscal_year_id' => $requestRow->fiscal_year_id,
                 'supply_request_id' => $requestRow->id,
                 'warehouse_location_id' => $data['warehouse_location_id'],
+                'production_section_id' => $productionSectionId,
+                'production_stage_id' => $productionStageId,
                 'delivered_by_user_id' => $data['delivered_by_user_id'],
                 'received_by_user_id' => $data['received_by_user_id'],
                 'handed_over_at' => $data['handed_over_at'],
@@ -83,10 +118,10 @@ class MaterialHandoverController extends Controller
                 $quantity = (float) $item['quantity'];
                 abort_unless($alreadySupplied + $quantity <= (float) $requestItem->requested_quantity + 0.0000001, 422, 'مقدار تحویل بیش از مقدار درخواستی است.');
 
-                if (!empty($requestRow->production_section_id)) {
+                if ($productionSectionId) {
                     $inventory->transferToProductionSection($companyId, (int) $data['warehouse_location_id'],
-                        (int) $requestRow->production_section_id, (int) $item['goods_id'], $quantity,
-                        'material_handovers', $handoverId, ['supply_request_id' => (int) $requestRow->id]);
+                        $productionSectionId, (int) $item['goods_id'], $quantity,
+                        'material_handovers', $handoverId, ['supply_request_id' => (int) $requestRow->id, 'production_stage_id' => $productionStageId]);
                 } else {
                     // Preserve legacy behavior for old requests without a production section.
                     $inventory->issue($companyId, (int) $data['warehouse_location_id'], (int) $item['goods_id'], $quantity,
@@ -96,7 +131,7 @@ class MaterialHandoverController extends Controller
                 // For legacy requests without a production section, a handover is still
                 // the costing event. Production-section handovers are location transfers;
                 // their cost is recognized only when production actually consumes the stock.
-                if (empty($requestRow->production_section_id)) {
+                if (empty($productionSectionId)) {
                     $movement = DB::table('inventory_movements')
                         ->where('company_id', $companyId)
                         ->where('movement_type', 'material_handover')
