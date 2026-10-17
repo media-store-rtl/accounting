@@ -21,12 +21,22 @@
 <label style="display:flex;flex-direction:column;gap:8px;color:#c0d0df;font-size:12px;font-weight:600">درخواست تأمین
 <select name="supply_request_id" required @disabled($requests->isEmpty()) style="box-sizing:border-box;width:100%;min-height:44px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
 <option value="">انتخاب درخواست تأمین</option>
-@foreach($requests as $x)<option value="{{ $x->id }}" @selected((string)old('supply_request_id')===(string)$x->id)>درخواست #{{ $x->id }} — {{ match($x->status) {'stock_available'=>'موجود در انبار','purchased'=>'خریداری‌شده','partially_supplied'=>'تحویل جزئی',default=>$x->status} }}</option>@endforeach
+@foreach($requests as $x)<option value="{{ $x->id }}" data-section-id="{{ $x->production_section_id ?? '' }}" @selected((string)old('supply_request_id')===(string)$x->id)>درخواست #{{ $x->id }} — {{ match($x->status) {'stock_available'=>'موجود در انبار','purchased'=>'خریداری‌شده','partially_supplied'=>'تحویل جزئی',default=>$x->status} }}</option>@endforeach
 </select></label>
 <label style="display:flex;flex-direction:column;gap:8px;color:#c0d0df;font-size:12px;font-weight:600">انبار
 <select name="warehouse_location_id" required @disabled($locations->isEmpty()) style="box-sizing:border-box;width:100%;min-height:44px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
 <option value="">انتخاب انبار</option>
 @foreach($locations as $x)<option value="{{ $x->id }}" @selected((string)old('warehouse_location_id')===(string)$x->id)>{{ $x->name }}</option>@endforeach
+</select></label>
+<label style="display:flex;flex-direction:column;gap:8px;color:#c0d0df;font-size:12px;font-weight:600">قسمت تولید
+<select id="production_section_id" name="production_section_id" style="box-sizing:border-box;width:100%;min-height:44px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
+<option value="">انتخاب قسمت تولید</option>
+@foreach($sections as $x)<option value="{{ $x->id }}" @selected((string)old('production_section_id')===(string)$x->id)>{{ $x->name }}</option>@endforeach
+</select></label>
+<label style="display:flex;flex-direction:column;gap:8px;color:#c0d0df;font-size:12px;font-weight:600">مرحله تولید
+<select id="production_stage_id" name="production_stage_id" style="box-sizing:border-box;width:100%;min-height:44px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
+<option value="">انتخاب مرحله تولید</option>
+@foreach($stages as $x)<option value="{{ $x->id }}" data-section-id="{{ $x->production_section_id }}" @selected((string)old('production_stage_id')===(string)$x->id)>{{ $x->stage_name }} — {{ $x->route_name }}</option>@endforeach
 </select></label>
 <label style="display:flex;flex-direction:column;gap:8px;color:#c0d0df;font-size:12px;font-weight:600">تحویل‌دهنده
 <select name="delivered_by_user_id" required @disabled($users->isEmpty()) style="box-sizing:border-box;width:100%;min-height:44px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
@@ -67,6 +77,26 @@ const isoDate = document.getElementById('handed_over_date_iso');
 const time = document.getElementById('handed_over_time');
 const dateTime = document.getElementById('handed_over_at');
 const form = picker?.closest('form');
+const requestSelect = form?.querySelector('[name="supply_request_id"]');
+const sectionSelect = document.getElementById('production_section_id');
+const stageSelect = document.getElementById('production_stage_id');
+const stageOptions = stageSelect ? Array.from(stageSelect.options).slice(1) : [];
+function filterStages() {
+    if (!stageSelect) return;
+    const sectionId = sectionSelect?.value || '';
+    for (const option of stageOptions) {
+        option.hidden = !sectionId || option.dataset.sectionId !== sectionId;
+        option.disabled = option.hidden;
+    }
+    if (stageSelect.selectedOptions[0]?.disabled) stageSelect.value = '';
+}
+requestSelect?.addEventListener('change', () => {
+    const selected = requestSelect.selectedOptions[0];
+    if (selected?.dataset.sectionId && sectionSelect) sectionSelect.value = selected.dataset.sectionId;
+    filterStages();
+});
+sectionSelect?.addEventListener('change', filterStages);
+filterStages();
 if (picker && isoDate && time && dateTime && form) {
     setupProductionReportDatePicker('#handed_over_date_picker', '#handed_over_date_iso');
     form.addEventListener('submit', function (event) {
