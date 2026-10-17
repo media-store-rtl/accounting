@@ -189,6 +189,7 @@ class SalesOperationalWorkflowTest extends TestCase
     {
         Notification::fake();
         $c = $this->context(0);
+        $productLocation = DB::table('locations')->insertGetId(['company_id'=>$c['company'],'code'=>'FG-'.uniqid(),'name'=>'Finished Products','type'=>'محصول','is_active'=>true,'created_at'=>now(),'updated_at'=>now()]);
 
         $salesUserId = DB::table('users')->insertGetId([
             'account_id' => DB::table('companies')->where('id', $c['company'])->value('account_id'),
@@ -229,7 +230,7 @@ class SalesOperationalWorkflowTest extends TestCase
             DB::table('production_order')->insert([
                 'production_id' => $productionId, 'order_id' => $orderId, 'created_at' => now(), 'updated_at' => now(),
             ]);
-            $output = $service->create($c['company'], $productionId, $orderId, $c['warehouse'], $quantity, $c['user']);
+            $output = $service->create($c['company'], $productionId, $orderId, $productLocation, $quantity, $c['user']);
             $service->confirm($c['company'], $output->id, $c['user']);
 
             if ($index === 0) {
