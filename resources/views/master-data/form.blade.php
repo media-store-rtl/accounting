@@ -166,7 +166,8 @@ $labels=['code'=>'کد','name'=>'نام','parent_id'=>'دسته والد','symbo
 @if(($module ?? null) === 'production-sections')<p class="field-help">در صورت مشخص بودن مسئول این قسمت، سرپرست را انتخاب کنید؛ این فیلد اختیاری است.</p>@endif
 @elseif($f==='type' && ($module ?? null) === 'locations')
 <select name="{{$f}}" class="form-select" required>
-    <option value="مواد" @selected((string)$value==='مواد')>مواد اولیه / انبار مواد</option>
+    <option value="مواد اولیه" @selected((string)$value==='مواد اولیه')>مواد اولیه</option>
+    <option value="مواد" @selected((string)$value==='مواد')>مواد اولیه (نوع قدیمی)</option>
     <option value="محصول" @selected((string)$value==='محصول')>محصول نهایی</option>
     <option value="ضایعات" @selected((string)$value==='ضایعات')>ضایعات</option>
     <option value="warehouse" @selected((string)$value==='warehouse')>انبار (نوع قدیمی)</option>
