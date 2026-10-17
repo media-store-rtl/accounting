@@ -169,6 +169,10 @@ final class InventoryValuationService
                 ->where('company_id', $companyId)
                 ->where('location_id', $locationId)
                 ->where('goods_id', $goodsId)
+                // A movement must never be valued from a receipt that occurred after it.
+                // For backdated movements, later receipts are deliberately left unallocated;
+                // a full historical replay is required to reconstruct already-consumed layers.
+                ->where('received_at', '<=', $movement->occurred_at)
                 ->where($column, '>', 0)
                 ->when($method === self::FIFO, fn ($query) => $query->orderBy('received_at')->orderBy('id'))
                 ->lockForUpdate()
