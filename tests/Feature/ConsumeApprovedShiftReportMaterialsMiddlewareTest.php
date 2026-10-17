@@ -90,6 +90,23 @@ class ConsumeApprovedShiftReportMaterialsMiddlewareTest extends TestCase
         $this->assertSame(302, $response->getStatusCode());
     }
 
+    public function test_already_approved_report_does_not_trigger_consumption_again(): void
+    {
+        DB::table('production_shift_reports')->insert([
+            'id' => 9,
+            'company_id' => 1,
+            'status' => 'approved',
+        ]);
+
+        $service = Mockery::mock(ProductionShiftReportMaterialConsumption::class);
+        $service->shouldNotReceive('consumeApprovedReport');
+        $this->app->instance(ProductionShiftReportMaterialConsumption::class, $service);
+
+        $response = $this->runMiddleware(9);
+
+        $this->assertSame(302, $response->getStatusCode());
+    }
+
     private function runMiddleware(int $reportId, bool $persistApproval = false): RedirectResponse
     {
         $request = Request::create(
