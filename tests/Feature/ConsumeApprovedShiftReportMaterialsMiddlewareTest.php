@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Middleware\ConsumeApprovedShiftReportMaterials;
-use App\Services\ProductionShiftReportMaterialConsumptionService;
+use App\Contracts\ProductionShiftReportMaterialConsumption;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
@@ -54,9 +54,9 @@ class ConsumeApprovedShiftReportMaterialsMiddlewareTest extends TestCase
             'status' => 'pending',
         ]);
 
-        $service = Mockery::mock(ProductionShiftReportMaterialConsumptionService::class);
+        $service = Mockery::mock(ProductionShiftReportMaterialConsumption::class);
         $service->shouldNotReceive('consumeApprovedReport');
-        $this->app->instance(ProductionShiftReportMaterialConsumptionService::class, $service);
+        $this->app->instance(ProductionShiftReportMaterialConsumption::class, $service);
 
         $response = $this->runMiddleware(7);
 
