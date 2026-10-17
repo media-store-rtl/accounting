@@ -1,17 +1,17 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Http\\Middleware\\ConsumeApprovedShiftReportMaterials;
-use App\\Services\\ProductionShiftReportMaterialConsumptionService;
-use Illuminate\\Database\\Schema\\Blueprint;
-use Illuminate\\Http\\Request;
-use Illuminate\\Routing\\Route;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Schema;
+use App\Http\Middleware\ConsumeApprovedShiftReportMaterials;
+use App\Services\ProductionShiftReportMaterialConsumptionService;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Mockery;
-use Symfony\\Component\\HttpFoundation\\RedirectResponse;
-use Tests\\TestCase;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Tests\TestCase;
 
 class ConsumeApprovedShiftReportMaterialsMiddlewareTest extends TestCase
 {
