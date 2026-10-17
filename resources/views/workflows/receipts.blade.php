@@ -38,6 +38,7 @@
             </label>
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">مقدار
                 <input name="items[0][quantity]" type="number" step="0.0001" min="0.0001" value="{{ old('items.0.quantity') }}" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
+                @error('items.0.quantity')<span role="alert" style="display:block;color:#ffb8a8;background:#302126;border:1px solid #714448;border-radius:8px;padding:10px;font-size:12px;line-height:1.8">{{ $message }}</span>@enderror
             </label>
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">توضیحات (اختیاری)
                 <input name="notes" value="{{ old('notes') }}" style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
