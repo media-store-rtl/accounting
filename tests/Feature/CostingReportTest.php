@@ -110,6 +110,16 @@ class CostingReportTest extends TestCase
             'valuation_method' => 'fifo', 'quantity' => 1, 'unit_cost' => 7, 'total_cost' => 7,
             'consumed_at' => now(), 'created_at' => now(), 'updated_at' => now(),
         ]);
+        // A later production consumption with no valuation must still appear in
+        // the global unvalued-material total, even without a supply_request_id.
+        DB::table('inventory_movements')->insert([
+            'company_id' => $company, 'goods_id' => $rawMaterial, 'location_id' => $sectionLocation,
+            'quantity' => -3, 'movement_type' => 'production_consumption',
+            'reference_type' => 'production_operation_runs', 'reference_id' => $run,
+            'occurred_at' => '2026-10-08 07:00:00',
+            'metadata' => json_encode(['production_id' => $production]),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
         $handover = DB::table('material_handovers')->insertGetId([
             'company_id'=>$company,'fiscal_year_id'=>$fy,'supply_request_id'=>$supply,
             'warehouse_location_id'=>$location,'delivered_by_user_id'=>$user,'received_by_user_id'=>$user,
@@ -198,7 +208,7 @@ class CostingReportTest extends TestCase
         $this->assertSame(5.0,$report['rows'][0]['direct_cost']);
         $this->assertSame(92.0,$report['rows'][0]['total_cost']);
         $this->assertSame(['fifo'],$report['rows'][0]['valuation_methods']);
-        $this->assertSame(0.0,$report['totals']['unvalued_material_quantity']);
+        $this->assertSame(3.0,$report['totals']['unvalued_material_quantity']);
         $this->assertSame(1.0, $report['totals']['production_report_unvalued_material_quantity']);
         $this->assertCount(1,$report['production_reports']);
         $this->assertSame(['Stage'], $report['production_reports'][0]['stage_names']);
