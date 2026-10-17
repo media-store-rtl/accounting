@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Contracts\ProductionShiftReportMaterialConsumption;
+
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
-final class ProductionShiftReportMaterialConsumptionService
+final class ProductionShiftReportMaterialConsumptionService implements ProductionShiftReportMaterialConsumption
 {
     public function consumeApprovedReport(int $companyId, int $reportId, int $reviewerId): void
     {
