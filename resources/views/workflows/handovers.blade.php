@@ -9,7 +9,7 @@
 <div class="panel" style="margin-bottom:18px"><h2 style="font-size:15px;margin:0 0 16px">ثبت تحویل جدید</h2>
 <form method="POST" action="{{ route('workflows.handovers.store') }}">@csrf
 @if($locations->isEmpty())
-<div role="alert" style="padding:12px 14px;margin-bottom:14px;border:1px solid #8b6732;border-radius:10px;background:#332b1d;color:#f6d28b;font-size:12px">هیچ انبار فعال برای این شرکت پیدا نشد. در بخش «انبارها و محل‌ها» یک محل با نوع «انبار» ایجاد یا فعال کنید.</div>
+<div role="alert" style="padding:12px 14px;margin-bottom:14px;border:1px solid #8b6732;border-radius:10px;background:#332b1d;color:#f6d28b;font-size:12px">هیچ انبار فعال برای این شرکت پیدا نشد. در بخش «انبارها و محل‌ها» یک محل فعال با نوع «مواد اولیه» ایجاد یا فعال کنید.</div>
 @endif
 @if($requests->isEmpty())
 <div role="alert" style="padding:12px 14px;margin-bottom:14px;border:1px solid #8b6732;border-radius:10px;background:#332b1d;color:#f6d28b;font-size:12px">درخواست تأمین قابل تحویل وجود ندارد؛ ابتدا وضعیت درخواست را به «خریداری‌شده» یا «آماده تحویل» برسانید.</div>
