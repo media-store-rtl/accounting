@@ -36,7 +36,7 @@
 <label style="display:flex;flex-direction:column;gap:8px;color:#c0d0df;font-size:12px;font-weight:600">مرحله تولید
 <select id="production_stage_id" name="production_stage_id" style="box-sizing:border-box;width:100%;min-height:44px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
 <option value="">انتخاب مرحله تولید</option>
-@foreach($stages as $x)<option value="{{ $x->id }}" data-section-id="{{ $x->production_section_id }}" @selected((string)old('production_stage_id')===(string)$x->id)>{{ $x->stage_name }} — {{ $x->route_name }}</option>@endforeach
+@foreach($stages as $x)<option value="{{ $x->id }}" data-section-id="{{ $x->production_section_id }}" @selected((string)old('production_stage_id')===(string)$x->id)>{{ $x->stage_name }}</option>@endforeach
 </select></label>
 <label style="display:flex;flex-direction:column;gap:8px;color:#c0d0df;font-size:12px;font-weight:600">تحویل‌دهنده
 <select name="delivered_by_user_id" required @disabled($users->isEmpty()) style="box-sizing:border-box;width:100%;min-height:44px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
