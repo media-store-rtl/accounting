@@ -102,7 +102,36 @@ class WorkflowPagesController extends Controller {
  public function storeHandover(Request $r){$cid=CompanyAuthorization::authorize($r,'supply_request.handover.create');$r->validate(['supply_request_id'=>'nullable|integer','warehouse_location_id'=>'required|integer','production_section_id'=>'nullable|integer','production_stage_id'=>'nullable|integer','delivered_by_user_id'=>'required|integer','received_by_user_id'=>'required|integer','handed_over_at'=>'required|date','items'=>'required|array|min:1','items.*.goods_id'=>'required|integer','items.*.quantity'=>'required|numeric|gt:0']);app(MaterialHandoverController::class)->store($r,app(\App\Services\InventoryService::class),app(\App\Services\InventoryValuationService::class));return back()->with('success','تحویل مواد ثبت شد.');}
  public function receipts(Request $r){$cid=CompanyAuthorization::authorize($r,'purchase.receipt.create');return view('workflows.receipts',['rows'=>DB::table('purchase_receipts')->where('company_id',$cid)->latest('id')->paginate(20),'purchases'=>DB::table('purchases')->where('company_id',$cid)->whereIn('status',['draft','partially_received'])->get(),'locations'=>DB::table('locations')->where('company_id',$cid)->whereRaw("LOWER(TRIM(type)) = ?",['مواد اولیه'])->where('is_active',true)->orderBy('name')->get(),'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->get()]);}
  public function approveReceipt(Request $r,int $id){$cid=CompanyAuthorization::authorize($r,'purchase.receipt.approve');app(PurchaseReceiptController::class)->approve($r,$id);return back()->with('success','رسید تأیید شد و موجودی به‌روزرسانی شد.');}
- public function storeReceipt(Request $r){$cid=CompanyAuthorization::authorize($r,'purchase.receipt.create');$d=$r->validate(['purchase_id'=>'required|integer','warehouse_location_id'=>'required|integer','received_at'=>'required|date','notes'=>'nullable|string','items'=>'required|array|min:1','items.*.goods_id'=>'required|integer','items.*.quantity'=>'required|numeric|gt:0']);app(PurchaseReceiptController::class)->store($r);return back()->with('success','رسید خرید ثبت شد.');}
+ public function storeReceipt(Request $r){
+  $cid=CompanyAuthorization::authorize($r,'purchase.receipt.create');
+  $d=$r->validate(['purchase_id'=>'required|integer','warehouse_location_id'=>'required|integer','received_at'=>'required|date','notes'=>'nullable|string','items'=>'required|array|min:1','items.*.goods_id'=>'required|integer','items.*.quantity'=>'required|numeric|gt:0']);
+  $purchase=DB::table('purchases')->where('id',$d['purchase_id'])->where('company_id',$cid)->first();
+  if(!$purchase || $purchase->status==='cancelled') return back()->withErrors(['purchase_id'=>'خرید انتخاب‌شده معتبر نیست یا لغو شده است.'])->withInput();
+  foreach($d['items'] as $index=>$item){
+   $pi=DB::table('purchase_items as pi')->join('goods as g','g.id','=','pi.goods_id')
+    ->where('pi.purchase_id',$purchase->id)->where('pi.goods_id',$item['goods_id'])
+    ->select('pi.quantity','g.name as goods_name')->first();
+   if(!$pi) return back()->withErrors(["items.$index.goods_id"=>'این کالا در خرید انتخاب‌شده وجود ندارد.'])->withInput();
+   $previous=DB::table('purchase_receipt_items as x')->join('purchase_receipts as rr','rr.id','=','x.purchase_receipt_id')
+    ->where('rr.purchase_id',$purchase->id)->whereIn('rr.status',['pending','approved'])->where('x.goods_id',$item['goods_id'])
+    ->select('rr.id','rr.status','rr.received_at','x.quantity','rr.notes')->orderBy('rr.id')->get();
+   $reserved=(float)$previous->sum('quantity');
+   $remaining=max(0,(float)$pi->quantity-$reserved);
+   if($reserved+(float)$item['quantity']>(float)$pi->quantity+0.0000001){
+    $details=$previous->map(function($receipt){
+     $status=$receipt->status==='pending'?'در انتظار تأیید':'تأییدشده';
+     return 'رسید #'.$receipt->id.' ('.$status.')، تاریخ '.$receipt->received_at.'، مقدار '.rtrim(rtrim(number_format((float)$receipt->quantity,4,'.',''),'0'),'.');
+    })->implode('؛ ');
+    $message='مقدار قابل ثبت برای «'.$pi->goods_name.'» فقط '.rtrim(rtrim(number_format($remaining,4,'.',''),'0'),'.').' از '.rtrim(rtrim(number_format((float)$pi->quantity,4,'.',''),'0'),'.').' است. مقدار رسیدهای قبلی: '.($details ?: 'رسید قبلی پیدا نشد').'. رسیدهای تأییدشده مصرف‌شده‌اند و رسیدهای در انتظار تأیید نیز این مقدار را رزرو کرده‌اند؛ ابتدا رسیدهای نام‌برده را بررسی کنید.';
+    return back()->withErrors(["items.$index.quantity"=>$message])->withInput();
+   }
+  }
+  try { app(PurchaseReceiptController::class)->store($r); }
+  catch(\\Symfony\\Component\\HttpKernel\\Exception\\HttpException $e) {
+   return back()->withErrors(['items.0.quantity'=>$e->getMessage() ?: 'ثبت رسید انجام نشد. مقدار خرید و رسیدهای قبلی را بررسی کنید.'])->withInput();
+  }
+  return back()->with('success','رسید خرید ثبت شد.');
+ }
  public function labor(Request $r){$cid=CompanyAuthorization::authorize($r,'production.labor.create');return view('workflows.labor',['rows'=>DB::table('production_labor_entries')->where('company_id',$cid)->latest('id')->paginate(20),'personnel'=>DB::table('personnel')->where('account_id',$r->user()->account_id)->where('is_active',true)->get(),'runs'=>DB::table('production_operation_runs as r')->join('production_stage_runs as sr','sr.id','=','r.production_stage_run_id')->join('productions as p','p.id','=','sr.production_id')->where('p.company_id',$cid)->select('r.id','p.number')->latest('r.id')->get()]);}
  public function warehouseSupplyRequests(Request $r){
   $cid=CompanyAuthorization::authorize($r,'supply_request.handover.create');
