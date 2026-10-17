@@ -177,7 +177,8 @@ final class CostingReportService
             $movementFiscalYearId=$supply?->fiscal_year_id
                 ??$production?->fiscal_year_id
                 ??($meta['fiscal_year_id']??null);
-            if($fy!==null&&$movementFiscalYearId!==null&&(int)$movementFiscalYearId!==$fy)continue;
+            // Never attribute movements with an unknown fiscal year to a specific year.
+            if($fy!==null&&(int)($movementFiscalYearId??0)!==$fy)continue;
             if($orderId!==null&&$oid!==$orderId)continue;
             if($goodsId!==null&&$targetGoodsId!==$goodsId)continue;
             $unvaluedQuantity=max(0.0,abs((float)$m->quantity)-(float)($m->valued_quantity??0));
