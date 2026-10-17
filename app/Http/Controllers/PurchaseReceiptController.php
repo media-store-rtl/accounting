@@ -22,7 +22,9 @@ class PurchaseReceiptController extends Controller
         ]);
         $id=DB::transaction(function()use($data,$companyId,$request){
             $purchase=DB::table('purchases')->where('id',$data['purchase_id'])->where('company_id',$companyId)->lockForUpdate()->first();
-            abort_unless($purchase&&$purchase->status!=='cancelled',422,'خرید معتبر نیست.');
+            if (!$purchase || $purchase->status==='cancelled') {
+                throw ValidationException::withMessages(['purchase_id'=>'خرید انتخاب‌شده پیدا نشد یا لغو شده است. یک خرید معتبر انتخاب کنید.']);
+            }
             if (!DB::table('locations')->where('id',$data['warehouse_location_id'])->where('company_id',$companyId)->whereRaw("LOWER(TRIM(type)) = ?",['مواد اولیه'])->where('is_active',true)->exists()) {
                 throw ValidationException::withMessages(['warehouse_location_id'=>'انبار انتخاب‌شده معتبر یا فعال نیست. یک انبار فعال از نوع «مواد اولیه» انتخاب کنید.']);
             }
@@ -75,7 +77,18 @@ class PurchaseReceiptController extends Controller
                 $pi=DB::table('purchase_items')->where('purchase_id',$purchase->id)->where('goods_id',$item->goods_id)->lockForUpdate()->firstOrFail();
                 $approved=(float)DB::table('purchase_receipt_items as x')->join('purchase_receipts as r','r.id','=','x.purchase_receipt_id')
                     ->where('r.purchase_id',$purchase->id)->where('r.status','approved')->where('x.goods_id',$item->goods_id)->sum('x.quantity');
-                abort_unless($approved+(float)$item->quantity<=(float)$pi->quantity+0.0000001,422,'مقدار دریافت بیش از خرید است.');
+                if ($approved+(float)$item->quantity>(float)$pi->quantity+0.0000001) {
+                    $otherPending=DB::table('purchase_receipt_items as x')->join('purchase_receipts as r','r.id','=','x.purchase_receipt_id')
+                        ->where('r.purchase_id',$purchase->id)->where('r.status','pending')->where('r.id','<>',$receipt->id)->where('x.goods_id',$item->goods_id)
+                        ->select('r.id','x.quantity')->orderBy('r.id')->get();
+                    $message='تأیید این رسید از مقدار خرید بیشتر می‌شود. مقدار خرید: '.number_format((float)$pi->quantity,4,'.',',')
+                        .'؛ قبلاً تأییدشده: '.number_format($approved,4,'.',',')
+                        .'؛ مقدار این رسید: '.number_format((float)$item->quantity,4,'.',',').'.';
+                    if ($otherPending->isNotEmpty()) {
+                        $message.=' رسیدهای دیگرِ در انتظار تأیید برای همین کالا: '.$otherPending->map(fn($row)=>'#'.$row->id.' ('.number_format((float)$row->quantity,4,'.',',').')')->implode('، ').'.';
+                    }
+                    throw ValidationException::withMessages(['receipt'=>'رسید #'.$receipt->id.' — '.$message.' رسیدهای قبلی را در جدول همین صفحه بررسی کنید.']);
+                }
                 app(InventoryService::class)->receive($companyId,$receipt->warehouse_location_id,$item->goods_id,(float)$item->quantity,'purchase_receipts',(int)$receipt->id,['purchase_id'=>$purchase->id,'purchase_item_id'=>$pi->id]);
 
                 $receiptItemId=DB::table('purchase_receipt_items')->where('purchase_receipt_id',$receipt->id)->where('goods_id',$item->goods_id)->value('id');
