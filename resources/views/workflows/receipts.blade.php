@@ -50,8 +50,12 @@
 </div>
 
 <div class="panel"><h2 style="font-size:15px;margin:0 0 14px">رسیدهای ثبت‌شده</h2>
-<div class="table-wrap"><table><thead><tr><th>شناسه</th><th>خرید</th><th>اقلام و مقدار</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
-@forelse($rows as $row)<tr><td>#{{ $row->id }}</td><td>#{{ $row->purchase_id }}</td><td>@forelse($row->items as $item)<div>{{ $item->goods_name }} — {{ number_format((float)$item->quantity,4,'.',',') }} {{ $item->unit_name ?: 'واحد تعریف نشده' }}@if($item->unit_symbol) ({{ $item->unit_symbol }})@endif</div>@empty—@endforelse</td><td><span class="status {{ $row->status === 'approved' ? 'active' : 'inactive' }}">{{ $row->status === 'pending' ? 'در انتظار تأیید' : ($row->status === 'approved' ? 'تأیید شده' : $row->status) }}</span></td><td>@if($row->status==='pending')<form method="POST" action="{{ route('workflows.receipts.approve',$row->id) }}">@csrf<button class="btn" type="submit">تأیید رسید</button></form>@else—@endif</td></tr>@empty<tr><td colspan="5" style="text-align:center;padding:28px;color:#8198ac">رسیدی برای نمایش وجود ندارد.</td></tr>@endforelse
+<div class="table-wrap"><table><thead><tr><th>شناسه</th><th>خرید</th><th>کالا</th><th>مقدار</th><th>واحد</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
+@forelse($rows as $row)<tr><td>#{{ $row->id }}</td><td>#{{ $row->purchase_id }}</td>
+<td>@forelse($row->items as $item)<div>{{ $item->goods_name }}</div>@empty—@endforelse</td>
+<td>@forelse($row->items as $item)<div>{{ number_format((float)$item->quantity,4,'.',',') }}</div>@empty—@endforelse</td>
+<td>@forelse($row->items as $item)<div>{{ $item->unit_name ?: 'واحد تعریف نشده' }}@if($item->unit_symbol) ({{ $item->unit_symbol }})@endif</div>@empty—@endforelse</td>
+<td><span class="status {{ $row->status === 'approved' ? 'active' : 'inactive' }}">{{ $row->status === 'pending' ? 'در انتظار تأیید' : ($row->status === 'approved' ? 'تأیید شده' : $row->status) }}</span></td><td>@if($row->status==='pending')<form method="POST" action="{{ route('workflows.receipts.approve',$row->id) }}">@csrf<button class="btn" type="submit">تأیید رسید</button></form>@else—@endif</td></tr>@empty<tr><td colspan="7" style="text-align:center;padding:28px;color:#8198ac">رسیدی برای نمایش وجود ندارد.</td></tr>@endforelse
 </tbody></table></div>
 @if(method_exists($rows, 'links'))<div class="pagination">{{ $rows->links() }}</div>@endif
 </div>
