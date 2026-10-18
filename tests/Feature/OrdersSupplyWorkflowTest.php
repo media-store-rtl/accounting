@@ -472,13 +472,13 @@ class OrdersSupplyWorkflowTest extends TestCase
             ->assertOk()
             ->assertSee('ثبت خرید جدید')
             ->assertSee(route('workflows.purchasing.create'))
-            ->assertDontSee('name="items[0][goods_id]"');
+            ->assertDontSee('name="items[0][goods_id]"', false);
 
         $this->get('/purchasing/create')
             ->assertOk()
-            ->assertSee('name="items[0][goods_id]"')
-            ->assertSee('name="items[0][quantity]"')
-            ->assertSee('name="items[0][unit_price]"')
+            ->assertSee('name="items[0][goods_id]"', false)
+            ->assertSee('name="items[0][quantity]"', false)
+            ->assertSee('name="items[0][unit_price]"', false)
             ->assertSee('purchased_date_picker')
             ->assertSee('ثبت خرید');
     }
