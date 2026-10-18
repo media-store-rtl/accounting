@@ -169,13 +169,11 @@ final class HistoricalInventoryValuationReportService
                     $average = $knownValue / $knownAvailable;
                     $valuedQuantity = min($needed, $knownAvailable);
                     $totalCost = $valuedQuantity * $average;
-                    $remaining = $valuedQuantity;
+                    $fraction = $allAvailable > 0 ? $valuedQuantity / $allAvailable : 0.0;
                     foreach ($eligible as $index => $layer) {
-                        if ($remaining <= 0.0000001) break;
-                        $take = min($remaining, (float) $layer['quantity']);
+                        $take = (float) $layer['quantity'] * $fraction;
                         if ($take <= 0.0000001) continue;
                         $allocations[] = ['index' => $index, 'quantity' => $take, 'unit_cost' => $average];
-                        $remaining -= $take;
                     }
                 }
             }
@@ -194,13 +192,14 @@ final class HistoricalInventoryValuationReportService
                 }
                 unset($layer);
             } else {
-                $remainingToRemove = $needed;
-                foreach ($available as $index => &$layer) {
-                    if ($remainingToRemove <= 0.0000001) break;
+                $eligibleTotal = 0.0;
+                foreach ($available as $layer) {
+                    if ((string) $layer['at'] <= (string) $row->occurred_at) $eligibleTotal += (float) $layer['quantity'];
+                }
+                $fraction = $eligibleTotal > 0 ? min(1.0, $needed / $eligibleTotal) : 0.0;
+                foreach ($available as &$layer) {
                     if ((string) $layer['at'] > (string) $row->occurred_at) continue;
-                    $take = min($remainingToRemove, (float) $layer['quantity']);
-                    $layer['quantity'] -= $take;
-                    $remainingToRemove -= $take;
+                    $layer['quantity'] -= (float) $layer['quantity'] * $fraction;
                 }
                 unset($layer);
             }
