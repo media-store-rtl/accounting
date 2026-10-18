@@ -79,7 +79,7 @@ $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifica
 @endif
 @if($can['supply'] || $can['purchasing'] || $can['receipts'] || $can['handovers'])
 <div class="nav-title">تأمین و خرید</div>
-@if($can['supply'])<a class="{{ request()->routeIs('workflows.supply*') ? 'active' : '' }}" href="{{ route('workflows.supply') }}">درخواست‌های تأمین (سوابق)</a>@endif
+@if($can['supply'])<a class="{{ request()->routeIs('workflows.supply*') ? 'active' : '' }}" href="{{ route('workflows.supply') }}">درخواست‌ خرید</a>@endif
 @if($can['purchasing'])<a class="{{ request()->routeIs('workflows.purchasing*') ? 'active' : '' }}" href="{{ route('workflows.purchasing') }}">▤ خریدها</a>@endif
 @if($can['receipts'])<a class="{{ request()->routeIs('workflows.receipts*') ? 'active' : '' }}" href="{{ route('workflows.receipts') }}">⇣ رسیدهای خرید</a>@endif
 @if($can['handovers'])<a class="{{ request()->routeIs('workflows.handovers*') ? 'active' : '' }}" href="{{ route('workflows.handovers') }}">⇢ تحویل مواد</a>@endif
