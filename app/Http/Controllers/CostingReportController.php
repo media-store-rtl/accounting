@@ -26,11 +26,15 @@ final class CostingReportController extends Controller
             'method' => 'required|in:fifo,weighted_average',
         ]);
 
-        $service->setMethod($companyId, $data['method']);
+        try {
+            $service->setMethod($companyId, $data['method']);
+        } catch (\RuntimeException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
 
         return back()->with(
             'success',
-            'روش ارزش‌گذاری پیش‌فرض ذخیره شد. هزینه‌های قبلی دست‌نخورده می‌مانند؛ این روش برای ارزش‌گذاری‌های بعدی و مصرف‌های هنوز ارزش‌گذاری‌نشده استفاده می‌شود.'
+            'روش ارزش‌گذاری پیش‌فرض ذخیره شد.'
         );
     }
 
