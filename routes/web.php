@@ -48,7 +48,9 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
-    Route::get('/notifications', [\App\Http\Controllers\NotificationCenterController::class,'index'])->middleware('company.permission:notification.view')->name('notifications.index');
+    Route::resource('notifications', \App\Http\Controllers\NotificationCenterController::class)
+        ->only(['index'])
+        ->middleware('company.permission:notification.view');
     Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationCenterController::class,'read'])->middleware('company.permission:notification.view')->name('notifications.read');
 
     Route::get('/company', [CompanyController::class, 'edit'])
@@ -58,32 +60,66 @@ Route::middleware('auth')->group(function () {
         ->middleware(['company.permission:company.update', 'account.owner'])
         ->name('company.update');
 
-    Route::get('/fiscal-years', [FiscalYearController::class, 'index'])->middleware('company.permission:fiscal_year.view')->name('fiscal-years.index');
-    Route::get('/fiscal-years/create', [FiscalYearController::class, 'create'])->middleware('company.permission:fiscal_year.create')->name('fiscal-years.create');
-    Route::post('/fiscal-years', [FiscalYearController::class, 'store'])->middleware('company.permission:fiscal_year.create')->name('fiscal-years.store');
-    Route::post('/fiscal-years/{fiscalYear}/select', [FiscalYearController::class, 'select'])->middleware('company.permission:fiscal_year.view')->name('fiscal-years.select');
-    Route::get('/fiscal-years/{fiscalYear}/edit', [FiscalYearController::class, 'edit'])->middleware('company.permission:fiscal_year.update')->name('fiscal-years.edit');
-    Route::put('/fiscal-years/{fiscalYear}', [FiscalYearController::class, 'update'])->middleware('company.permission:fiscal_year.update')->name('fiscal-years.update');
-    Route::post('/fiscal-years/{fiscalYear}/close', [FiscalYearController::class, 'close'])->middleware('company.permission:fiscal_year.close')->name('fiscal-years.close');
+    Route::middleware('company.permission:fiscal_year.view')->group(function () {
+        Route::resource('fiscal-years', FiscalYearController::class)
+            ->only(['index'])
+            ->parameters(['fiscal-years' => 'fiscalYear']);
+        Route::post('/fiscal-years/{fiscalYear}/select', [FiscalYearController::class, 'select'])
+            ->name('fiscal-years.select');
+    });
+    Route::middleware('company.permission:fiscal_year.create')->group(function () {
+        Route::resource('fiscal-years', FiscalYearController::class)
+            ->only(['create', 'store'])
+            ->parameters(['fiscal-years' => 'fiscalYear']);
+    });
+    Route::middleware('company.permission:fiscal_year.update')->group(function () {
+        Route::resource('fiscal-years', FiscalYearController::class)
+            ->only(['edit'])
+            ->parameters(['fiscal-years' => 'fiscalYear']);
+        Route::put('/fiscal-years/{fiscalYear}', [FiscalYearController::class, 'update'])
+            ->name('fiscal-years.update');
+    });
+    Route::post('/fiscal-years/{fiscalYear}/close', [FiscalYearController::class, 'close'])
+        ->middleware('company.permission:fiscal_year.close')
+        ->name('fiscal-years.close');
 
-    Route::get('/reports/costing', [CostingReportController::class, 'index'])
-        ->middleware('company.permission:costing.report.view')->name('reports.costing');
+    Route::resource('reports/costing', CostingReportController::class)
+        ->only(['index'])
+        ->middleware('company.permission:costing.report.view')
+        ->names(['index' => 'reports.costing']);
     Route::post('/reports/costing/calculate', [CostingReportController::class, 'calculate'])->middleware('company.permission:costing.report.view')->name('reports.costing.calculate');
     Route::post('/reports/costing/production-reports/{reportId}/value', [CostingReportController::class, 'valueProductionReport'])->whereNumber('reportId')->middleware('company.permission:costing.report.view')->name('reports.costing.production-reports.value');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/sso/logout', [AccountingSsoController::class, 'logout'])->name('sso.logout');
 
-    Route::get('/sales/customers', [CustomerController::class, 'index'])->middleware('company.permission:customer.view')->name('sales.customers.index');
-    Route::get('/sales/customers/create', [CustomerController::class, 'create'])->middleware('company.permission:customer.create')->name('sales.customers.create');
-    Route::post('/sales/customers', [CustomerController::class, 'store'])->middleware('company.permission:customer.create')->name('sales.customers.store');
-    Route::get('/sales/customers/{id}/edit', [CustomerController::class, 'edit'])->middleware('company.permission:customer.update')->whereNumber('id')->name('sales.customers.edit');
-    Route::put('/sales/customers/{id}', [CustomerController::class, 'update'])->middleware('company.permission:customer.update')->whereNumber('id')->name('sales.customers.update');
-    Route::get('/sales/orders', [OrderController::class, 'index'])->middleware('company.permission:order.view')->name('sales.orders.index');
-    Route::get('/sales/orders/create', [OrderController::class, 'create'])->middleware('company.permission:order.create')->name('sales.orders.create');
-    Route::post('/sales/orders', [OrderController::class, 'store'])->middleware('company.permission:order.create')->name('sales.orders.store');
-    Route::get('/sales/orders/{order}', [OrderController::class, 'show'])->middleware('company.permission:order.view')->name('sales.orders.show');
+    Route::middleware('company.permission:customer.view')->group(function () {
+        Route::resource('sales/customers', CustomerController::class)->only(['index']);
+    });
+    Route::middleware('company.permission:customer.create')->group(function () {
+        Route::resource('sales/customers', CustomerController::class)->only(['create', 'store']);
+    });
+    Route::middleware('company.permission:customer.update')->group(function () {
+        Route::get('/sales/customers/{id}/edit', [CustomerController::class, 'edit'])
+            ->whereNumber('id')
+            ->name('sales.customers.edit');
+        Route::put('/sales/customers/{id}', [CustomerController::class, 'update'])
+            ->whereNumber('id')
+            ->name('sales.customers.update');
+    });
+    Route::middleware('company.permission:order.view')->group(function () {
+        Route::resource('sales/orders', OrderController::class)
+            ->only(['index', 'show'])
+            ->parameters(['orders' => 'order']);
+    });
+    Route::middleware('company.permission:order.create')->group(function () {
+        Route::resource('sales/orders', OrderController::class)
+            ->only(['create', 'store'])
+            ->parameters(['orders' => 'order']);
+    });
     Route::post('/sales/orders/{order}/cancel', [OrderController::class, 'cancel'])->middleware('company.permission:order.create')->whereNumber('order')->name('sales.orders.cancel');
-    Route::get('/sales/deliveries', [DeliveryController::class, 'index'])->middleware('company.permission:delivery_request.view')->name('sales.deliveries.index');
+    Route::resource('sales/deliveries', DeliveryController::class)
+        ->only(['index'])
+        ->middleware('company.permission:delivery_request.view');
     Route::post('/api/orders/{order}/refresh', [OrderController::class, 'refreshFulfillment'])->middleware('company.permission:order.refresh')->name('sales.orders.refresh');
     Route::post('/api/orders/{order}/production-due', [OrderController::class, 'setProductionDue'])->middleware('company.permission:production.supervise')->name('sales.orders.production-due');
     Route::post('/api/orders/{order}/delivery-request', [OrderController::class, 'deliveryRequest'])->middleware('company.permission:delivery_request.sales_approve')->name('sales.orders.delivery-request');
@@ -94,84 +130,212 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/delivery-requests/{delivery}/receipt', [DeliveryController::class, 'receipt'])->middleware('company.permission:delivery_request.view')->name('sales.delivery.receipt');
 
     Route::prefix('api')->name('api.')->group(function () {
-        Route::post('/orders', [OrderController::class, 'store'])->middleware('company.permission:order.create')->name('orders.store');
-        Route::get('/orders/{order}', [OrderController::class, 'show'])->middleware('company.permission:order.view')->name('orders.show');
-        Route::post('/supply-requests', [SupplyRequestController::class, 'store'])->middleware('company.permission:supply_request.create')->name('supply-requests.store');
-        Route::get('/supply-requests/{supplyRequest}', [SupplyRequestController::class, 'show'])->middleware('company.permission:supply_request.view')->name('supply-requests.show');
-        Route::post('/material-handovers', [MaterialHandoverController::class, 'store'])->middleware('company.permission:supply_request.handover.create')->name('material-handovers.store');
-        Route::get('/material-handovers/{materialHandover}', [MaterialHandoverController::class, 'show'])->middleware('company.permission:supply_request.handover.view')->name('material-handovers.show');
-        Route::post('/purchases', [PurchaseController::class, 'store'])->middleware('company.permission:purchase.create')->name('purchases.store');
-        Route::get('/purchases/{purchase}', [PurchaseController::class, 'show'])->middleware('company.permission:purchase.view')->name('purchases.show');
+        Route::middleware('company.permission:order.create')->group(function () {
+            Route::apiResource('orders', OrderController::class)->only(['store']);
+        });
+        Route::middleware('company.permission:order.view')->group(function () {
+            Route::apiResource('orders', OrderController::class)->only(['show'])->parameters(['orders' => 'order']);
+        });
+        Route::middleware('company.permission:supply_request.create')->group(function () {
+            Route::apiResource('supply-requests', SupplyRequestController::class)
+                ->only(['store'])
+                ->parameters(['supply-requests' => 'supplyRequest']);
+        });
+        Route::middleware('company.permission:supply_request.view')->group(function () {
+            Route::apiResource('supply-requests', SupplyRequestController::class)
+                ->only(['show'])
+                ->parameters(['supply-requests' => 'supplyRequest']);
+        });
+        Route::middleware('company.permission:supply_request.handover.create')->group(function () {
+            Route::apiResource('material-handovers', MaterialHandoverController::class)
+                ->only(['store'])
+                ->parameters(['material-handovers' => 'materialHandover']);
+        });
+        Route::middleware('company.permission:supply_request.handover.view')->group(function () {
+            Route::apiResource('material-handovers', MaterialHandoverController::class)
+                ->only(['show'])
+                ->parameters(['material-handovers' => 'materialHandover']);
+        });
+        Route::middleware('company.permission:purchase.create')->group(function () {
+            Route::apiResource('purchases', PurchaseController::class)->only(['store']);
+        });
+        Route::middleware('company.permission:purchase.view')->group(function () {
+            Route::apiResource('purchases', PurchaseController::class)->only(['show'])->parameters(['purchases' => 'purchase']);
+        });
         Route::post('/purchase-receipts', [PurchaseReceiptController::class, 'store'])->middleware('company.permission:purchase.receipt.create')->name('purchase-receipts.store');
         Route::post('/purchase-receipts/{purchaseReceipt}/approve', [PurchaseReceiptController::class, 'approve'])->middleware('company.permission:purchase.receipt.approve')->name('purchase-receipts.approve');
-        Route::post('/production/labor', [LaborCostController::class, 'store'])->middleware('company.permission:production.labor.create')->name('production.labor.store');
+        Route::apiResource('production/labor', LaborCostController::class)
+            ->only(['store'])
+            ->middleware('company.permission:production.labor.create');
         Route::post('/production/labor/{laborEntry}/review', [LaborCostController::class, 'review'])->middleware('company.permission:production.labor.review')->name('production.labor.review');
         Route::post('/production/labor/rates', [LaborCostController::class, 'setRate'])->middleware('company.permission:production.labor.rate.manage')->name('production.labor.rates.store');
     });
 
-    Route::get('/supply', [WorkflowPagesController::class,'supply'])->middleware('company.permission:supply_request.view')->name('workflows.supply');
-    Route::get('/production/material-requests', [WorkflowPagesController::class,'productionSalesShortages'])->middleware('company.permission:production.supervise')->name('production.material-requests');
-    Route::get('/production/due-dates', [WorkflowPagesController::class,'productionDue'])->middleware('company.permission:production.supervise')->name('production.due-dates.index');
-    Route::post('/production/orders/{order}/due-date', [OrderController::class, 'setProductionDue'])->middleware('company.permission:production.supervise')->whereNumber('order')->name('production.orders.due-date');
-    Route::get('/warehouse/supply-requests', [WorkflowPagesController::class,'warehouseSupplyRequests'])->middleware('company.permission:supply_request.handover.create')->name('warehouse.supply-requests');
-    Route::post('/warehouse/supply-requests/{supplyRequest}/reject', [WorkflowPagesController::class,'rejectSupplyRequest'])->middleware('company.permission:supply_request.handover.create')->whereNumber('supplyRequest')->name('warehouse.supply-requests.reject');
-    Route::post('/purchasing/supply-requests/{supplyRequest}/status', [WorkflowPagesController::class,'updateSupplyPurchaseStatus'])->middleware('company.permission:supply.manage')->whereNumber('supplyRequest')->name('workflows.purchasing.supply-status');
-    Route::post('/supply', [WorkflowPagesController::class,'storeSupply'])->middleware('company.permission:supply_request.create')->name('workflows.supply.store');
-    Route::post('/supply/{supplyRequest}/stock-review', [SupplyRequestController::class, 'reviewStock'])->middleware('company.permission:supply_request.handover.create')->whereNumber('supplyRequest')->name('workflows.supply.stock-review');
-    Route::get('/purchasing', [WorkflowPagesController::class,'purchasing'])->middleware('company.permission:purchase.view')->name('workflows.purchasing');
-    Route::post('/purchasing', [WorkflowPagesController::class,'storePurchase'])->middleware('company.permission:purchase.create')->name('workflows.purchasing.store');
-    Route::get('/production/labor', [WorkflowPagesController::class,'labor'])->middleware('company.permission:production.labor.create')->name('workflows.labor');
-    Route::post('/production/labor', [WorkflowPagesController::class,'storeLabor'])->middleware('company.permission:production.labor.create')->name('workflows.labor.store');
-    Route::get('/inventory', [WorkflowPagesController::class,'inventory'])->middleware('company.permission:inventory.view')->name('inventory.index');
-    Route::post('/inventory/{location}/{goods}/reorder-point', [WorkflowPagesController::class,'setReorderPoint'])->middleware('company.permission:inventory.reorder_point.manage')->whereNumber('location')->whereNumber('goods')->name('inventory.reorder-point');
-    Route::get('/handovers', [WorkflowPagesController::class,'handovers'])->middleware('company.permission:supply_request.handover.view')->name('workflows.handovers');
-    Route::post('/handovers', [WorkflowPagesController::class,'storeHandover'])->middleware('company.permission:supply_request.handover.create')->name('workflows.handovers.store');
-    Route::get('/receipts', [WorkflowPagesController::class,'receipts'])->middleware('company.permission:purchase.receipt.create')->name('workflows.receipts');
-    Route::post('/receipts', [WorkflowPagesController::class,'storeReceipt'])->middleware('company.permission:purchase.receipt.create')->name('workflows.receipts.store');
-    Route::post('/receipts/{id}/approve', [WorkflowPagesController::class,'approveReceipt'])->middleware('company.permission:purchase.receipt.approve')->name('workflows.receipts.approve');
+    // Supply requests
+    Route::prefix('supply')->group(function () {
+        Route::get('/', [WorkflowPagesController::class, 'supply'])
+            ->middleware('company.permission:supply_request.view')
+            ->name('workflows.supply');
+        Route::post('/', [WorkflowPagesController::class, 'storeSupply'])
+            ->middleware('company.permission:supply_request.create')
+            ->name('workflows.supply.store');
+        Route::post('/{supplyRequest}/stock-review', [SupplyRequestController::class, 'reviewStock'])
+            ->middleware('company.permission:supply_request.handover.create')
+            ->whereNumber('supplyRequest')
+            ->name('workflows.supply.stock-review');
+    });
 
-    Route::get('/production/shift-reports', [\App\Http\Controllers\ProductionShiftReportController::class,'index'])->middleware('company.permission:production.operation.view')->name('production.shift-reports.index');
-    Route::get('/production/shift-reports/create', [\App\Http\Controllers\ProductionShiftReportController::class,'create'])->middleware('company.permission:production.operation.create')->name('production.shift-reports.create');
-    Route::get('/production/shift-reports/{report}', [\App\Http\Controllers\ProductionShiftReportController::class,'show'])->middleware('company.permission:production.operation.view')->whereNumber('report')->name('production.shift-reports.show');
-    Route::post('/production/shift-reports', [\App\Http\Controllers\ProductionShiftReportController::class,'store'])->middleware('company.permission:production.operation.create')->name('production.shift-reports.store');
-    Route::put('/production/shift-reports/{report}', [\App\Http\Controllers\ProductionShiftReportController::class,'update'])->middleware('company.permission:production.operation.review')->whereNumber('report')->name('production.shift-reports.update');
+    // Production workflow pages and actions
+    Route::prefix('production')->group(function () {
+        Route::get('/material-requests', [WorkflowPagesController::class, 'productionSalesShortages'])
+            ->middleware('company.permission:production.supervise')
+            ->name('production.material-requests');
+        Route::get('/due-dates', [WorkflowPagesController::class, 'productionDue'])
+            ->middleware('company.permission:production.supervise')
+            ->name('production.due-dates.index');
+        Route::post('/orders/{order}/due-date', [OrderController::class, 'setProductionDue'])
+            ->middleware('company.permission:production.supervise')
+            ->whereNumber('order')
+            ->name('production.orders.due-date');
+        Route::get('/labor', [WorkflowPagesController::class, 'labor'])
+            ->middleware('company.permission:production.labor.create')
+            ->name('workflows.labor');
+        Route::post('/labor', [WorkflowPagesController::class, 'storeLabor'])
+            ->middleware('company.permission:production.labor.create')
+            ->name('workflows.labor.store');
+    });
+
+    // Warehouse handoff workflow
+    Route::prefix('warehouse')->group(function () {
+        Route::get('/supply-requests', [WorkflowPagesController::class, 'warehouseSupplyRequests'])
+            ->middleware('company.permission:supply_request.handover.create')
+            ->name('warehouse.supply-requests');
+        Route::post('/supply-requests/{supplyRequest}/reject', [WorkflowPagesController::class, 'rejectSupplyRequest'])
+            ->middleware('company.permission:supply_request.handover.create')
+            ->whereNumber('supplyRequest')
+            ->name('warehouse.supply-requests.reject');
+    });
+
+    // Purchasing workflow
+    Route::prefix('purchasing')->group(function () {
+        Route::get('/', [WorkflowPagesController::class, 'purchasing'])
+            ->middleware('company.permission:purchase.view')
+            ->name('workflows.purchasing');
+        Route::post('/', [WorkflowPagesController::class, 'storePurchase'])
+            ->middleware('company.permission:purchase.create')
+            ->name('workflows.purchasing.store');
+        Route::post('/supply-requests/{supplyRequest}/status', [WorkflowPagesController::class, 'updateSupplyPurchaseStatus'])
+            ->middleware('company.permission:supply.manage')
+            ->whereNumber('supplyRequest')
+            ->name('workflows.purchasing.supply-status');
+    });
+
+    // Inventory
+    Route::prefix('inventory')->group(function () {
+        Route::get('/', [WorkflowPagesController::class, 'inventory'])
+            ->middleware('company.permission:inventory.view')
+            ->name('inventory.index');
+        Route::post('/{location}/{goods}/reorder-point', [WorkflowPagesController::class, 'setReorderPoint'])
+            ->middleware('company.permission:inventory.reorder_point.manage')
+            ->whereNumber('location')
+            ->whereNumber('goods')
+            ->name('inventory.reorder-point');
+    });
+
+    // Material handovers
+    Route::prefix('handovers')->group(function () {
+        Route::get('/', [WorkflowPagesController::class, 'handovers'])
+            ->middleware('company.permission:supply_request.handover.view')
+            ->name('workflows.handovers');
+        Route::post('/', [WorkflowPagesController::class, 'storeHandover'])
+            ->middleware('company.permission:supply_request.handover.create')
+            ->name('workflows.handovers.store');
+    });
+
+    // Purchase receipts
+    Route::prefix('receipts')->group(function () {
+        Route::get('/', [WorkflowPagesController::class, 'receipts'])
+            ->middleware('company.permission:purchase.receipt.create')
+            ->name('workflows.receipts');
+        Route::post('/', [WorkflowPagesController::class, 'storeReceipt'])
+            ->middleware('company.permission:purchase.receipt.create')
+            ->name('workflows.receipts.store');
+        Route::post('/{id}/approve', [WorkflowPagesController::class, 'approveReceipt'])
+            ->middleware('company.permission:purchase.receipt.approve')
+            ->name('workflows.receipts.approve');
+    });
+
+    Route::prefix('production')->name('production.')->group(function () {
+        Route::middleware('company.permission:production.operation.view')->group(function () {
+            Route::resource('shift-reports', \App\Http\Controllers\ProductionShiftReportController::class)->only(['index']);
+            Route::get('/shift-reports/{report}', [\App\Http\Controllers\ProductionShiftReportController::class, 'show'])
+                ->whereNumber('report')
+                ->name('shift-reports.show');
+        });
+        Route::middleware('company.permission:production.operation.create')->group(function () {
+            Route::resource('shift-reports', \App\Http\Controllers\ProductionShiftReportController::class)->only(['create', 'store']);
+        });
+        Route::put('/shift-reports/{report}', [\App\Http\Controllers\ProductionShiftReportController::class, 'update'])
+            ->middleware('company.permission:production.operation.review')
+            ->whereNumber('report')
+            ->name('shift-reports.update');
+    });
     Route::post('/production/shift-reports/{report}/review', [\App\Http\Controllers\ProductionShiftReportController::class,'review'])->middleware('company.permission:production.operation.review')->whereNumber('report')->name('production.shift-reports.review');
     Route::post('/production/shift-reports/{report}/receive', [\App\Http\Controllers\ProductionShiftReportController::class,'receive'])->middleware('company.permission:production.output.receive')->whereNumber('report')->name('production.shift-reports.receive');
     Route::post('/production/outputs/shift-reports/{report}/receive', [ProductionOutputController::class, 'receiveShiftReport'])->middleware('company.permission:production.output.receive')->whereNumber('report')->name('production.outputs.shift-reports.receive');
 
-    Route::get('/production/execution', [\App\Http\Controllers\ProductionExecutionController::class,'index'])->middleware('company.permission:production.operation.view')->name('production.execution.index');
-    Route::get('/production/execution/create', [\App\Http\Controllers\ProductionExecutionController::class,'create'])->middleware('company.permission:production.operation.create')->name('production.execution.create');
-    Route::post('/production/execution', [\App\Http\Controllers\ProductionExecutionController::class,'store'])->middleware('company.permission:production.operation.create')->name('production.execution.store');
+    Route::prefix('production')->name('production.')->group(function () {
+        Route::resource('execution', \App\Http\Controllers\ProductionExecutionController::class)
+            ->only(['index'])
+            ->middleware('company.permission:production.operation.view');
+        Route::resource('execution', \App\Http\Controllers\ProductionExecutionController::class)
+            ->only(['create', 'store'])
+            ->middleware('company.permission:production.operation.create');
+    });
     Route::post('/production/execution/{run}/review', [\App\Http\Controllers\ProductionExecutionController::class,'review'])->middleware('company.permission:production.operation.review')->name('production.execution.review');
     Route::post('/production/execution/handovers/{handover}/receive', [\App\Http\Controllers\ProductionExecutionController::class,'receiveHandover'])->middleware('company.permission:production.operation.create')->name('production.execution.handover.receive');
 
-    Route::prefix('production/outputs')->name('production.outputs.')->group(function(){
-        Route::get('/',[ProductionOutputController::class,'index'])->name('index')->middleware('company.permission:production.output.view');
-        Route::get('/create',[ProductionOutputController::class,'create'])->name('create')->middleware('company.permission:production.output.create');
-        Route::post('/',[ProductionOutputController::class,'store'])->name('store')->middleware('company.permission:production.output.create');
+    Route::middleware('company.permission:production.output.view')->group(function () {
+        Route::resource('production/outputs', ProductionOutputController::class)->only(['index']);
+    });
+    Route::middleware('company.permission:production.output.create')->group(function () {
+        Route::resource('production/outputs', ProductionOutputController::class)->only(['create', 'store']);
+    });
+    Route::prefix('production/outputs')->name('production.outputs.')->group(function () {
         Route::post('/{output}/confirm',[ProductionOutputController::class,'confirm'])->name('confirm')->middleware('company.permission:production.output.confirm');
         Route::post('/{output}/reject',[ProductionOutputController::class,'reject'])->name('reject')->middleware('company.permission:production.output.confirm');
         Route::post('/{output}/receive',[ProductionOutputController::class,'receive'])->name('receive')->middleware('company.permission:production.output.receive');
     });
 
+    Route::resource('backups', BackupController::class)
+        ->only(['index'])
+        ->middleware('company.permission:backup.view');
+
     Route::prefix('backups')->name('backups.')->group(function () {
-        Route::get('/', [BackupController::class, 'index'])->middleware('company.permission:backup.view')->name('index');
         Route::post('/create', [BackupController::class, 'create'])->middleware('company.permission:backup.create')->name('create');
         Route::get('/{backup}/download', [BackupController::class, 'download'])->middleware('company.permission:backup.view')->name('download');
         Route::post('/upload', [BackupController::class, 'upload'])->middleware('company.permission:backup.upload')->name('upload');
         Route::post('/{backup}/restore', [BackupController::class, 'restore'])->middleware('company.permission:backup.restore')->name('restore');
     });
 
+    Route::resource('imports/excel', ExcelImportController::class)
+        ->only(['index'])
+        ->middleware('company.permission:import.excel');
+
     Route::prefix('imports/excel')->name('imports.excel.')->middleware('company.permission:import.excel')->group(function () {
-        Route::get('/', [ExcelImportController::class,'index'])->name('index');
         Route::post('/inspect', [ExcelImportController::class, 'inspect'])->name('inspect');
         Route::post('/validate', [ExcelImportController::class, 'validateMapping'])->name('validate');
         Route::post('/import', [ExcelImportController::class, 'import'])->name('import');
     });
 
     Route::prefix('settings')->group(function () {
-        Route::get('/departments', [\App\Http\Controllers\OrganizationalDepartmentController::class, 'index'])->middleware('company.permission:user.update')->name('settings.departments.index');
-        Route::post('/departments', [\App\Http\Controllers\OrganizationalDepartmentController::class, 'store'])->middleware('company.permission:user.update')->name('settings.departments.store');
+        Route::resource('departments', \App\Http\Controllers\OrganizationalDepartmentController::class)
+            ->only(['index', 'store'])
+            ->middleware('company.permission:user.update')
+            ->names([
+                'index' => 'settings.departments.index',
+                'store' => 'settings.departments.store',
+            ]);
         Route::put('/departments/{department}', [\App\Http\Controllers\OrganizationalDepartmentController::class, 'update'])->whereNumber('department')->middleware('company.permission:user.update')->name('settings.departments.update');
         Route::post('/departments/{department}/members', [\App\Http\Controllers\OrganizationalDepartmentController::class, 'syncMembers'])->whereNumber('department')->middleware('company.permission:user.update')->name('settings.departments.members');
         Route::post('/departments/{department}/deactivate', [\App\Http\Controllers\OrganizationalDepartmentController::class, 'deactivate'])->whereNumber('department')->middleware('company.permission:user.update')->name('settings.departments.deactivate');
@@ -179,30 +343,46 @@ Route::middleware('auth')->group(function () {
         Route::get('/notification-recipients', [\App\Http\Controllers\NotificationRecipientController::class, 'index'])->middleware('company.permission:user.update')->name('settings.notification-recipients.index');
         Route::put('/notification-recipients/{rule}', [\App\Http\Controllers\NotificationRecipientController::class, 'update'])->whereNumber('rule')->middleware('company.permission:user.update')->name('settings.notification-recipients.update');
 
-        Route::get('/personnel', [PersonnelController::class, 'index'])->middleware('company.permission:personnel.view')->name('personnel.index');
-        Route::get('/personnel/create', [PersonnelController::class, 'create'])->middleware(['company.permission:personnel.create', 'account.owner'])->name('personnel.create');
-        Route::post('/personnel', [PersonnelController::class, 'store'])->middleware(['company.permission:personnel.create', 'account.owner'])->name('personnel.store');
+        Route::middleware('company.permission:personnel.view')->group(function () {
+            Route::resource('personnel', PersonnelController::class)->only(['index']);
+        });
+        Route::middleware(['company.permission:personnel.create', 'account.owner'])->group(function () {
+            Route::resource('personnel', PersonnelController::class)->only(['create', 'store']);
+        });
         Route::get('/personnel/{personnel}/labor-rates', [PersonnelController::class, 'laborRates'])->middleware('company.permission:production.labor.rate.manage')->name('personnel.labor-rates');
         Route::post('/personnel/{personnel}/labor-rates', [PersonnelController::class, 'storeLaborRate'])->middleware('company.permission:production.labor.rate.manage')->name('personnel.labor-rates.store');
         Route::put('/personnel/{personnel}/labor-rates/{rate}', [PersonnelController::class, 'updateLaborRate'])->whereNumber('rate')->middleware('company.permission:production.labor.rate.manage')->name('personnel.labor-rates.update');
-        Route::get('/personnel/{personnel}/edit', [PersonnelController::class, 'edit'])->middleware('company.permission:personnel.update')->name('personnel.edit');
-        Route::put('/personnel/{personnel}', [PersonnelController::class, 'update'])->middleware('company.permission:personnel.update')->name('personnel.update');
+        Route::middleware('company.permission:personnel.update')->group(function () {
+            Route::resource('personnel', PersonnelController::class)->only(['edit']);
+            Route::put('/personnel/{personnel}', [PersonnelController::class, 'update'])->name('personnel.update');
+        });
         Route::post('/personnel/{personnel}/deactivate', [PersonnelController::class, 'deactivate'])->middleware('company.permission:personnel.deactivate')->name('personnel.deactivate');
 
-                    Route::get('/users', [UserManagementController::class, 'index'])->middleware('company.permission:user.view')->name('users.index');
-            Route::get('/users/create', [UserManagementController::class, 'create'])->middleware('company.permission:user.create')->name('users.create');
-            Route::post('/users', [UserManagementController::class, 'store'])->middleware('company.permission:user.create')->name('users.store');
-            Route::get('/users/{user}/edit', [UserManagementController::class, 'edit'])->middleware('company.permission:user.update')->name('users.edit');
-            Route::put('/users/{user}', [UserManagementController::class, 'update'])->middleware('company.permission:user.update')->name('users.update');
+        Route::middleware('company.permission:user.view')->group(function () {
+            Route::resource('users', UserManagementController::class)->only(['index']);
+        });
+        Route::middleware('company.permission:user.create')->group(function () {
+            Route::resource('users', UserManagementController::class)->only(['create', 'store']);
+        });
+        Route::middleware('company.permission:user.update')->group(function () {
+            Route::resource('users', UserManagementController::class)->only(['edit']);
+            Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
+        });
             Route::get('/users/{user}/access', [UserManagementController::class, 'access'])->middleware('company.permission:user.access.manage')->name('users.access');
             Route::put('/users/{user}/access', [UserManagementController::class, 'updateAccess'])->middleware('company.permission:user.access.manage')->name('users.access.update');
             Route::post('/users/{user}/activate', [UserManagementController::class, 'activate'])->middleware('company.permission:user.activate')->name('users.activate');
             Route::post('/users/{user}/deactivate', [UserManagementController::class, 'deactivate'])->middleware('company.permission:user.deactivate')->name('users.deactivate');
-            Route::get('/roles', [RoleController::class, 'index'])->middleware('company.permission:role.view')->name('roles.index');
-            Route::get('/roles/create', [RoleController::class, 'create'])->middleware('company.permission:role.create')->name('roles.create');
-            Route::get('/roles/{role}', [RoleController::class, 'show'])->middleware('company.permission:role.view')->name('roles.show');
-            Route::post('/roles', [RoleController::class, 'store'])->middleware('company.permission:role.create')->name('roles.store');
-            Route::put('/roles/{role}', [RoleController::class, 'update'])->middleware('company.permission:role.update')->name('roles.update');
-            Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->middleware('company.permission:role.delete')->name('roles.destroy');
+        Route::middleware('company.permission:role.view')->group(function () {
+            Route::resource('roles', RoleController::class)->only(['index', 'show']);
+        });
+        Route::middleware('company.permission:role.create')->group(function () {
+            Route::resource('roles', RoleController::class)->only(['create', 'store']);
+        });
+        Route::middleware('company.permission:role.update')->group(function () {
+            Route::put('/roles/{role}', [RoleController::class, 'update'])->name('roles.update');
+        });
+        Route::delete('/roles/{role}', [RoleController::class, 'destroy'])
+            ->middleware('company.permission:role.delete')
+            ->name('roles.destroy');
     });
 });
