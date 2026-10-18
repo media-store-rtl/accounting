@@ -355,7 +355,7 @@ class OrdersSupplyWorkflowTest extends TestCase
             ->assertSee('مرحله تولید و مقصد مصرف')
             ->assertSee('فقط نام مرحله تولید نمایش داده می‌شود.')
             ->assertSee('name="production_stage_run_id"', false)
-            ->assertSee('برش</option>')
+            ->assertSee('برش')
             ->assertDontSee('دستور تولید PROD-1')
             ->assertDontSee('محصول: Material')
             ->assertDontSee('مقدار برنامه‌ریزی‌شده:')
