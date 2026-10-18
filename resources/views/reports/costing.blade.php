@@ -67,7 +67,7 @@
   <div class="costing-panel"><span style="color:#71879d;font-size:11px">روش ارزش‌گذاری:</span> {{ implode('، ',$report['valuation_methods']) }}</div>
 @endif
 @if($report['totals']['unvalued_material_quantity']>0 || ($report['totals']['production_report_unvalued_material_quantity'] ?? 0)>0)
-  <div class="costing-warn">مقدار بدون ارزش‌گذاری در دو شاخص جدا نمایش داده می‌شود: خروج انبارِ بدون ارزش‌گذاری و مصرف ثبت‌شده در گزارش تولید که هنوز با حواله/ارزش‌گذاری تطبیق کامل ندارد. این مقادیر برای جلوگیری از دوباره‌شماری به مبلغ بهای تمام‌شده اضافه نمی‌شوند.</div>
+  <div class="costing-warn">مقدار بدون ارزش‌گذاری در دو شاخص جدا نمایش داده می‌شود: خروج انبارِ بدون ارزش‌گذاری و مصرف ثبت‌شده در گزارش تولید که هنوز با حواله/ارزش‌گذاری تطبیق کامل ندارد. این مقادیر برای جلوگیری از دوباره‌شماری به مبلغ بهای تمام‌شده اضافه نمی‌شوند. <strong>تا زمان رفع مغایرت، فی تمام‌شده هر واحد ممکن است ناقص باشد و نباید به‌عنوان بهای قطعی استفاده شود.</strong></div>
 @endif
 
 <div class="costing-panel">
@@ -169,7 +169,7 @@
       <div class="costing-empty">برای فیلتر انتخاب‌شده داده هزینه‌ای ثبت نشده است.</div>
     @else
       <table class="costing-table">
-        <thead><tr><th>محصول</th><th>واحد</th><th>تعداد تولیدشده</th><th>مواد</th><th>دستمزد</th><th>ضایعات</th><th>هزینه مستقیم</th><th>جمع بهای تمام‌شده</th><th>فی تمام‌شده هر عدد</th><th>روش</th><th>مصرف بدون ارزش‌گذاری</th></tr></thead>
+        <thead><tr><th>محصول</th><th>واحد</th><th>تعداد تولیدشده</th><th>مواد</th><th>دستمزد</th><th>ضایعات</th><th>هزینه مستقیم</th><th>جمع بهای تمام‌شده</th><th>فی تمام‌شده هر عدد (در صورت مغایرت مواد، غیرقطعی)</th><th>روش</th><th>مصرف بدون ارزش‌گذاری</th></tr></thead>
         <tbody>
         @foreach($report['product_rows'] as $row)
           <tr><td>{{ $row['goods_code'] }} — {{ $row['goods_name'] }}</td><td>{{ $row['unit_symbol'] ?? $row['unit_name'] ?? '—' }}</td><td>{{ $formatCostingNumber($row['produced_quantity'] ?? 0) }}</td><td>{{ $formatCostingNumber($row['material_cost']) }}</td><td>{{ $formatCostingNumber($row['labor_cost']) }}</td><td>{{ $formatCostingNumber($row['scrap_cost']) }}</td><td>{{ $formatCostingNumber($row['direct_cost']) }}</td><td><strong>{{ $formatCostingNumber($row['total_cost']) }}</strong></td><td><strong>{{ isset($row['unit_cost']) && $row['unit_cost'] !== null ? $formatCostingNumber($row['unit_cost']) : '—' }}</strong></td><td>{{ implode('، ',$row['valuation_methods']) ?: '—' }}</td><td>{{ $formatCostingNumber($row['unvalued_material_quantity']) }}</td></tr>
