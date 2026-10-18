@@ -466,4 +466,120 @@ class CostingReportTest extends TestCase
         $this->assertSame(0, DB::table('inventory_consumption_costs')->where('company_id', $company)->count());
     }
 
+
+    public function test_historical_replay_applies_transfers_only_at_their_date_and_never_mutates_ledger(): void
+    {
+        $account = DB::table('accounts')->insertGetId([
+            'name' => 'Transfer Replay Account', 'code' => 'TRA'.uniqid(),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $company = DB::table('companies')->insertGetId([
+            'account_id' => $account, 'name' => 'Transfer Replay Company', 'code' => 'TRC'.uniqid(),
+            'is_active' => true, 'settings' => json_encode([]), 'inventory_valuation_method' => 'fifo',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $user = DB::table('users')->insertGetId([
+            'account_id' => $account, 'name' => 'Transfer Replay User', 'username' => 'tru'.uniqid(),
+            'email' => uniqid().'@test.local', 'password' => bcrypt('secret'),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $fy = DB::table('fiscal_years')->insertGetId([
+            'company_id' => $company, 'name' => '1405', 'code' => 'TRFY'.uniqid(),
+            'starts_at' => '2026-03-21', 'ends_at' => '2027-03-20', 'is_closed' => false,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $supplier = DB::table('suppliers')->insertGetId([
+            'company_id' => $company, 'code' => 'TRS'.uniqid(), 'name' => 'Transfer Supplier',
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $category = DB::table('goods_categories')->insertGetId([
+            'company_id' => $company, 'name' => 'Transfer Category', 'code' => 'TRCAT'.uniqid(),
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $goods = DB::table('goods')->insertGetId([
+            'company_id' => $company, 'category_id' => $category, 'code' => 'TRM'.uniqid(),
+            'name' => 'Transfer Material', 'purchasable' => true, 'producible' => false,
+            'sellable' => false, 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $source = DB::table('locations')->insertGetId([
+            'company_id' => $company, 'code' => 'TRW'.uniqid(), 'name' => 'Transfer Warehouse',
+            'type' => 'warehouse', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $destination = DB::table('locations')->insertGetId([
+            'company_id' => $company, 'code' => 'TRP'.uniqid(), 'name' => 'Production Section',
+            'type' => 'production', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        foreach ([[10, '2026-04-01 09:00:00'], [20, '2026-04-01 10:00:00']] as $index => [$unitCost, $receivedAt]) {
+            $purchase = DB::table('purchases')->insertGetId([
+                'company_id' => $company, 'fiscal_year_id' => $fy, 'supplier_id' => $supplier,
+                'invoice_number' => 'TRINV-'.$index, 'invoice_date' => '2026-04-01',
+                'purchased_at' => '2026-04-01', 'subtotal' => 100, 'direct_cost_total' => 0,
+                'total_amount' => 100, 'status' => 'received', 'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $purchaseItem = DB::table('purchase_items')->insertGetId([
+                'purchase_id' => $purchase, 'goods_id' => $goods, 'quantity' => 5,
+                'unit_price' => $unitCost, 'line_total' => 5 * $unitCost,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $receipt = DB::table('purchase_receipts')->insertGetId([
+                'company_id' => $company, 'purchase_id' => $purchase, 'warehouse_location_id' => $source,
+                'received_by_user_id' => $user, 'received_at' => $receivedAt, 'approved_at' => $receivedAt,
+                'approved_by_user_id' => $user, 'status' => 'approved', 'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $receiptItem = DB::table('purchase_receipt_items')->insertGetId([
+                'purchase_receipt_id' => $receipt, 'goods_id' => $goods, 'quantity' => 5,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            DB::table('inventory_cost_layers')->insert([
+                'company_id' => $company, 'fiscal_year_id' => $fy, 'goods_id' => $goods,
+                'location_id' => $source, 'purchase_id' => $purchase, 'purchase_item_id' => $purchaseItem,
+                'purchase_receipt_id' => $receipt, 'purchase_receipt_item_id' => $receiptItem,
+                'quantity_received' => 5, 'fifo_quantity_remaining' => 5,
+                'weighted_average_quantity_remaining' => 5, 'unit_cost' => $unitCost,
+                'total_cost' => 5 * $unitCost, 'received_at' => $receivedAt,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+
+        $movement = function (int $location, float $quantity, string $type, int $reference, string $at) use ($company, $goods): int {
+            return DB::table('inventory_movements')->insertGetId([
+                'company_id' => $company, 'goods_id' => $goods, 'location_id' => $location,
+                'quantity' => $quantity, 'movement_type' => $type,
+                'reference_type' => 'test_transfer', 'reference_id' => $reference,
+                'occurred_at' => $at, 'metadata' => json_encode(['fiscal_year_id' => $fy ?? null]),
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        };
+
+        // Consumption before the transfer must not see stock that will arrive later.
+        $beforeTransfer = $movement($destination, -1, 'production_consumption', 90, '2026-04-02 09:00:00');
+        $transferOut = $movement($source, -6, 'production_material_transfer_out', 91, '2026-04-03 09:00:00');
+        $movement($destination, 6, 'production_material_receipt', 91, '2026-04-03 09:01:00');
+        $afterTransfer = $movement($destination, -4, 'production_consumption', 92, '2026-04-03 09:02:00');
+
+        $layerSnapshot = DB::table('inventory_cost_layers')->where('company_id', $company)->orderBy('id')->get()->toArray();
+        $movementCount = DB::table('inventory_movements')->where('company_id', $company)->count();
+        $costCount = DB::table('inventory_consumption_costs')->where('company_id', $company)->count();
+        $replay = app(\\App\\Services\\HistoricalInventoryValuationReportService::class);
+
+        $fifo = $replay->calculate($company, 'fifo');
+        $average = $replay->calculate($company, 'weighted_average');
+
+        $this->assertSame(0.0, $fifo[$beforeTransfer]['valued_quantity']);
+        $this->assertSame(1.0, $fifo[$beforeTransfer]['unvalued_quantity']);
+        $this->assertSame(70.0, $fifo[$transferOut]['total_cost']);
+        $this->assertSame(40.0, $fifo[$afterTransfer]['total_cost']);
+        $this->assertSame(4.0, $fifo[$afterTransfer]['valued_quantity']);
+
+        $this->assertSame(90.0, $average[$transferOut]['total_cost']);
+        $this->assertSame(60.0, $average[$afterTransfer]['total_cost']);
+        $this->assertSame(4.0, $average[$afterTransfer]['valued_quantity']);
+
+        $this->assertSame($layerSnapshot, DB::table('inventory_cost_layers')->where('company_id', $company)->orderBy('id')->get()->toArray());
+        $this->assertSame($movementCount, DB::table('inventory_movements')->where('company_id', $company)->count());
+        $this->assertSame($costCount, DB::table('inventory_consumption_costs')->where('company_id', $company)->count());
+        $this->assertSame(0, $costCount);
+    }
+
 }
