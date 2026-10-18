@@ -111,8 +111,8 @@ final class CostingReportService
             ->join('inventory_movements as m','m.id','=','c.inventory_movement_id')
             ->where('c.company_id',$companyId)
             ->when($fy,fn($q)=>$q->where('c.fiscal_year_id',$fy))
-            ->when($startDate,fn($q)=>$q->whereDate('c.consumed_at','>=',$startDate))
-            ->when($endDate,fn($q)=>$q->whereDate('c.consumed_at','<=',$endDate))
+            ->when($startDate,fn($q)=>$q->whereDate(empty($valuationOverrides) ? 'c.consumed_at' : 'm.occurred_at','>=',$startDate))
+            ->when($endDate,fn($q)=>$q->whereDate(empty($valuationOverrides) ? 'c.consumed_at' : 'm.occurred_at','<=',$endDate))
             ->get(['c.goods_id','c.total_cost','c.valuation_method','m.metadata','m.id as movement_id','m.movement_type','c.fiscal_year_id']);
 
 
