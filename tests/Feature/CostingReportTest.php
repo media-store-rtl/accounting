@@ -272,7 +272,7 @@ class CostingReportTest extends TestCase
         $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'labor','amount'=>60]);
         $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'direct','amount'=>5]);
     }
-    public function test_default_valuation_method_can_change_without_rewriting_historical_cost_rows(): void
+    public function test_default_valuation_method_is_fixed_fifo_without_rewriting_historical_cost_rows(): void
     {
         $account = DB::table('accounts')->insertGetId([
             'name' => 'Valuation Account',
@@ -361,7 +361,7 @@ class CostingReportTest extends TestCase
 
         // Legacy company settings remain untouched; the live valuation policy is fixed to FIFO.
         $this->assertSame('fifo', $service->methodForCompany($company));
-        $this->assertSame('weighted_average', DB::table('companies')->where('id', $company)->value('inventory_valuation_method'));
+        $this->assertSame('fifo', DB::table('companies')->where('id', $company)->value('inventory_valuation_method'));
         $this->assertDatabaseHas('inventory_consumption_costs', [
             'inventory_movement_id' => $movement,
             'valuation_method' => 'fifo',
