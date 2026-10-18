@@ -73,7 +73,7 @@ final class CostingReportExportController extends Controller
             ['جمع کل هزینه‌ها (ریال)', $report['totals']['total_cost'] ?? 0],
             ['مقدار مواد بدون ارزش‌گذاری', $report['totals']['unvalued_material_quantity'] ?? 0],
             ['مصرف گزارش‌های تولیدِ نیازمند تطبیق', $report['totals']['production_report_unvalued_material_quantity'] ?? 0],
-            [],
+            ['مقدار کل تولید', collect($report['production_reports'] ?? [])->sum('produced_quantity')],
             ['محصول', 'کد محصول', 'مقدار تولید', 'مواد (ریال)', 'دستمزد (ریال)', 'ضایعات (ریال)', 'هزینه مستقیم (ریال)', 'جمع هزینه (ریال)', 'بهای هر واحد (ریال)', 'مقدار بدون ارزش‌گذاری', 'وضعیت'],
         ], null, 'A1');
 
@@ -94,6 +94,22 @@ final class CostingReportExportController extends Controller
                 $incomplete ? 'ناقص؛ نیازمند ارزش‌گذاری/تطبیق' : 'بر اساس داده‌های ثبت‌شده',
             ]], null, 'A' . $row++);
         }
+        $summary->fromArray([[
+            'جمع کل', '',
+            collect($report['product_rows'] ?? [])->sum('produced_quantity'),
+            collect($report['product_rows'] ?? [])->sum('material_cost'),
+            collect($report['product_rows'] ?? [])->sum('labor_cost'),
+            collect($report['product_rows'] ?? [])->sum('scrap_cost'),
+            collect($report['product_rows'] ?? [])->sum('direct_cost'),
+            collect($report['product_rows'] ?? [])->sum('total_cost'),
+            collect($report['product_rows'] ?? [])->sum('produced_quantity') > 0
+                ? collect($report['product_rows'] ?? [])->sum('total_cost') / collect($report['product_rows'] ?? [])->sum('produced_quantity')
+                : null,
+            collect($report['product_rows'] ?? [])->sum('unvalued_material_quantity'),
+            collect($report['product_rows'] ?? [])->sum('unvalued_material_quantity') > 0 ? 'ناقص' : '—',
+        ]], null, 'A' . $row);
+        $summary->getStyle('A' . $row . ':K' . $row)->getFont()->setBold(true);
+        $summary->getStyle('A' . $row . ':K' . $row)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFE1EBF2');
         $this->styleSheet($summary, 'A4:K4', 'A13:K13', 'A1:K1');
         $summary->freezePane('A14');
         if ($row > 14) $summary->setAutoFilter('A13:K' . ($row - 1));
