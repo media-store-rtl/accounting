@@ -504,6 +504,49 @@ class OrdersSupplyWorkflowTest extends TestCase
             ->assertDontSee('>received<', false);
     }
 
+    public function test_purchase_registration_accepts_multiple_goods_and_lists_each_item(): void
+    {
+        $c = $this->context();
+        $secondGoods = DB::table('goods')->insertGetId([
+            'company_id' => $c['company'],
+            'category_id' => DB::table('goods_categories')->where('company_id', $c['company'])->value('id'),
+            'code' => 'G2',
+            'name' => 'Second Material',
+            'purchasable' => true,
+            'producible' => false,
+            'sellable' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->from('/purchasing')->post('/purchasing', [
+            'fiscal_year_id' => $c['fy'],
+            'supplier_id' => $c['supplier'],
+            'purchased_at' => '2026-10-16',
+            'items' => [
+                ['goods_id' => $c['goods'], 'quantity' => 2, 'unit_price' => 50],
+                ['goods_id' => $secondGoods, 'quantity' => 3, 'unit_price' => 20],
+            ],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $purchaseId = (int) DB::table('purchases')
+            ->where('company_id', $c['company'])
+            ->whereNull('supply_request_id')
+            ->orderByDesc('id')
+            ->value('id');
+
+        $this->assertSame(2, DB::table('purchase_items')->where('purchase_id', $purchaseId)->count());
+        $this->assertDatabaseHas('purchases', ['id' => $purchaseId, 'total_amount' => 160]);
+        $this->assertDatabaseHas('purchase_items', ['purchase_id' => $purchaseId, 'goods_id' => $c['goods'], 'quantity' => 2]);
+        $this->assertDatabaseHas('purchase_items', ['purchase_id' => $purchaseId, 'goods_id' => $secondGoods, 'quantity' => 3]);
+
+        $this->get('/purchasing')
+            ->assertOk()
+            ->assertSee('Material')
+            ->assertSee('Second Material');
+    }
+
     public function test_purchase_registration_form_is_separate_from_purchasing_list(): void
     {
         $this->context();
@@ -519,6 +562,8 @@ class OrdersSupplyWorkflowTest extends TestCase
             ->assertSee('name="items[0][goods_id]"', false)
             ->assertSee('name="items[0][quantity]"', false)
             ->assertSee('name="items[0][unit_price]"', false)
+            ->assertSee('id="add-purchase-item"', false)
+            ->assertSee('data-remove-purchase-item', false)
             ->assertSee('purchased_date_picker')
             ->assertSee('ثبت خرید');
     }
