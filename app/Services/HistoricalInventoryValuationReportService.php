@@ -22,10 +22,15 @@ final class HistoricalInventoryValuationReportService
             abort(422, 'روش گزارش ارزش‌گذاری معتبر نیست.');
         }
 
-        $layers = DB::table('inventory_cost_layers')
-            ->where('company_id', $companyId)
-            ->orderBy('received_at')->orderBy('id')
-            ->get(['id', 'goods_id', 'location_id', 'purchase_receipt_id', 'quantity_received', 'unit_cost', 'received_at']);
+        $layers = DB::table('inventory_cost_layers as l')
+            ->join('purchase_receipts as pr', 'pr.id', '=', 'l.purchase_receipt_id')
+            ->where('l.company_id', $companyId)
+            ->orderBy('l.received_at')->orderBy('l.id')
+            ->get([
+                'l.id', 'l.goods_id', 'l.location_id', 'l.purchase_receipt_id',
+                'l.quantity_received', 'l.unit_cost', 'l.received_at',
+                'pr.warehouse_location_id as original_location_id',
+            ]);
 
         $movements = DB::table('inventory_movements')
             ->where('company_id', $companyId)
@@ -34,11 +39,15 @@ final class HistoricalInventoryValuationReportService
 
         $receiptLayerKeys = [];
         foreach ($layers as $layer) {
+            if ((int) $layer->location_id !== (int) $layer->original_location_id) continue;
             $receiptLayerKeys[(int) $layer->purchase_receipt_id . ':' . (int) $layer->goods_id . ':' . (int) $layer->location_id] = true;
         }
 
         $events = [];
         foreach ($layers as $layer) {
+            // Transferred layer slices inherit the original receipt date, but they
+            // must enter the destination only at the dated transfer movement.
+            if ((int) $layer->location_id !== (int) $layer->original_location_id) continue;
             $events[] = [
                 'at' => (string) $layer->received_at,
                 'priority' => 0,
