@@ -178,21 +178,6 @@
                   @else
                     <p class="costing-detail-note">برای این گزارش ریز مواد مصرفی ثبت نشده است.</p>
                   @endif
-                  <h3 style="font-size:12px;margin:14px 0 8px">خلاصه هزینه محصول در بازه انتخابی</h3>
-                  @if($productCost)
-                    <table class="costing-detail-costs">
-                      <tbody>
-                        <tr><td>مواد مصرفی</td><td>{{ $formatCostingNumber($productCost['material_cost'] ?? 0) }} ریال</td></tr>
-                        <tr><td>دستمزد تجمیعی محصول</td><td>{{ $formatCostingNumber($productCost['labor_cost'] ?? 0) }} ریال</td></tr>
-                        <tr><td>هزینه ضایعات</td><td>{{ $formatCostingNumber($productCost['scrap_cost'] ?? 0) }} ریال</td></tr>
-                        <tr><td>هزینه‌های مستقیم خرید</td><td>{{ $formatCostingNumber($productCost['direct_cost'] ?? 0) }} ریال</td></tr>
-                        <tr><td><strong>جمع بهای تمام‌شده محصول</strong></td><td><strong>{{ $formatCostingNumber($productCost['total_cost'] ?? 0) }} ریال</strong></td></tr>
-                        <tr><td>فی تمام‌شده هر واحد</td><td>{{ isset($productCost['unit_cost']) && $productCost['unit_cost'] !== null ? $formatCostingNumber($productCost['unit_cost']) . ' ریال' : '—' }}</td></tr>
-                      </tbody>
-                    </table>
-                  @else
-                    <p class="costing-detail-note">برای این محصول در بازه انتخابی هزینه‌ای ثبت نشده است.</p>
-                  @endif
                   <p class="costing-detail-note">ریز مواد بالا فقط تفکیک بخشی از هزینه مواد موجود است و دوباره به جمع هزینه محصول اضافه نمی‌شود. حواله‌هایی که به همین قسمت، ماده، سفارش و تاریخ قابل اتصال نباشند یا ارزش‌گذاری نشده باشند، به‌صورت مقدار ناقص نشان داده می‌شوند. سایر هزینه‌های مواد و هزینه‌های مستقیم خرید همچنان در سطح محصول تجمیع می‌شوند و لزوماً هزینه اختصاصی این گزارش یا کارگر نیستند. سربار تولید نیز هنوز به‌صورت مستقل در این گزارش ثبت/محاسبه نمی‌شود.</p>
                 </div>
               </details>
