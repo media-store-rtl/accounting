@@ -166,7 +166,7 @@ final class CostingReportService
             })
             ->when($startDate,fn($q)=>$q->whereDate('m.occurred_at','>=',$startDate))
             ->when($endDate,fn($q)=>$q->whereDate('m.occurred_at','<=',$endDate))
-            ->get(['m.id as movement_id','m.goods_id','m.quantity','m.metadata','m.movement_type','vc.quantity as valued_quantity']);
+            ->get(['m.id as movement_id','m.goods_id','m.quantity','m.metadata','m.movement_type','vc.quantity as valued_quantity','vc.fiscal_year_id as cost_fiscal_year_id']);
 
         $supplyIdFromMetadata=fn($item)=>(int)(json_decode((string)$item->metadata,true)['supply_request_id']??0);
         $ids=$costs->map($supplyIdFromMetadata)->merge($movements->map($supplyIdFromMetadata))->filter()->unique()->values();
@@ -205,7 +205,7 @@ final class CostingReportService
                 $meta = json_decode((string) $c->metadata, true) ?: [];
                 $productionId = (int) ($resolvedSupply?->production_id ?? ($meta['production_id'] ?? 0));
                 $production = $productions->get($productionId);
-                $movementFiscalYearId = $resolvedSupply?->fiscal_year_id ?? $production?->fiscal_year_id ?? ($meta['fiscal_year_id'] ?? null);
+                $movementFiscalYearId = $resolvedSupply?->fiscal_year_id ?? $production?->fiscal_year_id ?? ($meta['fiscal_year_id'] ?? ($c->fiscal_year_id ?? null));
                 if ($fy !== null && (int) ($movementFiscalYearId ?? 0) !== $fy) continue;
             }
             if($orderId!==null&&$oid!==$orderId)continue;
@@ -223,7 +223,7 @@ final class CostingReportService
             $production=$productions->get($productionId);
             $movementFiscalYearId=$supply?->fiscal_year_id
                 ??$production?->fiscal_year_id
-                ??($meta['fiscal_year_id']??null);
+                ??($meta['fiscal_year_id']??($m->cost_fiscal_year_id??null));
             // Never attribute movements with an unknown fiscal year to a specific year.
             if($fy!==null&&(int)($movementFiscalYearId??0)!==$fy)continue;
             if($orderId!==null&&$oid!==$orderId)continue;
