@@ -128,7 +128,7 @@
             <p class="costing-detail-note">برای این گزارش ریز مواد مصرفی ثبت نشده است.</p>
           @endif
 
-          @if($productCost)
+          @php if ($productCost) { @endphp
             @php
               $reportMaterials = collect($report['production_reports'])->where('goods_id', $productionReport['goods_id'])->flatMap(fn ($item) => collect($item['materials'] ?? []));
               $reportMaterialsByUnit = $reportMaterials->groupBy(fn ($material) => ($material['material_code'] ?? '') . '|' . ($material['material_name'] ?? '') . '|' . ($material['unit_symbol'] ?? $material['unit_name'] ?? '—'));
@@ -155,7 +155,7 @@
               </table>
             </div>
             <p class="costing-detail-note">این خلاصه تجمیعیِ محصول در بازه فیلترشده است، نه هزینه اختصاصی همین گزارش؛ ریز مواد بالا فقط تفکیک بخش ارزش‌گذاری‌شده است و دوباره به جمع هزینه اضافه نمی‌شود.</p>
-          @endif
+          @php } @endphp
           <p class="costing-detail-note">سربار تولید هنوز به‌صورت مستقل در این گزارش ثبت/محاسبه نمی‌شود. مقدار بدون تطبیق یا ارزش‌گذاری به مبلغ هزینه اضافه نشده است.</p>
         </article>
       @endforeach
