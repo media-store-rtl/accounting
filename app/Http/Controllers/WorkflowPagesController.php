@@ -106,8 +106,12 @@ class WorkflowPagesController extends Controller {
  public function purchasing(Request $r){
   $cid=CompanyAuthorization::authorize($r,'purchase.view');
   $canCreatePurchase=$r->user()->hasCompanyPermission($cid,'purchase.create');
+  $rows=DB::table('purchases')->leftJoin('suppliers','suppliers.id','=','purchases.supplier_id')->where('purchases.company_id',$cid)->select('purchases.*','suppliers.name as supplier_name')->latest('purchases.id')->paginate(20);
+  foreach($rows as $row){
+   $row->items=DB::table('purchase_items as pi')->join('goods as g','g.id','=','pi.goods_id')->where('pi.purchase_id',$row->id)->select('pi.quantity','g.name as goods_name')->orderBy('g.name')->get();
+  }
   return view('workflows.purchasing',[
-   'rows'=>DB::table('purchases')->where('company_id',$cid)->latest('id')->paginate(20),
+   'rows'=>$rows,
    'suppliers'=>DB::table('suppliers')->where('company_id',$cid)->where('is_active',true)->get(),
    'requests'=>DB::table('supply_requests')->where('company_id',$cid)->whereIn('status',['shortage_pending','purchasing','purchased','partially_supplied'])->orderByDesc('id')->get()->each(function($row){$row->items=DB::table('supply_request_items as sri')->join('goods as g','g.id','=','sri.goods_id')->where('sri.supply_request_id',$row->id)->select('sri.*','g.name as goods_name')->get();}),
    'canCreatePurchase'=>$canCreatePurchase
