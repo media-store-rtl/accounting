@@ -90,12 +90,19 @@
         @foreach($report['product_rows'] as $row)
           @php
             $matchingReports = collect($report['production_reports'])->where('goods_id', $row['goods_id']);
-            $materialQuantity = $matchingReports->sum(fn ($productionReport) => collect($productionReport['materials'] ?? [])->sum('quantity'));
+            $materialsByUnit = $matchingReports->flatMap(fn ($productionReport) => collect($productionReport['materials'] ?? []))
+              ->groupBy(fn ($material) => ($material['material_code'] ?? '') . '|' . ($material['material_name'] ?? '') . '|' . ($material['unit_symbol'] ?? $material['unit_name'] ?? '—'));
+            $materialQuantitySummary = $materialsByUnit->map(function ($materials) use ($formatCostingNumber) {
+              $first = $materials->first();
+              $name = trim(($first['material_code'] ?? '') . ' — ' . ($first['material_name'] ?? 'ماده'), ' —');
+              $unit = $first['unit_symbol'] ?? $first['unit_name'] ?? '—';
+              return $name . ': ' . $formatCostingNumber($materials->sum('quantity')) . ' ' . $unit;
+            })->implode('، ');
             $scrapQuantity = $matchingReports->sum('scrap_quantity');
             $quantityUnit = $row['unit_symbol'] ?? $row['unit_name'] ?? 'واحد';
             $productName = ($row['goods_code'] ?? '') . ' — ' . ($row['goods_name'] ?? 'محصول');
           @endphp
-          <tr><td rowspan="6">{{ $productName }}</td><td>مواد مصرفی</td><td>{{ $formatCostingNumber($materialQuantity) }}</td><td>واحد ماده (طبق ریز مواد)</td><td>{{ $formatCostingNumber($row['material_cost'] ?? 0) }}</td></tr>
+          <tr><td rowspan="6">{{ $productName }}</td><td>مواد مصرفی</td><td colspan="2">{{ $materialQuantitySummary !== '' ? $materialQuantitySummary : 'مقداری در ریز گزارش‌های تولید ثبت نشده است' }}</td><td>{{ $formatCostingNumber($row['material_cost'] ?? 0) }}</td></tr>
           <tr><td>دستمزد تجمیعی محصول</td><td>—</td><td>—</td><td>{{ $formatCostingNumber($row['labor_cost'] ?? 0) }}</td></tr>
           <tr><td>هزینه ضایعات</td><td>{{ $formatCostingNumber($scrapQuantity) }}</td><td>{{ $quantityUnit }}</td><td>{{ $formatCostingNumber($row['scrap_cost'] ?? 0) }}</td></tr>
           <tr><td>هزینه‌های مستقیم خرید</td><td>—</td><td>—</td><td>{{ $formatCostingNumber($row['direct_cost'] ?? 0) }}</td></tr>
