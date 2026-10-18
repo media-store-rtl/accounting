@@ -466,6 +466,44 @@ class OrdersSupplyWorkflowTest extends TestCase
 
         $this->assertDatabaseCount('supply_requests', 0);
     }
+    public function test_purchasing_list_explains_purchase_details_and_receipt_status_in_persian(): void
+    {
+        $c = $this->context();
+        $purchase = DB::table('purchases')->insertGetId([
+            'company_id' => $c['company'],
+            'fiscal_year_id' => $c['fy'],
+            'supplier_id' => $c['supplier'],
+            'purchased_at' => '2026-10-16',
+            'subtotal' => 100,
+            'direct_cost_total' => 0,
+            'total_amount' => 100,
+            'status' => 'received',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('purchase_items')->insert([
+            'purchase_id' => $purchase,
+            'goods_id' => $c['goods'],
+            'quantity' => 2,
+            'unit_price' => 50,
+            'line_total' => 100,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->get('/purchasing')
+            ->assertOk()
+            ->assertSee('تاریخ خرید')
+            ->assertSee('تأمین‌کننده')
+            ->assertSee('اقلام خرید')
+            ->assertSee('مبلغ ثبت‌شده')
+            ->assertSee('وضعیت تحویل به انبار')
+            ->assertSee('Supplier')
+            ->assertSee('Material')
+            ->assertSee('تحویل کامل به انبار')
+            ->assertDontSee('>received<', false);
+    }
+
     public function test_purchase_registration_form_is_separate_from_purchasing_list(): void
     {
         $this->context();
