@@ -113,7 +113,45 @@ final class CostingReportService
             ->when($fy,fn($q)=>$q->where('c.fiscal_year_id',$fy))
             ->when($startDate,fn($q)=>$q->whereDate('c.consumed_at','>=',$startDate))
             ->when($endDate,fn($q)=>$q->whereDate('c.consumed_at','<=',$endDate))
-            ->get(['c.goods_id','c.total_cost','c.valuation_method','m.metadata']);
+            ->get(['c.goods_id','c.total_cost','c.valuation_method','m.metadata','m.id as movement_id','m.movement_type','c.fiscal_year_id']);
+
+
+        if (!empty($valuationOverrides)) {
+            $costs = $costs->map(function ($cost) use ($valuationOverrides) {
+                $id = (int) $cost->movement_id;
+                if (!in_array($cost->movement_type, ['production_consumption', 'material_handover'], true)) return $cost;
+                $override = $valuationOverrides[$id] ?? null;
+                if (!$override || (float) $override['valued_quantity'] <= 0.0000001) return null;
+                $cost->total_cost = (float) $override['total_cost'];
+                $cost->valuation_method = $override['method'];
+                $cost->virtual_valuation = true;
+                return $cost;
+            })->filter()->values();
+
+            $knownIds = $costs->pluck('movement_id')->map(fn ($id) => (int) $id)->all();
+            $missing = DB::table('inventory_movements as m')
+                ->where('m.company_id', $companyId)
+                ->where('m.quantity', '<', 0)
+                ->whereIn('m.movement_type', ['production_consumption', 'material_handover'])
+                ->when($startDate, fn ($q) => $q->whereDate('m.occurred_at', '>=', $startDate))
+                ->when($endDate, fn ($q) => $q->whereDate('m.occurred_at', '<=', $endDate))
+                ->when(!empty($knownIds), fn ($q) => $q->whereNotIn('m.id', $knownIds))
+                ->get(['m.id as movement_id', 'm.goods_id', 'm.metadata', 'm.movement_type']);
+            foreach ($missing as $movement) {
+                $override = $valuationOverrides[(int) $movement->movement_id] ?? null;
+                if (!$override || (float) $override['valued_quantity'] <= 0.0000001) continue;
+                $costs->push((object) [
+                    'goods_id' => (int) $movement->goods_id,
+                    'total_cost' => (float) $override['total_cost'],
+                    'valuation_method' => $override['method'],
+                    'metadata' => $movement->metadata,
+                    'movement_id' => (int) $movement->movement_id,
+                    'movement_type' => $movement->movement_type,
+                    'fiscal_year_id' => null,
+                    'virtual_valuation' => true,
+                ]);
+            }
+        }
 
         $movements=DB::table('inventory_movements as m')
             ->leftJoin('inventory_consumption_costs as vc','vc.inventory_movement_id','=','m.id')
@@ -121,14 +159,14 @@ final class CostingReportService
             ->where('m.quantity','<',0)
             ->where(function($q) {
                 $q->where('m.movement_type','production_consumption')
-                    ->orWhere(function($handover) {
-                        $handover->where('m.movement_type','material_handover')
-                            ->whereNull('vc.id');
+                    ->orWhere(function($handover) use ($valuationOverrides) {
+                        $handover->where('m.movement_type','material_handover');
+                        if (empty($valuationOverrides)) $handover->whereNull('vc.id');
                     });
             })
             ->when($startDate,fn($q)=>$q->whereDate('m.occurred_at','>=',$startDate))
             ->when($endDate,fn($q)=>$q->whereDate('m.occurred_at','<=',$endDate))
-            ->get(['m.goods_id','m.quantity','m.metadata','m.movement_type','vc.quantity as valued_quantity']);
+            ->get(['m.id as movement_id','m.goods_id','m.quantity','m.metadata','m.movement_type','vc.quantity as valued_quantity']);
 
         $supplyIdFromMetadata=fn($item)=>(int)(json_decode((string)$item->metadata,true)['supply_request_id']??0);
         $ids=$costs->map($supplyIdFromMetadata)->merge($movements->map($supplyIdFromMetadata))->filter()->unique()->values();
@@ -183,7 +221,8 @@ final class CostingReportService
             if($fy!==null&&(int)($movementFiscalYearId??0)!==$fy)continue;
             if($orderId!==null&&$oid!==$orderId)continue;
             if($goodsId!==null&&$targetGoodsId!==$goodsId)continue;
-            $unvaluedQuantity=max(0.0,abs((float)$m->quantity)-(float)($m->valued_quantity??0));
+            $valuedQuantity = !empty($valuationOverrides) ? (float) ($valuationOverrides[(int) $m->movement_id]['valued_quantity'] ?? 0) : (float) ($m->valued_quantity ?? 0);
+            $unvaluedQuantity=max(0.0,abs((float)$m->quantity)-$valuedQuantity);
             if($unvaluedQuantity<=0.0000001)continue;
             $key=$this->key($oid,$targetGoodsId);
             $this->row($rows,$key,$oid,$targetGoodsId);
