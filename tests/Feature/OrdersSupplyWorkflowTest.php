@@ -300,7 +300,7 @@ class OrdersSupplyWorkflowTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        DB::table('productions')->insert([
+        $production = DB::table('productions')->insertGetId([
             'company_id' => $c['company'],
             'fiscal_year_id' => $c['fy'],
             'goods_id' => $c['goods'],
@@ -308,6 +308,26 @@ class OrdersSupplyWorkflowTest extends TestCase
             'number' => 'PROD-1',
             'planned_quantity' => 12,
             'status' => 'in_progress',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $stage = DB::table('production_stages')->insertGetId([
+            'production_route_id' => $route,
+            'production_section_id' => $section,
+            'code' => 'STG-'.uniqid(),
+            'name' => 'برش',
+            'sequence' => 1,
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $stageRun = DB::table('production_stage_runs')->insertGetId([
+            'production_id' => $production,
+            'production_stage_id' => $stage,
+            'sequence' => 1,
+            'status' => 'pending',
+            'planned_quantity' => 12,
+            'rejected_quantity' => 0,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -333,8 +353,9 @@ class OrdersSupplyWorkflowTest extends TestCase
             ->assertSee('name="production_section_id"', false)
             ->assertSee('قسمت برش')
             ->assertSee('مرحله تولید و مقصد مصرف')
-            ->assertSee('مرحله تولید مرتبط را با تطبیق شماره دستور تولید و نام محصول انتخاب کنید.')
-            ->assertSee('دستور تولید PROD-1 — محصول: Material')
+            ->assertSee('مرحله اجرایی مرتبط را با تطبیق شماره دستور تولید، نام محصول و نام مرحله انتخاب کنید.')
+            ->assertSee('name="production_stage_run_id"', false)
+            ->assertSee('دستور تولید PROD-1 — محصول: Material — مرحله: برش')
             ->assertDontSee('مقدار برنامه‌ریزی‌شده:')
             ->assertSee('مشتری: Customer')
             ->assertSee('سفارش ORD-5')
@@ -346,6 +367,7 @@ class OrdersSupplyWorkflowTest extends TestCase
             'fiscal_year_id' => $c['fy'],
             'production_section_id' => $section,
             'production_id' => '',
+            'production_stage_run_id' => '',
             'order_id' => '',
             'needed_at' => '2026-10-20',
             'items' => [['goods_id' => $c['goods'], 'quantity' => 2]],
@@ -361,6 +383,68 @@ class OrdersSupplyWorkflowTest extends TestCase
     }
 
 
+    public function test_supply_request_saves_the_selected_real_production_stage_run(): void
+    {
+        $c = $this->context();
+        $route = DB::table('production_routes')->insertGetId([
+            'company_id' => $c['company'],
+            'goods_id' => $c['goods'],
+            'code' => 'PR'.uniqid(),
+            'name' => 'مسیر تولید',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $production = DB::table('productions')->insertGetId([
+            'company_id' => $c['company'],
+            'fiscal_year_id' => $c['fy'],
+            'goods_id' => $c['goods'],
+            'production_route_id' => $route,
+            'number' => 'PROD-STAGE-2',
+            'planned_quantity' => 12,
+            'status' => 'in_progress',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $stage = DB::table('production_stages')->insertGetId([
+            'production_route_id' => $route,
+            'code' => 'CUT-'.uniqid(),
+            'name' => 'برش',
+            'sequence' => 1,
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $stageRun = DB::table('production_stage_runs')->insertGetId([
+            'production_id' => $production,
+            'production_stage_id' => $stage,
+            'sequence' => 1,
+            'status' => 'pending',
+            'planned_quantity' => 12,
+            'rejected_quantity' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->from('/supply')->post('/supply', [
+            'fiscal_year_id' => $c['fy'],
+            'production_stage_run_id' => $stageRun,
+            'production_section_id' => '',
+            'production_id' => '',
+            'order_id' => '',
+            'needed_at' => '2026-10-20',
+            'items' => [['goods_id' => $c['goods'], 'quantity' => 2]],
+        ])->assertRedirect('/supply')->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('supply_requests', [
+            'company_id' => $c['company'],
+            'production_stage_run_id' => $stageRun,
+            'production_id' => $production,
+            'production_section_id' => null,
+            'order_id' => null,
+        ]);
+    }
+
     public function test_supply_request_without_production_reference_returns_validation_error_instead_of_http_exception(): void
     {
         $c = $this->context();
@@ -369,12 +453,13 @@ class OrdersSupplyWorkflowTest extends TestCase
             'fiscal_year_id' => $c['fy'],
             'production_section_id' => '',
             'production_id' => '',
+            'production_stage_run_id' => '',
             'order_id' => '',
             'needed_at' => '2026-10-20',
             'items' => [['goods_id' => $c['goods'], 'quantity' => 2]],
         ])->assertRedirect('/supply')
           ->assertSessionHasErrors([
-              'production_section_id' => 'قسمت تولید، تولید قدیمی یا سفارش باید مشخص شود.',
+              'production_stage_run_id' => 'مرحله تولید، قسمت تولید یا سفارش باید مشخص شود.',
           ]);
 
         $this->assertDatabaseCount('supply_requests', 0);
