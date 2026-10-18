@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\ProductionShiftReportMaterialConsumption;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -84,6 +85,12 @@ class ProductionShiftReportStagesTest extends TestCase
             'production_route_id' => $route, 'code' => 'ST2' . uniqid(), 'name' => 'Final Cut',
             'sequence' => 2, 'status' => 'active', 'created_at' => now(), 'updated_at' => now(),
         ]);
+
+        // This test covers report stages and warehouse handoff, not inventory costing.
+        // Keep the material-consumption integration covered by its dedicated middleware tests.
+        $this->mock(ProductionShiftReportMaterialConsumption::class)
+            ->shouldReceive('consumeApprovedReport')
+            ->twice();
 
         $this->actingAs(User::findOrFail($user))->withSession(['company_id' => $company]);
 
