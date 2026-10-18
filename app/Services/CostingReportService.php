@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 
 final class CostingReportService
 {
-    public function generate(int $companyId, ?int $fiscalYearId = null, ?int $orderId = null, ?int $goodsId = null, ?string $startDate = null, ?string $endDate = null, ?int $personnelId = null, ?int $productionSectionId = null, ?int $productionStageId = null): array
+    public function generate(int $companyId, ?int $fiscalYearId = null, ?int $orderId = null, ?int $goodsId = null, ?string $startDate = null, ?string $endDate = null, ?int $personnelId = null, ?int $productionSectionId = null, ?int $productionStageId = null, ?string $valuationMethod = null): array
     {
         if ($fiscalYearId === null && $startDate === null && $endDate === null) {
             $fiscalYearId = DB::table('fiscal_years')->where('company_id',$companyId)->orderByDesc('id')->value('id');
@@ -15,8 +15,9 @@ final class CostingReportService
         if ($orderId !== null) abort_unless(DB::table('orders')->where('id',$orderId)->where('company_id',$companyId)->exists(),422,'سفارش متعلق به شرکت نیست.');
         if ($goodsId !== null) abort_unless(DB::table('goods')->where('id',$goodsId)->where('company_id',$companyId)->exists(),422,'کالا متعلق به شرکت نیست.');
 
+        $valuationOverrides = $valuationMethod !== null ? app(HistoricalInventoryValuationReportService::class)->calculate($companyId, $valuationMethod) : [];
         $rows=[];
-        $this->materials($rows,$companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate);
+        $this->materials($rows,$companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$valuationOverrides);
         $this->labor($rows,$companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId);
         $this->approvedShiftReportLabor($rows,$companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId);
         $this->directPurchaseCosts($rows,$companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate);
@@ -72,7 +73,7 @@ final class CostingReportService
         // The detail table is specifically for reports already received by the warehouse.
         // Approved-but-not-received reports still contribute to product produced quantity above.
         $productionReports=$this->productionShiftReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId,true);
-        $productionReports = $this->attachReportMaterialDetails($companyId, $productionReports);
+        $productionReports = $this->attachReportMaterialDetails($companyId, $productionReports, $valuationOverrides);
 
         $valuationMethods=[];
         foreach($rows as $row){
@@ -83,7 +84,8 @@ final class CostingReportService
 
         return [
             'fiscal_year_id'=>$fiscalYearId,
-            'filters'=>['start_date'=>$startDate,'end_date'=>$endDate,'personnel_id'=>$personnelId],
+            'filters'=>['start_date'=>$startDate,'end_date'=>$endDate,'personnel_id'=>$personnelId,'valuation_method'=>$valuationMethod],
+            'selected_valuation_method'=>$valuationMethod,
             'rows'=>array_values($rows),
             'product_rows'=>array_values($productRows),
             'production_reports'=>$productionReports,
@@ -101,7 +103,7 @@ final class CostingReportService
         ];
     }
 
-    private function materials(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId,?string $startDate,?string $endDate): void
+    private function materials(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId,?string $startDate,?string $endDate,array $valuationOverrides = []): void
     {
         // Consumption rows reference the raw material. Attribute their cost to
         // the finished good produced by the linked supply request when possible.
@@ -198,7 +200,7 @@ final class CostingReportService
      * the quantity not already allocated to earlier approved/received reports.
      * Missing or unvalued stock remains visible instead of receiving a guessed rate.
      */
-    private function attachReportMaterialDetails(int $companyId, array $productionReports): array
+    private function attachReportMaterialDetails(int $companyId, array $productionReports, array $valuationOverrides = []): array
     {
         if (empty($productionReports) || !DB::getSchemaBuilder()->hasTable('production_shift_report_materials')) {
             foreach ($productionReports as &$report) {
