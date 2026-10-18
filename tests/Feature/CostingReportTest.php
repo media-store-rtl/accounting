@@ -357,7 +357,7 @@ class CostingReportTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $service = app(\\App\\Services\\InventoryValuationService::class);
+        $service = app(\App\Services\InventoryValuationService::class);
         $service->setMethod($company, 'weighted_average');
 
         $this->assertSame('weighted_average', $service->methodForCompany($company));
