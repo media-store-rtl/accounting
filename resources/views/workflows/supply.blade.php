@@ -1,6 +1,6 @@
 @extends('layouts.dashboard-shell')
 
-@section('title', 'درخواست مواد اولیه')
+@section('title', 'درخواست‌های مواد اولیه')
 
 @section('content')
 
