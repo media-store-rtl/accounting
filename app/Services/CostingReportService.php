@@ -157,7 +157,7 @@ final class CostingReportService
             ->leftJoin('inventory_consumption_costs as vc','vc.inventory_movement_id','=','m.id')
             ->where('m.company_id',$companyId)
             ->where('m.quantity','<',0)
-            ->where(function($q) {
+            ->where(function($q) use ($valuationOverrides) {
                 $q->where('m.movement_type','production_consumption')
                     ->orWhere(function($handover) use ($valuationOverrides) {
                         $handover->where('m.movement_type','material_handover');
