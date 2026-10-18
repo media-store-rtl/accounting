@@ -98,7 +98,7 @@
                     <select id="production_id" name="production_id">
                         <option value="">انتخاب دستور تولید (اختیاری)</option>
                         @foreach($productions as $p)
-                            <option value="{{ $p->id }}" @selected((string) old('production_id') === (string) $p->id)>دستور تولید {{ $p->number }} — محصول: {{ $p->goods_name }} — مقدار برنامه‌ریزی‌شده: {{ rtrim(rtrim(number_format((float) $p->planned_quantity, 4, '.', ''), '0'), '.') }}</option>
+                            <option value="{{ $p->id }}" @selected((string) old('production_id') === (string) $p->id)>دستور تولید {{ $p->number }}</option>
                         @endforeach
                     </select>
                 </label>
