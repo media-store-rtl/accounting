@@ -89,21 +89,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/sso/logout', [AccountingSsoController::class, 'logout'])->name('sso.logout');
 
     Route::middleware('company.permission:customer.view')->group(function () {
-        Route::resource('sales/customers', CustomerController::class)
-            ->only(['index'])
-            ->parameters(['customers' => 'id'])
-            ->whereNumber('id');
+        Route::resource('sales/customers', CustomerController::class)->only(['index']);
     });
     Route::middleware('company.permission:customer.create')->group(function () {
-        Route::resource('sales/customers', CustomerController::class)
-            ->only(['create', 'store'])
-            ->parameters(['customers' => 'id']);
+        Route::resource('sales/customers', CustomerController::class)->only(['create', 'store']);
     });
     Route::middleware('company.permission:customer.update')->group(function () {
-        Route::resource('sales/customers', CustomerController::class)
-            ->only(['edit'])
-            ->parameters(['customers' => 'id'])
-            ->whereNumber('id');
+        Route::get('/sales/customers/{id}/edit', [CustomerController::class, 'edit'])
+            ->whereNumber('id')
+            ->name('sales.customers.edit');
         Route::put('/sales/customers/{id}', [CustomerController::class, 'update'])
             ->whereNumber('id')
             ->name('sales.customers.update');
@@ -265,15 +259,13 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('production')->name('production.')->group(function () {
         Route::middleware('company.permission:production.operation.view')->group(function () {
-            Route::resource('shift-reports', \App\Http\Controllers\ProductionShiftReportController::class)
-                ->only(['index', 'show'])
-                ->parameters(['shift-reports' => 'report'])
-                ->whereNumber('report');
+            Route::resource('shift-reports', \App\Http\Controllers\ProductionShiftReportController::class)->only(['index']);
+            Route::get('/shift-reports/{report}', [\App\Http\Controllers\ProductionShiftReportController::class, 'show'])
+                ->whereNumber('report')
+                ->name('shift-reports.show');
         });
         Route::middleware('company.permission:production.operation.create')->group(function () {
-            Route::resource('shift-reports', \App\Http\Controllers\ProductionShiftReportController::class)
-                ->only(['create', 'store'])
-                ->parameters(['shift-reports' => 'report']);
+            Route::resource('shift-reports', \App\Http\Controllers\ProductionShiftReportController::class)->only(['create', 'store']);
         });
         Route::put('/shift-reports/{report}', [\App\Http\Controllers\ProductionShiftReportController::class, 'update'])
             ->middleware('company.permission:production.operation.review')
