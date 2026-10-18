@@ -40,7 +40,7 @@
         <strong style="color:#6ee7d0">راهنمای ثبت درخواست</strong>
         <ol style="margin:6px 0 0;padding-right:20px">
             <li>سال مالی فعال مجموعه را انتخاب کنید.</li>
-            <li>اگر درخواست برای دستور تولید یا سفارش مشخصی است، شماره آن را انتخاب کنید؛ این دو مورد اختیاری‌اند.</li>
+            <li>برای مشخص شدن مقصد درخواست، حداقل یکی از «قسمت تولید»، «تولید قدیمی» یا «سفارش» را انتخاب کنید.</li>
             <li>نام ماده اولیه موردنیاز را از فهرست کالاها انتخاب و مقدار لازم را وارد کنید.</li>
             <li>تاریخی را تعیین کنید که مواد باید حداکثر تا آن روز به تولید برسند.</li>
             <li>روی «ارسال درخواست مواد به انبار» بزنید تا درخواست برای بررسی ثبت شود.</li>
@@ -57,6 +57,17 @@
                 <select name="fiscal_year_id" required style="width:100%;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
                     @foreach($years as $y)
                         <option value="{{ $y->id }}" @selected((string) old('fiscal_year_id') === (string) $y->id)>{{ $y->year ?? $y->id }}</option>
+                    @endforeach
+                </select>
+            </label>
+
+            <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">
+                قسمت تولید
+                <small style="color:#71879d;font-size:10px;font-weight:400">اگر درخواست برای یک قسمت مشخص است، آن را انتخاب کنید؛ در غیر این صورت تولید یا سفارش را انتخاب کنید.</small>
+                <select name="production_section_id" style="width:100%;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
+                    <option value="">—</option>
+                    @foreach($sections as $section)
+                        <option value="{{ $section->id }}" @selected((string) old('production_section_id') === (string) $section->id)>{{ $section->name }}</option>
                     @endforeach
                 </select>
             </label>

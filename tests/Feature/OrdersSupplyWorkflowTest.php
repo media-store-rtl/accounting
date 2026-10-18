@@ -269,4 +269,49 @@ class OrdersSupplyWorkflowTest extends TestCase
         $this->assertDatabaseHas('inventory',['location_id'=>$c['warehouse'],'goods_id'=>$c['goods'],'quantity'=>5]);
         $this->assertDatabaseHas('purchase_receipts',['id'=>$receipt,'status'=>'pending']);
     }
+
+    public function test_supply_request_can_be_created_for_a_production_section_without_order_or_legacy_production(): void
+    {
+        $c = $this->context();
+        $location = DB::table('locations')->insertGetId([
+            'company_id' => $c['company'],
+            'code' => 'PS'.uniqid(),
+            'name' => 'قسمت برش',
+            'type' => 'production',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $section = DB::table('production_sections')->insertGetId([
+            'company_id' => $c['company'],
+            'location_id' => $location,
+            'name' => 'قسمت برش',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->get('/supply')
+            ->assertOk()
+            ->assertSee('name="production_section_id"', false)
+            ->assertSee('قسمت برش');
+
+        $this->from('/supply')->post('/supply', [
+            'fiscal_year_id' => $c['fy'],
+            'production_section_id' => $section,
+            'production_id' => '',
+            'order_id' => '',
+            'needed_at' => '2026-10-20',
+            'items' => [['goods_id' => $c['goods'], 'quantity' => 2]],
+        ])->assertRedirect('/supply')->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('supply_requests', [
+            'company_id' => $c['company'],
+            'fiscal_year_id' => $c['fy'],
+            'production_section_id' => $section,
+            'production_id' => null,
+            'order_id' => null,
+        ]);
+    }
+
 }
