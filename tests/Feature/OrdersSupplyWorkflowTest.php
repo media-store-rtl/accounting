@@ -197,6 +197,53 @@ class OrdersSupplyWorkflowTest extends TestCase
         ]);
     }
 
+    public function test_purchase_registration_accepts_multiple_items_without_fiscal_year_input(): void
+    {
+        $c = $this->context();
+        $categoryId = (int) DB::table('goods')->where('id', $c['goods'])->value('category_id');
+        $secondGoods = DB::table('goods')->insertGetId([
+            'company_id' => $c['company'],
+            'category_id' => $categoryId,
+            'code' => 'G2',
+            'name' => 'Second Material',
+            'purchasable' => true,
+            'producible' => false,
+            'sellable' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->from('/purchasing/create')->post('/purchasing', [
+            'supplier_id' => $c['supplier'],
+            'purchased_at' => '2026-10-16',
+            'items' => [
+                ['goods_id' => $c['goods'], 'quantity' => 2, 'unit_price' => 50],
+                ['goods_id' => $secondGoods, 'quantity' => 3, 'unit_price' => 100],
+            ],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $purchase = DB::table('purchases')->where('company_id', $c['company'])->latest('id')->first();
+        $this->assertNotNull($purchase);
+        $this->assertSame((int) $c['fy'], (int) $purchase->fiscal_year_id);
+        $this->assertSame(400.0, (float) $purchase->total_amount);
+        $this->assertSame(2, DB::table('purchase_items')->where('purchase_id', $purchase->id)->count());
+        $this->assertDatabaseHas('purchase_items', [
+            'purchase_id' => $purchase->id,
+            'goods_id' => $c['goods'],
+            'quantity' => 2,
+            'unit_price' => 50,
+            'line_total' => 100,
+        ]);
+        $this->assertDatabaseHas('purchase_items', [
+            'purchase_id' => $purchase->id,
+            'goods_id' => $secondGoods,
+            'quantity' => 3,
+            'unit_price' => 100,
+            'line_total' => 300,
+        ]);
+    }
+
     public function test_purchase_from_supply_request_saves_unit_price_and_marks_request_purchased_in_one_submission(): void
     {
         $c = $this->context();
@@ -519,6 +566,10 @@ class OrdersSupplyWorkflowTest extends TestCase
             ->assertSee('name="items[0][goods_id]"', false)
             ->assertSee('name="items[0][quantity]"', false)
             ->assertSee('name="items[0][unit_price]"', false)
+            ->assertSee('items[__INDEX__][goods_id]', false)
+            ->assertSee('add-purchase-item', false)
+            ->assertDontSee('name="fiscal_year_id"', false)
+            ->assertDontSee('سال مالی فعال')
             ->assertSee('purchased_date_picker')
             ->assertSee('ثبت خرید');
     }
