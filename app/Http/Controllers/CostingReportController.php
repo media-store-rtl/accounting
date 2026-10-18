@@ -93,7 +93,7 @@ final class CostingReportController extends Controller
             return back()->with('error', 'برای تاریخ گزارش سال مالی متناظر پیدا نشد؛ ریالی‌سازی انجام نشد.');
         }
 
-        $result = DB::transaction(function () use ($movements, $fiscalYearId, $valuationService) {
+        $result = DB::transaction(function () use ($movements, $fiscalYearId, $valuationService, $companyId) {
             $valued = 0;
             $alreadyValued = 0;
             $unvalued = 0;
@@ -116,7 +116,7 @@ final class CostingReportController extends Controller
                 // Avoid creating a permanent partial cost row from this action:
                 // the ledger schema permits one cost row per movement, so a partial
                 // row cannot safely be topped up later after new receipts arrive.
-                $method = $valuationService->methodForCompany((int) DB::table('inventory_movements')->where('id', $movement->id)->value('company_id'));
+                $method = $valuationService->methodForCompany($companyId);
                 $layerColumn = $method === InventoryValuationService::FIFO ? 'fifo_quantity_remaining' : 'weighted_average_quantity_remaining';
                 $available = (float) DB::table('inventory_cost_layers')
                     ->where('company_id', $companyId)
