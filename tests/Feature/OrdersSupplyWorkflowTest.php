@@ -314,4 +314,23 @@ class OrdersSupplyWorkflowTest extends TestCase
         ]);
     }
 
+
+    public function test_supply_request_without_production_reference_returns_validation_error_instead_of_http_exception(): void
+    {
+        $c = $this->context();
+
+        $this->from('/supply')->post('/supply', [
+            'fiscal_year_id' => $c['fy'],
+            'production_section_id' => '',
+            'production_id' => '',
+            'order_id' => '',
+            'needed_at' => '2026-10-20',
+            'items' => [['goods_id' => $c['goods'], 'quantity' => 2]],
+        ])->assertRedirect('/supply')
+          ->assertSessionHasErrors([
+              'production_section_id' => 'قسمت تولید، تولید قدیمی یا سفارش باید مشخص شود.',
+          ]);
+
+        $this->assertDatabaseCount('supply_requests', 0);
+    }
 }

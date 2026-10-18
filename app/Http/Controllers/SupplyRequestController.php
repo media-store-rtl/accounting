@@ -14,10 +14,11 @@ class SupplyRequestController extends Controller
     {
         $companyId=CompanyAuthorization::authorize($request,'supply_request.create');
         $data=$request->validate([
-            'fiscal_year_id'=>'required|integer','production_id'=>'nullable|integer','order_id'=>'nullable|integer','production_section_id'=>'nullable|integer','needed_at'=>'required|date',
+            'fiscal_year_id'=>'required|integer','production_id'=>'nullable|integer','order_id'=>'nullable|integer','production_section_id'=>'nullable|required_without_all:production_id,order_id|integer','needed_at'=>'required|date',
             'notes'=>'nullable|string','items'=>'required|array|min:1','items.*.goods_id'=>'required|integer','items.*.quantity'=>'required|numeric|gt:0'
+        ], [
+            'production_section_id.required_without_all' => 'قسمت تولید، تولید قدیمی یا سفارش باید مشخص شود.',
         ]);
-        abort_unless(!empty($data['production_id'])||!empty($data['order_id'])||!empty($data['production_section_id']),422,'قسمت تولید، تولید قدیمی یا سفارش باید مشخص شود.');
         $model=DB::transaction(function()use($data,$companyId,$request){
             abort_unless(DB::table('fiscal_years')->where('id',$data['fiscal_year_id'])->where('company_id',$companyId)->exists(),422,'سال مالی نامعتبر است.');
             if(!empty($data['production_section_id'])) abort_unless(DB::table('production_sections as s')->join('locations as l','l.id','=','s.location_id')->where('s.id',$data['production_section_id'])->where('l.company_id',$companyId)->where('l.is_active',true)->exists(),422,'قسمت تولید نامعتبر است.');
