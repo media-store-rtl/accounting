@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 
 final class CostingReportService
 {
-    public function generate(int $companyId, ?int $fiscalYearId = null, ?int $orderId = null, ?int $goodsId = null, ?string $startDate = null, ?string $endDate = null, ?int $personnelId = null, ?int $productionSectionId = null, ?int $productionStageId = null): array
+    public function generate(int $companyId, ?int $fiscalYearId = null, ?int $orderId = null, ?int $goodsId = null, ?string $startDate = null, ?string $endDate = null, ?int $personnelId = null, ?int $productionSectionId = null, ?int $productionStageId = null, ?string $valuationMethod = null): array
     {
         if ($fiscalYearId === null && $startDate === null && $endDate === null) {
             $fiscalYearId = DB::table('fiscal_years')->where('company_id',$companyId)->orderByDesc('id')->value('id');
@@ -15,8 +15,9 @@ final class CostingReportService
         if ($orderId !== null) abort_unless(DB::table('orders')->where('id',$orderId)->where('company_id',$companyId)->exists(),422,'سفارش متعلق به شرکت نیست.');
         if ($goodsId !== null) abort_unless(DB::table('goods')->where('id',$goodsId)->where('company_id',$companyId)->exists(),422,'کالا متعلق به شرکت نیست.');
 
+        $valuationOverrides = $valuationMethod !== null ? app(HistoricalInventoryValuationReportService::class)->calculate($companyId, $valuationMethod) : [];
         $rows=[];
-        $this->materials($rows,$companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate);
+        $this->materials($rows,$companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$valuationOverrides);
         $this->labor($rows,$companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId);
         $this->approvedShiftReportLabor($rows,$companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId);
         $this->directPurchaseCosts($rows,$companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate);
@@ -72,7 +73,7 @@ final class CostingReportService
         // The detail table is specifically for reports already received by the warehouse.
         // Approved-but-not-received reports still contribute to product produced quantity above.
         $productionReports=$this->productionShiftReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId,true);
-        $productionReports = $this->attachReportMaterialDetails($companyId, $productionReports);
+        $productionReports = $this->attachReportMaterialDetails($companyId, $productionReports, $valuationOverrides);
 
         $valuationMethods=[];
         foreach($rows as $row){
@@ -83,7 +84,8 @@ final class CostingReportService
 
         return [
             'fiscal_year_id'=>$fiscalYearId,
-            'filters'=>['start_date'=>$startDate,'end_date'=>$endDate,'personnel_id'=>$personnelId],
+            'filters'=>['start_date'=>$startDate,'end_date'=>$endDate,'personnel_id'=>$personnelId,'valuation_method'=>$valuationMethod],
+            'selected_valuation_method'=>$valuationMethod,
             'rows'=>array_values($rows),
             'product_rows'=>array_values($productRows),
             'production_reports'=>$productionReports,
@@ -101,7 +103,7 @@ final class CostingReportService
         ];
     }
 
-    private function materials(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId,?string $startDate,?string $endDate): void
+    private function materials(array &$rows,int $companyId,?int $fy,?int $orderId,?int $goodsId,?string $startDate,?string $endDate,array $valuationOverrides = []): void
     {
         // Consumption rows reference the raw material. Attribute their cost to
         // the finished good produced by the linked supply request when possible.
@@ -109,24 +111,62 @@ final class CostingReportService
             ->join('inventory_movements as m','m.id','=','c.inventory_movement_id')
             ->where('c.company_id',$companyId)
             ->when($fy,fn($q)=>$q->where('c.fiscal_year_id',$fy))
-            ->when($startDate,fn($q)=>$q->whereDate('c.consumed_at','>=',$startDate))
-            ->when($endDate,fn($q)=>$q->whereDate('c.consumed_at','<=',$endDate))
-            ->get(['c.goods_id','c.total_cost','c.valuation_method','m.metadata']);
+            ->when($startDate,fn($q)=>$q->whereDate(empty($valuationOverrides) ? 'c.consumed_at' : 'm.occurred_at','>=',$startDate))
+            ->when($endDate,fn($q)=>$q->whereDate(empty($valuationOverrides) ? 'c.consumed_at' : 'm.occurred_at','<=',$endDate))
+            ->get(['c.goods_id','c.total_cost','c.valuation_method','m.metadata','m.id as movement_id','m.movement_type','c.fiscal_year_id']);
+
+
+        if (!empty($valuationOverrides)) {
+            $costs = $costs->map(function ($cost) use ($valuationOverrides) {
+                $id = (int) $cost->movement_id;
+                if (!in_array($cost->movement_type, ['production_consumption', 'material_handover'], true)) return $cost;
+                $override = $valuationOverrides[$id] ?? null;
+                if (!$override || (float) $override['valued_quantity'] <= 0.0000001) return null;
+                $cost->total_cost = (float) $override['total_cost'];
+                $cost->valuation_method = $override['method'];
+                $cost->virtual_valuation = true;
+                return $cost;
+            })->filter()->values();
+
+            $knownIds = $costs->pluck('movement_id')->map(fn ($id) => (int) $id)->all();
+            $missing = DB::table('inventory_movements as m')
+                ->where('m.company_id', $companyId)
+                ->where('m.quantity', '<', 0)
+                ->whereIn('m.movement_type', ['production_consumption', 'material_handover'])
+                ->when($startDate, fn ($q) => $q->whereDate('m.occurred_at', '>=', $startDate))
+                ->when($endDate, fn ($q) => $q->whereDate('m.occurred_at', '<=', $endDate))
+                ->when(!empty($knownIds), fn ($q) => $q->whereNotIn('m.id', $knownIds))
+                ->get(['m.id as movement_id', 'm.goods_id', 'm.metadata', 'm.movement_type']);
+            foreach ($missing as $movement) {
+                $override = $valuationOverrides[(int) $movement->movement_id] ?? null;
+                if (!$override || (float) $override['valued_quantity'] <= 0.0000001) continue;
+                $costs->push((object) [
+                    'goods_id' => (int) $movement->goods_id,
+                    'total_cost' => (float) $override['total_cost'],
+                    'valuation_method' => $override['method'],
+                    'metadata' => $movement->metadata,
+                    'movement_id' => (int) $movement->movement_id,
+                    'movement_type' => $movement->movement_type,
+                    'fiscal_year_id' => null,
+                    'virtual_valuation' => true,
+                ]);
+            }
+        }
 
         $movements=DB::table('inventory_movements as m')
             ->leftJoin('inventory_consumption_costs as vc','vc.inventory_movement_id','=','m.id')
             ->where('m.company_id',$companyId)
             ->where('m.quantity','<',0)
-            ->where(function($q) {
+            ->where(function($q) use ($valuationOverrides) {
                 $q->where('m.movement_type','production_consumption')
-                    ->orWhere(function($handover) {
-                        $handover->where('m.movement_type','material_handover')
-                            ->whereNull('vc.id');
+                    ->orWhere(function($handover) use ($valuationOverrides) {
+                        $handover->where('m.movement_type','material_handover');
+                        if (empty($valuationOverrides)) $handover->whereNull('vc.id');
                     });
             })
             ->when($startDate,fn($q)=>$q->whereDate('m.occurred_at','>=',$startDate))
             ->when($endDate,fn($q)=>$q->whereDate('m.occurred_at','<=',$endDate))
-            ->get(['m.goods_id','m.quantity','m.metadata','m.movement_type','vc.quantity as valued_quantity']);
+            ->get(['m.id as movement_id','m.goods_id','m.quantity','m.metadata','m.movement_type','vc.quantity as valued_quantity','vc.fiscal_year_id as cost_fiscal_year_id']);
 
         $supplyIdFromMetadata=fn($item)=>(int)(json_decode((string)$item->metadata,true)['supply_request_id']??0);
         $ids=$costs->map($supplyIdFromMetadata)->merge($movements->map($supplyIdFromMetadata))->filter()->unique()->values();
@@ -160,7 +200,14 @@ final class CostingReportService
         };
 
         foreach($costs as $c){
-            [$oid,$targetGoodsId]=$resolveTarget($c);
+            [$oid,$targetGoodsId,$resolvedSupply]=$resolveTarget($c);
+            if (!empty($valuationOverrides) && !empty($c->virtual_valuation)) {
+                $meta = json_decode((string) $c->metadata, true) ?: [];
+                $productionId = (int) ($resolvedSupply?->production_id ?? ($meta['production_id'] ?? 0));
+                $production = $productions->get($productionId);
+                $movementFiscalYearId = $resolvedSupply?->fiscal_year_id ?? $production?->fiscal_year_id ?? ($meta['fiscal_year_id'] ?? ($c->fiscal_year_id ?? null));
+                if ($fy !== null && (int) ($movementFiscalYearId ?? 0) !== $fy) continue;
+            }
             if($orderId!==null&&$oid!==$orderId)continue;
             if($goodsId!==null&&$targetGoodsId!==$goodsId)continue;
             $key=$this->key($oid,$targetGoodsId);
@@ -176,12 +223,13 @@ final class CostingReportService
             $production=$productions->get($productionId);
             $movementFiscalYearId=$supply?->fiscal_year_id
                 ??$production?->fiscal_year_id
-                ??($meta['fiscal_year_id']??null);
+                ??($meta['fiscal_year_id']??($m->cost_fiscal_year_id??null));
             // Never attribute movements with an unknown fiscal year to a specific year.
             if($fy!==null&&(int)($movementFiscalYearId??0)!==$fy)continue;
             if($orderId!==null&&$oid!==$orderId)continue;
             if($goodsId!==null&&$targetGoodsId!==$goodsId)continue;
-            $unvaluedQuantity=max(0.0,abs((float)$m->quantity)-(float)($m->valued_quantity??0));
+            $valuedQuantity = !empty($valuationOverrides) ? (float) ($valuationOverrides[(int) $m->movement_id]['valued_quantity'] ?? 0) : (float) ($m->valued_quantity ?? 0);
+            $unvaluedQuantity=max(0.0,abs((float)$m->quantity)-$valuedQuantity);
             if($unvaluedQuantity<=0.0000001)continue;
             $key=$this->key($oid,$targetGoodsId);
             $this->row($rows,$key,$oid,$targetGoodsId);
@@ -198,7 +246,7 @@ final class CostingReportService
      * the quantity not already allocated to earlier approved/received reports.
      * Missing or unvalued stock remains visible instead of receiving a guessed rate.
      */
-    private function attachReportMaterialDetails(int $companyId, array $productionReports): array
+    private function attachReportMaterialDetails(int $companyId, array $productionReports, array $valuationOverrides = []): array
     {
         if (empty($productionReports) || !DB::getSchemaBuilder()->hasTable('production_shift_report_materials')) {
             foreach ($productionReports as &$report) {
@@ -341,17 +389,27 @@ final class CostingReportService
                 if ($quantity <= 0.0000001) continue;
 
                 $costId = $movement->cost_id !== null ? (int) $movement->cost_id : null;
-                $slices = $costId !== null ? ($costSlicesById[$costId] ?? []) : [];
-                if ($costId !== null && empty($slices) && $movement->cost_quantity !== null && (float) $movement->cost_quantity > 0) {
-                    $slices[] = [
-                        'remaining_quantity' => (float) $movement->cost_quantity,
-                        'unit_cost' => (float) $movement->unit_cost,
-                    ];
+                $override = $valuationOverrides[(int) $movement->movement_id] ?? null;
+                if ($override !== null) {
+                    $slices = array_map(fn ($slice) => [
+                        'remaining_quantity' => (float) $slice['quantity'],
+                        'unit_cost' => (float) $slice['unit_cost'],
+                    ], $override['slices'] ?? []);
+                    $valuationMethodForMovement = $override['method'];
+                } else {
+                    $slices = $costId !== null ? ($costSlicesById[$costId] ?? []) : [];
+                    if ($costId !== null && empty($slices) && $movement->cost_quantity !== null && (float) $movement->cost_quantity > 0) {
+                        $slices[] = [
+                            'remaining_quantity' => (float) $movement->cost_quantity,
+                            'unit_cost' => (float) $movement->unit_cost,
+                        ];
+                    }
+                    $valuationMethodForMovement = $movement->valuation_method;
                 }
                 $handoverGroups[$key][] = [
                     'handed_over_date' => substr((string) $movement->occurred_at, 0, 10),
                     'remaining_quantity' => $quantity,
-                    'valuation_method' => $movement->valuation_method,
+                    'valuation_method' => $valuationMethodForMovement,
                     'cost_slices' => $slices,
                 ];
             }
