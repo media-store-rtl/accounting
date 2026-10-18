@@ -196,16 +196,38 @@
 </div>
 
 <div class="costing-panel">
-  <h2 style="font-size:14px;margin:0 0 12px">خلاصه هزینه‌ها به تفکیک محصول</h2>
+  <h2 style="font-size:14px;margin:0 0 8px">خلاصه بهای تمام‌شده به تفکیک محصول</h2>
+  <p class="costing-detail-note" style="margin:0 0 12px">مقدار مواد به تفکیک نام و واحد هر ماده نمایش داده می‌شود تا واحدهای متفاوت با هم جمع نشوند. مبالغ فقط یک‌بار در جمع بهای تمام‌شده محاسبه شده‌اند.</p>
   <div class="costing-table-wrap">
     @if(empty($report['product_rows']))
       <div class="costing-empty">برای فیلتر انتخاب‌شده داده هزینه‌ای ثبت نشده است.</div>
     @else
       <table class="costing-table">
-        <thead><tr><th>محصول</th><th>واحد</th><th>تعداد تولیدشده</th><th>مواد</th><th>دستمزد</th><th>ضایعات</th><th>هزینه مستقیم</th><th>جمع بهای تمام‌شده</th><th>فی تمام‌شده هر عدد (در صورت مغایرت مواد، غیرقطعی)</th><th>روش</th><th>مصرف بدون ارزش‌گذاری</th></tr></thead>
+        <thead><tr><th>محصول</th><th>شرح هزینه</th><th>مقدار / مبنا</th><th>مبلغ (ریال)</th></tr></thead>
         <tbody>
         @foreach($report['product_rows'] as $row)
-          <tr><td>{{ $row['goods_code'] }} — {{ $row['goods_name'] }}</td><td>{{ $row['unit_symbol'] ?? $row['unit_name'] ?? '—' }}</td><td>{{ $formatCostingNumber($row['produced_quantity'] ?? 0) }}</td><td>{{ $formatCostingNumber($row['material_cost']) }}</td><td>{{ $formatCostingNumber($row['labor_cost']) }}</td><td>{{ $formatCostingNumber($row['scrap_cost']) }}</td><td>{{ $formatCostingNumber($row['direct_cost']) }}</td><td><strong>{{ $formatCostingNumber($row['total_cost']) }}</strong></td><td><strong>{{ isset($row['unit_cost']) && $row['unit_cost'] !== null ? $formatCostingNumber($row['unit_cost']) : '—' }}</strong></td><td>{{ implode('، ',$row['valuation_methods']) ?: '—' }}</td><td>{{ $formatCostingNumber($row['unvalued_material_quantity']) }}</td></tr>
+          @php
+            $matchingProductionReports = collect($report['production_reports'])->where('goods_id', $row['goods_id']);
+            $materialQuantityDetails = $matchingProductionReports
+              ->flatMap(fn ($productionReport) => $productionReport['materials'] ?? [])
+              ->groupBy(fn ($material) => ($material['material_code'] ?? '') . '|' . ($material['material_name'] ?? '') . '|' . ($material['unit_symbol'] ?? $material['unit_name'] ?? '—'))
+              ->map(fn ($materials, $key) => [
+                'label' => trim(str_replace('|', ' — ', $key), ' —'),
+                'unit' => $materials->first()['unit_symbol'] ?? $materials->first()['unit_name'] ?? '—',
+                'quantity' => $materials->sum(fn ($material) => (float) ($material['quantity'] ?? 0)),
+              ]);
+            $scrapQuantity = $matchingProductionReports->sum(fn ($productionReport) => (float) ($productionReport['scrap_quantity'] ?? 0));
+            $productUnit = $row['unit_symbol'] ?? $row['unit_name'] ?? 'واحد';
+            $materialBasis = $materialQuantityDetails->isEmpty()
+              ? 'مقدار ثبت‌شده موجود نیست'
+              : $materialQuantityDetails->map(fn ($material) => $material['label'] . ': ' . $formatCostingNumber($material['quantity']) . ' ' . $material['unit'])->implode('، ');
+          @endphp
+          <tr><td rowspan="6">{{ $row['goods_code'] }} — {{ $row['goods_name'] }}<br><span style="color:#91a6b9">تولید: {{ $formatCostingNumber($row['produced_quantity'] ?? 0) }} {{ $productUnit }}</span></td><td>مواد مصرفی</td><td>{{ $materialBasis }}</td><td>{{ $formatCostingNumber($row['material_cost'] ?? 0) }}</td></tr>
+          <tr><td>دستمزد تجمیعی محصول</td><td>تجمیع دستمزد گزارش‌های تولید</td><td>{{ $formatCostingNumber($row['labor_cost'] ?? 0) }}</td></tr>
+          <tr><td>هزینه ضایعات</td><td>{{ $formatCostingNumber($scrapQuantity) }} {{ $productUnit }}</td><td>{{ $formatCostingNumber($row['scrap_cost'] ?? 0) }}</td></tr>
+          <tr><td>هزینه‌های مستقیم خرید</td><td>هزینه‌های تخصیص‌یافته به محصول</td><td>{{ $formatCostingNumber($row['direct_cost'] ?? 0) }}</td></tr>
+          <tr><td><strong>جمع بهای تمام‌شده محصول</strong></td><td>{{ $formatCostingNumber($row['produced_quantity'] ?? 0) }} {{ $productUnit }} تولیدشده</td><td><strong>{{ $formatCostingNumber($row['total_cost'] ?? 0) }}</strong></td></tr>
+          <tr><td>فی تمام‌شده هر واحد</td><td>هر ۱ {{ $productUnit }}</td><td><strong>{{ isset($row['unit_cost']) && $row['unit_cost'] !== null ? $formatCostingNumber($row['unit_cost']) : '—' }}</strong></td></tr>
         @endforeach
         </tbody>
       </table>
