@@ -19,25 +19,6 @@ final class CostingReportController extends Controller
         return $request->expectsJson() ? response()->json(['data'=>$result]) : back()->with('success','محاسبه بهای تمام‌شده ثبت و قابل ردیابی شد.');
     }
 
-    public function updateValuationMethod(Request $request, InventoryValuationService $service)
-    {
-        $companyId = CompanyAuthorization::authorize($request, 'costing.report.view');
-        $data = $request->validate([
-            'method' => 'required|in:fifo,weighted_average',
-        ]);
-
-        try {
-            $service->setMethod($companyId, $data['method']);
-        } catch (\RuntimeException $exception) {
-            return back()->with('error', $exception->getMessage());
-        }
-
-        return back()->with(
-            'success',
-            'روش ارزش‌گذاری پیش‌فرض ذخیره شد.'
-        );
-    }
-
     public function valueProductionReport(Request $request, InventoryValuationService $valuationService, int $reportId)
     {
         $companyId = CompanyAuthorization::authorize($request, 'costing.report.view');
@@ -171,6 +152,8 @@ final class CostingReportController extends Controller
         $personnelId=$data['personnel_id']??null;
         $productionSectionId=$data['production_section_id']??null;
         $productionStageId=$data['production_stage_id']??null;
+        // This selection affects only the read-only historical report calculation.
+        // New inventory consumption remains fixed to FIFO in InventoryValuationService.
         $valuationMethod=$data['valuation_method']??$valuationService->methodForCompany($companyId);
         if($personnelId!==null) abort_unless(DB::table('personnel')->where('id',$personnelId)->where('account_id',$request->user()->account_id)->exists(),422,'کارگر انتخاب‌شده معتبر نیست.');
         if($productionSectionId!==null) abort_unless(DB::table('production_sections as ps')->join('locations as l','l.id','=','ps.location_id')->where('ps.id',$productionSectionId)->where('l.company_id',$companyId)->exists(),422,'قسمت تولید انتخاب‌شده معتبر نیست.');

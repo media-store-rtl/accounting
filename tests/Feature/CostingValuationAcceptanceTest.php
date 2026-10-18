@@ -128,7 +128,7 @@ class CostingValuationAcceptanceTest extends TestCase
         $this->assertSame(20.0, (float) DB::table('inventory_cost_layers')->where('company_id', $f['company'])->sum('weighted_average_quantity_remaining'));
     }
 
-    public function test_repeated_weighted_average_consumption_keeps_remaining_pool_rate_stable(): void
+    public function test_repeated_live_consumption_uses_fixed_fifo_despite_legacy_weighted_average_setting(): void
     {
         $f = $this->fixture('weighted_average');
         $this->layer($f, 100, 10, '2026-04-01 09:00:00');
@@ -140,10 +140,11 @@ class CostingValuationAcceptanceTest extends TestCase
         $firstResult = $service->valueInventoryMovement($first, $f['fy']);
         $secondResult = $service->valueInventoryMovement($second, $f['fy']);
 
-        $this->assertEqualsWithDelta(1500.0, $firstResult['total_cost'], 0.0001);
-        $this->assertEqualsWithDelta(250.0, $secondResult['total_cost'], 0.0001);
-        $this->assertEqualsWithDelta(12.5, $secondResult['unit_cost'], 0.0001);
-        $remaining = (float) DB::table('inventory_cost_layers')->where('company_id', $f['company'])->sum('weighted_average_quantity_remaining');
+        $this->assertSame('fifo', $firstResult['method']);
+        $this->assertEqualsWithDelta(1300.0, $firstResult['total_cost'], 0.0001);
+        $this->assertEqualsWithDelta(300.0, $secondResult['total_cost'], 0.0001);
+        $this->assertEqualsWithDelta(15.0, $secondResult['unit_cost'], 0.0001);
+        $remaining = (float) DB::table('inventory_cost_layers')->where('company_id', $f['company'])->sum('fifo_quantity_remaining');
         $this->assertEqualsWithDelta(60.0, $remaining, 0.0001);
         $this->assertSame(2, DB::table('inventory_consumption_costs')->where('company_id', $f['company'])->count());
         $this->assertSame(140.0, (float) DB::table('inventory_movements')->where('company_id', $f['company'])->sum(DB::raw('ABS(quantity)')));
