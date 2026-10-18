@@ -20,9 +20,14 @@
 <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">سال مالی فعال<select name="fiscal_year_id" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">@foreach($years as $y)<option class="fiscal-year-option" value="{{ $y->id }}" data-year-name="{{ $y->name }}" data-start="{{ substr($y->starts_at,0,10) }}" data-end="{{ substr($y->ends_at,0,10) }}" @selected((string)old('fiscal_year_id', $activeFiscalYearId)===(string)$y->id)>{{ $y->name }}</option>@endforeach</select></label>
 <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">تأمین‌کننده (اختیاری)<select name="supplier_id" style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit"><option value="">بدون تأمین‌کننده</option>@foreach($suppliers as $s)<option value="{{ $s->id }}" @selected((string)old('supplier_id')===(string)$s->id)>{{ $s->name }}</option>@endforeach</select></label>
 <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">درخواست تأمین (اختیاری)<select name="supply_request_id" style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit"><option value="">بدون اتصال به درخواست</option>@foreach($requests as $s)<option value="{{ $s->id }}" @selected((string)old('supply_request_id')===(string)$s->id)>درخواست #{{ $s->id }}</option>@endforeach</select></label>
+<div id="purchase-items-container" style="display:flex;flex-direction:column;gap:12px;min-width:0">
+<div class="purchase-item-row" data-index="0" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:10px;padding:12px;border:1px solid #29465e;border-radius:10px">
 <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">کالا<select name="items[0][goods_id]" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">@foreach($goods as $g)<option value="{{ $g->id }}" @selected((string)old('items.0.goods_id')===(string)$g->id)>{{ $g->name }}</option>@endforeach</select></label>
 <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">مقدار<input name="items[0][quantity]" type="number" min="0.0001" step="0.0001" value="{{ old('items.0.quantity') }}" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit"></label>
 <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">قیمت واحد<input name="items[0][unit_price]" type="number" min="0.0001" step="0.0001" value="{{ old('items.0.unit_price') }}" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit"></label>
+<div style="display:flex;align-items:end"><button class="btn" type="button" data-remove-purchase-item disabled style="width:100%">حذف قلم</button></div>
+</div></div>
+<button class="btn" id="add-purchase-item" type="button" style="margin-top:10px">+ افزودن قلم کالا</button>
 <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">تاریخ خرید<input id="purchased_date_picker" type="text" class="purchase-date-picker" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" required><input id="purchased_date_iso" type="hidden" name="purchased_at" value="{{ old('purchased_at') }}"></label>
 </div><div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" type="submit">ثبت خرید</button><a class="btn" href="{{ route('workflows.purchasing') }}">انصراف</a></div></form></div>
 
@@ -48,6 +53,38 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.fiscal-year-option').forEach(function (option) {
         option.textContent = option.dataset.yearName + ' (' + toJalali(option.dataset.start) + ' تا ' + toJalali(option.dataset.end) + ')';
     });
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const container = document.getElementById('purchase-items-container');
+    const addButton = document.getElementById('add-purchase-item');
+    if (!container || !addButton) return;
+    function refreshRows() {
+        const rows = Array.from(container.querySelectorAll('.purchase-item-row'));
+        rows.forEach(function (row, index) {
+            row.dataset.index = String(index);
+            row.querySelectorAll('[name]').forEach(function (field) {
+                field.name = field.name.replace(/items\[\d+\]/, 'items[' + index + ']');
+            });
+            const removeButton = row.querySelector('[data-remove-purchase-item]');
+            if (removeButton) removeButton.disabled = rows.length === 1;
+        });
+    }
+    addButton.addEventListener('click', function () {
+        const row = container.querySelector('.purchase-item-row').cloneNode(true);
+        row.querySelectorAll('input').forEach(function (input) { input.value = ''; });
+        row.querySelectorAll('select').forEach(function (select) { select.selectedIndex = 0; });
+        container.appendChild(row);
+        refreshRows();
+    });
+    container.addEventListener('click', function (event) {
+        const button = event.target.closest('[data-remove-purchase-item]');
+        if (!button || button.disabled) return;
+        button.closest('.purchase-item-row').remove();
+        refreshRows();
+    });
+    refreshRows();
 });
 </script>
 @endsection
