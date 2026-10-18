@@ -561,7 +561,7 @@ class CostingReportTest extends TestCase
         $layerSnapshot = DB::table('inventory_cost_layers')->where('company_id', $company)->orderBy('id')->get()->map(fn ($row) => (array) $row)->all();
         $movementCount = DB::table('inventory_movements')->where('company_id', $company)->count();
         $costCount = DB::table('inventory_consumption_costs')->where('company_id', $company)->count();
-        $replay = app(\\App\\Services\\HistoricalInventoryValuationReportService::class);
+        $replay = app(\App\Services\HistoricalInventoryValuationReportService::class);
 
         $fifo = $replay->calculate($company, 'fifo');
         $average = $replay->calculate($company, 'weighted_average');
