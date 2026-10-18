@@ -48,7 +48,9 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
-    Route::get('/notifications', [\App\Http\Controllers\NotificationCenterController::class,'index'])->middleware('company.permission:notification.view')->name('notifications.index');
+    Route::resource('notifications', \App\Http\Controllers\NotificationCenterController::class)
+        ->only(['index'])
+        ->middleware('company.permission:notification.view');
     Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationCenterController::class,'read'])->middleware('company.permission:notification.view')->name('notifications.read');
 
     Route::get('/company', [CompanyController::class, 'edit'])
@@ -81,8 +83,10 @@ Route::middleware('auth')->group(function () {
         ->middleware('company.permission:fiscal_year.close')
         ->name('fiscal-years.close');
 
-    Route::get('/reports/costing', [CostingReportController::class, 'index'])
-        ->middleware('company.permission:costing.report.view')->name('reports.costing');
+    Route::resource('reports/costing', CostingReportController::class)
+        ->only(['index'])
+        ->middleware('company.permission:costing.report.view')
+        ->names(['index' => 'reports.costing']);
     Route::post('/reports/costing/calculate', [CostingReportController::class, 'calculate'])->middleware('company.permission:costing.report.view')->name('reports.costing.calculate');
     Route::post('/reports/costing/production-reports/{reportId}/value', [CostingReportController::class, 'valueProductionReport'])->whereNumber('reportId')->middleware('company.permission:costing.report.view')->name('reports.costing.production-reports.value');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -113,7 +117,9 @@ Route::middleware('auth')->group(function () {
             ->parameters(['orders' => 'order']);
     });
     Route::post('/sales/orders/{order}/cancel', [OrderController::class, 'cancel'])->middleware('company.permission:order.create')->whereNumber('order')->name('sales.orders.cancel');
-    Route::get('/sales/deliveries', [DeliveryController::class, 'index'])->middleware('company.permission:delivery_request.view')->name('sales.deliveries.index');
+    Route::resource('sales/deliveries', DeliveryController::class)
+        ->only(['index'])
+        ->middleware('company.permission:delivery_request.view');
     Route::post('/api/orders/{order}/refresh', [OrderController::class, 'refreshFulfillment'])->middleware('company.permission:order.refresh')->name('sales.orders.refresh');
     Route::post('/api/orders/{order}/production-due', [OrderController::class, 'setProductionDue'])->middleware('company.permission:production.supervise')->name('sales.orders.production-due');
     Route::post('/api/orders/{order}/delivery-request', [OrderController::class, 'deliveryRequest'])->middleware('company.permission:delivery_request.sales_approve')->name('sales.orders.delivery-request');
@@ -158,7 +164,9 @@ Route::middleware('auth')->group(function () {
         });
         Route::post('/purchase-receipts', [PurchaseReceiptController::class, 'store'])->middleware('company.permission:purchase.receipt.create')->name('purchase-receipts.store');
         Route::post('/purchase-receipts/{purchaseReceipt}/approve', [PurchaseReceiptController::class, 'approve'])->middleware('company.permission:purchase.receipt.approve')->name('purchase-receipts.approve');
-        Route::post('/production/labor', [LaborCostController::class, 'store'])->middleware('company.permission:production.labor.create')->name('production.labor.store');
+        Route::apiResource('production/labor', LaborCostController::class)
+            ->only(['store'])
+            ->middleware('company.permission:production.labor.create');
         Route::post('/production/labor/{laborEntry}/review', [LaborCostController::class, 'review'])->middleware('company.permission:production.labor.review')->name('production.labor.review');
         Route::post('/production/labor/rates', [LaborCostController::class, 'setRate'])->middleware('company.permission:production.labor.rate.manage')->name('production.labor.rates.store');
     });
@@ -276,9 +284,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/production/shift-reports/{report}/receive', [\App\Http\Controllers\ProductionShiftReportController::class,'receive'])->middleware('company.permission:production.output.receive')->whereNumber('report')->name('production.shift-reports.receive');
     Route::post('/production/outputs/shift-reports/{report}/receive', [ProductionOutputController::class, 'receiveShiftReport'])->middleware('company.permission:production.output.receive')->whereNumber('report')->name('production.outputs.shift-reports.receive');
 
-    Route::get('/production/execution', [\App\Http\Controllers\ProductionExecutionController::class,'index'])->middleware('company.permission:production.operation.view')->name('production.execution.index');
-    Route::get('/production/execution/create', [\App\Http\Controllers\ProductionExecutionController::class,'create'])->middleware('company.permission:production.operation.create')->name('production.execution.create');
-    Route::post('/production/execution', [\App\Http\Controllers\ProductionExecutionController::class,'store'])->middleware('company.permission:production.operation.create')->name('production.execution.store');
+    Route::prefix('production')->name('production.')->group(function () {
+        Route::resource('execution', \App\Http\Controllers\ProductionExecutionController::class)
+            ->only(['index'])
+            ->middleware('company.permission:production.operation.view');
+        Route::resource('execution', \App\Http\Controllers\ProductionExecutionController::class)
+            ->only(['create', 'store'])
+            ->middleware('company.permission:production.operation.create');
+    });
     Route::post('/production/execution/{run}/review', [\App\Http\Controllers\ProductionExecutionController::class,'review'])->middleware('company.permission:production.operation.review')->name('production.execution.review');
     Route::post('/production/execution/handovers/{handover}/receive', [\App\Http\Controllers\ProductionExecutionController::class,'receiveHandover'])->middleware('company.permission:production.operation.create')->name('production.execution.handover.receive');
 
@@ -294,24 +307,35 @@ Route::middleware('auth')->group(function () {
         Route::post('/{output}/receive',[ProductionOutputController::class,'receive'])->name('receive')->middleware('company.permission:production.output.receive');
     });
 
+    Route::resource('backups', BackupController::class)
+        ->only(['index'])
+        ->middleware('company.permission:backup.view');
+
     Route::prefix('backups')->name('backups.')->group(function () {
-        Route::get('/', [BackupController::class, 'index'])->middleware('company.permission:backup.view')->name('index');
         Route::post('/create', [BackupController::class, 'create'])->middleware('company.permission:backup.create')->name('create');
         Route::get('/{backup}/download', [BackupController::class, 'download'])->middleware('company.permission:backup.view')->name('download');
         Route::post('/upload', [BackupController::class, 'upload'])->middleware('company.permission:backup.upload')->name('upload');
         Route::post('/{backup}/restore', [BackupController::class, 'restore'])->middleware('company.permission:backup.restore')->name('restore');
     });
 
+    Route::resource('imports/excel', ExcelImportController::class)
+        ->only(['index'])
+        ->middleware('company.permission:import.excel');
+
     Route::prefix('imports/excel')->name('imports.excel.')->middleware('company.permission:import.excel')->group(function () {
-        Route::get('/', [ExcelImportController::class,'index'])->name('index');
         Route::post('/inspect', [ExcelImportController::class, 'inspect'])->name('inspect');
         Route::post('/validate', [ExcelImportController::class, 'validateMapping'])->name('validate');
         Route::post('/import', [ExcelImportController::class, 'import'])->name('import');
     });
 
     Route::prefix('settings')->group(function () {
-        Route::get('/departments', [\App\Http\Controllers\OrganizationalDepartmentController::class, 'index'])->middleware('company.permission:user.update')->name('settings.departments.index');
-        Route::post('/departments', [\App\Http\Controllers\OrganizationalDepartmentController::class, 'store'])->middleware('company.permission:user.update')->name('settings.departments.store');
+        Route::resource('departments', \App\Http\Controllers\OrganizationalDepartmentController::class)
+            ->only(['index', 'store'])
+            ->middleware('company.permission:user.update')
+            ->names([
+                'index' => 'settings.departments.index',
+                'store' => 'settings.departments.store',
+            ]);
         Route::put('/departments/{department}', [\App\Http\Controllers\OrganizationalDepartmentController::class, 'update'])->whereNumber('department')->middleware('company.permission:user.update')->name('settings.departments.update');
         Route::post('/departments/{department}/members', [\App\Http\Controllers\OrganizationalDepartmentController::class, 'syncMembers'])->whereNumber('department')->middleware('company.permission:user.update')->name('settings.departments.members');
         Route::post('/departments/{department}/deactivate', [\App\Http\Controllers\OrganizationalDepartmentController::class, 'deactivate'])->whereNumber('department')->middleware('company.permission:user.update')->name('settings.departments.deactivate');
