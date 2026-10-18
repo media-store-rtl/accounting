@@ -29,6 +29,15 @@ class CostingValuationAcceptanceTest extends TestCase
             'starts_at' => '2026-03-21', 'ends_at' => '2027-03-20',
             'is_closed' => false, 'created_at' => $now, 'updated_at' => $now,
         ]);
+        $supplier = DB::table('suppliers')->insertGetId([
+            'company_id' => $company, 'code' => 'VS'.uniqid(), 'name' => 'Valuation Supplier',
+            'is_active' => true, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $user = DB::table('users')->insertGetId([
+            'account_id' => $account, 'name' => 'Valuation User', 'username' => 'vu'.uniqid(),
+            'email' => uniqid().'@test.local', 'password' => bcrypt('secret'),
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
         $category = DB::table('goods_categories')->insertGetId([
             'company_id' => $company, 'name' => 'Raw Materials', 'code' => 'VGC'.uniqid(),
             'is_active' => true, 'created_at' => $now, 'updated_at' => $now,
@@ -47,16 +56,40 @@ class CostingValuationAcceptanceTest extends TestCase
             'type' => 'production', 'is_active' => true, 'created_at' => $now, 'updated_at' => $now,
         ]);
 
-        return compact('company', 'fy', 'goods', 'from', 'to');
+        return compact('company', 'fy', 'goods', 'from', 'to', 'supplier', 'user');
     }
 
     private function layer(array $f, float $quantity, float $unitCost, string $receivedAt, ?int $location = null): int
     {
         $now = now();
+        $purchase = DB::table('purchases')->insertGetId([
+            'company_id' => $f['company'], 'fiscal_year_id' => $f['fy'], 'supplier_id' => $f['supplier'],
+            'invoice_number' => 'VPI-'.uniqid(), 'invoice_date' => substr($receivedAt, 0, 10),
+            'purchased_at' => substr($receivedAt, 0, 10), 'subtotal' => $quantity * $unitCost,
+            'direct_cost_total' => 0, 'total_amount' => $quantity * $unitCost, 'status' => 'received',
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $purchaseItem = DB::table('purchase_items')->insertGetId([
+            'purchase_id' => $purchase, 'goods_id' => $f['goods'], 'quantity' => $quantity,
+            'unit_price' => $unitCost, 'line_total' => $quantity * $unitCost,
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $receipt = DB::table('purchase_receipts')->insertGetId([
+            'company_id' => $f['company'], 'purchase_id' => $purchase,
+            'warehouse_location_id' => $location ?? $f['from'], 'received_by_user_id' => $f['user'],
+            'received_at' => $receivedAt, 'approved_at' => $receivedAt,
+            'approved_by_user_id' => $f['user'], 'status' => 'approved',
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $receiptItem = DB::table('purchase_receipt_items')->insertGetId([
+            'purchase_receipt_id' => $receipt, 'goods_id' => $f['goods'], 'quantity' => $quantity,
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
+
         return DB::table('inventory_cost_layers')->insertGetId([
             'company_id' => $f['company'], 'fiscal_year_id' => $f['fy'], 'goods_id' => $f['goods'],
-            'location_id' => $location ?? $f['from'], 'purchase_id' => null, 'purchase_item_id' => null,
-            'purchase_receipt_id' => null, 'purchase_receipt_item_id' => null,
+            'location_id' => $location ?? $f['from'], 'purchase_id' => $purchase, 'purchase_item_id' => $purchaseItem,
+            'purchase_receipt_id' => $receipt, 'purchase_receipt_item_id' => $receiptItem,
             'quantity_received' => $quantity, 'fifo_quantity_remaining' => $quantity,
             'weighted_average_quantity_remaining' => $quantity, 'unit_cost' => $unitCost,
             'total_cost' => $quantity * $unitCost, 'received_at' => $receivedAt,
