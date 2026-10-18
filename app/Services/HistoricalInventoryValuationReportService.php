@@ -221,6 +221,7 @@ final class HistoricalInventoryValuationReportService
                 'valued_quantity' => round($valuedQuantity, 4),
                 'unvalued_quantity' => round(max(0.0, $needed - $valuedQuantity), 4),
                 'method' => $method,
+                'slices' => array_map(fn ($allocation) => ['quantity' => round((float) $allocation['quantity'], 4), 'unit_cost' => round((float) $allocation['unit_cost'], 6)], $allocations),
             ];
         }
 
