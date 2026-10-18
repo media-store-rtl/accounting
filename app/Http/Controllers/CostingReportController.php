@@ -76,6 +76,11 @@ final class CostingReportController extends Controller
                 return back()->with('error', 'مقدار حوالهٔ مصرف انبار با مواد گزارش تولید همخوان نیست؛ ابتدا مغایرت را بررسی کنید.');
             }
         }
+        foreach ($consumedByGoods as $goodsId => $quantity) {
+            if (!$materials->has($goodsId) || abs((float) $quantity - (float) $materials->get($goodsId)->quantity) > 0.0001) {
+                return back()->with('error', 'حوالهٔ مصرف شامل ماده‌ای خارج از ریز مواد گزارش است؛ ابتدا مغایرت را بررسی کنید.');
+            }
+        }
 
         $fiscalYearId = DB::table('fiscal_years')
             ->where('company_id', $companyId)
@@ -148,6 +153,7 @@ final class CostingReportController extends Controller
         $personnel=DB::table('personnel')->where('account_id',$request->user()->account_id)->where('is_active',true)->orderBy('name')->get(['id','name','code']);
         $productionSections=DB::table('production_sections as ps')->join('locations as l','l.id','=','ps.location_id')->where('l.company_id',$companyId)->orderBy('l.name')->get(['ps.id','l.name']);
         $productionStages=DB::table('production_stages as st')->join('production_routes as pr','pr.id','=','st.production_route_id')->where('pr.company_id',$companyId)->orderBy('pr.name')->orderBy('st.sequence')->get(['st.id','st.name','pr.name as route_name']);
-        $valuationMethod = $valuationService->methodForCompany($companyId);\n        return view('reports.costing',compact('report','fiscalYears','goods','personnel','productionSections','productionStages','valuationMethod'));
+        $valuationMethod = $valuationService->methodForCompany($companyId);
+        return view('reports.costing',compact('report','fiscalYears','goods','personnel','productionSections','productionStages','valuationMethod'));
     }
 }
