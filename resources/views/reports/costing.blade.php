@@ -99,9 +99,7 @@
   </div>
 </div>
 
-@if(!empty($report['valuation_methods']))
-  <div class="costing-panel"><span style="color:#71879d;font-size:11px">روش محاسبه این گزارش:</span> {{ $valuationMethod === 'weighted_average' ? 'میانگین موزون' : 'FIFO' }} <span style="color:#91a6b9;font-size:10px">— محاسبه تاریخی فقط در گزارش انجام می‌شود و موجودی و سوابق ارزش‌گذاری ثبت‌شده را تغییر نمی‌دهد.</span></div>
-@endif
+
 @if($report['totals']['unvalued_material_quantity']>0 || ($report['totals']['production_report_unvalued_material_quantity'] ?? 0)>0)
   <div class="costing-warn">مقدار بدون ارزش‌گذاری در دو شاخص جدا نمایش داده می‌شود: خروج انبارِ بدون ارزش‌گذاری و مصرف ثبت‌شده در گزارش تولید که هنوز با حواله/ارزش‌گذاری تطبیق کامل ندارد. این مقادیر برای جلوگیری از دوباره‌شماری به مبلغ بهای تمام‌شده اضافه نمی‌شوند. <strong>تا زمان رفع مغایرت، فی تمام‌شده هر واحد ممکن است ناقص باشد و نباید به‌عنوان بهای قطعی استفاده شود.</strong></div>
 @endif
