@@ -146,14 +146,16 @@ final class CostingReportController extends Controller
             'personnel_id'=>'nullable|integer',
             'production_section_id'=>'nullable|integer',
             'production_stage_id'=>'nullable|integer',
+            'valuation_method'=>'nullable|in:fifo,weighted_average',
         ]);
         $personnelId=$data['personnel_id']??null;
         $productionSectionId=$data['production_section_id']??null;
         $productionStageId=$data['production_stage_id']??null;
+        $valuationMethod=$data['valuation_method']??$valuationService->methodForCompany($companyId);
         if($personnelId!==null) abort_unless(DB::table('personnel')->where('id',$personnelId)->where('account_id',$request->user()->account_id)->exists(),422,'کارگر انتخاب‌شده معتبر نیست.');
         if($productionSectionId!==null) abort_unless(DB::table('production_sections as ps')->join('locations as l','l.id','=','ps.location_id')->where('ps.id',$productionSectionId)->where('l.company_id',$companyId)->exists(),422,'قسمت تولید انتخاب‌شده معتبر نیست.');
         if($productionStageId!==null) abort_unless(DB::table('production_stages as st')->join('production_routes as pr','pr.id','=','st.production_route_id')->where('st.id',$productionStageId)->where('pr.company_id',$companyId)->exists(),422,'مرحله تولید انتخاب‌شده معتبر نیست.');
-        $report=$service->generate($companyId,$data['fiscal_year_id']??null,$data['order_id']??null,$data['goods_id']??null,$data['start_date']??null,$data['end_date']??null,$personnelId,$productionSectionId,$productionStageId);
+        $report=$service->generate($companyId,$data['fiscal_year_id']??null,$data['order_id']??null,$data['goods_id']??null,$data['start_date']??null,$data['end_date']??null,$personnelId,$productionSectionId,$productionStageId,$valuationMethod);
 
         if($request->expectsJson()) return response()->json(['data'=>$report]);
 
@@ -162,7 +164,6 @@ final class CostingReportController extends Controller
         $personnel=DB::table('personnel')->where('account_id',$request->user()->account_id)->where('is_active',true)->orderBy('name')->get(['id','name','code']);
         $productionSections=DB::table('production_sections as ps')->join('locations as l','l.id','=','ps.location_id')->where('l.company_id',$companyId)->orderBy('l.name')->get(['ps.id','l.name']);
         $productionStages=DB::table('production_stages as st')->join('production_routes as pr','pr.id','=','st.production_route_id')->where('pr.company_id',$companyId)->orderBy('pr.name')->orderBy('st.sequence')->get(['st.id','st.name','pr.name as route_name']);
-        $valuationMethod = $valuationService->methodForCompany($companyId);
         return view('reports.costing',compact('report','fiscalYears','goods','personnel','productionSections','productionStages','valuationMethod'));
     }
 }
