@@ -16,11 +16,15 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(AuditTrailMiddleware::class)
-        ->append(ConsumeApprovedShiftReportMaterials::class)
         ->alias([
             'company.permission' => EnsureCompanyPermission::class,
             'account.owner' => EnsureAccountOwner::class,
         ]);
+
+        // This middleware needs the matched route and authenticated web session.
+        // Global middleware runs before route matching and StartSession, so it would
+        // return early without ever consuming materials after shift-report approval.
+        $middleware->web(append: [ConsumeApprovedShiftReportMaterials::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {})
     ->create();

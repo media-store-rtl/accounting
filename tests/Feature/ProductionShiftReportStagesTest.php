@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\ProductionShiftReportMaterialConsumption;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -84,6 +85,11 @@ class ProductionShiftReportStagesTest extends TestCase
             'production_route_id' => $route, 'code' => 'ST2' . uniqid(), 'name' => 'Final Cut',
             'sequence' => 2, 'status' => 'active', 'created_at' => now(), 'updated_at' => now(),
         ]);
+
+        // This test covers report stages and warehouse handoff, not inventory costing.
+        // Keep the material-consumption integration covered by its dedicated middleware tests.
+        $this->mock(ProductionShiftReportMaterialConsumption::class)
+            ->shouldReceive('consumeApprovedReport');
 
         $this->actingAs(User::findOrFail($user))->withSession(['company_id' => $company]);
 
@@ -171,7 +177,7 @@ class ProductionShiftReportStagesTest extends TestCase
             'goods_id' => $goods,
             'personnel_id' => $worker,
             'worked_hours' => 7.5,
-            'work_date' => '2026-10-13',
+            'work_date' => now()->toDateString(),
             'produced_quantity' => 18,
             'scrap_quantity' => 2,
         ];
@@ -191,7 +197,7 @@ class ProductionShiftReportStagesTest extends TestCase
             'worked_hours' => 7.5,
             'overtime_hours' => 1,
             'holiday_hours' => 0,
-            'work_date' => '2026-10-13',
+            'work_date' => now()->toDateString(),
             'produced_quantity' => 18,
             'scrap_quantity' => 2,
             'notes' => 'اصلاح‌شده توسط سرپرست',
@@ -206,7 +212,7 @@ class ProductionShiftReportStagesTest extends TestCase
 
         $this->assertDatabaseHas('production_shift_reports', [
             'id' => $reportId,
-            'work_date' => '2026-10-13',
+            'work_date' => now()->toDateString(),
             'produced_quantity' => 18,
             'scrap_quantity' => 2,
             'worked_hours' => 7.5,
@@ -240,7 +246,7 @@ class ProductionShiftReportStagesTest extends TestCase
             'goods_id' => $goods,
             'personnel_id' => $worker,
             'worked_hours' => 7.5,
-            'work_date' => '2026-10-13',
+            'work_date' => now()->toDateString(),
             'produced_quantity' => 18,
             'scrap_quantity' => 2,
             'materials' => [['goods_id' => $materialGoods, 'quantity' => 4, 'scrap_quantity' => 1]],
@@ -255,7 +261,7 @@ class ProductionShiftReportStagesTest extends TestCase
             'goods_id' => $goods,
             'personnel_id' => $worker,
             'worked_hours' => 8,
-            'work_date' => '2026-10-13',
+            'work_date' => now()->toDateString(),
             'produced_quantity' => 18,
             'scrap_quantity' => 2,
             'stages' => [['production_stage_id' => $stageTwo]],
