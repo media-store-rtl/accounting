@@ -63,7 +63,7 @@
     <div class="supply-guide">
         <div class="supply-guide-title"><span aria-hidden="true">ⓘ</span> قبل از ثبت درخواست</div>
         <ul>
-            <li>برای اتصال درخواست به فرایند تولید، مرحله واقعی تولید (با تطبیق شماره دستور، نام محصول و نام مرحله)، قسمت تولید یا سفارش مشتری را مشخص کنید.</li>
+            <li>برای اتصال درخواست به فرایند تولید، مرحله تولید، قسمت تولید یا سفارش مشتری را مشخص کنید.</li>
             <li>نام کالا و مقدار را با توجه به واحد اندازه‌گیری آن بررسی کنید.</li>
             <li>تاریخ موردنیاز یعنی آخرین روزی که مواد باید به تولید برسند.</li>
         </ul>
@@ -94,11 +94,11 @@
 
                 <label class="supply-field" for="production_stage_run_id">
                     مرحله تولید
-                    <small>مرحله اجرایی مرتبط را با تطبیق شماره دستور تولید، نام محصول و نام مرحله انتخاب کنید.</small>
+                    <small>فقط نام مرحله تولید نمایش داده می‌شود.</small>
                     <select id="production_stage_run_id" name="production_stage_run_id">
                         <option value="">انتخاب مرحله تولید (اختیاری)</option>
                         @foreach($productionStageRuns as $stageRun)
-                            <option value="{{ $stageRun->id }}" @selected((string) old('production_stage_run_id') === (string) $stageRun->id)>دستور تولید {{ $stageRun->number }} — محصول: {{ $stageRun->goods_name }} — مرحله: {{ $stageRun->stage_name }}</option>
+                            <option value="{{ $stageRun->id }}" @selected((string) old('production_stage_run_id') === (string) $stageRun->id)>{{ $stageRun->stage_name }}</option>
                         @endforeach
                     </select>
                 </label>
