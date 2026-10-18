@@ -109,26 +109,99 @@ Route::middleware('auth')->group(function () {
         Route::post('/production/labor/rates', [LaborCostController::class, 'setRate'])->middleware('company.permission:production.labor.rate.manage')->name('production.labor.rates.store');
     });
 
-    Route::get('/supply', [WorkflowPagesController::class,'supply'])->middleware('company.permission:supply_request.view')->name('workflows.supply');
-    Route::get('/production/material-requests', [WorkflowPagesController::class,'productionSalesShortages'])->middleware('company.permission:production.supervise')->name('production.material-requests');
-    Route::get('/production/due-dates', [WorkflowPagesController::class,'productionDue'])->middleware('company.permission:production.supervise')->name('production.due-dates.index');
-    Route::post('/production/orders/{order}/due-date', [OrderController::class, 'setProductionDue'])->middleware('company.permission:production.supervise')->whereNumber('order')->name('production.orders.due-date');
-    Route::get('/warehouse/supply-requests', [WorkflowPagesController::class,'warehouseSupplyRequests'])->middleware('company.permission:supply_request.handover.create')->name('warehouse.supply-requests');
-    Route::post('/warehouse/supply-requests/{supplyRequest}/reject', [WorkflowPagesController::class,'rejectSupplyRequest'])->middleware('company.permission:supply_request.handover.create')->whereNumber('supplyRequest')->name('warehouse.supply-requests.reject');
-    Route::post('/purchasing/supply-requests/{supplyRequest}/status', [WorkflowPagesController::class,'updateSupplyPurchaseStatus'])->middleware('company.permission:supply.manage')->whereNumber('supplyRequest')->name('workflows.purchasing.supply-status');
-    Route::post('/supply', [WorkflowPagesController::class,'storeSupply'])->middleware('company.permission:supply_request.create')->name('workflows.supply.store');
-    Route::post('/supply/{supplyRequest}/stock-review', [SupplyRequestController::class, 'reviewStock'])->middleware('company.permission:supply_request.handover.create')->whereNumber('supplyRequest')->name('workflows.supply.stock-review');
-    Route::get('/purchasing', [WorkflowPagesController::class,'purchasing'])->middleware('company.permission:purchase.view')->name('workflows.purchasing');
-    Route::post('/purchasing', [WorkflowPagesController::class,'storePurchase'])->middleware('company.permission:purchase.create')->name('workflows.purchasing.store');
-    Route::get('/production/labor', [WorkflowPagesController::class,'labor'])->middleware('company.permission:production.labor.create')->name('workflows.labor');
-    Route::post('/production/labor', [WorkflowPagesController::class,'storeLabor'])->middleware('company.permission:production.labor.create')->name('workflows.labor.store');
-    Route::get('/inventory', [WorkflowPagesController::class,'inventory'])->middleware('company.permission:inventory.view')->name('inventory.index');
-    Route::post('/inventory/{location}/{goods}/reorder-point', [WorkflowPagesController::class,'setReorderPoint'])->middleware('company.permission:inventory.reorder_point.manage')->whereNumber('location')->whereNumber('goods')->name('inventory.reorder-point');
-    Route::get('/handovers', [WorkflowPagesController::class,'handovers'])->middleware('company.permission:supply_request.handover.view')->name('workflows.handovers');
-    Route::post('/handovers', [WorkflowPagesController::class,'storeHandover'])->middleware('company.permission:supply_request.handover.create')->name('workflows.handovers.store');
-    Route::get('/receipts', [WorkflowPagesController::class,'receipts'])->middleware('company.permission:purchase.receipt.create')->name('workflows.receipts');
-    Route::post('/receipts', [WorkflowPagesController::class,'storeReceipt'])->middleware('company.permission:purchase.receipt.create')->name('workflows.receipts.store');
-    Route::post('/receipts/{id}/approve', [WorkflowPagesController::class,'approveReceipt'])->middleware('company.permission:purchase.receipt.approve')->name('workflows.receipts.approve');
+    // Supply requests
+    Route::prefix('supply')->group(function () {
+        Route::get('/', [WorkflowPagesController::class, 'supply'])
+            ->middleware('company.permission:supply_request.view')
+            ->name('workflows.supply');
+        Route::post('/', [WorkflowPagesController::class, 'storeSupply'])
+            ->middleware('company.permission:supply_request.create')
+            ->name('workflows.supply.store');
+        Route::post('/{supplyRequest}/stock-review', [SupplyRequestController::class, 'reviewStock'])
+            ->middleware('company.permission:supply_request.handover.create')
+            ->whereNumber('supplyRequest')
+            ->name('workflows.supply.stock-review');
+    });
+
+    // Production workflow pages and actions
+    Route::prefix('production')->group(function () {
+        Route::get('/material-requests', [WorkflowPagesController::class, 'productionSalesShortages'])
+            ->middleware('company.permission:production.supervise')
+            ->name('production.material-requests');
+        Route::get('/due-dates', [WorkflowPagesController::class, 'productionDue'])
+            ->middleware('company.permission:production.supervise')
+            ->name('production.due-dates.index');
+        Route::post('/orders/{order}/due-date', [OrderController::class, 'setProductionDue'])
+            ->middleware('company.permission:production.supervise')
+            ->whereNumber('order')
+            ->name('production.orders.due-date');
+        Route::get('/labor', [WorkflowPagesController::class, 'labor'])
+            ->middleware('company.permission:production.labor.create')
+            ->name('workflows.labor');
+        Route::post('/labor', [WorkflowPagesController::class, 'storeLabor'])
+            ->middleware('company.permission:production.labor.create')
+            ->name('workflows.labor.store');
+    });
+
+    // Warehouse handoff workflow
+    Route::prefix('warehouse')->group(function () {
+        Route::get('/supply-requests', [WorkflowPagesController::class, 'warehouseSupplyRequests'])
+            ->middleware('company.permission:supply_request.handover.create')
+            ->name('warehouse.supply-requests');
+        Route::post('/supply-requests/{supplyRequest}/reject', [WorkflowPagesController::class, 'rejectSupplyRequest'])
+            ->middleware('company.permission:supply_request.handover.create')
+            ->whereNumber('supplyRequest')
+            ->name('warehouse.supply-requests.reject');
+    });
+
+    // Purchasing workflow
+    Route::prefix('purchasing')->group(function () {
+        Route::get('/', [WorkflowPagesController::class, 'purchasing'])
+            ->middleware('company.permission:purchase.view')
+            ->name('workflows.purchasing');
+        Route::post('/', [WorkflowPagesController::class, 'storePurchase'])
+            ->middleware('company.permission:purchase.create')
+            ->name('workflows.purchasing.store');
+        Route::post('/supply-requests/{supplyRequest}/status', [WorkflowPagesController::class, 'updateSupplyPurchaseStatus'])
+            ->middleware('company.permission:supply.manage')
+            ->whereNumber('supplyRequest')
+            ->name('workflows.purchasing.supply-status');
+    });
+
+    // Inventory
+    Route::prefix('inventory')->group(function () {
+        Route::get('/', [WorkflowPagesController::class, 'inventory'])
+            ->middleware('company.permission:inventory.view')
+            ->name('inventory.index');
+        Route::post('/{location}/{goods}/reorder-point', [WorkflowPagesController::class, 'setReorderPoint'])
+            ->middleware('company.permission:inventory.reorder_point.manage')
+            ->whereNumber('location')
+            ->whereNumber('goods')
+            ->name('inventory.reorder-point');
+    });
+
+    // Material handovers
+    Route::prefix('handovers')->group(function () {
+        Route::get('/', [WorkflowPagesController::class, 'handovers'])
+            ->middleware('company.permission:supply_request.handover.view')
+            ->name('workflows.handovers');
+        Route::post('/', [WorkflowPagesController::class, 'storeHandover'])
+            ->middleware('company.permission:supply_request.handover.create')
+            ->name('workflows.handovers.store');
+    });
+
+    // Purchase receipts
+    Route::prefix('receipts')->group(function () {
+        Route::get('/', [WorkflowPagesController::class, 'receipts'])
+            ->middleware('company.permission:purchase.receipt.create')
+            ->name('workflows.receipts');
+        Route::post('/', [WorkflowPagesController::class, 'storeReceipt'])
+            ->middleware('company.permission:purchase.receipt.create')
+            ->name('workflows.receipts.store');
+        Route::post('/{id}/approve', [WorkflowPagesController::class, 'approveReceipt'])
+            ->middleware('company.permission:purchase.receipt.approve')
+            ->name('workflows.receipts.approve');
+    });
 
     Route::get('/production/shift-reports', [\App\Http\Controllers\ProductionShiftReportController::class,'index'])->middleware('company.permission:production.operation.view')->name('production.shift-reports.index');
     Route::get('/production/shift-reports/create', [\App\Http\Controllers\ProductionShiftReportController::class,'create'])->middleware('company.permission:production.operation.create')->name('production.shift-reports.create');
