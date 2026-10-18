@@ -368,4 +368,97 @@ class CostingReportTest extends TestCase
         ]);
     }
 
+
+    public function test_historical_report_can_compare_fifo_and_weighted_average_without_mutating_inventory_ledger(): void
+    {
+        $account = DB::table('accounts')->insertGetId([
+            'name' => 'Replay Account', 'code' => 'RPA'.uniqid(), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $company = DB::table('companies')->insertGetId([
+            'account_id' => $account, 'name' => 'Replay Company', 'code' => 'RPC'.uniqid(),
+            'is_active' => true, 'settings' => json_encode([]), 'inventory_valuation_method' => 'fifo',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $user = DB::table('users')->insertGetId([
+            'account_id' => $account, 'name' => 'Replay User', 'username' => 'rpu'.uniqid(),
+            'email' => uniqid().'@test.local', 'password' => bcrypt('secret'),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $fy = DB::table('fiscal_years')->insertGetId([
+            'company_id' => $company, 'name' => '1405', 'code' => 'RPFY'.uniqid(),
+            'starts_at' => '2026-03-21', 'ends_at' => '2027-03-20', 'is_closed' => false,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $supplier = DB::table('suppliers')->insertGetId([
+            'company_id' => $company, 'code' => 'RPS'.uniqid(), 'name' => 'Replay Supplier',
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $category = DB::table('goods_categories')->insertGetId([
+            'company_id' => $company, 'name' => 'Replay Category', 'code' => 'RPCAT'.uniqid(),
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $goods = DB::table('goods')->insertGetId([
+            'company_id' => $company, 'category_id' => $category, 'code' => 'RPM'.uniqid(),
+            'name' => 'Replay Material', 'purchasable' => true, 'producible' => false,
+            'sellable' => false, 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $location = DB::table('locations')->insertGetId([
+            'company_id' => $company, 'code' => 'RPL'.uniqid(), 'name' => 'Replay Warehouse',
+            'type' => 'مواد اولیه', 'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        foreach ([[10, '2026-04-01 09:00:00'], [20, '2026-04-02 09:00:00']] as $index => [$unitCost, $receivedAt]) {
+            $purchase = DB::table('purchases')->insertGetId([
+                'company_id' => $company, 'fiscal_year_id' => $fy, 'supplier_id' => $supplier,
+                'invoice_number' => 'RPI-'.$index, 'invoice_date' => substr($receivedAt, 0, 10),
+                'purchased_at' => substr($receivedAt, 0, 10), 'subtotal' => 50,
+                'direct_cost_total' => 0, 'total_amount' => 50, 'status' => 'received',
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $purchaseItem = DB::table('purchase_items')->insertGetId([
+                'purchase_id' => $purchase, 'goods_id' => $goods, 'quantity' => 5,
+                'unit_price' => $unitCost, 'line_total' => 5 * $unitCost,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $receipt = DB::table('purchase_receipts')->insertGetId([
+                'company_id' => $company, 'purchase_id' => $purchase, 'warehouse_location_id' => $location,
+                'received_by_user_id' => $user, 'received_at' => $receivedAt, 'approved_at' => $receivedAt,
+                'approved_by_user_id' => $user, 'status' => 'approved', 'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $receiptItem = DB::table('purchase_receipt_items')->insertGetId([
+                'purchase_receipt_id' => $receipt, 'goods_id' => $goods, 'quantity' => 5,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            DB::table('inventory_cost_layers')->insert([
+                'company_id' => $company, 'fiscal_year_id' => $fy, 'goods_id' => $goods,
+                'location_id' => $location, 'purchase_id' => $purchase, 'purchase_item_id' => $purchaseItem,
+                'purchase_receipt_id' => $receipt, 'purchase_receipt_item_id' => $receiptItem,
+                'quantity_received' => 5, 'fifo_quantity_remaining' => 5,
+                'weighted_average_quantity_remaining' => 5, 'unit_cost' => $unitCost,
+                'total_cost' => 5 * $unitCost, 'received_at' => $receivedAt,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+
+        $movement = DB::table('inventory_movements')->insertGetId([
+            'company_id' => $company, 'goods_id' => $goods, 'location_id' => $location,
+            'quantity' => -6, 'movement_type' => 'production_consumption',
+            'reference_type' => 'production_shift_reports', 'reference_id' => 999,
+            'occurred_at' => '2026-04-03 09:00:00', 'metadata' => json_encode(['fiscal_year_id' => $fy]),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $replay = app(\\App\\Services\\HistoricalInventoryValuationReportService::class);
+        $fifo = $replay->calculate($company, 'fifo');
+        $average = $replay->calculate($company, 'weighted_average');
+
+        $this->assertSame(70.0, $fifo[$movement]['total_cost']);
+        $this->assertSame(90.0, $average[$movement]['total_cost']);
+        $this->assertSame(6.0, $fifo[$movement]['valued_quantity']);
+        $this->assertSame(6.0, $average[$movement]['valued_quantity']);
+        $this->assertSame(10.0, (float) DB::table('inventory_cost_layers')->where('company_id', $company)->sum('fifo_quantity_remaining'));
+        $this->assertSame(10.0, (float) DB::table('inventory_cost_layers')->where('company_id', $company)->sum('weighted_average_quantity_remaining'));
+        $this->assertSame(0, DB::table('inventory_consumption_costs')->where('company_id', $company)->count());
+    }
+
 }
