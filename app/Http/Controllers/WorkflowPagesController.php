@@ -30,8 +30,8 @@ class WorkflowPagesController extends Controller {
    'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->orderBy('name')->get(),
    'years'=>$years,
    'activeFiscalYearId'=>$activeFiscalYearId,
-   'productions'=>DB::table('productions')->where('company_id',$cid)->latest('id')->get(),
-   'orders'=>DB::table('orders')->where('company_id',$cid)->latest('id')->get(),
+   'productions'=>DB::table('productions as p')->join('goods as g','g.id','=','p.goods_id')->where('p.company_id',$cid)->orderByDesc('p.id')->get(['p.id','p.number','p.planned_quantity','p.status','g.name as goods_name']),
+   'orders'=>DB::table('orders as o')->join('customers as c','c.id','=','o.customer_id')->where('o.company_id',$cid)->orderByDesc('o.id')->get(['o.id','o.number','c.name as customer_name']),
    'sections'=>DB::table('production_sections as s')->join('locations as l','l.id','=','s.location_id')->where('l.company_id',$cid)->where('l.is_active',true)->where('s.is_active',true)->orderBy('l.name')->get(['s.id','l.name as name']),
   ]);
  }
