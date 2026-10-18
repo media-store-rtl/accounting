@@ -448,7 +448,7 @@ class CostingReportTest extends TestCase
             'created_at' => now(), 'updated_at' => now(),
         ]);
 
-        $replay = app(\\App\\Services\\HistoricalInventoryValuationReportService::class);
+        $replay = app(\App\Services\HistoricalInventoryValuationReportService::class);
         $fifo = $replay->calculate($company, 'fifo');
         $average = $replay->calculate($company, 'weighted_average');
 
