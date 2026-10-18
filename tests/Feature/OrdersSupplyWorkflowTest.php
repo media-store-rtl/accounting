@@ -291,6 +291,38 @@ class OrdersSupplyWorkflowTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $route = DB::table('production_routes')->insertGetId([
+            'company_id' => $c['company'],
+            'goods_id' => $c['goods'],
+            'code' => 'PR'.uniqid(),
+            'name' => 'مسیر تولید آزمایشی',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('productions')->insert([
+            'company_id' => $c['company'],
+            'fiscal_year_id' => $c['fy'],
+            'goods_id' => $c['goods'],
+            'production_route_id' => $route,
+            'number' => 'PROD-1',
+            'planned_quantity' => 12,
+            'status' => 'in_progress',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('orders')->insert([
+            'company_id' => $c['company'],
+            'fiscal_year_id' => $c['fy'],
+            'customer_id' => $c['customer'],
+            'number' => 'ORD-5',
+            'ordered_at' => '2026-10-06',
+            'requested_delivery_at' => '2026-10-20',
+            'status' => 'production_required',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $this->get('/supply')
             ->assertOk()
             ->assertSee('ثبت درخواست جدید')
@@ -299,7 +331,14 @@ class OrdersSupplyWorkflowTest extends TestCase
         $this->get('/supply/create')
             ->assertOk()
             ->assertSee('name="production_section_id"', false)
-            ->assertSee('قسمت برش');
+            ->assertSee('قسمت برش')
+            ->assertSee('دستور تولید PROD-1')
+            ->assertSee('محصول: Material')
+            ->assertSee('مشتری: Customer')
+            ->assertSee('سفارش ORD-5')
+            ->assertDontSee('سال مالی')
+            ->assertSee('name="fiscal_year_id"', false)
+            ->assertSee('type="hidden" name="fiscal_year_id"', false);
 
         $this->from('/supply')->post('/supply', [
             'fiscal_year_id' => $c['fy'],
