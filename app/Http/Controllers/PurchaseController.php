@@ -18,9 +18,14 @@ class PurchaseController extends Controller
             'items'=>'required|array|min:1','items.*.goods_id'=>'required|integer','items.*.quantity'=>'required|numeric|gt:0','items.*.unit_price'=>'required|numeric|gt:0',
             'direct_costs'=>'nullable|array','direct_costs.*.type'=>'required|string|max:50','direct_costs.*.description'=>'nullable|string','direct_costs.*.amount'=>'required|numeric|gt:0'
         ]);
-        $fiscalYearId=$data['fiscal_year_id']??$request->session()->get('fiscal_year_id');
+        $fiscalYearId=$data['fiscal_year_id']??null;
         if (!$fiscalYearId) {
-            $fiscalYearId=DB::table('fiscal_years')->where('company_id',$companyId)->where('is_closed',false)->orderByDesc('starts_at')->value('id');
+            $sessionFiscalYearId=$request->session()->get('fiscal_year_id');
+            $sessionFiscalYearIsOpen=$sessionFiscalYearId
+                && DB::table('fiscal_years')->where('id',$sessionFiscalYearId)->where('company_id',$companyId)->where('is_closed',false)->exists();
+            $fiscalYearId=$sessionFiscalYearIsOpen
+                ? $sessionFiscalYearId
+                : DB::table('fiscal_years')->where('company_id',$companyId)->where('is_closed',false)->orderByDesc('starts_at')->value('id');
         }
         $supplierId=$data['supplier_id']??null;
         $purchase=DB::transaction(function()use($data,$companyId,$fiscalYearId,$supplierId){
