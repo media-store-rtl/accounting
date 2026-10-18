@@ -117,23 +117,31 @@ final class HistoricalInventoryValuationReportService
                 if ($type === 'production_material_receipt') {
                     $transferKey = $this->transferKey($row);
                     $slices = $transferSlices[$transferKey] ?? [];
-                    $moved = array_sum(array_column($slices, 'quantity'));
-                    if ($moved + 0.0001 >= $quantity) {
-                        $remaining = $quantity;
-                        foreach ($slices as $slice) {
-                            if ($remaining <= 0.0000001) break;
-                            $take = min($remaining, (float) $slice['quantity']);
-                            $stock[$key][] = [
-                                'quantity' => $take,
-                                'unit_cost' => $slice['unit_cost'],
-                                'at' => (string) $row->occurred_at,
-                                'layer_id' => $slice['layer_id'] ?? null,
-                            ];
-                            $remaining -= $take;
-                        }
-                        unset($transferSlices[$transferKey]);
-                        continue;
+                    $remaining = $quantity;
+                    foreach ($slices as $slice) {
+                        if ($remaining <= 0.0000001) break;
+                        $take = min($remaining, (float) $slice['quantity']);
+                        if ($take <= 0.0000001) continue;
+                        $stock[$key][] = [
+                            'quantity' => $take,
+                            'unit_cost' => $slice['unit_cost'],
+                            'at' => (string) $row->occurred_at,
+                            'layer_id' => $slice['layer_id'] ?? null,
+                        ];
+                        $remaining -= $take;
                     }
+                    unset($transferSlices[$transferKey]);
+                    // If the transfer included legacy/unvalued stock, preserve the
+                    // known-cost portion and explicitly mark only the remainder unknown.
+                    if ($remaining > 0.0000001) {
+                        $stock[$key][] = [
+                            'quantity' => $remaining,
+                            'unit_cost' => null,
+                            'at' => (string) $row->occurred_at,
+                            'layer_id' => null,
+                        ];
+                    }
+                    continue;
                 }
 
                 // An adjustment or receipt without a linked cost layer must remain
