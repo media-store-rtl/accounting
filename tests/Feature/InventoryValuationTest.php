@@ -54,18 +54,20 @@ class InventoryValuationTest extends TestCase
         $this->assertSame(80.0,(float)DB::table('inventory_cost_layers')->orderByDesc('id')->first()->fifo_quantity_remaining);
     }
 
-    public function test_weighted_average_uses_one_average_rate_and_preserves_layer_balance(): void
+    public function test_live_consumption_uses_fixed_fifo_even_if_company_setting_is_legacy_weighted_average(): void
     {
         $c=$this->context(InventoryValuationService::WEIGHTED_AVERAGE);
         $this->layer($c,100,10,'2026-10-01 10:00:00');
         $this->layer($c,100,15,'2026-10-02 10:00:00');
         $result=app(InventoryValuationService::class)->valueInventoryMovement($this->movement($c,120),$c['fy']);
-        $this->assertSame(1500.0,round($result['total_cost'],4));
-        $this->assertSame(12.5,round($result['unit_cost'],6));
-        $this->assertSame(80.0,(float)DB::table('inventory_cost_layers')->sum('weighted_average_quantity_remaining'));
+        $this->assertSame(InventoryValuationService::FIFO, $result['method']);
+        $this->assertSame(1300.0,round($result['total_cost'],4));
+        $this->assertSame(10.833333,round($result['unit_cost'],6));
+        $this->assertSame(0.0,(float)DB::table('inventory_cost_layers')->orderBy('id')->first()->fifo_quantity_remaining);
+        $this->assertSame(80.0,(float)DB::table('inventory_cost_layers')->orderByDesc('id')->first()->fifo_quantity_remaining);
     }
 
-    public function test_repeated_weighted_average_consumptions_keep_the_remaining_pool_rate_stable(): void
+    public function test_repeated_live_consumptions_follow_fixed_fifo_without_rewriting_legacy_average_balances(): void
     {
         $c = $this->context(InventoryValuationService::WEIGHTED_AVERAGE);
         $this->layer($c, 100, 10, '2026-10-01 10:00:00');
@@ -75,13 +77,11 @@ class InventoryValuationTest extends TestCase
         $first = $service->valueInventoryMovement($this->movement($c, 120, 1), $c['fy']);
         $second = $service->valueInventoryMovement($this->movement($c, 20, 2), $c['fy']);
 
-        $this->assertSame(1500.0, round($first['total_cost'], 4));
-        $this->assertSame(250.0, round($second['total_cost'], 4));
-        $this->assertSame(12.5, round($second['unit_cost'], 6));
-        $this->assertSame(60.0, round((float) DB::table('inventory_cost_layers')->sum('weighted_average_quantity_remaining'), 4));
-        $this->assertEqualsWithDelta(750.0, (float) DB::table('inventory_cost_layers as l')
-            ->selectRaw('SUM(l.weighted_average_quantity_remaining * l.unit_cost) as remaining_value')
-            ->value('remaining_value'), 0.0001);
+        $this->assertSame(1300.0, round($first['total_cost'], 4));
+        $this->assertSame(300.0, round($second['total_cost'], 4));
+        $this->assertSame(15.0, round($second['unit_cost'], 6));
+        $this->assertSame(60.0, round((float) DB::table('inventory_cost_layers')->sum('fifo_quantity_remaining'), 4));
+        $this->assertSame(200.0, round((float) DB::table('inventory_cost_layers')->sum('weighted_average_quantity_remaining'), 4));
     }
 
     public function test_partial_layer_coverage_values_available_quantity_and_leaves_remainder_unvalued(): void
@@ -105,13 +105,12 @@ class InventoryValuationTest extends TestCase
         $this->assertSame(0.0, (float) DB::table('inventory_cost_layers')->sum('fifo_quantity_remaining'));
     }
 
-    public function test_method_can_be_selected_before_valued_transactions(): void
+    public function test_inventory_valuation_method_is_fixed_to_fifo_even_when_legacy_company_setting_differs(): void
     {
-        $c=$this->context(InventoryValuationService::FIFO);
+        $c=$this->context(InventoryValuationService::WEIGHTED_AVERAGE);
         $service=app(InventoryValuationService::class);
         $this->assertSame(InventoryValuationService::FIFO,$service->methodForCompany($c['company']));
-        $service->setMethod($c['company'],InventoryValuationService::WEIGHTED_AVERAGE);
-        $this->assertSame(InventoryValuationService::WEIGHTED_AVERAGE,$service->methodForCompany($c['company']));
+        $this->assertSame(InventoryValuationService::WEIGHTED_AVERAGE, DB::table('companies')->where('id', $c['company'])->value('inventory_valuation_method'));
     }
 
     public function test_receipt_cost_layers_follow_transfer_to_production_and_value_consumption(): void
