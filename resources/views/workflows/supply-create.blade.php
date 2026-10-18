@@ -39,7 +39,7 @@
         <div class="supply-intro-mark" aria-hidden="true">＋</div>
         <div>
             <h1>ثبت درخواست مواد اولیه</h1>
-            <p>ماده اولیه، مقصد مصرف و مقدار موردنیاز را مشخص کنید تا درخواست برای بررسی موجودی به انبار ارسال شود.</p>
+            <p>ماده اولیه، مرحله تولید یا مقصد مصرف و مقدار موردنیاز را مشخص کنید تا درخواست برای بررسی موجودی به انبار ارسال شود.</p>
         </div>
     </div>
 
@@ -63,7 +63,7 @@
     <div class="supply-guide">
         <div class="supply-guide-title"><span aria-hidden="true">ⓘ</span> قبل از ثبت درخواست</div>
         <ul>
-            <li>برای مشخص شدن مقصد، حداقل یکی از «قسمت تولید»، «دستور تولید» یا «سفارش مشتری» را انتخاب کنید.</li>
+            <li>برای اتصال درخواست به فرایند تولید، قسمت تولید، مرحله تولید (با تطبیق شماره دستور و نام محصول) یا سفارش مشتری را مشخص کنید.</li>
             <li>نام کالا و مقدار را با توجه به واحد اندازه‌گیری آن بررسی کنید.</li>
             <li>تاریخ موردنیاز یعنی آخرین روزی که مواد باید به تولید برسند.</li>
         </ul>
@@ -79,7 +79,7 @@
             <input type="hidden" name="fiscal_year_id" value="{{ $activeFiscalYearId }}">
 
             <div class="supply-grid">
-                <div class="supply-section-title"><span class="supply-section-number">۱</span> مقصد درخواست</div>
+                <div class="supply-section-title"><span class="supply-section-number">۱</span> مرحله تولید و مقصد مصرف</div>
 
                 <label class="supply-field" for="production_section_id">
                     قسمت تولید
@@ -93,12 +93,12 @@
                 </label>
 
                 <label class="supply-field" for="production_id">
-                    دستور تولید
-                    <small>با شماره دستور و نام محصول، دستور درست را انتخاب کنید.</small>
+                    مرحله تولید
+                    <small>مرحله تولید مرتبط را با تطبیق شماره دستور تولید و نام محصول انتخاب کنید.</small>
                     <select id="production_id" name="production_id">
-                        <option value="">انتخاب دستور تولید (اختیاری)</option>
+                        <option value="">انتخاب مرحله تولید بر اساس دستور و محصول (اختیاری)</option>
                         @foreach($productions as $p)
-                            <option value="{{ $p->id }}" @selected((string) old('production_id') === (string) $p->id)>دستور تولید {{ $p->number }}</option>
+                            <option value="{{ $p->id }}" @selected((string) old('production_id') === (string) $p->id)>دستور تولید {{ $p->number }} — محصول: {{ $p->goods_name }}</option>
                         @endforeach
                     </select>
                 </label>
