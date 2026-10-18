@@ -101,9 +101,15 @@ final class CostingReportController extends Controller
             foreach ($movements as $movement) {
                 $existing = DB::table('inventory_consumption_costs')
                     ->where('inventory_movement_id', $movement->id)
-                    ->first(['id']);
+                    ->first(['id', 'quantity']);
                 if ($existing) {
-                    $alreadyValued++;
+                    if ((float) $existing->quantity + 0.0001 >= abs((float) $movement->quantity)) {
+                        $alreadyValued++;
+                    } else {
+                        // A movement may only have one cost row; never silently treat
+                        // a partial valuation as complete or rewrite its history.
+                        $unvalued++;
+                    }
                     continue;
                 }
 
