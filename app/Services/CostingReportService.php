@@ -200,7 +200,14 @@ final class CostingReportService
         };
 
         foreach($costs as $c){
-            [$oid,$targetGoodsId]=$resolveTarget($c);
+            [$oid,$targetGoodsId,$resolvedSupply]=$resolveTarget($c);
+            if (!empty($valuationOverrides) && !empty($c->virtual_valuation)) {
+                $meta = json_decode((string) $c->metadata, true) ?: [];
+                $productionId = (int) ($resolvedSupply?->production_id ?? ($meta['production_id'] ?? 0));
+                $production = $productions->get($productionId);
+                $movementFiscalYearId = $resolvedSupply?->fiscal_year_id ?? $production?->fiscal_year_id ?? ($meta['fiscal_year_id'] ?? null);
+                if ($fy !== null && (int) ($movementFiscalYearId ?? 0) !== $fy) continue;
+            }
             if($orderId!==null&&$oid!==$orderId)continue;
             if($goodsId!==null&&$targetGoodsId!==$goodsId)continue;
             $key=$this->key($oid,$targetGoodsId);
@@ -382,17 +389,27 @@ final class CostingReportService
                 if ($quantity <= 0.0000001) continue;
 
                 $costId = $movement->cost_id !== null ? (int) $movement->cost_id : null;
-                $slices = $costId !== null ? ($costSlicesById[$costId] ?? []) : [];
-                if ($costId !== null && empty($slices) && $movement->cost_quantity !== null && (float) $movement->cost_quantity > 0) {
-                    $slices[] = [
-                        'remaining_quantity' => (float) $movement->cost_quantity,
-                        'unit_cost' => (float) $movement->unit_cost,
-                    ];
+                $override = $valuationOverrides[(int) $movement->movement_id] ?? null;
+                if ($override !== null) {
+                    $slices = array_map(fn ($slice) => [
+                        'remaining_quantity' => (float) $slice['quantity'],
+                        'unit_cost' => (float) $slice['unit_cost'],
+                    ], $override['slices'] ?? []);
+                    $valuationMethodForMovement = $override['method'];
+                } else {
+                    $slices = $costId !== null ? ($costSlicesById[$costId] ?? []) : [];
+                    if ($costId !== null && empty($slices) && $movement->cost_quantity !== null && (float) $movement->cost_quantity > 0) {
+                        $slices[] = [
+                            'remaining_quantity' => (float) $movement->cost_quantity,
+                            'unit_cost' => (float) $movement->unit_cost,
+                        ];
+                    }
+                    $valuationMethodForMovement = $movement->valuation_method;
                 }
                 $handoverGroups[$key][] = [
                     'handed_over_date' => substr((string) $movement->occurred_at, 0, 10),
                     'remaining_quantity' => $quantity,
-                    'valuation_method' => $movement->valuation_method,
+                    'valuation_method' => $valuationMethodForMovement,
                     'cost_slices' => $slices,
                 ];
             }
