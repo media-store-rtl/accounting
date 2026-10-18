@@ -69,6 +69,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/costing', [CostingReportController::class, 'index'])
         ->middleware('company.permission:costing.report.view')->name('reports.costing');
     Route::post('/reports/costing/calculate', [CostingReportController::class, 'calculate'])->middleware('company.permission:costing.report.view')->name('reports.costing.calculate');
+    Route::post('/reports/costing/valuation-method', [CostingReportController::class, 'updateValuationMethod'])->middleware('company.permission:costing.report.view')->name('reports.costing.valuation-method');
+    Route::post('/reports/costing/production-reports/{reportId}/value', [CostingReportController::class, 'valueProductionReport'])->whereNumber('reportId')->middleware('company.permission:costing.report.view')->name('reports.costing.production-reports.value');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/sso/logout', [AccountingSsoController::class, 'logout'])->name('sso.logout');
 

@@ -23,8 +23,16 @@ final class InventoryValuationService
         }
 
         $current = $this->methodForCompany($companyId);
-        if ($current !== $method && DB::table('inventory_consumption_costs')->where('company_id', $companyId)->exists()) {
-            throw new RuntimeException('تغییر روش ارزش‌گذاری پس از ثبت مصرف ارزش‌گذاری‌شده نیازمند فرآیند تغییر سیاست حسابداری و بازمحاسبه است.');
+        if ($current !== $method) {
+            // Remaining quantities are maintained per valuation method. Switching
+            // after any inventory history exists would use stale layer balances
+            // unless a dedicated ledger rebuild/revaluation is performed.
+            $hasInventoryHistory = DB::table('inventory_cost_layers')->where('company_id', $companyId)->exists()
+                || DB::table('inventory_movements')->where('company_id', $companyId)->exists()
+                || DB::table('inventory_consumption_costs')->where('company_id', $companyId)->exists();
+            if ($hasInventoryHistory) {
+                throw new RuntimeException('روش پیش‌فرض انبار پس از ثبت سابقهٔ موجودی قابل تغییر نیست؛ برای مقایسهٔ روش‌ها، روش را از فیلتر خود گزارش انتخاب کنید.');
+            }
         }
 
         DB::table('companies')->where('id', $companyId)->update([
@@ -209,12 +217,15 @@ final class InventoryValuationService
                     $value += (float) $layer->{$column} * (float) $layer->unit_cost;
                 }
                 $average = $available > 0 ? $value / $available : 0.0;
-                $remaining = $valuedQuantity;
+                // Weighted-average consumption removes the same fraction from each
+                // contributing layer. Removing FIFO quantities here would distort
+                // the remaining pool's next average by leaving its original costs
+                // concentrated in the wrong quantities.
+                $fraction = $available > 0 ? min(1.0, $valuedQuantity / $available) : 0.0;
                 foreach ($layers as $layer) {
-                    if ($remaining <= 0) break;
-                    $take = min($remaining, (float) $layer->{$column});
+                    $take = (float) $layer->{$column} * $fraction;
+                    if ($take <= 0.0000001) continue;
                     $allocations[] = [$layer, $take, $average];
-                    $remaining -= $take;
                 }
                 $totalCost = $valuedQuantity * $average;
             }

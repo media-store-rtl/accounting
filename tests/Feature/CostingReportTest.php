@@ -272,4 +272,105 @@ class CostingReportTest extends TestCase
         $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'labor','amount'=>60]);
         $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'direct','amount'=>5]);
     }
+    public function test_default_valuation_method_can_change_without_rewriting_historical_cost_rows(): void
+    {
+        $account = DB::table('accounts')->insertGetId([
+            'name' => 'Valuation Account',
+            'code' => 'VA'.uniqid(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $company = DB::table('companies')->insertGetId([
+            'account_id' => $account,
+            'name' => 'Valuation Company',
+            'code' => 'VC'.uniqid(),
+            'is_active' => true,
+            'settings' => json_encode([]),
+            'inventory_valuation_method' => 'fifo',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $fiscalYear = DB::table('fiscal_years')->insertGetId([
+            'company_id' => $company,
+            'name' => '1405',
+            'code' => 'VFY'.uniqid(),
+            'starts_at' => '2026-03-21',
+            'ends_at' => '2027-03-20',
+            'is_closed' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $category = DB::table('goods_categories')->insertGetId([
+            'company_id' => $company,
+            'name' => 'Valuation Goods',
+            'code' => 'VGC'.uniqid(),
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $goods = DB::table('goods')->insertGetId([
+            'company_id' => $company,
+            'category_id' => $category,
+            'code' => 'VRM',
+            'name' => 'Valuation Material',
+            'purchasable' => true,
+            'producible' => false,
+            'sellable' => false,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $location = DB::table('locations')->insertGetId([
+            'company_id' => $company,
+            'code' => 'VL'.uniqid(),
+            'name' => 'Valuation Location',
+            'type' => 'production',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $movement = DB::table('inventory_movements')->insertGetId([
+            'company_id' => $company,
+            'goods_id' => $goods,
+            'location_id' => $location,
+            'quantity' => -1,
+            'movement_type' => 'production_consumption',
+            'reference_type' => 'test',
+            'reference_id' => 1,
+            'occurred_at' => '2026-10-01 10:00:00',
+            'metadata' => json_encode([]),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('inventory_consumption_costs')->insert([
+            'company_id' => $company,
+            'fiscal_year_id' => $fiscalYear,
+            'goods_id' => $goods,
+            'location_id' => $location,
+            'inventory_movement_id' => $movement,
+            'valuation_method' => 'fifo',
+            'quantity' => 1,
+            'unit_cost' => 25,
+            'total_cost' => 25,
+            'consumed_at' => '2026-10-01 10:00:00',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $service = app(\App\Services\InventoryValuationService::class);
+        try {
+            $service->setMethod($company, 'weighted_average');
+            $this->fail('Changing the default method with inventory history must be blocked until a ledger rebuild exists.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('روش پیش‌فرض انبار', $exception->getMessage());
+        }
+
+        $this->assertSame('fifo', $service->methodForCompany($company));
+        $this->assertDatabaseHas('inventory_consumption_costs', [
+            'inventory_movement_id' => $movement,
+            'valuation_method' => 'fifo',
+            'total_cost' => 25,
+        ]);
+    }
+
 }

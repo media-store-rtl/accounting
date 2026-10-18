@@ -65,6 +65,25 @@ class InventoryValuationTest extends TestCase
         $this->assertSame(80.0,(float)DB::table('inventory_cost_layers')->sum('weighted_average_quantity_remaining'));
     }
 
+    public function test_repeated_weighted_average_consumptions_keep_the_remaining_pool_rate_stable(): void
+    {
+        $c = $this->context(InventoryValuationService::WEIGHTED_AVERAGE);
+        $this->layer($c, 100, 10, '2026-10-01 10:00:00');
+        $this->layer($c, 100, 15, '2026-10-02 10:00:00');
+
+        $service = app(InventoryValuationService::class);
+        $first = $service->valueInventoryMovement($this->movement($c, 120, 1), $c['fy']);
+        $second = $service->valueInventoryMovement($this->movement($c, 20, 2), $c['fy']);
+
+        $this->assertSame(1500.0, round($first['total_cost'], 4));
+        $this->assertSame(250.0, round($second['total_cost'], 4));
+        $this->assertSame(12.5, round($second['unit_cost'], 6));
+        $this->assertSame(60.0, round((float) DB::table('inventory_cost_layers')->sum('weighted_average_quantity_remaining'), 4));
+        $this->assertEqualsWithDelta(750.0, (float) DB::table('inventory_cost_layers as l')
+            ->selectRaw('SUM(l.weighted_average_quantity_remaining * l.unit_cost) as remaining_value')
+            ->value('remaining_value'), 0.0001);
+    }
+
     public function test_partial_layer_coverage_values_available_quantity_and_leaves_remainder_unvalued(): void
     {
         $c = $this->context(InventoryValuationService::FIFO);
