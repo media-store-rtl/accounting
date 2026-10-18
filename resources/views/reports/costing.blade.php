@@ -61,45 +61,6 @@
   </form>
 </div>
 
-<div class="costing-panel">
-  <h2 style="font-size:14px;margin:0 0 12px">خلاصه بهای تمام‌شده محصول</h2>
-  <p class="costing-detail-note" style="margin:0 0 12px">برای هر محصول، مقدار و مبلغ جداگانه نمایش داده می‌شود. مقدار مواد از ریز مواد گزارش‌های تولید تحویل‌شده به دست می‌آید؛ هزینه‌های بدون مبنای مقداری مستقل با «—» مشخص شده‌اند.</p>
-  <div class="costing-table-wrap">
-    @if(empty($report['product_rows']))
-      <div class="costing-empty">برای فیلتر انتخاب‌شده داده هزینه‌ای ثبت نشده است.</div>
-    @else
-      <table class="costing-table">
-        <thead><tr><th>محصول</th><th>شرح هزینه</th><th>مقدار</th><th>واحد مقدار</th><th>مبلغ (ریال)</th></tr></thead>
-        <tbody>
-        @foreach($report['product_rows'] as $row)
-          @php
-            $matchingReports = collect($report['production_reports'])->where('goods_id', $row['goods_id']);
-            $materialsByUnit = $matchingReports->flatMap(fn ($productionReport) => collect($productionReport['materials'] ?? []))
-              ->groupBy(fn ($material) => ($material['material_code'] ?? '') . '|' . ($material['material_name'] ?? '') . '|' . ($material['unit_symbol'] ?? $material['unit_name'] ?? '—'));
-            $materialQuantitySummary = $materialsByUnit->map(function ($materials) use ($formatCostingNumber) {
-              $first = $materials->first();
-              $name = trim(($first['material_code'] ?? '') . ' — ' . ($first['material_name'] ?? 'ماده'), ' —');
-              $unit = $first['unit_symbol'] ?? $first['unit_name'] ?? '—';
-              return $name . ': ' . $formatCostingNumber($materials->sum('quantity')) . ' ' . $unit;
-            })->implode('، ');
-            $scrapQuantity = $matchingReports->sum('scrap_quantity');
-            $quantityUnit = $row['unit_symbol'] ?? $row['unit_name'] ?? 'واحد';
-            $productName = ($row['goods_code'] ?? '') . ' — ' . ($row['goods_name'] ?? 'محصول');
-          @endphp
-          <tr><td rowspan="6">{{ $productName }}</td><td>مواد مصرفی</td><td colspan="2">{{ $materialQuantitySummary !== '' ? $materialQuantitySummary : 'مقداری در ریز گزارش‌های تولید ثبت نشده است' }}</td><td>{{ $formatCostingNumber($row['material_cost'] ?? 0) }}</td></tr>
-          <tr><td>دستمزد تجمیعی محصول</td><td>—</td><td>—</td><td>{{ $formatCostingNumber($row['labor_cost'] ?? 0) }}</td></tr>
-          <tr><td>هزینه ضایعات</td><td>{{ $formatCostingNumber($scrapQuantity) }}</td><td>{{ $quantityUnit }}</td><td>{{ $formatCostingNumber($row['scrap_cost'] ?? 0) }}</td></tr>
-          <tr><td>هزینه‌های مستقیم خرید</td><td>—</td><td>—</td><td>{{ $formatCostingNumber($row['direct_cost'] ?? 0) }}</td></tr>
-          <tr><td><strong>جمع بهای تمام‌شده محصول</strong></td><td>{{ $formatCostingNumber($row['produced_quantity'] ?? 0) }}</td><td>{{ $quantityUnit }} تولیدشده</td><td><strong>{{ $formatCostingNumber($row['total_cost'] ?? 0) }}</strong></td></tr>
-          <tr><td>فی تمام‌شده هر واحد</td><td>۱</td><td>{{ $quantityUnit }}</td><td>{{ isset($row['unit_cost']) && $row['unit_cost'] !== null ? $formatCostingNumber($row['unit_cost']) : '—' }}</td></tr>
-        @endforeach
-        </tbody>
-      </table>
-    @endif
-  </div>
-</div>
-
-
 @if($report['totals']['unvalued_material_quantity']>0 || ($report['totals']['production_report_unvalued_material_quantity'] ?? 0)>0)
   <div class="costing-warn">مقدار بدون ارزش‌گذاری در دو شاخص جدا نمایش داده می‌شود: خروج انبارِ بدون ارزش‌گذاری و مصرف ثبت‌شده در گزارش تولید که هنوز با حواله/ارزش‌گذاری تطبیق کامل ندارد. این مقادیر برای جلوگیری از دوباره‌شماری به مبلغ بهای تمام‌شده اضافه نمی‌شوند. <strong>تا زمان رفع مغایرت، فی تمام‌شده هر واحد ممکن است ناقص باشد و نباید به‌عنوان بهای قطعی استفاده شود.</strong></div>
 @endif
