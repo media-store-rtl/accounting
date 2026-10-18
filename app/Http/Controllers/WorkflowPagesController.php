@@ -15,7 +15,25 @@ class WorkflowPagesController extends Controller {
     }
    }
   }
-  return view('workflows.supply',['rows'=>$rows,'canReviewStock'=>$canReviewStock,'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->get(),'years'=>DB::table('fiscal_years')->where('company_id',$cid)->where('is_closed',false)->get(),'productions'=>DB::table('productions')->where('company_id',$cid)->latest('id')->get(),'orders'=>DB::table('orders')->where('company_id',$cid)->latest('id')->get(),'sections'=>DB::table('production_sections as s')->join('locations as l','l.id','=','s.location_id')->where('l.company_id',$cid)->where('l.is_active',true)->where('s.is_active',true)->orderBy('l.name')->get(['s.id','l.name as name'])]);
+  return view('workflows.supply', compact('rows', 'canReviewStock'));
+ }
+
+ public function createSupply(Request $r){
+  $cid=CompanyAuthorization::authorize($r,'supply_request.create');
+  $years=DB::table('fiscal_years')->where('company_id',$cid)->where('is_closed',false)->orderByDesc('starts_at')->get();
+  $activeFiscalYearId=(int)$r->session()->get('fiscal_year_id');
+  if(!$years->contains('id',$activeFiscalYearId)){
+   $activeFiscalYearId=(int)($years->first()->id??0);
+  }
+
+  return view('workflows.supply-create',[
+   'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->orderBy('name')->get(),
+   'years'=>$years,
+   'activeFiscalYearId'=>$activeFiscalYearId,
+   'productions'=>DB::table('productions')->where('company_id',$cid)->latest('id')->get(),
+   'orders'=>DB::table('orders')->where('company_id',$cid)->latest('id')->get(),
+   'sections'=>DB::table('production_sections as s')->join('locations as l','l.id','=','s.location_id')->where('l.company_id',$cid)->where('l.is_active',true)->where('s.is_active',true)->orderBy('l.name')->get(['s.id','l.name as name']),
+  ]);
  }
  public function productionSalesShortages(Request $r){
   $cid=CompanyAuthorization::authorize($r,'production.supervise');

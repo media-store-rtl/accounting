@@ -109,6 +109,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/production/labor/rates', [LaborCostController::class, 'setRate'])->middleware('company.permission:production.labor.rate.manage')->name('production.labor.rates.store');
     });
 
+    Route::get('/supply/create', [WorkflowPagesController::class, 'createSupply'])->middleware('company.permission:supply_request.create')->name('workflows.supply.create');
     Route::get('/supply', [WorkflowPagesController::class,'supply'])->middleware('company.permission:supply_request.view')->name('workflows.supply');
     Route::get('/production/material-requests', [WorkflowPagesController::class,'productionSalesShortages'])->middleware('company.permission:production.supervise')->name('production.material-requests');
     Route::get('/production/due-dates', [WorkflowPagesController::class,'productionDue'])->middleware('company.permission:production.supervise')->name('production.due-dates.index');
