@@ -77,13 +77,31 @@
   </form>
 </div>
 
-<div class="costing-cards">
-  <div class="costing-card"><small>مواد مصرف‌شده</small><b>{{ $formatCostingNumber($report['totals']['material_cost']) }}</b></div>
-  <div class="costing-card"><small>دستمزد تأییدشده</small><b>{{ $formatCostingNumber($report['totals']['labor_cost']) }}</b></div>
-  <div class="costing-card"><small>بهای تمام‌شده</small><b>{{ $formatCostingNumber($report['totals']['total_cost']) }}</b></div>
-  <div class="costing-card"><small>مصرف بدون ارزش‌گذاری</small><b>{{ $formatCostingNumber($report['totals']['unvalued_material_quantity']) }}</b></div>
-  <div class="costing-card"><small>مصرف گزارش‌های تولید بدون ارزش‌گذاری</small><b>{{ $formatCostingNumber($report['totals']['production_report_unvalued_material_quantity'] ?? 0) }}</b></div>
-  <div class="costing-card"><small>تعداد کل تولید در گزارش‌های تأییدشده و تحویل‌شده</small><b>{{ $formatCostingNumber(collect($report['production_reports'])->sum('produced_quantity')) }}</b></div>
+<div class="costing-panel">
+  <h2 style="font-size:14px;margin:0 0 12px">خلاصه بهای تمام‌شده محصول</h2>
+  @if(empty($report['product_rows']))
+    <div class="costing-empty">برای فیلتر انتخاب‌شده داده هزینه‌ای ثبت نشده است.</div>
+  @else
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+      @foreach($report['product_rows'] as $row)
+        <div style="background:#0d2235;border:1px solid #29465e;border-radius:12px;padding:14px">
+          <h3 style="font-size:12px;margin:0 0 5px">{{ $row['goods_code'] }} — {{ $row['goods_name'] }}</h3>
+          <p style="font-size:10px;color:#91a6b9;margin:0 0 10px">تولید: {{ $formatCostingNumber($row['produced_quantity'] ?? 0) }} {{ $row['unit_symbol'] ?? $row['unit_name'] ?? '' }}</p>
+          <table class="costing-detail-costs">
+            <tbody>
+              <tr><td>مواد مصرفی</td><td>{{ $formatCostingNumber($row['material_cost'] ?? 0) }} ریال</td></tr>
+              <tr><td>دستمزد تجمیعی محصول</td><td>{{ $formatCostingNumber($row['labor_cost'] ?? 0) }} ریال</td></tr>
+              <tr><td>هزینه ضایعات</td><td>{{ $formatCostingNumber($row['scrap_cost'] ?? 0) }} ریال</td></tr>
+              <tr><td>هزینه‌های مستقیم خرید</td><td>{{ $formatCostingNumber($row['direct_cost'] ?? 0) }} ریال</td></tr>
+              <tr><td><strong>جمع بهای تمام‌شده محصول</strong></td><td><strong>{{ $formatCostingNumber($row['total_cost'] ?? 0) }} ریال</strong></td></tr>
+              <tr><td>فی تمام‌شده هر واحد</td><td>{{ isset($row['unit_cost']) && $row['unit_cost'] !== null ? $formatCostingNumber($row['unit_cost']) . ' ریال' : '—' }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      @endforeach
+    </div>
+  @endif
+  <p class="costing-detail-note">فی هر واحد از تقسیم جمع بهای تمام‌شده محصول بر تعداد تولید ثبت‌شده در گزارش‌های تأییدشده و تحویل‌شده در بازه انتخابی به دست می‌آید. این خلاصه فقط نمایش هزینه‌هاست و مبالغ ریز مواد دوباره به جمع اضافه نمی‌شوند.</p>
 </div>
 
 @if(!empty($report['valuation_methods']))
@@ -101,10 +119,9 @@
       <div class="costing-empty">گزارش تولید تأییدشده یا تحویل‌شده‌ای برای این فیلتر پیدا نشد.</div>
     @else
       <table class="costing-table">
-        <thead><tr><th>جزئیات</th><th>عملیات</th><th>شماره گزارش</th><th>تاریخ تولید</th><th>محصول</th><th>بخش تولید</th><th>تعداد تولید</th><th>تحویل‌شده</th><th>ضایعات</th><th>دستمزد گزارش (ریال)</th></tr></thead>
+        <thead><tr><th>جزئیات</th><th>شماره گزارش</th><th>تاریخ تولید</th><th>محصول</th><th>بخش تولید</th><th>تعداد تولید</th><th>تحویل‌شده</th><th>ضایعات</th><th>دستمزد گزارش (ریال)</th></tr></thead>
         <tbody>
         @foreach($report['production_reports'] as $productionReport)
-          @php($productCost = collect($report['product_rows'])->firstWhere('goods_id', $productionReport['goods_id']))
           <tr>
             <td>
               <details class="costing-row-details">
@@ -149,34 +166,9 @@
                   @else
                     <p class="costing-detail-note">برای این گزارش ریز مواد مصرفی ثبت نشده است.</p>
                   @endif
-                  <h3 style="font-size:12px;margin:14px 0 8px">خلاصه هزینه محصول در بازه انتخابی</h3>
-                  @if($productCost)
-                    <table class="costing-detail-costs">
-                      <tbody>
-                        <tr><td>مواد مصرفی</td><td>{{ $formatCostingNumber($productCost['material_cost'] ?? 0) }} ریال</td></tr>
-                        <tr><td>دستمزد تجمیعی محصول</td><td>{{ $formatCostingNumber($productCost['labor_cost'] ?? 0) }} ریال</td></tr>
-                        <tr><td>هزینه ضایعات</td><td>{{ $formatCostingNumber($productCost['scrap_cost'] ?? 0) }} ریال</td></tr>
-                        <tr><td>هزینه‌های مستقیم خرید</td><td>{{ $formatCostingNumber($productCost['direct_cost'] ?? 0) }} ریال</td></tr>
-                        <tr><td><strong>جمع بهای تمام‌شده محصول</strong></td><td><strong>{{ $formatCostingNumber($productCost['total_cost'] ?? 0) }} ریال</strong></td></tr>
-                        <tr><td>فی تمام‌شده هر واحد</td><td>{{ isset($productCost['unit_cost']) && $productCost['unit_cost'] !== null ? $formatCostingNumber($productCost['unit_cost']) . ' ریال' : '—' }}</td></tr>
-                      </tbody>
-                    </table>
-                  @else
-                    <p class="costing-detail-note">برای این محصول در بازه انتخابی هزینه‌ای ثبت نشده است.</p>
-                  @endif
                   <p class="costing-detail-note">ریز مواد بالا فقط تفکیک بخشی از هزینه مواد موجود است و دوباره به جمع هزینه محصول اضافه نمی‌شود. حواله‌هایی که به همین قسمت، ماده، سفارش و تاریخ قابل اتصال نباشند یا ارزش‌گذاری نشده باشند، به‌صورت مقدار ناقص نشان داده می‌شوند. سایر هزینه‌های مواد و هزینه‌های مستقیم خرید همچنان در سطح محصول تجمیع می‌شوند و لزوماً هزینه اختصاصی این گزارش یا کارگر نیستند. سربار تولید نیز هنوز به‌صورت مستقل در این گزارش ثبت/محاسبه نمی‌شود.</p>
                 </div>
               </details>
-            </td>
-            <td>
-              @if(!empty($productionReport['materials']) && empty($productionReport['material_cost_complete']))
-                <form method="POST" action="{{ route('reports.costing.production-reports.value', ['reportId' => $productionReport['report_id']]) }}" onsubmit="return confirm('فقط حرکت‌های مصرف موجود بررسی می‌شوند؛ موجودی دوباره کسر نمی‌شود. ادامه می‌دهید؟')">
-                  @csrf
-                  <button type="submit" style="background:#153b52;color:#dcebf6;border:1px solid #29465e;border-radius:8px;padding:7px 10px;cursor:pointer;font-family:inherit;white-space:nowrap">ریالی کردن با روش پیش‌فرض شرکت</button>
-                </form>
-              @else
-                <span style="color:#8fc8a8">کامل / بدون ماده</span>
-              @endif
             </td>
             <td>گزارش #{{ $productionReport['report_id'] }}</td>
             <td class="jalali-date" data-date="{{ $productionReport['work_date'] }}">{{ $productionReport['work_date'] }}</td>
@@ -193,24 +185,6 @@
     @endif
   </div>
   <p style="font-size:10px;color:#91a6b9;margin:12px 0 0">دستمزد هر گزارش بر اساس کارگر و نرخ معتبر در تاریخ کار محاسبه می‌شود. با انتخاب کارگر، تعداد تولید و دستمزد به گزارش‌های همان کارگر محدود می‌شود؛ مواد، ضایعات و هزینه‌های خرید فعلاً در سطح محصول قابل ردیابی‌اند. فی تمام‌شده در خلاصه محصول از تقسیم جمع هزینه‌های محصول بر تعداد تولید ثبت‌شده در گزارش‌های تأییدشده و تحویل‌شده در بازه انتخابی به دست می‌آید.</p>
-</div>
-
-<div class="costing-panel">
-  <h2 style="font-size:14px;margin:0 0 12px">خلاصه هزینه‌ها به تفکیک محصول</h2>
-  <div class="costing-table-wrap">
-    @if(empty($report['product_rows']))
-      <div class="costing-empty">برای فیلتر انتخاب‌شده داده هزینه‌ای ثبت نشده است.</div>
-    @else
-      <table class="costing-table">
-        <thead><tr><th>محصول</th><th>واحد</th><th>تعداد تولیدشده</th><th>مواد</th><th>دستمزد</th><th>ضایعات</th><th>هزینه مستقیم</th><th>جمع بهای تمام‌شده</th><th>فی تمام‌شده هر عدد (در صورت مغایرت مواد، غیرقطعی)</th><th>روش</th><th>مصرف بدون ارزش‌گذاری</th></tr></thead>
-        <tbody>
-        @foreach($report['product_rows'] as $row)
-          <tr><td>{{ $row['goods_code'] }} — {{ $row['goods_name'] }}</td><td>{{ $row['unit_symbol'] ?? $row['unit_name'] ?? '—' }}</td><td>{{ $formatCostingNumber($row['produced_quantity'] ?? 0) }}</td><td>{{ $formatCostingNumber($row['material_cost']) }}</td><td>{{ $formatCostingNumber($row['labor_cost']) }}</td><td>{{ $formatCostingNumber($row['scrap_cost']) }}</td><td>{{ $formatCostingNumber($row['direct_cost']) }}</td><td><strong>{{ $formatCostingNumber($row['total_cost']) }}</strong></td><td><strong>{{ isset($row['unit_cost']) && $row['unit_cost'] !== null ? $formatCostingNumber($row['unit_cost']) : '—' }}</strong></td><td>{{ implode('، ',$row['valuation_methods']) ?: '—' }}</td><td>{{ $formatCostingNumber($row['unvalued_material_quantity']) }}</td></tr>
-        @endforeach
-        </tbody>
-      </table>
-    @endif
-  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
