@@ -528,6 +528,18 @@ class OrdersSupplyWorkflowTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $secondGoods = DB::table('goods')->insertGetId([
+            'company_id' => $c['company'],
+            'category_id' => DB::table('goods_categories')->where('company_id', $c['company'])->value('id'),
+            'code' => 'G2',
+            'name' => 'Second Material',
+            'purchasable' => true,
+            'producible' => false,
+            'sellable' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         DB::table('purchase_items')->insert([
             [
                 'purchase_id' => $purchase,
@@ -540,7 +552,7 @@ class OrdersSupplyWorkflowTest extends TestCase
             ],
             [
                 'purchase_id' => $purchase,
-                'goods_id' => $c['goods'],
+                'goods_id' => $secondGoods,
                 'quantity' => 3,
                 'unit_price' => 50,
                 'line_total' => 150,
@@ -561,6 +573,7 @@ class OrdersSupplyWorkflowTest extends TestCase
             ->assertSee('<th>جمع قلم</th>', false)
             ->assertSee('Supplier')
             ->assertSee('Material')
+            ->assertSee('Second Material')
             ->assertSee('تحویل کامل به انبار')
             ->assertDontSee('>received<', false);
     }
