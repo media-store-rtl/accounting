@@ -50,7 +50,7 @@
 
 <div class="costing-panel" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
   <div>
-    <h2 style="font-size:13px;margin:0 0 6px">روش ارزش‌گذاری مصرف مواد</h2>
+    <h2 style="font-size:13px;margin:0 0 6px">روش پیش‌فرض ارزش‌گذاری مصرف‌های آینده</h2>
     <p class="costing-detail-note" style="margin:0">این انتخاب برای ارزش‌گذاری‌های بعدی و مصرف‌های بدون بهای ثبت‌شده استفاده می‌شود. هزینه‌های تاریخیِ قبلاً ثبت‌شده بازنویسی نمی‌شوند و روش ثبت‌شدهٔ خود را حفظ می‌کنند.</p>
   </div>
   <form method="POST" action="{{ route('reports.costing.valuation-method') }}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -72,6 +72,7 @@
     <div><label for="costing-personnel">کارگر</label><select id="costing-personnel" name="personnel_id"><option value="">همه کارگران</option>@foreach($personnel as $worker)<option value="{{ $worker->id }}" @selected((int)request('personnel_id')===(int)$worker->id)>{{ $worker->code }} — {{ $worker->name }}</option>@endforeach</select></div>
     <div><label for="costing-production-section">قسمت تولید</label><select id="costing-production-section" name="production_section_id"><option value="">همه قسمت‌ها</option>@foreach($productionSections as $section)<option value="{{ $section->id }}" @selected((int)request('production_section_id')===(int)$section->id)>{{ $section->name }}</option>@endforeach</select></div>
     <div><label for="costing-production-stage">مرحله تولید</label><select id="costing-production-stage" name="production_stage_id"><option value="">همه مراحل</option>@foreach($productionStages as $stage)<option value="{{ $stage->id }}" @selected((int)request('production_stage_id')===(int)$stage->id)>{{ $stage->name }}</option>@endforeach</select></div>
+    <div><label for="costing-valuation-method">روش محاسبه همین گزارش</label><select id="costing-valuation-method" name="valuation_method"><option value="fifo" @selected($valuationMethod === 'fifo')>FIFO — اولین ورود، اولین خروج</option><option value="weighted_average" @selected($valuationMethod === 'weighted_average')>میانگین موزون</option></select></div>
     <div style="display:flex;align-items:end"><button type="submit">نمایش گزارش</button></div>
   </form>
 </div>
@@ -86,7 +87,7 @@
 </div>
 
 @if(!empty($report['valuation_methods']))
-  <div class="costing-panel"><span style="color:#71879d;font-size:11px">روش ارزش‌گذاری:</span> {{ implode('، ',$report['valuation_methods']) }}</div>
+  <div class="costing-panel"><span style="color:#71879d;font-size:11px">روش محاسبه این گزارش:</span> {{ $valuationMethod === 'weighted_average' ? 'میانگین موزون' : 'FIFO' }} <span style="color:#91a6b9;font-size:10px">— محاسبه تاریخی فقط در گزارش انجام می‌شود و موجودی و سوابق ارزش‌گذاری ثبت‌شده را تغییر نمی‌دهد.</span></div>
 @endif
 @if($report['totals']['unvalued_material_quantity']>0 || ($report['totals']['production_report_unvalued_material_quantity'] ?? 0)>0)
   <div class="costing-warn">مقدار بدون ارزش‌گذاری در دو شاخص جدا نمایش داده می‌شود: خروج انبارِ بدون ارزش‌گذاری و مصرف ثبت‌شده در گزارش تولید که هنوز با حواله/ارزش‌گذاری تطبیق کامل ندارد. این مقادیر برای جلوگیری از دوباره‌شماری به مبلغ بهای تمام‌شده اضافه نمی‌شوند. <strong>تا زمان رفع مغایرت، فی تمام‌شده هر واحد ممکن است ناقص باشد و نباید به‌عنوان بهای قطعی استفاده شود.</strong></div>
