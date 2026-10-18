@@ -212,7 +212,7 @@
               ->flatMap(fn ($productionReport) => $productionReport['materials'] ?? [])
               ->groupBy(fn ($material) => ($material['material_code'] ?? '') . '|' . ($material['material_name'] ?? '') . '|' . ($material['unit_symbol'] ?? $material['unit_name'] ?? '—'))
               ->map(fn ($materials, $key) => [
-                'label' => trim(str_replace('|', ' — ', $key), ' —'),
+                'label' => ($materials->first()['material_code'] ?? '') . ' — ' . ($materials->first()['material_name'] ?? 'ماده'),
                 'unit' => $materials->first()['unit_symbol'] ?? $materials->first()['unit_name'] ?? '—',
                 'quantity' => $materials->sum(fn ($material) => (float) ($material['quantity'] ?? 0)),
               ]);
