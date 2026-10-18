@@ -23,7 +23,7 @@
 .costing-warn{background:#2c2413;color:#e5c87c;border:1px solid #5c4a25;border-radius:10px;padding:11px;font-size:11px;margin-bottom:12px}
 .costing-table-wrap{overflow-x:auto}.costing-table{width:100%;border-collapse:collapse;min-width:900px}
 .costing-table th,.costing-table td{padding:11px 9px;border-bottom:1px solid #183047;text-align:right;font-size:11px}
-.costing-main-table{min-width:1050px}.costing-main-table .costing-expand-btn{background:#153b52;border:1px solid #315570;border-radius:8px;color:#cdeaff;padding:7px 10px;font:inherit;cursor:pointer;white-space:nowrap}.costing-main-table .costing-expand-btn[aria-expanded="true"]{background:#24516b}.costing-detail-row>td{padding:0!important;background:#071522}.costing-detail-container{padding:16px;border-bottom:1px solid #29465e}.costing-summary-row td{background:#102a3e;color:#fff!important;font-weight:700;border-top:2px solid #3c6078}.costing-status{display:inline-block;padding:4px 7px;border-radius:7px;font-size:10px;white-space:nowrap}.costing-status.complete{background:#153b2e;color:#a7e3c6}.costing-status.incomplete{background:#3b3018;color:#f0d58a}.costing-bottom-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}.costing-bottom-summary>div{background:#0d2235;border:1px solid #29465e;border-radius:10px;padding:12px}.costing-bottom-summary small{display:block;color:#91a6b9;font-size:10px}.costing-bottom-summary strong{display:block;margin-top:6px;font-size:13px;overflow-wrap:anywhere}@media(max-width:700px){.costing-bottom-summary{grid-template-columns:1fr 1fr}}
+.costing-main-table{min-width:1050px}.costing-main-table .costing-expand-btn{background:#153b52;border:1px solid #315570;border-radius:8px;color:#cdeaff;padding:7px 10px;font:inherit;cursor:pointer;white-space:nowrap}.costing-main-table .costing-expand-btn[aria-expanded="true"]{background:#24516b}.costing-detail-row>td{padding:0!important;background:#071522}.costing-detail-container{padding:16px;border-bottom:1px solid #29465e}.costing-summary-row td{background:#102a3e;color:#fff!important;font-weight:700;border-top:2px solid #3c6078}.costing-status{display:inline-block;padding:4px 7px;border-radius:7px;font-size:10px;white-space:nowrap}.costing-status.complete{background:#153b2e;color:#a7e3c6}.costing-status.incomplete{background:#3b3018;color:#f0d58a}.costing-bottom-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:14px}.costing-bottom-summary>div{background:#0d2235;border:1px solid #29465e;border-radius:10px;padding:12px}.costing-bottom-summary small{display:block;color:#91a6b9;font-size:10px}.costing-bottom-summary strong{display:block;margin-top:6px;font-size:13px;overflow-wrap:anywhere}@media(max-width:700px){.costing-bottom-summary{grid-template-columns:1fr 1fr}}
 .costing-table th{color:#71879d;font-weight:500}.costing-table td{color:#dcebf6}
 .costing-row-details{min-width:94px}.costing-row-details summary{cursor:pointer;color:#9dd8ff;white-space:nowrap;list-style-position:inside}
 .costing-row-details[open] summary{margin-bottom:10px}
@@ -93,7 +93,7 @@
       <table class="costing-table costing-main-table">
         <thead>
           <tr>
-            <th>شماره گزارش</th><th>تاریخ تولید</th><th>محصول</th><th>مقدار تولید</th><th>تحویل‌شده</th><th>هزینه مواد ارزش‌گذاری‌شده</th><th>دستمزد</th><th>ضایعات محصول</th><th>هزینه ثبت‌شده گزارش*</th><th>وضعیت</th><th>جزئیات</th>
+            <th>شماره گزارش</th><th>تاریخ تولید</th><th>محصول</th><th>مقدار تولید</th><th>تحویل‌شده</th><th>هزینه مواد ارزش‌گذاری‌شده</th><th>دستمزد</th><th>ضایعات محصول</th><th>جمع مواد + دستمزد*</th><th>وضعیت</th><th>جزئیات</th>
           </tr>
         </thead>
         <tbody>
@@ -194,6 +194,7 @@
       <div><small>مجموع مواد ارزش‌گذاری‌شده</small><strong>{{ $formatCostingNumber($costingAggregateMaterialTotal) }} ریال</strong></div>
       <div><small>مجموع دستمزد</small><strong>{{ $formatCostingNumber($costingAggregateLaborTotal) }} ریال</strong></div>
       <div><small>جمع بهای تمام‌شده فعلی</small><strong>{{ $formatCostingNumber($costingAggregateTotal) }} ریال</strong></div>
+      <div><small>بهای تمام‌شده هر واحد{{ $costingUnvaluedTotal > 0 ? ' (موقت)' : '' }}</small><strong>{{ $costingProducedTotal > 0 ? $formatCostingNumber($costingAggregateTotal / $costingProducedTotal) : '—' }} ریال</strong></div>
     </div>
     @if($costingUnvaluedTotal > 0 || ($report['totals']['unvalued_material_quantity'] ?? 0) > 0 || ($report['totals']['production_report_unvalued_material_quantity'] ?? 0) > 0)
       <div class="costing-warn" style="margin-top:14px;margin-bottom:0">جمع بالا بر مبنای مبالغ فعلاً ارزش‌گذاری‌شده است. مقدار بدون ارزش‌گذاری: {{ $formatCostingNumber($costingUnvaluedTotal) }} واحد در ریز گزارش‌های تولید. این مقدار در هزینه وارد نشده است؛ بنابراین بهای تمام‌شده و فی هر واحد تا زمان رفع مغایرت قطعی نیست.</div>
