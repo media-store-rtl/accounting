@@ -119,13 +119,8 @@ class WorkflowPagesController extends Controller {
  }
  public function createPurchasing(Request $r){
   $cid=CompanyAuthorization::authorize($r,'purchase.create');
-  $years=DB::table('fiscal_years')->where('company_id',$cid)->where('is_closed',false)->orderByDesc('starts_at')->get();
-  $activeFiscalYearId=(int)$r->session()->get('fiscal_year_id');
-  if(!$years->contains('id',$activeFiscalYearId)) $activeFiscalYearId=(int)($years->first()->id??0);
   return view('workflows.purchasing-create',[
-   'years'=>$years,
-   'activeFiscalYearId'=>$activeFiscalYearId,
-   'goods'=>DB::table('goods')->where('company_id',$cid)->where('purchasable',true)->orderBy('name')->get(),
+   'goods'=>DB::table('goods')->where('company_id',$cid)->where('purchasable',true)->where('is_active',true)->orderBy('name')->get(),
    'suppliers'=>DB::table('suppliers')->where('company_id',$cid)->where('is_active',true)->orderBy('name')->get(),
    'requests'=>DB::table('supply_requests')->where('company_id',$cid)->where('status','purchasing')->orderByDesc('id')->get(),
   ]);
