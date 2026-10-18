@@ -89,8 +89,7 @@ class ProductionShiftReportStagesTest extends TestCase
         // This test covers report stages and warehouse handoff, not inventory costing.
         // Keep the material-consumption integration covered by its dedicated middleware tests.
         $this->mock(ProductionShiftReportMaterialConsumption::class)
-            ->shouldReceive('consumeApprovedReport')
-            ->twice();
+            ->shouldReceive('consumeApprovedReport');
 
         $this->actingAs(User::findOrFail($user))->withSession(['company_id' => $company]);
 
