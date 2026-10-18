@@ -64,7 +64,7 @@ final class CostingReportController extends Controller
             ->where('movement_type', 'production_consumption')
             ->where('quantity', '<', 0)
             ->orderBy('id')
-            ->get(['id', 'goods_id', 'quantity']);
+            ->get(['id', 'goods_id', 'location_id', 'quantity', 'occurred_at']);
 
         if ($movements->isEmpty()) {
             return back()->with('error', 'برای این گزارش حوالهٔ مصرف انبار ثبت نشده است؛ برای جلوگیری از ساختن مصرف تاریخی یا کسر دوبارهٔ موجودی، ریالی‌سازی انجام نشد.');
@@ -110,6 +110,22 @@ final class CostingReportController extends Controller
                         // a partial valuation as complete or rewrite its history.
                         $unvalued++;
                     }
+                    continue;
+                }
+
+                // Avoid creating a permanent partial cost row from this action:
+                // the ledger schema permits one cost row per movement, so a partial
+                // row cannot safely be topped up later after new receipts arrive.
+                $method = $valuationService->methodForCompany((int) DB::table('inventory_movements')->where('id', $movement->id)->value('company_id'));
+                $layerColumn = $method === InventoryValuationService::FIFO ? 'fifo_quantity_remaining' : 'weighted_average_quantity_remaining';
+                $available = (float) DB::table('inventory_cost_layers')
+                    ->where('company_id', $companyId)
+                    ->where('goods_id', $movement->goods_id)
+                    ->where('location_id', $movement->location_id)
+                    ->where('received_at', '<=', $movement->occurred_at)
+                    ->sum($layerColumn);
+                if ($available + 0.0001 < abs((float) $movement->quantity)) {
+                    $unvalued++;
                     continue;
                 }
 
