@@ -48,21 +48,6 @@
   <div class="costing-warn" role="alert">{{ session('error') }}</div>
 @endif
 
-<div class="costing-panel" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
-  <div>
-    <h2 style="font-size:13px;margin:0 0 6px">روش پیش‌فرض ارزش‌گذاری مصرف‌های آینده</h2>
-    <p class="costing-detail-note" style="margin:0">این انتخاب برای ارزش‌گذاری‌های بعدی و مصرف‌های بدون بهای ثبت‌شده استفاده می‌شود. هزینه‌های تاریخیِ قبلاً ثبت‌شده بازنویسی نمی‌شوند و روش ثبت‌شدهٔ خود را حفظ می‌کنند.</p>
-  </div>
-  <form method="POST" action="{{ route('reports.costing.valuation-method') }}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-    @csrf
-    <select name="method" aria-label="روش ارزش‌گذاری" style="background:#0d2235;color:#dcebf6;border:1px solid #29465e;border-radius:10px;padding:10px;font-family:inherit">
-      <option value="fifo" @selected($valuationMethod === 'fifo')>FIFO — اولین ورود، اولین خروج</option>
-      <option value="weighted_average" @selected($valuationMethod === 'weighted_average')>میانگین موزون</option>
-    </select>
-    <button type="submit" style="background:#153b52;color:#dcebf6;border:1px solid #29465e;border-radius:10px;padding:10px 14px;cursor:pointer;font-family:inherit">ذخیره روش</button>
-  </form>
-</div>
-
 <div class="costing-filters">
   <form method="GET" action="{{ route('reports.costing') }}">
     <div><label for="costing-fiscal-year">سال مالی</label><select id="costing-fiscal-year" name="fiscal_year_id"><option value="">همه</option>@foreach($fiscalYears as $fy)<option value="{{ $fy->id }}" @selected((int)request('fiscal_year_id')===(int)$fy->id)>{{ $fy->name }}</option>@endforeach</select></div>
@@ -72,7 +57,6 @@
     <div><label for="costing-personnel">کارگر</label><select id="costing-personnel" name="personnel_id"><option value="">همه کارگران</option>@foreach($personnel as $worker)<option value="{{ $worker->id }}" @selected((int)request('personnel_id')===(int)$worker->id)>{{ $worker->code }} — {{ $worker->name }}</option>@endforeach</select></div>
     <div><label for="costing-production-section">قسمت تولید</label><select id="costing-production-section" name="production_section_id"><option value="">همه قسمت‌ها</option>@foreach($productionSections as $section)<option value="{{ $section->id }}" @selected((int)request('production_section_id')===(int)$section->id)>{{ $section->name }}</option>@endforeach</select></div>
     <div><label for="costing-production-stage">مرحله تولید</label><select id="costing-production-stage" name="production_stage_id"><option value="">همه مراحل</option>@foreach($productionStages as $stage)<option value="{{ $stage->id }}" @selected((int)request('production_stage_id')===(int)$stage->id)>{{ $stage->name }}</option>@endforeach</select></div>
-    <div><label for="costing-valuation-method">روش محاسبه همین گزارش</label><select id="costing-valuation-method" name="valuation_method"><option value="fifo" @selected($valuationMethod === 'fifo')>FIFO — اولین ورود، اولین خروج</option><option value="weighted_average" @selected($valuationMethod === 'weighted_average')>میانگین موزون</option></select></div>
     <div style="display:flex;align-items:end"><button type="submit">نمایش گزارش</button></div>
   </form>
 </div>
