@@ -358,9 +358,14 @@ class CostingReportTest extends TestCase
         ]);
 
         $service = app(\App\Services\InventoryValuationService::class);
-        $service->setMethod($company, 'weighted_average');
+        try {
+            $service->setMethod($company, 'weighted_average');
+            $this->fail('Changing the default method with inventory history must be blocked until a ledger rebuild exists.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('روش پیش‌فرض انبار', $exception->getMessage());
+        }
 
-        $this->assertSame('weighted_average', $service->methodForCompany($company));
+        $this->assertSame('fifo', $service->methodForCompany($company));
         $this->assertDatabaseHas('inventory_consumption_costs', [
             'inventory_movement_id' => $movement,
             'valuation_method' => 'fifo',
