@@ -542,7 +542,7 @@ class CostingReportTest extends TestCase
             ]);
         }
 
-        $movement = function (int $location, float $quantity, string $type, int $reference, string $at) use ($company, $goods): int {
+        $movement = function (int $location, float $quantity, string $type, int $reference, string $at) use ($company, $goods, $fy): int {
             return DB::table('inventory_movements')->insertGetId([
                 'company_id' => $company, 'goods_id' => $goods, 'location_id' => $location,
                 'quantity' => $quantity, 'movement_type' => $type,
@@ -558,7 +558,7 @@ class CostingReportTest extends TestCase
         $movement($destination, 6, 'production_material_receipt', 91, '2026-04-03 09:01:00');
         $afterTransfer = $movement($destination, -4, 'production_consumption', 92, '2026-04-03 09:02:00');
 
-        $layerSnapshot = DB::table('inventory_cost_layers')->where('company_id', $company)->orderBy('id')->get()->toArray();
+        $layerSnapshot = DB::table('inventory_cost_layers')->where('company_id', $company)->orderBy('id')->get()->map(fn ($row) => (array) $row)->all();
         $movementCount = DB::table('inventory_movements')->where('company_id', $company)->count();
         $costCount = DB::table('inventory_consumption_costs')->where('company_id', $company)->count();
         $replay = app(\\App\\Services\\HistoricalInventoryValuationReportService::class);
@@ -576,7 +576,7 @@ class CostingReportTest extends TestCase
         $this->assertSame(60.0, $average[$afterTransfer]['total_cost']);
         $this->assertSame(4.0, $average[$afterTransfer]['valued_quantity']);
 
-        $this->assertSame($layerSnapshot, DB::table('inventory_cost_layers')->where('company_id', $company)->orderBy('id')->get()->toArray());
+        $this->assertSame($layerSnapshot, DB::table('inventory_cost_layers')->where('company_id', $company)->orderBy('id')->get()->map(fn ($row) => (array) $row)->all());
         $this->assertSame($movementCount, DB::table('inventory_movements')->where('company_id', $company)->count());
         $this->assertSame($costCount, DB::table('inventory_consumption_costs')->where('company_id', $company)->count());
         $this->assertSame(0, $costCount);
