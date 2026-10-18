@@ -93,12 +93,12 @@
                 </label>
 
                 <label class="supply-field" for="production_id">
-                    دستور تولید
-                    <small>با شماره دستور و نام محصول، دستور درست را انتخاب کنید.</small>
+                    مرحله تولید
+                    <small>دستور تولید را با توجه به شماره دستور و نام محصول انتخاب کنید.</small>
                     <select id="production_id" name="production_id">
                         <option value="">انتخاب دستور تولید (اختیاری)</option>
                         @foreach($productions as $p)
-                            <option value="{{ $p->id }}" @selected((string) old('production_id') === (string) $p->id)>دستور تولید {{ $p->number }}</option>
+                            <option value="{{ $p->id }}" @selected((string) old('production_id') === (string) $p->id)>دستور تولید {{ $p->number }} — محصول: {{ $p->goods_name }}</option>
                         @endforeach
                     </select>
                 </label>
