@@ -116,6 +116,9 @@ final class CostingReportController extends Controller
                 $value = $valuationService->valueInventoryMovement((int) $movement->id, (int) $fiscalYearId);
                 if (!empty($value['valued']) && (float) ($value['valued_quantity'] ?? 0) > 0) {
                     $valued++;
+                    if ((float) ($value['unvalued_quantity'] ?? 0) > 0.0001) {
+                        $unvalued++;
+                    }
                 } else {
                     $unvalued++;
                 }
