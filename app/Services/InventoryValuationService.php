@@ -217,12 +217,15 @@ final class InventoryValuationService
                     $value += (float) $layer->{$column} * (float) $layer->unit_cost;
                 }
                 $average = $available > 0 ? $value / $available : 0.0;
-                $remaining = $valuedQuantity;
+                // Weighted-average consumption removes the same fraction from each
+                // contributing layer. Removing FIFO quantities here would distort
+                // the remaining pool's next average by leaving its original costs
+                // concentrated in the wrong quantities.
+                $fraction = $available > 0 ? min(1.0, $valuedQuantity / $available) : 0.0;
                 foreach ($layers as $layer) {
-                    if ($remaining <= 0) break;
-                    $take = min($remaining, (float) $layer->{$column});
+                    $take = (float) $layer->{$column} * $fraction;
+                    if ($take <= 0.0000001) continue;
                     $allocations[] = [$layer, $take, $average];
-                    $remaining -= $take;
                 }
                 $totalCost = $valuedQuantity * $average;
             }
