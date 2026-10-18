@@ -108,7 +108,7 @@ class WorkflowPagesController extends Controller {
   $canCreatePurchase=$r->user()->hasCompanyPermission($cid,'purchase.create');
   $rows=DB::table('purchases')->leftJoin('suppliers','suppliers.id','=','purchases.supplier_id')->where('purchases.company_id',$cid)->select('purchases.*','suppliers.name as supplier_name')->latest('purchases.id')->paginate(20);
   foreach($rows as $row){
-   $row->items=DB::table('purchase_items as pi')->join('goods as g','g.id','=','pi.goods_id')->where('pi.purchase_id',$row->id)->select('pi.quantity','g.name as goods_name')->orderBy('g.name')->get();
+   $row->items=DB::table('purchase_items as pi')->join('goods as g','g.id','=','pi.goods_id')->where('pi.purchase_id',$row->id)->select('pi.quantity','pi.unit_price','pi.line_total','g.name as goods_name')->orderBy('g.name')->get();
   }
   return view('workflows.purchasing',[
    'rows'=>$rows,
