@@ -6,7 +6,7 @@
 - کنترلر: داده‌های موردنیاز فرم در متد مستقل `createSupply` بارگذاری می‌شوند؛ سال مالی فعال session در صورت معتبر بودن به‌صورت پیش‌فرض انتخاب می‌شود.
 - Migration لازم نیست؛ منطق ثبت درخواست و داده‌های موجود تغییر نمی‌کنند.
 - تست محلی، `php artisan route:list` و بررسی مرورگر در این محیط اجرا نشده‌اند. CI پس از PR باید بررسی شود؛ سایت زنده و Deploy تأیید نشده‌اند.
-- شاخه: `feat/supply-request-create-page`. هنوز PR ایجاد/ادغام نشده است.
+- شاخه: `feat/supply-request-create-page`. PR [#204](https://github.com/media-store-rtl/accounting/pull/204) باز است؛ ادغام نشده است.
 
 ---
 
