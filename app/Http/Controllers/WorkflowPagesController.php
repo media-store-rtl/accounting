@@ -105,15 +105,25 @@ class WorkflowPagesController extends Controller {
  }
  public function purchasing(Request $r){
   $cid=CompanyAuthorization::authorize($r,'purchase.view');
+  $canCreatePurchase=$r->user()->hasCompanyPermission($cid,'purchase.create');
+  return view('workflows.purchasing',[
+   'rows'=>DB::table('purchases')->where('company_id',$cid)->latest('id')->paginate(20),
+   'suppliers'=>DB::table('suppliers')->where('company_id',$cid)->where('is_active',true)->get(),
+   'requests'=>DB::table('supply_requests')->where('company_id',$cid)->whereIn('status',['shortage_pending','purchasing','purchased','partially_supplied'])->orderByDesc('id')->get()->each(function($row){$row->items=DB::table('supply_request_items as sri')->join('goods as g','g.id','=','sri.goods_id')->where('sri.supply_request_id',$row->id)->select('sri.*','g.name as goods_name')->get();}),
+   'canCreatePurchase'=>$canCreatePurchase
+  ]);
+ }
+ public function createPurchasing(Request $r){
+  $cid=CompanyAuthorization::authorize($r,'purchase.create');
   $years=DB::table('fiscal_years')->where('company_id',$cid)->where('is_closed',false)->orderByDesc('starts_at')->get();
   $activeFiscalYearId=(int)$r->session()->get('fiscal_year_id');
   if(!$years->contains('id',$activeFiscalYearId)) $activeFiscalYearId=(int)($years->first()->id??0);
-  return view('workflows.purchasing',[
-   'rows'=>DB::table('purchases')->where('company_id',$cid)->latest('id')->paginate(20),
-   'goods'=>DB::table('goods')->where('company_id',$cid)->where('purchasable',true)->get(),
-   'suppliers'=>DB::table('suppliers')->where('company_id',$cid)->where('is_active',true)->get(),
-   'requests'=>DB::table('supply_requests')->where('company_id',$cid)->whereIn('status',['shortage_pending','purchasing','purchased','partially_supplied'])->orderByDesc('id')->get()->each(function($row){$row->items=DB::table('supply_request_items as sri')->join('goods as g','g.id','=','sri.goods_id')->where('sri.supply_request_id',$row->id)->select('sri.*','g.name as goods_name')->get();}),
-   'years'=>$years,'activeFiscalYearId'=>$activeFiscalYearId
+  return view('workflows.purchasing-create',[
+   'years'=>$years,
+   'activeFiscalYearId'=>$activeFiscalYearId,
+   'goods'=>DB::table('goods')->where('company_id',$cid)->where('purchasable',true)->orderBy('name')->get(),
+   'suppliers'=>DB::table('suppliers')->where('company_id',$cid)->where('is_active',true)->orderBy('name')->get(),
+   'requests'=>DB::table('supply_requests')->where('company_id',$cid)->where('status','purchasing')->orderByDesc('id')->get(),
   ]);
  }
  public function handovers(Request $r){$cid=CompanyAuthorization::authorize($r,'supply_request.handover.view');return view('workflows.handovers',['rows'=>DB::table('material_handovers')->where('company_id',$cid)->latest('id')->paginate(20),'requests'=>DB::table('supply_requests')->where('company_id',$cid)->whereIn('status',['stock_available','purchased','partially_supplied'])->get(),'locations'=>DB::table('locations')->where('company_id',$cid)->whereRaw("LOWER(TRIM(type)) = ?",['مواد اولیه'])->where('is_active',true)->orderBy('name')->get(),'sections'=>DB::table('production_sections as ps')->where('ps.company_id',$cid)->where('ps.is_active',true)->orderBy('ps.name')->get(['ps.id','ps.name']),'stages'=>DB::table('production_stages as s')->join('production_routes as pr','pr.id','=','s.production_route_id')->where('pr.company_id',$cid)->where('s.status','active')->whereNotNull('s.production_section_id')->orderBy('s.sequence')->get(['s.id','s.name as stage_name','s.production_section_id']),'users'=>DB::table('company_user as cu')->join('users as u','u.id','=','cu.user_id')->where('cu.company_id',$cid)->where('cu.is_active',true)->select('u.id','u.name')->get(),'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->get()]);}

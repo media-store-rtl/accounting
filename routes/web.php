@@ -119,6 +119,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/purchasing/supply-requests/{supplyRequest}/status', [WorkflowPagesController::class,'updateSupplyPurchaseStatus'])->middleware('company.permission:supply.manage')->whereNumber('supplyRequest')->name('workflows.purchasing.supply-status');
     Route::post('/supply', [WorkflowPagesController::class,'storeSupply'])->middleware('company.permission:supply_request.create')->name('workflows.supply.store');
     Route::post('/supply/{supplyRequest}/stock-review', [SupplyRequestController::class, 'reviewStock'])->middleware('company.permission:supply_request.handover.create')->whereNumber('supplyRequest')->name('workflows.supply.stock-review');
+    Route::get('/purchasing/create', [WorkflowPagesController::class,'createPurchasing'])->middleware('company.permission:purchase.create')->name('workflows.purchasing.create');
     Route::get('/purchasing', [WorkflowPagesController::class,'purchasing'])->middleware('company.permission:purchase.view')->name('workflows.purchasing');
     Route::post('/purchasing', [WorkflowPagesController::class,'storePurchase'])->middleware('company.permission:purchase.create')->name('workflows.purchasing.store');
     Route::get('/production/labor', [WorkflowPagesController::class,'labor'])->middleware('company.permission:production.labor.create')->name('workflows.labor');

@@ -466,4 +466,22 @@ class OrdersSupplyWorkflowTest extends TestCase
 
         $this->assertDatabaseCount('supply_requests', 0);
     }
+    public function test_purchase_registration_form_is_separate_from_purchasing_list(): void
+    {
+        $this->context();
+
+        $this->get('/purchasing')
+            ->assertOk()
+            ->assertSee('ثبت خرید جدید')
+            ->assertSee(route('workflows.purchasing.create'))
+            ->assertDontSee('name="items[0][goods_id]"', false);
+
+        $this->get('/purchasing/create')
+            ->assertOk()
+            ->assertSee('name="items[0][goods_id]"', false)
+            ->assertSee('name="items[0][quantity]"', false)
+            ->assertSee('name="items[0][unit_price]"', false)
+            ->assertSee('purchased_date_picker')
+            ->assertSee('ثبت خرید');
+    }
 }
