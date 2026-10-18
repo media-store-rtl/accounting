@@ -57,6 +57,7 @@
     <div><label for="costing-personnel">کارگر</label><select id="costing-personnel" name="personnel_id"><option value="">همه کارگران</option>@foreach($personnel as $worker)<option value="{{ $worker->id }}" @selected((int)request('personnel_id')===(int)$worker->id)>{{ $worker->code }} — {{ $worker->name }}</option>@endforeach</select></div>
     <div><label for="costing-production-section">قسمت تولید</label><select id="costing-production-section" name="production_section_id"><option value="">همه قسمت‌ها</option>@foreach($productionSections as $section)<option value="{{ $section->id }}" @selected((int)request('production_section_id')===(int)$section->id)>{{ $section->name }}</option>@endforeach</select></div>
     <div><label for="costing-production-stage">مرحله تولید</label><select id="costing-production-stage" name="production_stage_id"><option value="">همه مراحل</option>@foreach($productionStages as $stage)<option value="{{ $stage->id }}" @selected((int)request('production_stage_id')===(int)$stage->id)>{{ $stage->name }}</option>@endforeach</select></div>
+    <div><label for="costing-valuation-method">روش محاسبه همین گزارش</label><select id="costing-valuation-method" name="valuation_method"><option value="fifo" @selected($valuationMethod === 'fifo')>FIFO — اولین ورود، اولین خروج</option><option value="weighted_average" @selected($valuationMethod === 'weighted_average')>میانگین موزون</option></select></div>
     <div style="display:flex;align-items:end"><button type="submit">نمایش گزارش</button></div>
   </form>
 </div>
