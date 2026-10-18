@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Services\CostCalculationService;
 use App\Services\CostingReportService;
 use App\Services\InventoryValuationService;
-use Illuminate\Validation\ValidationException;
 use App\Support\CompanyAuthorization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -35,7 +34,7 @@ final class CostingReportController extends Controller
         );
     }
 
-    public function valueProductionReport(Request $request, int $reportId, InventoryValuationService $valuationService)
+    public function valueProductionReport(Request $request, InventoryValuationService $valuationService, int $reportId)
     {
         $companyId = CompanyAuthorization::authorize($request, 'costing.report.view');
         $report = DB::table('production_shift_reports')
