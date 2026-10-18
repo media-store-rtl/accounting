@@ -25,12 +25,17 @@ final class HistoricalInventoryValuationReportService
         $layers = DB::table('inventory_cost_layers')
             ->where('company_id', $companyId)
             ->orderBy('received_at')->orderBy('id')
-            ->get(['id', 'goods_id', 'location_id', 'quantity_received', 'unit_cost', 'received_at']);
+            ->get(['id', 'goods_id', 'location_id', 'purchase_receipt_id', 'quantity_received', 'unit_cost', 'received_at']);
 
         $movements = DB::table('inventory_movements')
             ->where('company_id', $companyId)
             ->orderBy('occurred_at')->orderBy('id')
             ->get(['id', 'goods_id', 'location_id', 'quantity', 'movement_type', 'reference_type', 'reference_id', 'occurred_at', 'metadata']);
+
+        $receiptLayerKeys = [];
+        foreach ($layers as $layer) {
+            $receiptLayerKeys[(int) $layer->purchase_receipt_id . ':' . (int) $layer->goods_id . ':' . (int) $layer->location_id] = true;
+        }
 
         $events = [];
         foreach ($layers as $layer) {
@@ -87,6 +92,16 @@ final class HistoricalInventoryValuationReportService
             // count the corresponding positive movement a second time.
             if ($quantity > 0) {
                 if (in_array($type, ['purchase_receipt', 'finished_goods_receipt'], true)) {
+                    $receiptKey = (int) $row->reference_id . ':' . $goodsId . ':' . $locationId;
+                    if (isset($receiptLayerKeys[$receiptKey])) continue;
+                    // A positive receipt with no reliable cost layer is still stock,
+                    // but its value must remain unknown for later report calculations.
+                    $stock[$key][] = [
+                        'quantity' => $quantity,
+                        'unit_cost' => null,
+                        'at' => (string) $row->occurred_at,
+                        'layer_id' => null,
+                    ];
                     continue;
                 }
 
