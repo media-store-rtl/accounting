@@ -74,7 +74,9 @@
   @else
     <div class="costing-report-list">
       @foreach($report['production_reports'] as $productionReport)
-        @php($productCost = collect($report['product_rows'])->firstWhere('goods_id', $productionReport['goods_id']))
+        @php
+          $productCost = collect($report['product_rows'])->firstWhere('goods_id', $productionReport['goods_id']);
+        @endphp
         <article class="costing-report-card">
           <header class="costing-report-heading">
             <h3>گزارش #{{ $productionReport['report_id'] }}</h3>
