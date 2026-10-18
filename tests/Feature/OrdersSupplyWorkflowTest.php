@@ -293,6 +293,11 @@ class OrdersSupplyWorkflowTest extends TestCase
 
         $this->get('/supply')
             ->assertOk()
+            ->assertSee('ثبت درخواست جدید')
+            ->assertDontSee('name="production_section_id"', false);
+
+        $this->get('/supply/create')
+            ->assertOk()
             ->assertSee('name="production_section_id"', false)
             ->assertSee('قسمت برش');
 
