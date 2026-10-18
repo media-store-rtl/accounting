@@ -172,7 +172,7 @@
               @if(!empty($productionReport['materials']) && empty($productionReport['material_cost_complete']))
                 <form method="POST" action="{{ route('reports.costing.production-reports.value', ['reportId' => $productionReport['report_id']]) }}" onsubmit="return confirm('فقط حرکت‌های مصرف موجود بررسی می‌شوند؛ موجودی دوباره کسر نمی‌شود. ادامه می‌دهید؟')">
                   @csrf
-                  <button type="submit" style="background:#153b52;color:#dcebf6;border:1px solid #29465e;border-radius:8px;padding:7px 10px;cursor:pointer;font-family:inherit;white-space:nowrap">ریالی کردن</button>
+                  <button type="submit" style="background:#153b52;color:#dcebf6;border:1px solid #29465e;border-radius:8px;padding:7px 10px;cursor:pointer;font-family:inherit;white-space:nowrap">ریالی کردن با روش پیش‌فرض شرکت</button>
                 </form>
               @else
                 <span style="color:#8fc8a8">کامل / بدون ماده</span>
