@@ -22,6 +22,19 @@ final class InventoryValuationService
             throw new RuntimeException('روش ارزش‌گذاری باید FIFO یا Weighted Average باشد.');
         }
 
+        $current = $this->methodForCompany($companyId);
+        if ($current !== $method) {
+            // Remaining quantities are maintained per valuation method. Switching
+            // after any inventory history exists would use stale layer balances
+            // unless a dedicated ledger rebuild/revaluation is performed.
+            $hasInventoryHistory = DB::table('inventory_cost_layers')->where('company_id', $companyId)->exists()
+                || DB::table('inventory_movements')->where('company_id', $companyId)->exists()
+                || DB::table('inventory_consumption_costs')->where('company_id', $companyId)->exists();
+            if ($hasInventoryHistory) {
+                throw new RuntimeException('روش پیش‌فرض انبار پس از ثبت سابقهٔ موجودی قابل تغییر نیست؛ برای مقایسهٔ روش‌ها، روش را از فیلتر خود گزارش انتخاب کنید.');
+            }
+        }
+
         DB::table('companies')->where('id', $companyId)->update([
             'inventory_valuation_method' => $method,
             'updated_at' => now(),
