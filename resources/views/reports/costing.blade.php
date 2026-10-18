@@ -119,7 +119,7 @@
       <div class="costing-empty">گزارش تولید تأییدشده یا تحویل‌شده‌ای برای این فیلتر پیدا نشد.</div>
     @else
       <table class="costing-table">
-        <thead><tr><th>جزئیات</th><th>عملیات</th><th>شماره گزارش</th><th>تاریخ تولید</th><th>محصول</th><th>بخش تولید</th><th>تعداد تولید</th><th>تحویل‌شده</th><th>ضایعات</th><th>دستمزد گزارش (ریال)</th></tr></thead>
+        <thead><tr><th>جزئیات</th><th>شماره گزارش</th><th>تاریخ تولید</th><th>محصول</th><th>بخش تولید</th><th>تعداد تولید</th><th>تحویل‌شده</th><th>ضایعات</th><th>دستمزد گزارش (ریال)</th></tr></thead>
         <tbody>
         @foreach($report['production_reports'] as $productionReport)
           <tr>
@@ -169,16 +169,6 @@
                   <p class="costing-detail-note">ریز مواد بالا فقط تفکیک بخشی از هزینه مواد موجود است و دوباره به جمع هزینه محصول اضافه نمی‌شود. حواله‌هایی که به همین قسمت، ماده، سفارش و تاریخ قابل اتصال نباشند یا ارزش‌گذاری نشده باشند، به‌صورت مقدار ناقص نشان داده می‌شوند. سایر هزینه‌های مواد و هزینه‌های مستقیم خرید همچنان در سطح محصول تجمیع می‌شوند و لزوماً هزینه اختصاصی این گزارش یا کارگر نیستند. سربار تولید نیز هنوز به‌صورت مستقل در این گزارش ثبت/محاسبه نمی‌شود.</p>
                 </div>
               </details>
-            </td>
-            <td>
-              @if(!empty($productionReport['materials']) && empty($productionReport['material_cost_complete']))
-                <form method="POST" action="{{ route('reports.costing.production-reports.value', ['reportId' => $productionReport['report_id']]) }}" onsubmit="return confirm('فقط حرکت‌های مصرف موجود بررسی می‌شوند؛ موجودی دوباره کسر نمی‌شود. ادامه می‌دهید؟')">
-                  @csrf
-                  <button type="submit" title="ریالی کردن مصرف‌های موجود با روش پیش‌فرض شرکت" aria-label="ریالی کردن گزارش تولید" style="background:#153b52;color:#dcebf6;border:1px solid #29465e;border-radius:8px;padding:7px 10px;cursor:pointer;font-family:inherit;white-space:nowrap">ارزش‌گذاری</button>
-                </form>
-              @else
-                <span style="color:#8fc8a8">کامل / بدون ماده</span>
-              @endif
             </td>
             <td>گزارش #{{ $productionReport['report_id'] }}</td>
             <td class="jalali-date" data-date="{{ $productionReport['work_date'] }}">{{ $productionReport['work_date'] }}</td>
