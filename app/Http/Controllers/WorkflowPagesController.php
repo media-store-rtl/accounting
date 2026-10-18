@@ -105,13 +105,20 @@ class WorkflowPagesController extends Controller {
   $rows=DB::table('purchase_receipts')->where('company_id',$cid)->latest('id')->paginate(20);
   foreach($rows as $row){
    $row->items=DB::table('purchase_receipt_items as x')->join('goods as g','g.id','=','x.goods_id')
-    ->where('x.purchase_receipt_id',$row->id)->select('g.name as goods_name','x.quantity')->orderBy('g.name')->get();
+    ->leftJoin('goods_units as gu',function($join){$join->on('gu.goods_id','=','g.id')->where('gu.is_base',true);})
+    ->leftJoin('units as u','u.id','=','gu.unit_id')
+    ->where('x.purchase_receipt_id',$row->id)
+    ->select('g.name as goods_name','x.quantity','u.name as unit_name','u.symbol as unit_symbol')
+    ->orderBy('g.name')->get();
   }
   return view('workflows.receipts',[
    'rows'=>$rows,
    'purchases'=>DB::table('purchases')->where('company_id',$cid)->whereIn('status',['draft','partially_received'])->get(),
    'locations'=>DB::table('locations')->where('company_id',$cid)->whereRaw("LOWER(TRIM(type)) = ?",['مواد اولیه'])->where('is_active',true)->orderBy('name')->get(),
-   'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->get()
+   'goods'=>DB::table('goods')->select('goods.*')
+    ->selectSub(DB::table('goods_units as gu')->join('units as u','u.id','=','gu.unit_id')->whereColumn('gu.goods_id','goods.id')->where('gu.is_base',true)->select('u.name')->limit(1),'base_unit_name')
+    ->selectSub(DB::table('goods_units as gu')->join('units as u','u.id','=','gu.unit_id')->whereColumn('gu.goods_id','goods.id')->where('gu.is_base',true)->select('u.symbol')->limit(1),'base_unit_symbol')
+    ->where('goods.company_id',$cid)->where('goods.is_active',true)->get()
   ]);
  }
  public function approveReceipt(Request $r,int $id){$cid=CompanyAuthorization::authorize($r,'purchase.receipt.approve');app(PurchaseReceiptController::class)->approve($r,$id);return back()->with('success','رسید تأیید شد و موجودی به‌روزرسانی شد.');}

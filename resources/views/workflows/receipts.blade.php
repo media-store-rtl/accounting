@@ -34,9 +34,9 @@
             </label>
             <input name="received_at" type="hidden" value="{{ old('received_at') }}">
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">کالا
-                <select name="items[0][goods_id]" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">@foreach($goods as $g)<option value="{{ $g->id }}" @selected((string)old('items.0.goods_id')===(string)$g->id)>{{ $g->name }}</option>@endforeach</select>
+                <select id="receipt-goods-select" name="items[0][goods_id]" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">@foreach($goods as $g)@php($unitLabel = trim(($g->base_unit_name ?? '') . (($g->base_unit_symbol ?? '') !== '' ? ' (' . $g->base_unit_symbol . ')' : ''))) <option value="{{ $g->id }}" data-unit-label="{{ $unitLabel !== '' ? $unitLabel : 'واحد تعریف نشده' }}" @selected((string)old('items.0.goods_id')===(string)$g->id)>{{ $g->name }}</option>@endforeach</select>
             </label>
-            <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">مقدار
+            <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">مقدار <span id="receipt-unit-label" style="color:#e9f3fb;font-weight:600">واحد انتخابی کالا</span>
                 <input name="items[0][quantity]" type="number" step="0.0001" min="0.0001" value="{{ old('items.0.quantity') }}" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
                 @error('items.0.quantity')<span style="color:#ffb8a8;line-height:1.8;font-size:11px">{{ $message }}</span>@enderror
             </label>
@@ -50,8 +50,12 @@
 </div>
 
 <div class="panel"><h2 style="font-size:15px;margin:0 0 14px">رسیدهای ثبت‌شده</h2>
-<div class="table-wrap"><table><thead><tr><th>شناسه</th><th>خرید</th><th>اقلام و مقدار</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
-@forelse($rows as $row)<tr><td>#{{ $row->id }}</td><td>#{{ $row->purchase_id }}</td><td>@forelse($row->items as $item)<div>{{ $item->goods_name }} — {{ number_format((float)$item->quantity,4,'.',',') }}</div>@empty—@endforelse</td><td><span class="status {{ $row->status === 'approved' ? 'active' : 'inactive' }}">{{ $row->status === 'pending' ? 'در انتظار تأیید' : ($row->status === 'approved' ? 'تأیید شده' : $row->status) }}</span></td><td>@if($row->status==='pending')<form method="POST" action="{{ route('workflows.receipts.approve',$row->id) }}">@csrf<button class="btn" type="submit">تأیید رسید</button></form>@else—@endif</td></tr>@empty<tr><td colspan="5" style="text-align:center;padding:28px;color:#8198ac">رسیدی برای نمایش وجود ندارد.</td></tr>@endforelse
+<div class="table-wrap"><table><thead><tr><th>شناسه</th><th>خرید</th><th>کالا</th><th>مقدار</th><th>واحد</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
+@forelse($rows as $row)<tr><td>#{{ $row->id }}</td><td>#{{ $row->purchase_id }}</td>
+<td>@forelse($row->items as $item)<div>{{ $item->goods_name }}</div>@empty—@endforelse</td>
+<td>@forelse($row->items as $item)<div>{{ number_format((float)$item->quantity,4,'.',',') }}</div>@empty—@endforelse</td>
+<td>@forelse($row->items as $item)<div>{{ $item->unit_name ?: 'واحد تعریف نشده' }}@if($item->unit_symbol) ({{ $item->unit_symbol }})@endif</div>@empty—@endforelse</td>
+<td><span class="status {{ $row->status === 'approved' ? 'active' : 'inactive' }}">{{ $row->status === 'pending' ? 'در انتظار تأیید' : ($row->status === 'approved' ? 'تأیید شده' : $row->status) }}</span></td><td>@if($row->status==='pending')<form method="POST" action="{{ route('workflows.receipts.approve',$row->id) }}">@csrf<button class="btn" type="submit">تأیید رسید</button></form>@else—@endif</td></tr>@empty<tr><td colspan="7" style="text-align:center;padding:28px;color:#8198ac">رسیدی برای نمایش وجود ندارد.</td></tr>@endforelse
 </tbody></table></div>
 @if(method_exists($rows, 'links'))<div class="pagination">{{ $rows->links() }}</div>@endif
 </div>
@@ -66,6 +70,18 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 <script>
 const receiptForm = document.querySelector('form[action="{{ route('workflows.receipts.store') }}"]');
+const receiptGoodsSelect = document.getElementById('receipt-goods-select');
+const receiptUnitLabel = document.getElementById('receipt-unit-label');
+function updateReceiptUnitLabel() {
+    const selectedOption = receiptGoodsSelect?.selectedOptions?.[0];
+    if (receiptUnitLabel) {
+        receiptUnitLabel.textContent = selectedOption?.dataset?.unitLabel || 'واحد تعریف نشده';
+    }
+}
+if (receiptGoodsSelect) {
+    receiptGoodsSelect.addEventListener('change', updateReceiptUnitLabel);
+    updateReceiptUnitLabel();
+}
 if (receiptForm) {
     receiptForm.addEventListener('submit', function (event) {
         const date = document.getElementById('received_date_iso').value;
