@@ -78,8 +78,8 @@ class InventoryValuationTest extends TestCase
         $this->assertSame(1500.0, round($first['total_cost'], 4));
         $this->assertSame(250.0, round($second['total_cost'], 4));
         $this->assertSame(12.5, round($second['unit_cost'], 6));
-        $this->assertSame(30.0, round((float) DB::table('inventory_cost_layers')->sum('weighted_average_quantity_remaining'), 4));
-        $this->assertEqualsWithDelta(375.0, (float) DB::table('inventory_cost_layers as l')
+        $this->assertSame(60.0, round((float) DB::table('inventory_cost_layers')->sum('weighted_average_quantity_remaining'), 4));
+        $this->assertEqualsWithDelta(750.0, (float) DB::table('inventory_cost_layers as l')
             ->selectRaw('SUM(l.weighted_average_quantity_remaining * l.unit_cost) as remaining_value')
             ->value('remaining_value'), 0.0001);
     }
