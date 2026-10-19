@@ -14,6 +14,7 @@ class MobileNavigationMenuTest extends TestCase
         $this->assertStringContainsString('>خانه</a>', $view);
         $this->assertStringContainsString('>فروش</a>', $view);
         $this->assertStringContainsString('>تأمین</a>', $view);
+        $this->assertStringContainsString('>انبار</a>', $view);
         $this->assertStringContainsString('>تولید</a>', $view);
         $this->assertStringContainsString('>گزارشات</a>', $view);
         $this->assertStringContainsString('>بیشتر</a>', $view);
@@ -45,6 +46,7 @@ class MobileNavigationMenuTest extends TestCase
         }
 
         $this->assertStringContainsString('id="mobile-supply-panel"', $view);
+        $this->assertStringContainsString('id="mobile-warehouse-panel"', $view);
         $this->assertStringContainsString('id="mobile-more-panel"', $view);
         $this->assertStringContainsString('id="mobile-home-panel"', $view);
         $this->assertStringContainsString('id="mobile-reports-panel"', $view);
@@ -59,6 +61,21 @@ class MobileNavigationMenuTest extends TestCase
         $productionPanel = substr($view, $productionPanelStart, $reportsPanelStart - $productionPanelStart);
         $this->assertStringContainsString("route('workflows.labor')", $productionPanel);
         $this->assertStringContainsString('کارکرد تولید', $productionPanel);
+
+        $supplyPanelStart = strpos($view, '<div class="mobile-sales-panel" id="mobile-supply-panel"');
+        $warehousePanelStart = strpos($view, '<div class="mobile-sales-panel" id="mobile-warehouse-panel"', $supplyPanelStart === false ? 0 : $supplyPanelStart);
+        $productionPanelStartForWarehouse = strpos($view, '<div class="mobile-sales-panel" id="mobile-production-panel"', $warehousePanelStart === false ? 0 : $warehousePanelStart);
+        $this->assertNotFalse($supplyPanelStart);
+        $this->assertNotFalse($warehousePanelStart);
+        $this->assertNotFalse($productionPanelStartForWarehouse);
+        $supplyPanel = substr($view, $supplyPanelStart, $warehousePanelStart - $supplyPanelStart);
+        $warehousePanel = substr($view, $warehousePanelStart, $productionPanelStartForWarehouse - $warehousePanelStart);
+        $this->assertStringNotContainsString('موجودی انبار', $supplyPanel);
+        $this->assertStringNotContainsString('تحویل و ارسال', $supplyPanel);
+        $this->assertStringContainsString('موجودی انبار', $warehousePanel);
+        $this->assertStringContainsString('تحویل و ارسال', $warehousePanel);
+        $this->assertStringContainsString('درخواست‌های مواد برای بررسی', $warehousePanel);
+        $this->assertStringContainsString('انبارها و محل‌ها', $warehousePanel);
 
     }
 }
