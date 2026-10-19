@@ -39,6 +39,7 @@ class MobileNavigationMenuTest extends TestCase
             'قسمت‌های تولید',
             'مراحل تولید',
             'مسیرهای تولید',
+            'کارکرد تولید',
         ] as $label) {
             $this->assertStringContainsString($label, $view);
         }
@@ -47,5 +48,9 @@ class MobileNavigationMenuTest extends TestCase
         $this->assertStringContainsString('id="mobile-more-panel"', $view);
         $this->assertStringContainsString('id="mobile-home-panel"', $view);
         $this->assertStringContainsString('id="mobile-reports-panel"', $view);
+        $this->assertStringContainsString('id="mobile-production-panel"', $view);
+        $this->assertStringContainsString("\$can['production_labor'] ?? false", $view);
+        $this->assertStringContainsString("route('workflows.labor')", $view);
+        $this->assertStringContainsString("request()->routeIs('workflows.labor*')", $view);
     }
 }
