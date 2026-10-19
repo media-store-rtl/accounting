@@ -52,5 +52,13 @@ class MobileNavigationMenuTest extends TestCase
         $this->assertStringContainsString("\$can['production_labor'] ?? false", $view);
         $this->assertStringContainsString("route('workflows.labor')", $view);
         $this->assertStringContainsString("request()->routeIs('workflows.labor*')", $view);
+        $productionPanelStart = strpos($view, '<div class="mobile-sales-panel" id="mobile-production-panel"');
+        $reportsPanelStart = strpos($view, '<div class="mobile-sales-panel" id="mobile-reports-panel"', $productionPanelStart === false ? 0 : $productionPanelStart);
+        $this->assertNotFalse($productionPanelStart);
+        $this->assertNotFalse($reportsPanelStart);
+        $productionPanel = substr($view, $productionPanelStart, $reportsPanelStart - $productionPanelStart);
+        $this->assertStringContainsString("route('workflows.labor')", $productionPanel);
+        $this->assertStringContainsString('کارکرد تولید', $productionPanel);
+
     }
 }
