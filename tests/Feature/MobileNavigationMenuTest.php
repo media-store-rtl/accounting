@@ -74,6 +74,8 @@ class MobileNavigationMenuTest extends TestCase
         $this->assertStringNotContainsString('تحویل و ارسال', $supplyPanel);
         $this->assertStringContainsString('موجودی انبار', $warehousePanel);
         $this->assertStringContainsString('تحویل و ارسال', $warehousePanel);
+        $this->assertStringNotContainsString('تحویل مواد', $supplyPanel);
+        $this->assertStringContainsString('تحویل مواد', $warehousePanel);
         $this->assertStringContainsString('درخواست‌های مواد برای بررسی', $warehousePanel);
         $this->assertStringContainsString('انبارها و محل‌ها', $warehousePanel);
 
