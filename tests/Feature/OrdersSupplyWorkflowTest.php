@@ -162,6 +162,48 @@ class OrdersSupplyWorkflowTest extends TestCase
     }
 
 
+    public function test_receipt_form_prefills_the_remaining_quantity_from_the_selected_purchase(): void
+    {
+        $c=$this->context();
+        $purchase=DB::table('purchases')->insertGetId([
+            'company_id'=>$c['company'],'fiscal_year_id'=>$c['fy'],'supplier_id'=>$c['supplier'],
+            'purchased_at'=>'2026-10-16','subtotal'=>500,'direct_cost_total'=>0,'total_amount'=>500,
+            'status'=>'draft','created_at'=>now(),'updated_at'=>now(),
+        ]);
+        DB::table('purchase_items')->insert([
+            'purchase_id'=>$purchase,'goods_id'=>$c['goods'],'quantity'=>5,'unit_price'=>100,'line_total'=>500,
+            'created_at'=>now(),'updated_at'=>now(),
+        ]);
+
+        $this->get('/receipts')->assertOk()
+            ->assertSee('"purchase_quantity":5',false)
+            ->assertSee('"remaining_quantity":5',false)
+            ->assertSee('مقدار پیشنهادی برابر باقی‌مانده است',false)
+            ->assertSee('receipt-quantity-warning',false);
+    }
+
+    public function test_purchase_edit_shows_a_friendly_notice_when_a_receipt_already_exists(): void
+    {
+        $c=$this->context();
+        $purchase=DB::table('purchases')->insertGetId([
+            'company_id'=>$c['company'],'fiscal_year_id'=>$c['fy'],'supplier_id'=>$c['supplier'],
+            'purchased_at'=>'2026-10-16','subtotal'=>500,'direct_cost_total'=>0,'total_amount'=>500,
+            'status'=>'draft','created_at'=>now(),'updated_at'=>now(),
+        ]);
+        DB::table('purchase_items')->insert([
+            'purchase_id'=>$purchase,'goods_id'=>$c['goods'],'quantity'=>5,'unit_price'=>100,'line_total'=>500,
+            'created_at'=>now(),'updated_at'=>now(),
+        ]);
+        $this->postJson('/api/purchase-receipts',[
+            'purchase_id'=>$purchase,'warehouse_location_id'=>$c['warehouse'],'received_at'=>'2026-10-16 10:00:00',
+            'items'=>[['goods_id'=>$c['goods'],'quantity'=>1]],
+        ])->assertCreated();
+
+        $this->get('/purchasing/'.$purchase.'/edit')
+            ->assertRedirect('/purchasing')
+            ->assertSessionHas('error','این خرید رسید انبار دارد؛ برای حفظ سوابق موجودی و بهای تمام‌شده، ویرایش آن غیرفعال است.');
+    }
+
     public function test_purchase_can_be_registered_without_a_supply_request_and_requires_positive_unit_price(): void
     {
         $c=$this->context();
