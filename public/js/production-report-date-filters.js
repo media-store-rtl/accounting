@@ -72,7 +72,11 @@ export function setupCostingRefreshButton(documentRef = globalThis.document) {
 
     const csrfToken = documentRef.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
         || documentRef.querySelector('input[name="_token"]')?.value;
-    if (!csrfToken) return false;
+    const xsrfCookie = documentRef.cookie
+        .split('; ')
+        .find(cookie => cookie.startsWith('XSRF-TOKEN='))
+        ?.slice('XSRF-TOKEN='.length);
+    if (!csrfToken && !xsrfCookie) return false;
 
     const heading = panel.querySelector('h2');
     if (!heading || panel.querySelector('[data-costing-refresh]')) return false;
@@ -103,14 +107,15 @@ export function setupCostingRefreshButton(documentRef = globalThis.document) {
             return value ? Number(value) : null;
         }).filter(Boolean);
 
+        const headers = { Accept: 'text/html' };
+        if (csrfToken) headers['X-CSRF-TOKEN'] = csrfToken;
+        if (xsrfCookie) headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrfCookie);
+
         const results = await Promise.allSettled(reportIds.map(async reportId => {
             const response = await fetch(`/reports/costing/production-reports/${reportId}/value`, {
                 method: 'POST',
                 credentials: 'same-origin',
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'text/html',
-                },
+                headers,
             });
             if (!response.ok) throw new Error(`refresh failed for report ${reportId}`);
             return reportId;
