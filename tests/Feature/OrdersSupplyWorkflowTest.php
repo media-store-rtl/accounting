@@ -747,7 +747,6 @@ class OrdersSupplyWorkflowTest extends TestCase
         $this->get('/receipts')
             ->assertOk()
             ->assertSee('ثبت رسید اولیه توسط انبار')
-            ->assertSee('تکمیل خرید و نهایی‌سازی')
             ->assertDontSee('name="purchase_id"', false);
 
         $receipt = $this->postJson('/api/purchase-receipts', [
@@ -767,6 +766,7 @@ class OrdersSupplyWorkflowTest extends TestCase
             'reference_type' => 'purchase_receipts',
             'reference_id' => $receipt,
         ]);
+        $this->get('/receipts')->assertOk()->assertSee('تکمیل خرید و نهایی‌سازی');
 
         $this->postJson('/api/purchase-receipts/'.$receipt.'/approve', [
             'supplier_id' => $c['supplier'],
