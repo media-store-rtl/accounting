@@ -42,28 +42,19 @@ final class CostingReportController extends Controller
             return back()->with('error', 'برای این گزارش مادهٔ مصرفی ثبت نشده است.');
         }
 
-        $movements = DB::table('inventory_movements')
-            ->where('company_id', $companyId)
-            ->where('reference_type', 'production_shift_reports')
-            ->where('reference_id', $reportId)
-            ->where('movement_type', 'production_consumption')
-            ->where('quantity', '<', 0)
-            ->orderBy('id')
-            ->get(['id', 'goods_id', 'location_id', 'quantity', 'occurred_at']);
+        // Resolve the same production-consumption pool used by CostingReportService.
+        // Consumption movements are often linked to supply requests/production runs,
+        // not directly to the shift report id.
+        $allocation = $this->productionReportConsumptionMovements($companyId, $reportId);
+        $movements = $allocation['movements'];
 
         if ($movements->isEmpty()) {
-            return back()->with('error', 'برای این گزارش حوالهٔ مصرف انبار ثبت نشده است؛ برای جلوگیری از ساختن مصرف تاریخی یا کسر دوبارهٔ موجودی، ریالی‌سازی انجام نشد.');
+            return back()->with('error', 'برای این گزارش مصرف قابل تخصیص از انبار پیدا نشد؛ ارتباط قسمت تولید، ماده، سفارش و تاریخ را بررسی کنید.');
         }
 
-        $consumedByGoods = $movements->groupBy('goods_id')->map(fn ($rows) => $rows->sum(fn ($row) => abs((float) $row->quantity)));
         foreach ($materials as $goodsId => $material) {
-            if (abs((float) ($consumedByGoods->get($goodsId) ?? 0) - (float) $material->quantity) > 0.0001) {
-                return back()->with('error', 'مقدار حوالهٔ مصرف انبار با مواد گزارش تولید همخوان نیست؛ ابتدا مغایرت را بررسی کنید.');
-            }
-        }
-        foreach ($consumedByGoods as $goodsId => $quantity) {
-            if (!$materials->has($goodsId) || abs((float) $quantity - (float) $materials->get($goodsId)->quantity) > 0.0001) {
-                return back()->with('error', 'حوالهٔ مصرف شامل ماده‌ای خارج از ریز مواد گزارش است؛ ابتدا مغایرت را بررسی کنید.');
+            if (abs((float) ($allocation['allocated_by_goods'][$goodsId] ?? 0) - (float) $material->quantity) > 0.0001) {
+                return back()->with('error', 'مقدار مصرف قابل تخصیص به گزارش با ریز مواد همخوان نیست؛ برای جلوگیری از ارزش‌گذاری مصرف اشتباه، اقدامی انجام نشد.');
             }
         }
 
@@ -140,6 +131,107 @@ final class CostingReportController extends Controller
         }
 
         return back()->with('success', 'ریالی‌سازی ردیف بررسی شد: '.$result['valued'].' حرکت ارزش‌گذاری شد و '.$result['alreadyValued'].' حرکت از قبل ارزش‌گذاری شده بود؛ موجودی دوباره کسر نشد.');
+    }
+
+
+    /**
+     * Allocate consumption movements to approved/received shift reports using
+     * the same section + material + order + date ordering as the costing report.
+     *
+     * A movement may contribute to more than one report; valuation remains at
+     * movement level, while allocation is used only to identify relevant moves.
+     */
+    private function productionReportConsumptionMovements(int $companyId, int $reportId): array
+    {
+        $usageRows = DB::table('production_shift_report_materials as rm')
+            ->join('production_shift_reports as r', 'r.id', '=', 'rm.production_shift_report_id')
+            ->where('r.company_id', $companyId)
+            ->whereIn('r.status', ['approved', 'received'])
+            ->orderBy('r.work_date')->orderBy('r.id')->orderBy('rm.id')
+            ->get([
+                'rm.id as material_row_id', 'rm.production_shift_report_id as report_id',
+                'rm.goods_id as material_id', 'rm.quantity',
+                'r.production_section_id', 'r.order_id', 'r.work_date',
+            ]);
+
+        $consumptionRows = DB::table('inventory_movements as m')
+            ->join('locations as l', function ($join) use ($companyId) {
+                $join->on('l.id', '=', 'm.location_id')->where('l.company_id', '=', $companyId);
+            })
+            ->leftJoin('production_sections as ps', 'ps.location_id', '=', 'l.id')
+            ->where('m.company_id', $companyId)
+            ->where('m.movement_type', 'production_consumption')
+            ->where('m.quantity', '<', 0)
+            ->orderBy('m.occurred_at')->orderBy('m.id')
+            ->get([
+                'm.id', 'm.goods_id', 'm.quantity', 'm.location_id',
+                'm.occurred_at', 'm.metadata', 'ps.id as location_section_id',
+            ]);
+
+        $metadataByMovement = [];
+        $supplyIds = [];
+        $productionIds = [];
+        foreach ($consumptionRows as $movement) {
+            $metadata = json_decode((string) $movement->metadata, true) ?: [];
+            $metadataByMovement[(int) $movement->id] = $metadata;
+            if (!empty($metadata['supply_request_id'])) $supplyIds[] = (int) $metadata['supply_request_id'];
+            if (!empty($metadata['production_id'])) $productionIds[] = (int) $metadata['production_id'];
+        }
+
+        $supplies = empty($supplyIds) ? collect() : DB::table('supply_requests')
+            ->where('company_id', $companyId)->whereIn('id', array_unique($supplyIds))
+            ->get(['id', 'production_section_id', 'order_id'])->keyBy('id');
+        $productionOrders = empty($productionIds) ? collect() : DB::table('production_order')
+            ->whereIn('production_id', array_unique($productionIds))
+            ->orderBy('order_id')->get(['production_id', 'order_id'])
+            ->groupBy('production_id')->map(fn ($links) => $links->first());
+
+        $pools = [];
+        foreach ($consumptionRows as $movement) {
+            $metadata = $metadataByMovement[(int) $movement->id] ?? [];
+            $supply = $supplies->get((int) ($metadata['supply_request_id'] ?? 0));
+            $productionOrder = $productionOrders->get((int) ($metadata['production_id'] ?? 0));
+            $sectionId = (int) ($supply->production_section_id ?? $movement->location_section_id ?? 0);
+            if ($sectionId <= 0) continue;
+            $orderId = (int) ($supply->order_id ?? $productionOrder->order_id ?? $metadata['order_id'] ?? 0);
+            $key = $sectionId . ':' . (int) $movement->goods_id . ':' . $orderId;
+            $pools[$key][] = [
+                'movement' => $movement,
+                'remaining' => abs((float) $movement->quantity),
+                'date' => substr((string) $movement->occurred_at, 0, 10),
+            ];
+        }
+
+        $allocatedByGoods = [];
+        $targetMovementIds = [];
+        foreach ($usageRows as $usage) {
+            $key = (int) $usage->production_section_id . ':' . (int) $usage->material_id . ':' . (int) ($usage->order_id ?? 0);
+            if (empty($pools[$key])) continue;
+            $remainingUsage = max(0.0, (float) $usage->quantity);
+            foreach ($pools[$key] as &$pool) {
+                if ($remainingUsage <= 0.0000001) break;
+                if ($pool['remaining'] <= 0.0000001 || $pool['date'] > substr((string) $usage->work_date, 0, 10)) continue;
+                $allocated = min($remainingUsage, $pool['remaining']);
+                $pool['remaining'] -= $allocated;
+                $remainingUsage -= $allocated;
+                if ((int) $usage->report_id === $reportId) {
+                    $goodsId = (int) $usage->material_id;
+                    $allocatedByGoods[$goodsId] = ($allocatedByGoods[$goodsId] ?? 0.0) + $allocated;
+                    $targetMovementIds[(int) $pool['movement']->id] = true;
+                }
+            }
+            unset($pool);
+        }
+
+        $movementIds = array_keys($targetMovementIds);
+        $movements = $movementIds
+            ? $consumptionRows->whereIn('id', $movementIds)->values()
+            : collect();
+
+        return [
+            'movements' => $movements,
+            'allocated_by_goods' => $allocatedByGoods,
+        ];
     }
 
     public function index(Request $request, CostingReportService $service, InventoryValuationService $valuationService)
