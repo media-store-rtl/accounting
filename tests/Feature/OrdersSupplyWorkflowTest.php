@@ -58,11 +58,16 @@ class OrdersSupplyWorkflowTest extends TestCase
             ]);
         }
 
-        $this->get(route('workflows.supply.create'))
+        $response = $this->get(route('workflows.supply.create'))
             ->assertOk()
-            ->assertSee('برش — دستور PR-100')
-            ->assertSee('برش — دستور PR-101')
-            ->assertSee('production_stage_run_id');
+            ->assertSee('فقط مراحل تعریف‌شده در مسیر تولید نمایش داده می‌شوند؛ هر تعریف مرحله یک‌بار در فهرست می‌آید.')
+            ->assertSee('name="production_stage_id"', false)
+            ->assertSee('برش</option>', false)
+            ->assertDontSee('PR-100')
+            ->assertDontSee('PR-101')
+            ->assertDontSee('production_stage_run_id', false);
+
+        $this->assertSame(1, substr_count($response->getContent(), 'value="'.$stage.'"'));
     }
 
     public function test_order_number_is_generated_by_server_and_cannot_be_overridden(): void
@@ -464,9 +469,10 @@ class OrdersSupplyWorkflowTest extends TestCase
             ->assertSee('name="production_section_id"', false)
             ->assertSee('قسمت برش')
             ->assertSee('مرحله تولید و مقصد مصرف')
-            ->assertSee('نام مرحله همراه با شماره دستور تولید و محصول نمایش داده می‌شود تا مراحل هم‌نام از هم قابل تشخیص باشند.')
-            ->assertSee('name="production_stage_run_id"', false)
-            ->assertSee('برش — دستور PROD-1 (Material)')
+            ->assertSee('فقط مراحل تعریف‌شده در مسیر تولید نمایش داده می‌شوند؛ هر تعریف مرحله یک‌بار در فهرست می‌آید.')
+            ->assertSee('name="production_stage_id"', false)
+            ->assertSee('برش</option>', false)
+            ->assertDontSee('PROD-1')
             ->assertDontSee('مقدار برنامه‌ریزی‌شده:')
             ->assertSee('مشتری: Customer')
             ->assertSee('سفارش ORD-5')
@@ -570,7 +576,7 @@ class OrdersSupplyWorkflowTest extends TestCase
             'items' => [['goods_id' => $c['goods'], 'quantity' => 2]],
         ])->assertRedirect('/supply')
           ->assertSessionHasErrors([
-              'production_stage_run_id' => 'مرحله تولید، قسمت تولید یا سفارش باید مشخص شود.',
+              'production_stage_id' => 'مرحله تولید، قسمت تولید یا سفارش باید مشخص شود.',
           ]);
 
         $this->assertDatabaseCount('supply_requests', 0);
