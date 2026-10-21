@@ -63,7 +63,8 @@ export function setupProductionReportDatePicker(pickerSelector, isoSelector, {
 
 export function setupCostingRefreshButton(documentRef = globalThis.document) {
     const table = documentRef?.querySelector('.costing-main-table');
-    const panel = documentRef?.querySelector('.costing-panel');
+    const panel = Array.from(documentRef?.querySelectorAll('.costing-panel') ?? [])
+        .find(candidate => candidate.querySelector('.costing-main-table'));
     if (!table || !panel) return false;
 
     const incompleteRows = Array.from(table.querySelectorAll('tbody tr'))
