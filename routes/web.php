@@ -122,6 +122,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/purchasing/create', [WorkflowPagesController::class,'createPurchasing'])->middleware('company.permission:purchase.create')->name('workflows.purchasing.create');
     Route::get('/purchasing', [WorkflowPagesController::class,'purchasing'])->middleware('company.permission:purchase.view')->name('workflows.purchasing');
     Route::post('/purchasing', [WorkflowPagesController::class,'storePurchase'])->middleware('company.permission:purchase.create')->name('workflows.purchasing.store');
+    Route::get('/purchasing/{purchase}/edit', [WorkflowPagesController::class,'editPurchase'])->middleware('company.permission:purchase.create')->whereNumber('purchase')->name('workflows.purchasing.edit');
+    Route::put('/purchasing/{purchase}', [WorkflowPagesController::class,'updatePurchase'])->middleware('company.permission:purchase.create')->whereNumber('purchase')->name('workflows.purchasing.update');
     Route::get('/production/labor', [WorkflowPagesController::class,'labor'])->middleware('company.permission:production.labor.create')->name('workflows.labor');
     Route::post('/production/labor', [WorkflowPagesController::class,'storeLabor'])->middleware('company.permission:production.labor.create')->name('workflows.labor.store');
     Route::get('/inventory', [WorkflowPagesController::class,'inventory'])->middleware('company.permission:inventory.view')->name('inventory.index');
