@@ -164,4 +164,40 @@ class InventoryValuationTest extends TestCase
             ->where('location_id', $sectionLocation)->sum('fifo_quantity_remaining'));
     }
 
+
+    public function test_partial_valuation_can_be_completed_from_later_eligible_layers_without_double_consumption(): void
+    {
+        $c = $this->context(InventoryValuationService::FIFO);
+        $this->layer($c, 5, 10, '2026-10-01 10:00:00');
+        $movementId = $this->movement($c, 8);
+        $service = app(InventoryValuationService::class);
+
+        $first = $service->valueInventoryMovement($movementId, $c['fy']);
+        $this->assertSame(5.0, (float) $first['valued_quantity']);
+        $this->assertSame(3.0, (float) $first['unvalued_quantity']);
+        $this->assertSame(1, DB::table('inventory_consumption_cost_items')->count());
+
+        // This receipt is eligible for the movement timestamp and covers the gap.
+        $this->layer($c, 3, 20, '2026-10-02 10:00:00');
+        $completed = $service->valueInventoryMovement($movementId, $c['fy']);
+
+        $this->assertSame(8.0, (float) $completed['valued_quantity']);
+        $this->assertSame(0.0, (float) $completed['unvalued_quantity']);
+        $this->assertSame(110.0, round((float) $completed['total_cost'], 4));
+        $this->assertSame(13.75, round((float) $completed['unit_cost'], 4));
+
+        $cost = DB::table('inventory_consumption_costs')->where('inventory_movement_id', $movementId)->first();
+        $this->assertSame(1, DB::table('inventory_consumption_costs')->where('inventory_movement_id', $movementId)->count());
+        $this->assertSame(8.0, (float) $cost->quantity);
+        $this->assertSame(110.0, (float) $cost->total_cost);
+        $this->assertSame(2, DB::table('inventory_consumption_cost_items')->where('inventory_consumption_cost_id', $cost->id)->count());
+        $this->assertSame(0.0, (float) DB::table('inventory_cost_layers')->sum('fifo_quantity_remaining'));
+
+        // Retrying is idempotent: no extra allocation and no second layer deduction.
+        $repeat = $service->valueInventoryMovement($movementId, $c['fy']);
+        $this->assertSame(110.0, round((float) $repeat['total_cost'], 4));
+        $this->assertSame(2, DB::table('inventory_consumption_cost_items')->where('inventory_consumption_cost_id', $cost->id)->count());
+        $this->assertSame(0.0, (float) DB::table('inventory_cost_layers')->sum('fifo_quantity_remaining'));
+    }
+
 }
