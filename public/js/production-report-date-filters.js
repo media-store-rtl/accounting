@@ -70,7 +70,8 @@ export function setupCostingRefreshButton(documentRef = globalThis.document) {
         .filter(row => row.querySelector('.costing-status.incomplete'));
     if (!incompleteRows.length) return false;
 
-    const csrfToken = documentRef.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const csrfToken = documentRef.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        || documentRef.querySelector('input[name="_token"]')?.value;
     if (!csrfToken) return false;
 
     const heading = panel.querySelector('h2');
