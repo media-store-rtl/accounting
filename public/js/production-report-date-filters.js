@@ -111,17 +111,20 @@ export function setupCostingRefreshButton(documentRef = globalThis.document) {
         if (csrfToken) headers['X-CSRF-TOKEN'] = csrfToken;
         if (xsrfCookie) headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrfCookie);
 
-        const results = await Promise.allSettled(reportIds.map(async reportId => {
-            const response = await fetch(`/reports/costing/production-reports/${reportId}/value`, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers,
-            });
-            if (!response.ok) throw new Error(`refresh failed for report ${reportId}`);
-            return reportId;
-        }));
+        let failed = 0;
+        for (const reportId of reportIds) {
+            try {
+                const response = await fetch(`/reports/costing/production-reports/${reportId}/value`, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers,
+                });
+                if (!response.ok) failed++;
+            } catch (error) {
+                failed++;
+            }
+        }
 
-        const failed = results.filter(result => result.status === 'rejected').length;
         note.textContent = failed
             ? `${failed} گزارش قابل بروزرسانی نبود؛ وضعیت موجود بررسی و صفحه دوباره بارگذاری می‌شود.`
             : 'بروزرسانی انجام شد؛ گزارش با داده‌های جدید دوباره محاسبه می‌شود.';
