@@ -67,7 +67,8 @@ class OrdersSupplyWorkflowTest extends TestCase
             ->assertDontSee('PR-101')
             ->assertDontSee('production_stage_run_id', false);
 
-        $this->assertSame(1, substr_count($response->getContent(), 'value="'.$stage.'"'));
+        preg_match('/<select id="production_stage_id".*?<\/select>/s', $response->getContent(), $stageSelect);
+        $this->assertSame(1, substr_count($stageSelect[0] ?? '', 'value="'.$stage.'"'));
     }
 
     public function test_supply_request_saves_the_selected_production_stage_definition(): void
