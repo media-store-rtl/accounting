@@ -810,7 +810,7 @@ class OrdersSupplyWorkflowTest extends TestCase
         $this->postJson('/api/purchase-receipts/'.$receipt.'/approve', [
             'supplier_id' => $c['supplier'],
             'unit_prices' => [$c['goods'] => 125],
-        ])->assertStatus(403);
+        ])->assertStatus(422);
         $this->assertSame(1, DB::table('inventory_movements')
             ->where('reference_type', 'purchase_receipts')->where('reference_id', $receipt)->count());
     }
