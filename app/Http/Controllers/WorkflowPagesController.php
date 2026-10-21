@@ -103,6 +103,48 @@ class WorkflowPagesController extends Controller {
    ->orderBy('o.production_due_at')->orderByDesc('o.id')->paginate(30);
   return view('production.due-dates',compact('rows'));
  }
+ public function editPurchase(Request $r,int $purchase){
+  $cid=CompanyAuthorization::authorize($r,'purchase.create');
+  $row=DB::table('purchases')->where('company_id',$cid)->where('id',$purchase)->first();
+  abort_unless($row,404);
+  abort_if($row->status==='cancelled' || DB::table('purchase_receipts')->where('purchase_id',$purchase)->exists(),409,'خرید لغو شده یا دارای رسید است و قابل ویرایش نیست.');
+  $purchaseItems=DB::table('purchase_items')->where('purchase_id',$purchase)->orderBy('id')->get()->map(fn($item)=>['goods_id'=>$item->goods_id,'quantity'=>$item->quantity,'unit_price'=>$item->unit_price])->all();
+  return view('workflows.purchasing-edit',[
+   'purchase'=>$row,'purchaseItems'=>$purchaseItems,
+   'goods'=>DB::table('goods')->where('company_id',$cid)->where('purchasable',true)->where('is_active',true)->orderBy('name')->get(),
+   'suppliers'=>DB::table('suppliers')->where('company_id',$cid)->where('is_active',true)->orderBy('name')->get(),
+  ]);
+ }
+ public function updatePurchase(Request $r,int $purchase){
+  $cid=CompanyAuthorization::authorize($r,'purchase.create');
+  $data=$r->validate([
+   'supplier_id'=>'nullable|integer','purchased_at'=>'required|date',
+   'items'=>'required|array|min:1','items.*.goods_id'=>'required|integer','items.*.quantity'=>'required|numeric|gt:0','items.*.unit_price'=>'required|numeric|gt:0',
+  ]);
+  DB::transaction(function()use($r,$cid,$purchase,$data){
+   $row=DB::table('purchases')->where('company_id',$cid)->where('id',$purchase)->lockForUpdate()->first();
+   abort_unless($row,404);
+   abort_if($row->status==='cancelled' || DB::table('purchase_receipts')->where('purchase_id',$purchase)->exists(),409,'خرید لغو شده یا دارای رسید است و قابل ویرایش نیست.');
+   $supplierId=$data['supplier_id']??null;
+   if($supplierId!==null) abort_unless(DB::table('suppliers')->where('id',$supplierId)->where('company_id',$cid)->where('is_active',true)->exists(),422,'تأمین‌کننده نامعتبر است.');
+   $subtotal=0;
+   foreach($data['items'] as $item){
+    abort_unless(DB::table('goods')->where('id',$item['goods_id'])->where('company_id',$cid)->where('purchasable',true)->where('is_active',true)->exists(),422,'کالا قابل خرید نیست.');
+    $subtotal+=(float)$item['quantity']*(float)$item['unit_price'];
+   }
+   $direct=(float)DB::table('purchase_direct_costs')->where('purchase_id',$purchase)->sum('amount');
+   DB::table('purchase_items')->where('purchase_id',$purchase)->delete();
+   foreach($data['items'] as $item){
+    $qty=(float)$item['quantity'];$price=(float)$item['unit_price'];
+    DB::table('purchase_items')->insert(['purchase_id'=>$purchase,'goods_id'=>$item['goods_id'],'quantity'=>$qty,'unit_price'=>$price,'line_total'=>$qty*$price,'created_at'=>now(),'updated_at'=>now()]);
+   }
+   DB::table('purchases')->where('id',$purchase)->where('company_id',$cid)->update([
+    'supplier_id'=>$supplierId,'purchased_at'=>$data['purchased_at'],'subtotal'=>$subtotal,
+    'direct_cost_total'=>$direct,'total_amount'=>$subtotal+$direct,'updated_at'=>now()
+   ]);
+  });
+  return redirect()->route('workflows.purchasing')->with('success','خرید ویرایش شد.');
+ }
  public function purchasing(Request $r){
   $cid=CompanyAuthorization::authorize($r,'purchase.view');
   $canCreatePurchase=$r->user()->hasCompanyPermission($cid,'purchase.create');
