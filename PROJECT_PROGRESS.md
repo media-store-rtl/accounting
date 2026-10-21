@@ -1,3 +1,14 @@
+# 122. ثبت رسید انبار پیش از ثبت خرید و نهایی‌سازی یک‌مرحله‌ای تدارکات — 2026-10-21
+
+- درخواست: گردش کار به این ترتیب تغییر کند که انبار ابتدا مقدار واقعی دریافتی را بدون نیاز به خرید ثبت کند؛ سپس تدارکات در همان رسید تأمین‌کننده و فی هر قلم را وارد و با یک اقدام خرید را ایجاد و رسید را نهایی کند.
+- رسید اولیه با `purchase_id = null` و وضعیت `pending` ذخیره می‌شود و به‌تنهایی موجودی یا لایه بهای تمام‌شده را تغییر نمی‌دهد. در نهایی‌سازی، خرید و اقلام آن از همان رسید ساخته می‌شوند؛ سپس در همان تراکنش مسیر موجود تأیید، ثبت حرکت موجودی و ارزش‌گذاری اجرا می‌شود. نهایی‌سازی مجدد برای رسید تأییدشده مجاز نیست.
+- سازگاری با رسیدهای قدیمی متصل به خرید حفظ شده است؛ مسیر قدیمی ثبت رسید همچنان در صورت ارسال `purchase_id` اعتبارسنجی و کار می‌کند. ویرایش رسید اولیه تا قبل از نهایی‌سازی نیز پشتیبانی می‌شود.
+- فایل‌ها: `database/migrations/2026_10_21_140000_make_purchase_receipt_purchase_nullable.php`, `app/Http/Controllers/PurchaseReceiptController.php`, `app/Http/Controllers/WorkflowPagesController.php`, `routes/web.php`, `resources/views/layouts/dashboard-shell.blade.php`, `resources/views/workflows/receipts.blade.php`, `resources/views/workflows/receipts-edit.blade.php`, `tests/Feature/OrdersSupplyWorkflowTest.php`, `PROJECT_PROGRESS.md`.
+- تست رگرسیون برای ثبت رسید بدون خرید، عدم تغییر موجودی پیش از نهایی‌سازی، ساخت خرید از رسید، ثبت موجودی/بهای تمام‌شده و جلوگیری از ثبت دوباره اضافه شد. تست محلی در این محیط اجرا نشده است. CI در GitHub Actions با اجرای `39584070959` روی commit `1a7fee3a230341bf910cc3b64c85cdd01151c8a8` موفق شد (job `phpunit`؛ شامل migrate و `php artisan test`). migration روی محیط واقعی، مرورگر، سایت زنده و Deploy بررسی نشده‌اند.
+- شاخه: `feat/warehouse-first-purchase-receipt`. PR [#221](https://github.com/media-store-rtl/accounting/pull/221) باز است و ادغام نشده است.
+
+---
+
 # 121. امکان ویرایش رسیدهای در انتظار تأیید — 2026-10-21
 
 - درخواست: افزودن امکان ویرایش رسیدهای ثبت‌شده در صفحه رسیدهای انبار.

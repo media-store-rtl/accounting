@@ -103,7 +103,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/purchases', [PurchaseController::class, 'store'])->middleware('company.permission:purchase.create')->name('purchases.store');
         Route::get('/purchases/{purchase}', [PurchaseController::class, 'show'])->middleware('company.permission:purchase.view')->name('purchases.show');
         Route::post('/purchase-receipts', [PurchaseReceiptController::class, 'store'])->middleware('company.permission:purchase.receipt.create')->name('purchase-receipts.store');
-        Route::post('/purchase-receipts/{purchaseReceipt}/approve', [PurchaseReceiptController::class, 'approve'])->middleware('company.permission:purchase.receipt.approve')->name('purchase-receipts.approve');
+        Route::post('/purchase-receipts/{purchaseReceipt}/approve', [PurchaseReceiptController::class, 'approve'])->name('purchase-receipts.approve');
         Route::post('/production/labor', [LaborCostController::class, 'store'])->middleware('company.permission:production.labor.create')->name('production.labor.store');
         Route::post('/production/labor/{laborEntry}/review', [LaborCostController::class, 'review'])->middleware('company.permission:production.labor.review')->name('production.labor.review');
         Route::post('/production/labor/rates', [LaborCostController::class, 'setRate'])->middleware('company.permission:production.labor.rate.manage')->name('production.labor.rates.store');
@@ -130,11 +130,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/inventory/{location}/{goods}/reorder-point', [WorkflowPagesController::class,'setReorderPoint'])->middleware('company.permission:inventory.reorder_point.manage')->whereNumber('location')->whereNumber('goods')->name('inventory.reorder-point');
     Route::get('/handovers', [WorkflowPagesController::class,'handovers'])->middleware('company.permission:supply_request.handover.view')->name('workflows.handovers');
     Route::post('/handovers', [WorkflowPagesController::class,'storeHandover'])->middleware('company.permission:supply_request.handover.create')->name('workflows.handovers.store');
-    Route::get('/receipts', [WorkflowPagesController::class,'receipts'])->middleware('company.permission:purchase.receipt.create')->name('workflows.receipts');
+    Route::get('/receipts', [WorkflowPagesController::class,'receipts'])->name('workflows.receipts');
     Route::post('/receipts', [WorkflowPagesController::class,'storeReceipt'])->middleware('company.permission:purchase.receipt.create')->name('workflows.receipts.store');
     Route::get('/receipts/{id}/edit', [WorkflowPagesController::class,'editReceipt'])->middleware('company.permission:purchase.receipt.create')->whereNumber('id')->name('workflows.receipts.edit');
     Route::put('/receipts/{id}', [WorkflowPagesController::class,'updateReceipt'])->middleware('company.permission:purchase.receipt.create')->whereNumber('id')->name('workflows.receipts.update');
-    Route::post('/receipts/{id}/approve', [WorkflowPagesController::class,'approveReceipt'])->middleware('company.permission:purchase.receipt.approve')->name('workflows.receipts.approve');
+    Route::post('/receipts/{id}/approve', [WorkflowPagesController::class,'approveReceipt'])->whereNumber('id')->name('workflows.receipts.approve');
 
     Route::get('/production/shift-reports', [\App\Http\Controllers\ProductionShiftReportController::class,'index'])->middleware('company.permission:production.operation.view')->name('production.shift-reports.index');
     Route::get('/production/shift-reports/create', [\App\Http\Controllers\ProductionShiftReportController::class,'create'])->middleware('company.permission:production.operation.create')->name('production.shift-reports.create');

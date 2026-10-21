@@ -129,38 +129,24 @@ class WorkflowPagesController extends Controller {
  public function handovers(Request $r){$cid=CompanyAuthorization::authorize($r,'supply_request.handover.view');return view('workflows.handovers',['rows'=>DB::table('material_handovers')->where('company_id',$cid)->latest('id')->paginate(20),'requests'=>DB::table('supply_requests')->where('company_id',$cid)->whereIn('status',['stock_available','purchased','partially_supplied'])->get(),'locations'=>DB::table('locations')->where('company_id',$cid)->whereRaw("LOWER(TRIM(type)) = ?",['مواد اولیه'])->where('is_active',true)->orderBy('name')->get(),'sections'=>DB::table('production_sections as ps')->where('ps.company_id',$cid)->where('ps.is_active',true)->orderBy('ps.name')->get(['ps.id','ps.name']),'stages'=>DB::table('production_stages as s')->join('production_routes as pr','pr.id','=','s.production_route_id')->where('pr.company_id',$cid)->where('s.status','active')->whereNotNull('s.production_section_id')->orderBy('s.sequence')->get(['s.id','s.name as stage_name','s.production_section_id']),'users'=>DB::table('company_user as cu')->join('users as u','u.id','=','cu.user_id')->where('cu.company_id',$cid)->where('cu.is_active',true)->select('u.id','u.name')->get(),'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->get()]);}
  public function storeHandover(Request $r){$cid=CompanyAuthorization::authorize($r,'supply_request.handover.create');$r->validate(['supply_request_id'=>'nullable|integer','warehouse_location_id'=>'required|integer','production_section_id'=>'nullable|integer','production_stage_id'=>'nullable|integer','delivered_by_user_id'=>'required|integer','received_by_user_id'=>'required|integer','handed_over_at'=>'required|date','items'=>'required|array|min:1','items.*.goods_id'=>'required|integer','items.*.quantity'=>'required|numeric|gt:0']);app(MaterialHandoverController::class)->store($r,app(\App\Services\InventoryService::class),app(\App\Services\InventoryValuationService::class));return back()->with('success','تحویل مواد ثبت شد.');}
  public function receipts(Request $r){
-  $cid=CompanyAuthorization::authorize($r,'purchase.receipt.create');
+  $cid=(int)$r->session()->get('company_id');
+  $canCreateReceipt=$cid>0 && $r->user()->hasCompanyPermission($cid,'purchase.receipt.create');
+  $canCreatePurchase=$cid>0 && $r->user()->hasCompanyPermission($cid,'purchase.create');
+  $canApproveExisting=$cid>0 && $r->user()->hasCompanyPermission($cid,'purchase.receipt.approve');
+  abort_unless($canCreateReceipt || $canCreatePurchase || $canApproveExisting,403);
   $rows=DB::table('purchase_receipts')->where('company_id',$cid)->latest('id')->paginate(20);
   foreach($rows as $row){
    $row->items=DB::table('purchase_receipt_items as x')->join('goods as g','g.id','=','x.goods_id')
-    ->where('x.purchase_receipt_id',$row->id)->select('g.name as goods_name','x.quantity')->orderBy('g.name')->get();
-  }
-  $purchases=DB::table('purchases')->where('company_id',$cid)->whereIn('status',['draft','partially_received'])->orderByDesc('id')->get();
-  $purchaseItems=[];
-  foreach($purchases as $purchase){
-   $items=DB::table('purchase_items as pi')->join('goods as g','g.id','=','pi.goods_id')
-    ->where('pi.purchase_id',$purchase->id)->select('pi.goods_id','pi.quantity as purchase_quantity','g.name as goods_name')->orderBy('g.name')->get();
-   foreach($items as $item){
-    $reserved=(float)DB::table('purchase_receipt_items as x')
-     ->join('purchase_receipts as pr','pr.id','=','x.purchase_receipt_id')
-     ->where('pr.purchase_id',$purchase->id)->whereIn('pr.status',['pending','approved'])
-     ->where('x.goods_id',$item->goods_id)->sum('x.quantity');
-    $purchaseItems[$purchase->id][]=[
-     'goods_id'=>(int)$item->goods_id,
-     'goods_name'=>$item->goods_name,
-     'purchase_quantity'=>(float)$item->purchase_quantity,
-     'received_quantity'=>$reserved,
-     'remaining_quantity'=>max(0,(float)$item->purchase_quantity-$reserved),
-    ];
-   }
-   $purchaseItems[$purchase->id]=$purchaseItems[$purchase->id]??[];
+    ->where('x.purchase_receipt_id',$row->id)->select('x.id','x.goods_id','g.name as goods_name','x.quantity')->orderBy('g.name')->get();
   }
   return view('workflows.receipts',[
    'rows'=>$rows,
-   'purchases'=>$purchases,
-   'purchaseItems'=>$purchaseItems,
+   'canCreateReceipt'=>$canCreateReceipt,
+   'canCreatePurchase'=>$canCreatePurchase,
+   'canApproveExisting'=>$canApproveExisting,
+   'suppliers'=>DB::table('suppliers')->where('company_id',$cid)->where('is_active',true)->orderBy('name')->get(),
    'locations'=>DB::table('locations')->where('company_id',$cid)->whereRaw("LOWER(TRIM(type)) = ?",['مواد اولیه'])->where('is_active',true)->orderBy('name')->get(),
-   'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->get()
+   'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->where('purchasable',true)->orderBy('name')->get(),
   ]);
  }
  public function editReceipt(Request $r,int $id){
@@ -194,8 +180,8 @@ class WorkflowPagesController extends Controller {
    if($receipt->status!=='pending'){
     throw \Illuminate\Validation\ValidationException::withMessages(['receipt'=>'فقط رسیدهای در انتظار تأیید قابل ویرایش هستند؛ رسید تأییدشده را نمی‌توان تغییر داد.']);
    }
-   $purchase=DB::table('purchases')->where('company_id',$cid)->where('id',$receipt->purchase_id)->lockForUpdate()->first();
-   abort_unless($purchase,404);
+   $purchase=$receipt->purchase_id ? DB::table('purchases')->where('company_id',$cid)->where('id',$receipt->purchase_id)->lockForUpdate()->first() : null;
+   if ($receipt->purchase_id) abort_unless($purchase,404);
    if(!DB::table('locations')->where('id',$data['warehouse_location_id'])->where('company_id',$cid)->whereRaw("LOWER(TRIM(type)) = ?",['مواد اولیه'])->where('is_active',true)->exists()){
     throw \Illuminate\Validation\ValidationException::withMessages(['warehouse_location_id'=>'انبار انتخاب‌شده معتبر یا فعال نیست. یک انبار فعال از نوع «مواد اولیه» انتخاب کنید.']);
    }
@@ -210,17 +196,22 @@ class WorkflowPagesController extends Controller {
     if(!$receiptItem||(int)$receiptItem->goods_id!==(int)$item['goods_id']){
      throw \Illuminate\Validation\ValidationException::withMessages(["items.{$index}.goods_id"=>'کالای این قلم با رسید ثبت‌شده مطابقت ندارد.']);
     }
-    $purchaseItem=DB::table('purchase_items')->where('purchase_id',$purchase->id)->where('goods_id',$receiptItem->goods_id)->first();
-    if(!$purchaseItem){
-     throw \Illuminate\Validation\ValidationException::withMessages(["items.{$index}.goods_id"=>'این کالا دیگر در اقلام خرید وجود ندارد.']);
-    }
-    $reservedByOthers=(float)DB::table('purchase_receipt_items as x')
-     ->join('purchase_receipts as pr','pr.id','=','x.purchase_receipt_id')
-     ->where('pr.purchase_id',$purchase->id)->where('pr.id','<>',$receipt->id)
-     ->whereIn('pr.status',['pending','approved'])->where('x.goods_id',$receiptItem->goods_id)->sum('x.quantity');
-    if($reservedByOthers+(float)$item['quantity']>(float)$purchaseItem->quantity+0.0000001){
-     $remaining=max(0,(float)$purchaseItem->quantity-$reservedByOthers);
-     throw \Illuminate\Validation\ValidationException::withMessages(["items.{$index}.quantity"=>'مقدار این قلم از باقی‌مانده خرید بیشتر است. حداکثر مقدار مجاز: '.number_format($remaining,4,'.',',').'.']);
+    if ($purchase) {
+     $purchaseItem=DB::table('purchase_items')->where('purchase_id',$purchase->id)->where('goods_id',$receiptItem->goods_id)->first();
+     if(!$purchaseItem){
+      throw \Illuminate\Validation\ValidationException::withMessages(["items.{$index}.goods_id"=>'این کالا دیگر در اقلام خرید وجود ندارد.']);
+     }
+     $reservedByOthers=(float)DB::table('purchase_receipt_items as x')
+      ->join('purchase_receipts as pr','pr.id','=','x.purchase_receipt_id')
+      ->where('pr.purchase_id',$purchase->id)->where('pr.id','<>',$receipt->id)
+      ->whereIn('pr.status',['pending','approved'])->where('x.goods_id',$receiptItem->goods_id)->sum('x.quantity');
+     if($reservedByOthers+(float)$item['quantity']>(float)$purchaseItem->quantity+0.0000001){
+      $remaining=max(0,(float)$purchaseItem->quantity-$reservedByOthers);
+      throw \Illuminate\Validation\ValidationException::withMessages(["items.{$index}.quantity"=>'مقدار این قلم از باقی‌مانده خرید بیشتر است. حداکثر مقدار مجاز: '.number_format($remaining,4,'.',',').'.']);
+     }
+    } else {
+     $goods=DB::table('goods')->where('id',$receiptItem->goods_id)->where('company_id',$cid)->where('purchasable',true)->where('is_active',true)->exists();
+     if (!$goods) throw \Illuminate\Validation\ValidationException::withMessages(["items.{$index}.goods_id"=>'کالای رسید معتبر یا قابل خرید نیست.']);
     }
     DB::table('purchase_receipt_items')->where('id',$receiptItem->id)->where('purchase_receipt_id',$receipt->id)->update([
      'quantity'=>$item['quantity'],'updated_at'=>now(),
@@ -235,8 +226,8 @@ class WorkflowPagesController extends Controller {
   });
   return redirect()->route('workflows.receipts')->with('success','رسید انبار به‌روزرسانی شد.');
  }
- public function approveReceipt(Request $r,int $id){$cid=CompanyAuthorization::authorize($r,'purchase.receipt.approve');app(PurchaseReceiptController::class)->approve($r,$id);return back()->with('success','رسید تأیید شد و موجودی به‌روزرسانی شد.');}
- public function storeReceipt(Request $r){$cid=CompanyAuthorization::authorize($r,'purchase.receipt.create');$d=$r->validate(['purchase_id'=>'required|integer','warehouse_location_id'=>'required|integer','received_at'=>'required|date','notes'=>'nullable|string','items'=>'required|array|min:1','items.*.goods_id'=>'required|integer','items.*.quantity'=>'required|numeric|gt:0']);app(PurchaseReceiptController::class)->store($r);return back()->with('success','رسید خرید ثبت شد.');}
+ public function approveReceipt(Request $r,int $id){app(PurchaseReceiptController::class)->approve($r,$id);return back()->with('success','اطلاعات خرید ثبت شد و رسید نهایی شد؛ موجودی و بهای کالا به‌روزرسانی شد.');}
+ public function storeReceipt(Request $r){CompanyAuthorization::authorize($r,'purchase.receipt.create');$r->validate(['warehouse_location_id'=>'required|integer','received_at'=>'required|date','notes'=>'nullable|string','items'=>'required|array|min:1','items.*.goods_id'=>'required|integer|distinct','items.*.quantity'=>'required|numeric|gt:0']);app(PurchaseReceiptController::class)->store($r);return back()->with('success','رسید اولیه انبار ثبت شد؛ برای تکمیل خرید و ثبت موجودی، تدارکات باید قیمت‌ها را وارد و رسید را نهایی کند.');}
  public function labor(Request $r){$cid=CompanyAuthorization::authorize($r,'production.labor.create');return view('workflows.labor',['rows'=>DB::table('production_labor_entries')->where('company_id',$cid)->latest('id')->paginate(20),'personnel'=>DB::table('personnel')->where('account_id',$r->user()->account_id)->where('is_active',true)->get(),'runs'=>DB::table('production_operation_runs as r')->join('production_stage_runs as sr','sr.id','=','r.production_stage_run_id')->join('productions as p','p.id','=','sr.production_id')->where('p.company_id',$cid)->select('r.id','p.number')->latest('r.id')->get()]);}
  public function warehouseSupplyRequests(Request $r){
   $cid=CompanyAuthorization::authorize($r,'supply_request.handover.create');

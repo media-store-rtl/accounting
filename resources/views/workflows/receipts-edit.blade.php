@@ -19,8 +19,8 @@
         @csrf
         @method('PUT')
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px">
-            <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">خرید
-                <input value="خرید #{{ $receipt->purchase_id }}" disabled style="background:#142a3b;color:#9eb2c4;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
+            <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">وضعیت خرید
+                <input value="{{ $receipt->purchase_id ? 'خرید #'.$receipt->purchase_id : 'رسید اولیه؛ خرید پس از تکمیل تدارکات ساخته می‌شود' }}" disabled style="background:#142a3b;color:#9eb2c4;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
             </label>
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">انبار
                 <select name="warehouse_location_id" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">

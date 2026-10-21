@@ -6,58 +6,129 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
 <style>
 .receipt-date-picker{box-sizing:border-box;width:100%;min-height:42px;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit}
-@media(max-width:650px){.datepicker-container{position:fixed!important;top:50%!important;left:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)!important;z-index:10000!important;max-width:calc(100vw - 20px)!important}.datepicker-plot-area{max-width:calc(100vw - 20px)!important;box-sizing:border-box!important}}
+.receipt-field{box-sizing:border-box;width:100%;background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit}
+.receipt-items{display:grid;gap:10px;margin-top:10px}
+.receipt-item-row{display:grid;grid-template-columns:minmax(180px,2fr) minmax(120px,1fr) auto;gap:10px;align-items:end;padding:12px;border:1px solid #29465e;border-radius:10px}
+@media(max-width:650px){.receipt-item-row{grid-template-columns:1fr}.datepicker-container{position:fixed!important;top:50%!important;left:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)!important;z-index:10000!important;max-width:calc(100vw - 20px)!important}.datepicker-plot-area{max-width:calc(100vw - 20px)!important;box-sizing:border-box!important}}
 </style>
 @endpush
 
 @section('content')
-<div class="page-heading"><div><h1>رسیدهای خرید</h1><p>ثبت دریافت کالا و مدیریت تأیید رسیدهای انبار</p></div></div>
+<div class="page-heading"><div><h1>رسیدهای خرید</h1><p>ابتدا انبار مقدار واقعی دریافتی را ثبت می‌کند؛ سپس تدارکات قیمت خرید را وارد و رسید را نهایی می‌کند.</p></div></div>
 @if(session('success'))<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #246451;border-radius:12px;background:#0c282b;color:#8ce8ce;font-size:12px">{{ session('success') }}</div>@endif
 @if(session('error'))<div role="alert" style="padding:12px 15px;margin-bottom:16px;border:1px solid #714448;border-radius:12px;background:#302126;color:#ffb8a8;font-size:12px">{{ session('error') }}</div>@endif
-@if($errors->any())<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #714448;border-radius:12px;background:#302126;color:#ffb8a8;font-size:12px">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
+@if($errors->any())<div role="alert" style="padding:12px 15px;margin-bottom:16px;border:1px solid #714448;border-radius:12px;background:#302126;color:#ffb8a8;font-size:12px">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
 
+@if($canCreateReceipt)
 <div class="panel" style="margin-bottom:18px">
-    <h2 style="font-size:15px;margin:0 0 16px">ثبت رسید جدید</h2>
-    <form method="POST" action="{{ route('workflows.receipts.store') }}">@csrf
+    <h2 style="font-size:15px;margin:0 0 8px">ثبت رسید اولیه توسط انبار</h2>
+    <p style="font-size:12px;color:#9eb2c4;line-height:1.9;margin:0 0 16px">در این مرحله خرید و قیمت ثبت نمی‌شود. فقط کالاهایی را وارد کنید که واقعاً تحویل گرفته‌اید. موجودی انبار پس از تکمیل قیمت‌ها و نهایی‌سازی توسط تدارکات به‌روزرسانی می‌شود.</p>
+    @php
+        $receiptItems = old('items', [['goods_id' => '', 'quantity' => '']]);
+        if (!is_array($receiptItems) || count($receiptItems) === 0) $receiptItems = [['goods_id' => '', 'quantity' => '']];
+        $nextReceiptItemIndex = max(array_map('intval', array_keys($receiptItems))) + 1;
+    @endphp
+    <form method="POST" action="{{ route('workflows.receipts.store') }}" id="receipt-create-form">@csrf
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px">
-            <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">خرید
-                <select id="receipt-purchase-select" name="purchase_id" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit"><option value="">انتخاب خرید</option>@foreach($purchases as $p)<option value="{{ $p->id }}" @selected((string)old('purchase_id')===(string)$p->id)>خرید #{{ $p->id }}</option>@endforeach</select>
-            </label>
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">انبار
-                <select name="warehouse_location_id" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">@foreach($locations as $l)<option value="{{ $l->id }}" @selected((string)old('warehouse_location_id')===(string)$l->id)>{{ $l->name }}</option>@endforeach</select>
+                <select name="warehouse_location_id" class="receipt-field" required>@foreach($locations as $l)<option value="{{ $l->id }}" @selected((string)old('warehouse_location_id')===(string)$l->id)>{{ $l->name }}</option>@endforeach</select>
             </label>
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">تاریخ دریافت
                 <input id="received_date_picker" type="text" class="receipt-date-picker" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" required>
                 <input id="received_date_iso" type="hidden" value="{{ old('received_at') ? substr(old('received_at'), 0, 10) : '' }}">
             </label>
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">ساعت دریافت
-                <input id="received_time" type="time" value="{{ old('received_at') ? substr(old('received_at'), 11, 5) : '' }}" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit;color-scheme:dark">
+                <input id="received_time" type="time" value="{{ old('received_at') ? substr(old('received_at'), 11, 5) : '' }}" required class="receipt-field" style="color-scheme:dark">
             </label>
-            <input name="received_at" type="hidden" value="{{ old('received_at') }}">
-            <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">کالا
-                <select id="receipt-goods-select" name="items[0][goods_id]" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit"><option value="">ابتدا خرید را انتخاب کنید</option></select>
-            </label>
-            <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">مقدار
-                <input id="receipt-quantity-input" name="items[0][quantity]" type="number" step="0.0001" min="0.0001" value="{{ old('items.0.quantity') }}" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
-                <span id="receipt-quantity-hint" aria-live="polite" style="color:#9eb2c4;line-height:1.8;font-size:11px">پس از انتخاب خرید و کالا، مقدار باقی‌مانده به‌صورت خودکار پیشنهاد می‌شود.</span>
-                <span id="receipt-quantity-warning" role="alert" style="display:none;color:#ffb8a8;line-height:1.8;font-size:11px"></span>
-                @error('items.0.quantity')<span style="color:#ffb8a8;line-height:1.8;font-size:11px">{{ $message }}</span>@enderror
-            </label>
-            @error('warehouse_location_id')<div style="color:#ffb8a8;font-size:11px;align-self:end">{{ $message }}</div>@enderror
+            <input name="received_at" id="received_at" type="hidden" value="{{ old('received_at') }}">
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">توضیحات (اختیاری)
-                <input name="notes" value="{{ old('notes') }}" style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
+                <input name="notes" value="{{ old('notes') }}" class="receipt-field">
             </label>
         </div>
-        <div style="margin-top:18px"><button class="btn primary" type="submit">ثبت رسید</button></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:22px">
+            <h3 style="font-size:14px;margin:0;color:#e9f3fb">اقلامی که واقعاً تحویل گرفته شده‌اند</h3>
+            <button class="btn" type="button" id="add-receipt-item">+ افزودن کالا</button>
+        </div>
+        <div id="receipt-items-list" class="receipt-items">
+            @foreach($receiptItems as $index => $item)
+            <div class="receipt-item-row" data-receipt-item>
+                <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">کالا
+                    <select name="items[{{ $index }}][goods_id]" class="receipt-field" required>
+                        <option value="">انتخاب کالا</option>
+                        @foreach($goods as $g)<option value="{{ $g->id }}" @selected((string)old('items.'.$index.'.goods_id',$item['goods_id']??'')===(string)$g->id)>{{ $g->name }}</option>@endforeach
+                    </select>
+                </label>
+                <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">مقدار دریافتی
+                    <input name="items[{{ $index }}][quantity]" class="receipt-field" type="number" min="0.0001" step="0.0001" value="{{ old('items.'.$index.'.quantity',$item['quantity']??'') }}" required>
+                </label>
+                <button class="btn" type="button" data-remove-receipt-item>حذف قلم</button>
+            </div>
+            @endforeach
+        </div>
+        @error('warehouse_location_id')<p style="color:#ffb8a8;font-size:11px">{{ $message }}</p>@enderror
+        <div style="margin-top:18px"><button class="btn primary" type="submit">ثبت رسید اولیه</button></div>
     </form>
 </div>
+@endif
 
 <div class="panel"><h2 style="font-size:15px;margin:0 0 14px">رسیدهای ثبت‌شده</h2>
 <div class="table-wrap"><table><thead><tr><th>شناسه</th><th>خرید</th><th>اقلام و مقدار</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>
-@forelse($rows as $row)<tr><td>#{{ $row->id }}</td><td>#{{ $row->purchase_id }}</td><td>@forelse($row->items as $item)<div>{{ $item->goods_name }} — {{ number_format((float)$item->quantity,4,'.',',') }}</div>@empty—@endforelse</td><td><span class="status {{ $row->status === 'approved' ? 'active' : 'inactive' }}">{{ $row->status === 'pending' ? 'در انتظار تأیید' : ($row->status === 'approved' ? 'تأیید شده' : $row->status) }}</span></td><td>@if($row->status==='pending')<div style="display:flex;gap:7px;flex-wrap:wrap"><a class="btn" href="{{ route('workflows.receipts.edit',$row->id) }}">ویرایش رسید</a><form method="POST" action="{{ route('workflows.receipts.approve',$row->id) }}">@csrf<button class="btn" type="submit">تأیید رسید</button></form></div>@else<span title="رسید تأییدشده به دلیل ثبت گردش موجودی و بهای تمام‌شده قابل ویرایش نیست." style="color:#9eb2c4;font-size:11px">قفل‌شده پس از تأیید</span>@endif</td></tr>@empty<tr><td colspan="5" style="text-align:center;padding:28px;color:#8198ac">رسیدی برای نمایش وجود ندارد.</td></tr>@endforelse
+@forelse($rows as $row)
+<tr>
+    <td>#{{ $row->id }}</td>
+    <td>{{ $row->purchase_id ? '#'.$row->purchase_id : 'هنوز ثبت نشده' }}</td>
+    <td>@forelse($row->items as $item)<div>{{ $item->goods_name }} — {{ number_format((float)$item->quantity,4,'.',',') }}</div>@empty—@endforelse</td>
+    <td><span class="status {{ $row->status === 'approved' ? 'active' : 'inactive' }}">{{ $row->status === 'pending' ? ($row->purchase_id ? 'در انتظار تأیید' : 'در انتظار تدارکات') : ($row->status === 'approved' ? 'نهایی و ثبت‌شده' : $row->status) }}</span></td>
+    <td>
+        @if($row->status==='pending')
+            <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:flex-start">
+                @if($canCreateReceipt)<a class="btn" href="{{ route('workflows.receipts.edit',$row->id) }}">ویرایش رسید</a>@endif
+                @if(!$row->purchase_id && $canCreatePurchase)
+                    <details style="min-width:260px;max-width:440px">
+                        <summary class="btn" style="cursor:pointer">تکمیل خرید و نهایی‌سازی</summary>
+                        <form method="POST" action="{{ route('workflows.receipts.approve',$row->id) }}" style="display:grid;gap:10px;padding:12px;margin-top:8px;border:1px solid #29465e;border-radius:10px;min-width:260px">
+                            @csrf
+                            <label style="display:grid;gap:5px;color:#9eb2c4;font-size:11px">تأمین‌کننده
+                                <select name="supplier_id" class="receipt-field" required><option value="">انتخاب تأمین‌کننده</option>@foreach($suppliers as $supplier)<option value="{{ $supplier->id }}">{{ $supplier->name }}</option>@endforeach</select>
+                            </label>
+                            <label style="display:grid;gap:5px;color:#9eb2c4;font-size:11px">شماره فاکتور (اختیاری)<input name="invoice_number" class="receipt-field"></label>
+                            <p style="font-size:11px;color:#9eb2c4;line-height:1.8;margin:0">فی خرید هر قلم را وارد کنید. با نهایی‌سازی، خرید از روی همین رسید ساخته و موجودی فقط یک‌بار ثبت می‌شود.</p>
+                            @foreach($row->items as $item)
+                            <label style="display:grid;gap:5px;color:#9eb2c4;font-size:11px">{{ $item->goods_name }} — مقدار {{ number_format((float)$item->quantity,4,'.',',') }}
+                                <input name="unit_prices[{{ $item->goods_id }}]" class="receipt-field" type="number" min="0.0001" step="0.0001" placeholder="قیمت واحد" required>
+                            </label>
+                            @endforeach
+                            <button class="btn primary" type="submit">ثبت خرید و نهایی‌سازی رسید</button>
+                        </form>
+                    </details>
+                @elseif($row->purchase_id && $canApproveExisting)
+                    <form method="POST" action="{{ route('workflows.receipts.approve',$row->id) }}">@csrf<button class="btn" type="submit">تأیید رسید</button></form>
+                @elseif(!$row->purchase_id)
+                    <span style="color:#9eb2c4;font-size:11px">در انتظار تکمیل اطلاعات توسط تدارکات</span>
+                @endif
+            </div>
+        @else
+            <span title="رسید نهایی‌شده به دلیل ثبت گردش موجودی و بهای تمام‌شده قابل ویرایش نیست." style="color:#9eb2c4;font-size:11px">قفل‌شده پس از نهایی‌سازی</span>
+        @endif
+    </td>
+</tr>
+@empty<tr><td colspan="5" style="text-align:center;padding:28px;color:#8198ac">رسیدی برای نمایش وجود ندارد.</td></tr>@endforelse
 </tbody></table></div>
 @if(method_exists($rows, 'links'))<div class="pagination">{{ $rows->links() }}</div>@endif
 </div>
+
+@if($canCreateReceipt)
+<template id="receipt-item-template">
+    <div class="receipt-item-row" data-receipt-item>
+        <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">کالا
+            <select name="items[__INDEX__][goods_id]" class="receipt-field" required><option value="">انتخاب کالا</option>@foreach($goods as $g)<option value="{{ $g->id }}">{{ $g->name }}</option>@endforeach</select>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">مقدار دریافتی
+            <input name="items[__INDEX__][quantity]" class="receipt-field" type="number" min="0.0001" step="0.0001" required>
+        </label>
+        <button class="btn" type="button" data-remove-receipt-item>حذف قلم</button>
+    </div>
+</template>
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
@@ -68,77 +139,29 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 <script>
-const receiptForm = document.querySelector('form[action="{{ route('workflows.receipts.store') }}"]');
-if (receiptForm) {
-    const purchaseSelect = document.getElementById('receipt-purchase-select');
-    const goodsSelect = document.getElementById('receipt-goods-select');
-    const quantityInput = document.getElementById('receipt-quantity-input');
-    const quantityHint = document.getElementById('receipt-quantity-hint');
-    const quantityWarning = document.getElementById('receipt-quantity-warning');
-    const purchaseItems = @json($purchaseItems);
-    const oldGoodsId = @json(old('items.0.goods_id'));
-    const oldQuantity = @json(old('items.0.quantity'));
-    const formatQuantity = value => Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 4 });
-
-    function refreshQuantityHint() {
-        const purchaseId = purchaseSelect.value;
-        const item = (purchaseItems[purchaseId] || []).find(row => String(row.goods_id) === String(goodsSelect.value));
-        if (!item) {
-            quantityHint.textContent = 'برای خرید انتخاب‌شده کالای قابل رسید وجود ندارد.';
-            quantityWarning.style.display = 'none';
-            return;
-        }
-        quantityHint.textContent = 'مقدار خرید: ' + formatQuantity(item.purchase_quantity)
-            + '؛ قبلاً ثبت‌شده یا در انتظار تأیید: ' + formatQuantity(item.received_quantity)
-            + '؛ باقی‌مانده قابل رسید: ' + formatQuantity(item.remaining_quantity)
-            + '. مقدار پیشنهادی برابر باقی‌مانده است و می‌توانید برای تحویل مرحله‌ای آن را کمتر کنید.';
-        const entered = Number(quantityInput.value || 0);
-        if (entered > Number(item.remaining_quantity) + 0.0000001) {
-            quantityWarning.textContent = 'مقدار واردشده از باقی‌مانده خرید بیشتر است؛ حداکثر مقدار قابل ثبت ' + formatQuantity(item.remaining_quantity) + ' است.';
-            quantityWarning.style.display = 'block';
-        } else {
-            quantityWarning.textContent = '';
-            quantityWarning.style.display = 'none';
-        }
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('receipt-create-form');
+    if (!form) return;
+    const list = document.getElementById('receipt-items-list');
+    const template = document.getElementById('receipt-item-template');
+    const addButton = document.getElementById('add-receipt-item');
+    let nextIndex = {{ $nextReceiptItemIndex ?? 1 }};
+    function refreshRows() {
+        const rows = Array.from(list.querySelectorAll('[data-receipt-item]'));
+        rows.forEach(row => { row.querySelector('[data-remove-receipt-item]').disabled = rows.length === 1; });
     }
-
-    function refreshGoods(preserveOldValue = false) {
-        const purchaseId = purchaseSelect.value;
-        const items = purchaseItems[purchaseId] || [];
-        goodsSelect.innerHTML = '';
-        const placeholder = document.createElement('option');
-        placeholder.value = '';
-        placeholder.textContent = items.length ? 'انتخاب کالا از همین خرید' : 'برای این خرید قلم قابل رسید وجود ندارد';
-        goodsSelect.appendChild(placeholder);
-        items.forEach(item => {
-            const option = document.createElement('option');
-            option.value = String(item.goods_id);
-            option.disabled = Number(item.remaining_quantity) <= 0;
-            option.textContent = item.goods_name + ' — باقی‌مانده ' + formatQuantity(item.remaining_quantity) + ' از ' + formatQuantity(item.purchase_quantity);
-            goodsSelect.appendChild(option);
-        });
-        const preferred = preserveOldValue && oldGoodsId !== null ? String(oldGoodsId) : '';
-        const available = items.find(item => Number(item.remaining_quantity) > 0 && String(item.goods_id) === preferred)
-            || items.find(item => Number(item.remaining_quantity) > 0);
-        goodsSelect.value = available ? String(available.goods_id) : '';
-        if (preserveOldValue && oldQuantity !== null && oldQuantity !== '' && available && String(available.goods_id) === preferred) {
-            quantityInput.value = oldQuantity;
-        } else {
-            quantityInput.value = available ? String(available.remaining_quantity) : '';
-        }
-        refreshQuantityHint();
-    }
-
-    purchaseSelect.addEventListener('change', () => refreshGoods(false));
-    goodsSelect.addEventListener('change', () => {
-        const item = (purchaseItems[purchaseSelect.value] || []).find(row => String(row.goods_id) === String(goodsSelect.value));
-        quantityInput.value = item ? String(item.remaining_quantity) : '';
-        refreshQuantityHint();
+    addButton.addEventListener('click', function () {
+        list.insertAdjacentHTML('beforeend', template.innerHTML.replaceAll('__INDEX__', String(nextIndex++)));
+        refreshRows();
     });
-    quantityInput.addEventListener('input', refreshQuantityHint);
-    refreshGoods(true);
-
-    receiptForm.addEventListener('submit', function (event) {
+    list.addEventListener('click', function (event) {
+        const button = event.target.closest('[data-remove-receipt-item]');
+        if (button && list.querySelectorAll('[data-receipt-item]').length > 1) {
+            button.closest('[data-receipt-item]').remove();
+            refreshRows();
+        }
+    });
+    form.addEventListener('submit', function (event) {
         const date = document.getElementById('received_date_iso').value;
         const time = document.getElementById('received_time').value;
         if (!date || !time) {
@@ -146,13 +169,10 @@ if (receiptForm) {
             alert('لطفاً تاریخ شمسی و ساعت دریافت را انتخاب کنید.');
             return;
         }
-        if (!purchaseSelect.value || !goodsSelect.value) {
-            event.preventDefault();
-            alert('لطفاً خرید و یکی از کالاهای همان خرید را انتخاب کنید.');
-            return;
-        }
-        receiptForm.querySelector('[name="received_at"]').value = date + 'T' + time;
+        document.getElementById('received_at').value = date + 'T' + time;
     });
-}
+    refreshRows();
+});
 </script>
+@endif
 @endsection
