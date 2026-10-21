@@ -615,6 +615,72 @@ class OrdersSupplyWorkflowTest extends TestCase
             ->assertSee('purchased_date_picker')
             ->assertSee('ثبت خرید');
     }
+
+    public function test_pending_purchase_receipt_can_be_edited_without_changing_inventory(): void
+    {
+        $c = $this->context();
+        $purchase = DB::table('purchases')->insertGetId([
+            'company_id' => $c['company'], 'fiscal_year_id' => $c['fy'], 'supplier_id' => $c['supplier'],
+            'purchased_at' => '2026-10-16', 'subtotal' => 500, 'direct_cost_total' => 0, 'total_amount' => 500,
+            'status' => 'draft', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('purchase_items')->insert([
+            'purchase_id' => $purchase, 'goods_id' => $c['goods'], 'quantity' => 5,
+            'unit_price' => 100, 'line_total' => 500, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $receipt = $this->postJson('/api/purchase-receipts', [
+            'purchase_id' => $purchase, 'warehouse_location_id' => $c['warehouse'],
+            'received_at' => '2026-10-16 10:00:00', 'items' => [['goods_id' => $c['goods'], 'quantity' => 2]],
+        ])->assertCreated()->json('data.id');
+        $itemId = (int) DB::table('purchase_receipt_items')->where('purchase_receipt_id', $receipt)->value('id');
+
+        $this->get('/receipts/'.$receipt.'/edit')->assertOk()->assertSee('ویرایش رسید انبار');
+        $this->put('/receipts/'.$receipt, [
+            'warehouse_location_id' => $c['warehouse'],
+            'received_at' => '2026-10-17T11:30',
+            'notes' => 'اصلاح مقدار دریافتی',
+            'items' => [['id' => $itemId, 'goods_id' => $c['goods'], 'quantity' => 4]],
+        ])->assertRedirect('/receipts')->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('purchase_receipts', [
+            'id' => $receipt, 'status' => 'pending', 'received_at' => '2026-10-17T11:30',
+            'notes' => 'اصلاح مقدار دریافتی',
+        ]);
+        $this->assertDatabaseHas('purchase_receipt_items', [
+            'id' => $itemId, 'purchase_receipt_id' => $receipt, 'quantity' => 4,
+        ]);
+        $this->assertDatabaseHas('inventory', [
+            'location_id' => $c['warehouse'], 'goods_id' => $c['goods'], 'quantity' => 5,
+        ]);
+    }
+
+    public function test_approved_purchase_receipt_cannot_be_edited(): void
+    {
+        $c = $this->context();
+        $purchase = DB::table('purchases')->insertGetId([
+            'company_id' => $c['company'], 'fiscal_year_id' => $c['fy'], 'supplier_id' => $c['supplier'],
+            'purchased_at' => '2026-10-16', 'subtotal' => 100, 'direct_cost_total' => 0, 'total_amount' => 100,
+            'status' => 'partially_received', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('purchase_items')->insert([
+            'purchase_id' => $purchase, 'goods_id' => $c['goods'], 'quantity' => 1,
+            'unit_price' => 100, 'line_total' => 100, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $receipt = DB::table('purchase_receipts')->insertGetId([
+            'company_id' => $c['company'], 'purchase_id' => $purchase, 'warehouse_location_id' => $c['warehouse'],
+            'received_by_user_id' => $c['user'], 'received_at' => '2026-10-16 10:00:00', 'status' => 'approved',
+            'approved_at' => now(), 'approved_by_user_id' => $c['user'], 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('purchase_receipt_items')->insert([
+            'purchase_receipt_id' => $receipt, 'goods_id' => $c['goods'], 'quantity' => 1,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->get('/receipts/'.$receipt.'/edit')
+            ->assertRedirect('/receipts')
+            ->assertSessionHas('error', 'فقط رسیدهای در انتظار تأیید قابل ویرایش هستند. رسید تأییدشده برای حفظ سوابق موجودی و بهای تمام‌شده قفل است.');
+    }
+
     public function test_purchase_can_be_edited_before_any_receipt_and_totals_are_recalculated(): void
     {
         $c = $this->context();

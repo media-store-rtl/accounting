@@ -132,6 +132,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/handovers', [WorkflowPagesController::class,'storeHandover'])->middleware('company.permission:supply_request.handover.create')->name('workflows.handovers.store');
     Route::get('/receipts', [WorkflowPagesController::class,'receipts'])->middleware('company.permission:purchase.receipt.create')->name('workflows.receipts');
     Route::post('/receipts', [WorkflowPagesController::class,'storeReceipt'])->middleware('company.permission:purchase.receipt.create')->name('workflows.receipts.store');
+    Route::get('/receipts/{id}/edit', [WorkflowPagesController::class,'editReceipt'])->middleware('company.permission:purchase.receipt.create')->whereNumber('id')->name('workflows.receipts.edit');
+    Route::put('/receipts/{id}', [WorkflowPagesController::class,'updateReceipt'])->middleware('company.permission:purchase.receipt.create')->whereNumber('id')->name('workflows.receipts.update');
     Route::post('/receipts/{id}/approve', [WorkflowPagesController::class,'approveReceipt'])->middleware('company.permission:purchase.receipt.approve')->name('workflows.receipts.approve');
 
     Route::get('/production/shift-reports', [\App\Http\Controllers\ProductionShiftReportController::class,'index'])->middleware('company.permission:production.operation.view')->name('production.shift-reports.index');
