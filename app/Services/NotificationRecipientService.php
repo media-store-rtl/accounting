@@ -18,9 +18,6 @@ class NotificationRecipientService
             ->where('event_key', $event)
             ->first();
 
-        // Shortage alerts are explicitly routed by company settings. Falling back to a
-        // permission-based audience can notify the owner/production team even when the
-        // warehouse/procurement recipients have not been configured yet.
         if (! $rule || ! $rule->is_configured) {
             if (in_array($event, ['inventory.raw_material_low', 'supply.shortage'], true)) {
                 Log::warning('Shortage notification skipped because its recipient rule is not configured.', [
@@ -31,7 +28,6 @@ class NotificationRecipientService
                 return;
             }
 
-            // Preserve legacy delivery for unrelated events until their rules are configured.
             $this->sendLegacy($companyId, $event, $payload, $actorId, $legacyPermission);
             return;
         }
@@ -62,7 +58,6 @@ class NotificationRecipientService
 
         $ids = $departmentUserIds->merge($directUserIds)->unique();
 
-        // Configured recipient rules must not cross the authorization boundary of the event's owning team.
         $requiredPermission = match ($event) {
             'order.production_required' => 'production.supervise',
             'order.ready_for_delivery' => 'order.view',
@@ -73,6 +68,7 @@ class NotificationRecipientService
             'supply.stock_available' => 'supply_request.create',
             'supply.purchased' => 'supply_request.create',
             'inventory.finished_goods_low' => 'production.supervise',
+            'purchase.receipt_pending_financialization' => 'purchase.create',
             default => null,
         };
         if ($requiredPermission && $ids->isNotEmpty()) {
