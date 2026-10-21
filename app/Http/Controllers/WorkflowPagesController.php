@@ -172,6 +172,45 @@ class WorkflowPagesController extends Controller {
   return back()->with('success','درخواست وارد مرحله «در حال خرید» شد. اکنون قیمت واحد را در همان فرم ثبت خرید وارد کنید.');
  }
  public function storeSupply(Request $r){app(SupplyRequestController::class)->store($r);return back()->with('success','درخواست تأمین ثبت شد.');}
+ public function editPurchase(Request $r,int $purchase){
+  $cid=CompanyAuthorization::authorize($r,'purchase.create');
+  $row=DB::table('purchases')->where('id',$purchase)->where('company_id',$cid)->first();
+  abort_unless($row,404);
+  abort_if($row->status==='cancelled',422,'خرید لغوشده قابل ویرایش نیست.');
+  abort_if(DB::table('purchase_receipts')->where('purchase_id',$purchase)->exists(),422,'پس از ثبت رسید انبار، ویرایش خرید برای حفظ سوابق موجودی و بهای تمام‌شده غیرفعال است.');
+  $row->items=DB::table('purchase_items as pi')->join('goods as g','g.id','=','pi.goods_id')->where('pi.purchase_id',$purchase)->select('pi.*','g.name as goods_name')->orderBy('pi.id')->get();
+  $row->direct_costs=DB::table('purchase_direct_costs')->where('purchase_id',$purchase)->orderBy('id')->get();
+  return view('workflows.purchasing-edit',['purchase'=>$row,'suppliers'=>DB::table('suppliers')->where('company_id',$cid)->where('is_active',true)->orderBy('name')->get()]);
+ }
+ public function updatePurchase(Request $r,int $purchase){
+  $cid=CompanyAuthorization::authorize($r,'purchase.create');
+  $data=$r->validate([
+   'supplier_id'=>'nullable|integer','invoice_number'=>'nullable|string|max:100','invoice_date'=>'nullable|date','purchased_at'=>'required|date','notes'=>'nullable|string',
+   'items'=>'required|array|min:1','items.*.id'=>'required|integer','items.*.goods_id'=>'required|integer','items.*.quantity'=>'required|numeric|gt:0','items.*.unit_price'=>'required|numeric|gt:0',
+   'direct_costs'=>'nullable|array','direct_costs.*.type'=>'required|string|max:50','direct_costs.*.description'=>'nullable|string','direct_costs.*.amount'=>'required|numeric|gt:0'
+  ]);
+  DB::transaction(function()use($data,$cid,$purchase){
+   $row=DB::table('purchases')->where('id',$purchase)->where('company_id',$cid)->lockForUpdate()->first();
+   abort_unless($row,404);
+   abort_if($row->status==='cancelled',422,'خرید لغوشده قابل ویرایش نیست.');
+   abort_if(DB::table('purchase_receipts')->where('purchase_id',$purchase)->lockForUpdate()->exists(),422,'پس از ثبت رسید انبار، ویرایش خرید برای حفظ سوابق موجودی و بهای تمام‌شده غیرفعال است.');
+   if(!empty($data['supplier_id'])) abort_unless(DB::table('suppliers')->where('id',$data['supplier_id'])->where('company_id',$cid)->where('is_active',true)->exists(),422,'تأمین‌کننده نامعتبر است.');
+   $existing=DB::table('purchase_items')->where('purchase_id',$purchase)->orderBy('id')->pluck('id')->map(fn($id)=>(int)$id)->all();
+   $submitted=collect($data['items'])->pluck('id')->map(fn($id)=>(int)$id)->all();
+   abort_unless(count($existing)===count($submitted) && empty(array_diff($existing,$submitted)) && empty(array_diff($submitted,$existing)),422,'فهرست اقلام خرید تغییر کرده است؛ صفحه را تازه‌سازی کنید.');
+   $subtotal=0;
+   foreach($data['items'] as $item){
+    abort_unless(DB::table('goods')->where('id',$item['goods_id'])->where('company_id',$cid)->where('purchasable',true)->where('is_active',true)->exists(),422,'کالا قابل خرید نیست.');
+    $line=(float)$item['quantity']*(float)$item['unit_price']; $subtotal+=$line;
+    DB::table('purchase_items')->where('id',$item['id'])->where('purchase_id',$purchase)->update(['goods_id'=>$item['goods_id'],'quantity'=>$item['quantity'],'unit_price'=>$item['unit_price'],'line_total'=>$line,'updated_at'=>now()]);
+   }
+   DB::table('purchase_direct_costs')->where('purchase_id',$purchase)->delete();
+   $direct=0;
+   foreach($data['direct_costs']??[] as $cost){$direct+=(float)$cost['amount'];DB::table('purchase_direct_costs')->insert(['purchase_id'=>$purchase,'type'=>$cost['type'],'description'=>$cost['description']??null,'amount'=>$cost['amount'],'created_at'=>now(),'updated_at'=>now()]);}
+   DB::table('purchases')->where('id',$purchase)->where('company_id',$cid)->update(['supplier_id'=>$data['supplier_id']??null,'invoice_number'=>$data['invoice_number']??null,'invoice_date'=>$data['invoice_date']??null,'purchased_at'=>$data['purchased_at'],'notes'=>$data['notes']??null,'subtotal'=>$subtotal,'direct_cost_total'=>$direct,'total_amount'=>$subtotal+$direct,'updated_at'=>now()]);
+  });
+  return redirect()->route('workflows.purchasing')->with('success','اطلاعات خرید به‌روزرسانی شد.');
+ }
  public function storePurchase(Request $r){app(PurchaseController::class)->store($r);return back()->with('success','خرید ثبت شد.');}
  public function storeLabor(Request $r){$cid=CompanyAuthorization::authorize($r,'production.labor.create');$d=$r->validate(['production_operation_run_id'=>'required|integer','personnel_id'=>'required|integer','measure_type'=>'required|in:hours,quantity','labor_rate_type'=>'nullable|in:regular,overtime,holiday','measure_quantity'=>'required|numeric|gt:0','worked_at'=>'required|date','notes'=>'nullable|string']);$run=DB::table('production_operation_runs as r')->join('production_stage_runs as sr','sr.id','=','r.production_stage_run_id')->join('productions as p','p.id','=','sr.production_id')->where('r.id',$d['production_operation_run_id'])->where('p.company_id',$cid)->exists();abort_unless($run,422,'عملیات تولید نامعتبر است.');app(\App\Services\LaborCostService::class)->record($cid,(int)$d['production_operation_run_id'],(int)$d['personnel_id'],$d['measure_type'],(float)$d['measure_quantity'],$d['worked_at'],(int)$r->user()->id,$d['notes']??null,$d['labor_rate_type']??'regular');return back()->with('success','کارکرد ثبت شد.');}
  public function setReorderPoint(Request $r,int $locationId,int $goodsId){
