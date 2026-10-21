@@ -90,9 +90,16 @@ final class CostingReportController extends Controller
                 if ($existing) {
                     if ((float) $existing->quantity + 0.0001 >= abs((float) $movement->quantity)) {
                         $alreadyValued++;
+                        continue;
+                    }
+
+                    // Complete only the missing quantity from remaining eligible layers.
+                    // The service appends allocations to the existing row without
+                    // changing its historical cost items or consuming layers twice.
+                    $value = $valuationService->valueInventoryMovement((int) $movement->id, (int) $fiscalYearId);
+                    if ((float) ($value['unvalued_quantity'] ?? 0) <= 0.0001) {
+                        $valued++;
                     } else {
-                        // A movement may only have one cost row; never silently treat
-                        // a partial valuation as complete or rewrite its history.
                         $unvalued++;
                     }
                     continue;
