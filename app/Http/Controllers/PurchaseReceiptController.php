@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Services\InventoryService;
 use App\Services\NotificationRecipientService;
-use App\Services\InventoryValuationService;
 use App\Support\CompanyAuthorization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -81,7 +80,20 @@ class PurchaseReceiptController extends Controller
             return $id;
         });
 
-        return response()->json(['data'=>DB::table('purchase_receipts')->where('id',$id)->first()],201);
+        $receipt=DB::table('purchase_receipts')->where('id',$id)->first();
+        app(NotificationRecipientService::class)->send(
+            $companyId,
+            'purchase.receipt_pending_financialization',
+            [
+                'receipt_id' => $id,
+                'purchase_id' => $receipt?->purchase_id,
+                'warehouse_location_id' => $receipt?->warehouse_location_id,
+            ],
+            (int) $request->user()->id,
+            'purchase.create'
+        );
+
+        return response()->json(['data'=>$receipt],201);
     }
 
     public function approve(Request $request,int $purchaseReceipt): JsonResponse
