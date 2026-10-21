@@ -109,6 +109,7 @@ class WorkflowPagesController extends Controller {
   $rows=DB::table('purchases')->leftJoin('suppliers','suppliers.id','=','purchases.supplier_id')->where('purchases.company_id',$cid)->select('purchases.*','suppliers.name as supplier_name')->latest('purchases.id')->paginate(20);
   foreach($rows as $row){
    $row->items=DB::table('purchase_items as pi')->join('goods as g','g.id','=','pi.goods_id')->where('pi.purchase_id',$row->id)->select('pi.quantity','g.name as goods_name')->orderBy('g.name')->get();
+   $row->has_receipt=DB::table('purchase_receipts')->where('purchase_id',$row->id)->exists();
   }
   return view('workflows.purchasing',[
    'rows'=>$rows,
@@ -134,9 +135,30 @@ class WorkflowPagesController extends Controller {
    $row->items=DB::table('purchase_receipt_items as x')->join('goods as g','g.id','=','x.goods_id')
     ->where('x.purchase_receipt_id',$row->id)->select('g.name as goods_name','x.quantity')->orderBy('g.name')->get();
   }
+  $purchases=DB::table('purchases')->where('company_id',$cid)->whereIn('status',['draft','partially_received'])->orderByDesc('id')->get();
+  $purchaseItems=[];
+  foreach($purchases as $purchase){
+   $items=DB::table('purchase_items as pi')->join('goods as g','g.id','=','pi.goods_id')
+    ->where('pi.purchase_id',$purchase->id)->select('pi.goods_id','pi.quantity as purchase_quantity','g.name as goods_name')->orderBy('g.name')->get();
+   foreach($items as $item){
+    $reserved=(float)DB::table('purchase_receipt_items as x')
+     ->join('purchase_receipts as pr','pr.id','=','x.purchase_receipt_id')
+     ->where('pr.purchase_id',$purchase->id)->whereIn('pr.status',['pending','approved'])
+     ->where('x.goods_id',$item->goods_id)->sum('x.quantity');
+    $purchaseItems[$purchase->id][]=[
+     'goods_id'=>(int)$item->goods_id,
+     'goods_name'=>$item->goods_name,
+     'purchase_quantity'=>(float)$item->purchase_quantity,
+     'received_quantity'=>$reserved,
+     'remaining_quantity'=>max(0,(float)$item->purchase_quantity-$reserved),
+    ];
+   }
+   $purchaseItems[$purchase->id]=$purchaseItems[$purchase->id]??[];
+  }
   return view('workflows.receipts',[
    'rows'=>$rows,
-   'purchases'=>DB::table('purchases')->where('company_id',$cid)->whereIn('status',['draft','partially_received'])->get(),
+   'purchases'=>$purchases,
+   'purchaseItems'=>$purchaseItems,
    'locations'=>DB::table('locations')->where('company_id',$cid)->whereRaw("LOWER(TRIM(type)) = ?",['مواد اولیه'])->where('is_active',true)->orderBy('name')->get(),
    'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->get()
   ]);
@@ -177,13 +199,18 @@ class WorkflowPagesController extends Controller {
   $row=DB::table('purchases')->where('id',$purchase)->where('company_id',$cid)->first();
   abort_unless($row,404);
   abort_if($row->status==='cancelled',422,'خرید لغوشده قابل ویرایش نیست.');
-  abort_if(DB::table('purchase_receipts')->where('purchase_id',$purchase)->exists(),422,'پس از ثبت رسید انبار، ویرایش خرید برای حفظ سوابق موجودی و بهای تمام‌شده غیرفعال است.');
+  if(DB::table('purchase_receipts')->where('purchase_id',$purchase)->exists()){
+   return redirect()->route('workflows.purchasing')->with('error','این خرید رسید انبار دارد؛ برای حفظ سوابق موجودی و بهای تمام‌شده، ویرایش آن غیرفعال است.');
+  }
   $row->items=DB::table('purchase_items as pi')->join('goods as g','g.id','=','pi.goods_id')->where('pi.purchase_id',$purchase)->select('pi.*','g.name as goods_name')->orderBy('pi.id')->get();
   $row->direct_costs=DB::table('purchase_direct_costs')->where('purchase_id',$purchase)->orderBy('id')->get();
   return view('workflows.purchasing-edit',['purchase'=>$row,'suppliers'=>DB::table('suppliers')->where('company_id',$cid)->where('is_active',true)->orderBy('name')->get()]);
  }
  public function updatePurchase(Request $r,int $purchase){
   $cid=CompanyAuthorization::authorize($r,'purchase.create');
+  if(DB::table('purchase_receipts')->where('purchase_id',$purchase)->exists()){
+   return redirect()->route('workflows.purchasing')->with('error','این خرید رسید انبار دارد؛ برای حفظ سوابق موجودی و بهای تمام‌شده، ویرایش آن غیرفعال است.');
+  }
   $data=$r->validate([
    'supplier_id'=>'nullable|integer','invoice_number'=>'nullable|string|max:100','invoice_date'=>'nullable|date','purchased_at'=>'required|date','notes'=>'nullable|string',
    'items'=>'required|array|min:1','items.*.id'=>'required|integer','items.*.goods_id'=>'required|integer','items.*.quantity'=>'required|numeric|gt:0','items.*.unit_price'=>'required|numeric|gt:0',
@@ -193,7 +220,9 @@ class WorkflowPagesController extends Controller {
    $row=DB::table('purchases')->where('id',$purchase)->where('company_id',$cid)->lockForUpdate()->first();
    abort_unless($row,404);
    abort_if($row->status==='cancelled',422,'خرید لغوشده قابل ویرایش نیست.');
-   abort_if(DB::table('purchase_receipts')->where('purchase_id',$purchase)->lockForUpdate()->exists(),422,'پس از ثبت رسید انبار، ویرایش خرید برای حفظ سوابق موجودی و بهای تمام‌شده غیرفعال است.');
+   if(DB::table('purchase_receipts')->where('purchase_id',$purchase)->lockForUpdate()->exists()){
+    throw \Illuminate\Validation\ValidationException::withMessages(['purchase'=>'این خرید رسید انبار دارد؛ برای حفظ سوابق موجودی و بهای تمام‌شده، ویرایش آن غیرفعال است.']);
+   }
    if(!empty($data['supplier_id'])) abort_unless(DB::table('suppliers')->where('id',$data['supplier_id'])->where('company_id',$cid)->where('is_active',true)->exists(),422,'تأمین‌کننده نامعتبر است.');
    $existing=DB::table('purchase_items')->where('purchase_id',$purchase)->orderBy('id')->pluck('id')->map(fn($id)=>(int)$id)->all();
    $submitted=collect($data['items'])->pluck('id')->map(fn($id)=>(int)$id)->all();
