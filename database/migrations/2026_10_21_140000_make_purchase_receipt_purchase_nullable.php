@@ -17,7 +17,7 @@ return new class extends Migration
     public function down(): void
     {
         if (DB::table('purchase_receipts')->whereNull('purchase_id')->exists()) {
-            throw new \\RuntimeException('Cannot make purchase_receipts.purchase_id required while unlinked warehouse receipts exist.');
+            throw new \RuntimeException('Cannot make purchase_receipts.purchase_id required while unlinked warehouse receipts exist.');
         }
 
         Schema::table('purchase_receipts', function (Blueprint $table) {
