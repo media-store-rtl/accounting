@@ -13,6 +13,7 @@
 @section('content')
 <div class="page-heading"><div><h1>رسیدهای خرید</h1><p>ثبت دریافت کالا و مدیریت تأیید رسیدهای انبار</p></div></div>
 @if(session('success'))<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #246451;border-radius:12px;background:#0c282b;color:#8ce8ce;font-size:12px">{{ session('success') }}</div>@endif
+@if(session('error'))<div role="alert" style="padding:12px 15px;margin-bottom:16px;border:1px solid #714448;border-radius:12px;background:#302126;color:#ffb8a8;font-size:12px">{{ session('error') }}</div>@endif
 @if($errors->any())<div style="padding:12px 15px;margin-bottom:16px;border:1px solid #714448;border-radius:12px;background:#302126;color:#ffb8a8;font-size:12px">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
 
 <div class="panel" style="margin-bottom:18px">
@@ -20,7 +21,7 @@
     <form method="POST" action="{{ route('workflows.receipts.store') }}">@csrf
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px">
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">خرید
-                <select name="purchase_id" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">@foreach($purchases as $p)<option value="{{ $p->id }}" @selected((string)old('purchase_id')===(string)$p->id)>خرید #{{ $p->id }}</option>@endforeach</select>
+                <select id="receipt-purchase-select" name="purchase_id" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit"><option value="">انتخاب خرید</option>@foreach($purchases as $p)<option value="{{ $p->id }}" @selected((string)old('purchase_id')===(string)$p->id)>خرید #{{ $p->id }}</option>@endforeach</select>
             </label>
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">انبار
                 <select name="warehouse_location_id" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">@foreach($locations as $l)<option value="{{ $l->id }}" @selected((string)old('warehouse_location_id')===(string)$l->id)>{{ $l->name }}</option>@endforeach</select>
@@ -34,10 +35,12 @@
             </label>
             <input name="received_at" type="hidden" value="{{ old('received_at') }}">
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">کالا
-                <select name="items[0][goods_id]" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">@foreach($goods as $g)<option value="{{ $g->id }}" @selected((string)old('items.0.goods_id')===(string)$g->id)>{{ $g->name }}</option>@endforeach</select>
+                <select id="receipt-goods-select" name="items[0][goods_id]" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit"><option value="">ابتدا خرید را انتخاب کنید</option></select>
             </label>
             <label style="display:flex;flex-direction:column;gap:7px;color:#9eb2c4;font-size:11px">مقدار
-                <input name="items[0][quantity]" type="number" step="0.0001" min="0.0001" value="{{ old('items.0.quantity') }}" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
+                <input id="receipt-quantity-input" name="items[0][quantity]" type="number" step="0.0001" min="0.0001" value="{{ old('items.0.quantity') }}" required style="background:#0d2235;color:#e9f3fb;border:1px solid #29465e;border-radius:9px;padding:11px;font:inherit">
+                <span id="receipt-quantity-hint" aria-live="polite" style="color:#9eb2c4;line-height:1.8;font-size:11px">پس از انتخاب خرید و کالا، مقدار باقی‌مانده به‌صورت خودکار پیشنهاد می‌شود.</span>
+                <span id="receipt-quantity-warning" role="alert" style="display:none;color:#ffb8a8;line-height:1.8;font-size:11px"></span>
                 @error('items.0.quantity')<span style="color:#ffb8a8;line-height:1.8;font-size:11px">{{ $message }}</span>@enderror
             </label>
             @error('warehouse_location_id')<div style="color:#ffb8a8;font-size:11px;align-self:end">{{ $message }}</div>@enderror
@@ -67,12 +70,87 @@ document.addEventListener('DOMContentLoaded', function () {
 <script>
 const receiptForm = document.querySelector('form[action="{{ route('workflows.receipts.store') }}"]');
 if (receiptForm) {
+    const purchaseSelect = document.getElementById('receipt-purchase-select');
+    const goodsSelect = document.getElementById('receipt-goods-select');
+    const quantityInput = document.getElementById('receipt-quantity-input');
+    const quantityHint = document.getElementById('receipt-quantity-hint');
+    const quantityWarning = document.getElementById('receipt-quantity-warning');
+    const purchaseItems = @json($purchaseItems);
+    const oldGoodsId = @json(old('items.0.goods_id'));
+    const oldQuantity = @json(old('items.0.quantity'));
+    const formatQuantity = value => Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 4 });
+    let firstRender = true;
+
+    function refreshQuantityHint() {
+        const purchaseId = purchaseSelect.value;
+        const item = (purchaseItems[purchaseId] || []).find(row => String(row.goods_id) === String(goodsSelect.value));
+        if (!item) {
+            quantityHint.textContent = 'برای خرید انتخاب‌شده کالای قابل رسید وجود ندارد.';
+            quantityWarning.style.display = 'none';
+            return;
+        }
+        quantityHint.textContent = 'مقدار خرید: ' + formatQuantity(item.purchase_quantity)
+            + '؛ قبلاً ثبت‌شده یا در انتظار تأیید: ' + formatQuantity(item.received_quantity)
+            + '؛ باقی‌مانده قابل رسید: ' + formatQuantity(item.remaining_quantity)
+            + '. مقدار پیشنهادی برابر باقی‌مانده است و می‌توانید برای تحویل مرحله‌ای آن را کمتر کنید.';
+        const entered = Number(quantityInput.value || 0);
+        if (entered > Number(item.remaining_quantity) + 0.0000001) {
+            quantityWarning.textContent = 'مقدار واردشده از باقی‌مانده خرید بیشتر است؛ حداکثر مقدار قابل ثبت ' + formatQuantity(item.remaining_quantity) + ' است.';
+            quantityWarning.style.display = 'block';
+        } else {
+            quantityWarning.textContent = '';
+            quantityWarning.style.display = 'none';
+        }
+    }
+
+    function refreshGoods(preserveOldValue = false) {
+        const purchaseId = purchaseSelect.value;
+        const items = purchaseItems[purchaseId] || [];
+        goodsSelect.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = items.length ? 'انتخاب کالا از همین خرید' : 'برای این خرید قلم قابل رسید وجود ندارد';
+        goodsSelect.appendChild(placeholder);
+        items.forEach(item => {
+            const option = document.createElement('option');
+            option.value = String(item.goods_id);
+            option.disabled = Number(item.remaining_quantity) <= 0;
+            option.textContent = item.goods_name + ' — باقی‌مانده ' + formatQuantity(item.remaining_quantity) + ' از ' + formatQuantity(item.purchase_quantity);
+            goodsSelect.appendChild(option);
+        });
+        const preferred = preserveOldValue && oldGoodsId !== null ? String(oldGoodsId) : '';
+        const available = items.find(item => Number(item.remaining_quantity) > 0 && String(item.goods_id) === preferred)
+            || items.find(item => Number(item.remaining_quantity) > 0);
+        goodsSelect.value = available ? String(available.goods_id) : '';
+        if (preserveOldValue && oldQuantity !== null && oldQuantity !== '' && available && String(available.goods_id) === preferred) {
+            quantityInput.value = oldQuantity;
+        } else {
+            quantityInput.value = available ? String(available.remaining_quantity) : '';
+        }
+        firstRender = false;
+        refreshQuantityHint();
+    }
+
+    purchaseSelect.addEventListener('change', () => refreshGoods(false));
+    goodsSelect.addEventListener('change', () => {
+        const item = (purchaseItems[purchaseSelect.value] || []).find(row => String(row.goods_id) === String(goodsSelect.value));
+        quantityInput.value = item ? String(item.remaining_quantity) : '';
+        refreshQuantityHint();
+    });
+    quantityInput.addEventListener('input', refreshQuantityHint);
+    refreshGoods(true);
+
     receiptForm.addEventListener('submit', function (event) {
         const date = document.getElementById('received_date_iso').value;
         const time = document.getElementById('received_time').value;
         if (!date || !time) {
             event.preventDefault();
             alert('لطفاً تاریخ شمسی و ساعت دریافت را انتخاب کنید.');
+            return;
+        }
+        if (!purchaseSelect.value || !goodsSelect.value) {
+            event.preventDefault();
+            alert('لطفاً خرید و یکی از کالاهای همان خرید را انتخاب کنید.');
             return;
         }
         receiptForm.querySelector('[name="received_at"]').value = date + 'T' + time;
