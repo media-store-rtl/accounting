@@ -521,21 +521,44 @@ class OrdersSupplyWorkflowTest extends TestCase
             'fiscal_year_id' => $c['fy'],
             'supplier_id' => $c['supplier'],
             'purchased_at' => '2026-10-16',
-            'subtotal' => 100,
+            'subtotal' => 250,
             'direct_cost_total' => 0,
-            'total_amount' => 100,
+            'total_amount' => 250,
             'status' => 'received',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        DB::table('purchase_items')->insert([
-            'purchase_id' => $purchase,
-            'goods_id' => $c['goods'],
-            'quantity' => 2,
-            'unit_price' => 50,
-            'line_total' => 100,
+        $secondGoods = DB::table('goods')->insertGetId([
+            'company_id' => $c['company'],
+            'category_id' => DB::table('goods_categories')->where('company_id', $c['company'])->value('id'),
+            'code' => 'G2',
+            'name' => 'Second Material',
+            'purchasable' => true,
+            'producible' => false,
+            'sellable' => true,
+            'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
+        ]);
+        DB::table('purchase_items')->insert([
+            [
+                'purchase_id' => $purchase,
+                'goods_id' => $c['goods'],
+                'quantity' => 2,
+                'unit_price' => 50,
+                'line_total' => 100,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'purchase_id' => $purchase,
+                'goods_id' => $secondGoods,
+                'quantity' => 3,
+                'unit_price' => 50,
+                'line_total' => 150,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
 
         $this->get('/purchasing')
@@ -543,10 +566,14 @@ class OrdersSupplyWorkflowTest extends TestCase
             ->assertSee('تاریخ خرید')
             ->assertSee('تأمین‌کننده')
             ->assertSee('اقلام خرید')
-            ->assertSee('مبلغ ثبت‌شده')
-            ->assertSee('وضعیت تحویل به انبار')
+            ->assertSee('<details class="purchase-items-details">', false)
+            ->assertSee('مشاهده جزئیات (2 قلم)')
+            ->assertDontSee('<details class="purchase-items-details" open', false)
+            ->assertSee('<th>قیمت واحد</th>', false)
+            ->assertSee('<th>جمع قلم</th>', false)
             ->assertSee('Supplier')
             ->assertSee('Material')
+            ->assertSee('Second Material')
             ->assertSee('تحویل کامل به انبار')
             ->assertDontSee('>received<', false);
     }
