@@ -573,4 +573,62 @@ class OrdersSupplyWorkflowTest extends TestCase
             ->assertSee('purchased_date_picker')
             ->assertSee('ثبت خرید');
     }
+    public function test_purchase_can_be_edited_before_any_receipt_and_totals_are_recalculated(): void
+    {
+        $c = $this->context();
+        $purchase = DB::table('purchases')->insertGetId([
+            'company_id' => $c['company'],
+            'fiscal_year_id' => $c['fy'],
+            'supplier_id' => $c['supplier'],
+            'supply_request_id' => null,
+            'invoice_number' => 'INV-OLD',
+            'invoice_date' => null,
+            'purchased_at' => '2026-10-01',
+            'subtotal' => 20,
+            'direct_cost_total' => 0,
+            'total_amount' => 20,
+            'status' => 'draft',
+            'notes' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $item = DB::table('purchase_items')->insertGetId([
+            'purchase_id' => $purchase,
+            'goods_id' => $c['goods'],
+            'quantity' => 2,
+            'unit_price' => 10,
+            'line_total' => 20,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->get(route('workflows.purchasing.edit', $purchase))->assertOk()->assertSee('ویرایش خرید');
+        $this->put(route('workflows.purchasing.update', $purchase), [
+            'supplier_id' => $c['supplier'],
+            'invoice_number' => 'INV-NEW',
+            'purchased_at' => '2026-10-02',
+            'items' => [[
+                'id' => $item,
+                'goods_id' => $c['goods'],
+                'quantity' => 3,
+                'unit_price' => 15,
+            ]],
+        ])->assertRedirect(route('workflows.purchasing'));
+
+        $this->assertDatabaseHas('purchases', [
+            'id' => $purchase,
+            'company_id' => $c['company'],
+            'invoice_number' => 'INV-NEW',
+            'subtotal' => 45,
+            'total_amount' => 45,
+        ]);
+        $this->assertDatabaseHas('purchase_items', [
+            'id' => $item,
+            'purchase_id' => $purchase,
+            'quantity' => 3,
+            'unit_price' => 15,
+            'line_total' => 45,
+        ]);
+    }
+
 }
