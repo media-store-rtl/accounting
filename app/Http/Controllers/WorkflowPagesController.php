@@ -163,6 +163,78 @@ class WorkflowPagesController extends Controller {
    'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->get()
   ]);
  }
+ public function editReceipt(Request $r,int $id){
+  $cid=CompanyAuthorization::authorize($r,'purchase.receipt.create');
+  $receipt=DB::table('purchase_receipts')->where('company_id',$cid)->where('id',$id)->first();
+  abort_unless($receipt,404);
+  if($receipt->status!=='pending'){
+   return redirect()->route('workflows.receipts')->with('error','فقط رسیدهای در انتظار تأیید قابل ویرایش هستند. رسید تأییدشده برای حفظ سوابق موجودی و بهای تمام‌شده قفل است.');
+  }
+  $receipt->items=DB::table('purchase_receipt_items as x')->join('goods as g','g.id','=','x.goods_id')
+   ->where('x.purchase_receipt_id',$receipt->id)->select('x.id','x.goods_id','x.quantity','g.name as goods_name')->orderBy('g.name')->get();
+  return view('workflows.receipts-edit',[
+   'receipt'=>$receipt,
+   'locations'=>DB::table('locations')->where('company_id',$cid)->whereRaw("LOWER(TRIM(type)) = ?",['مواد اولیه'])->where('is_active',true)->orderBy('name')->get(),
+  ]);
+ }
+ public function updateReceipt(Request $r,int $id){
+  $cid=CompanyAuthorization::authorize($r,'purchase.receipt.create');
+  $data=$r->validate([
+   'warehouse_location_id'=>'required|integer',
+   'received_at'=>'required|date',
+   'notes'=>'nullable|string',
+   'items'=>'required|array|min:1',
+   'items.*.id'=>'required|integer',
+   'items.*.goods_id'=>'required|integer',
+   'items.*.quantity'=>'required|numeric|gt:0',
+  ]);
+  DB::transaction(function()use($data,$cid,$id){
+   $receipt=DB::table('purchase_receipts')->where('company_id',$cid)->where('id',$id)->lockForUpdate()->first();
+   abort_unless($receipt,404);
+   if($receipt->status!=='pending'){
+    throw \Illuminate\Validation\ValidationException::withMessages(['receipt'=>'فقط رسیدهای در انتظار تأیید قابل ویرایش هستند؛ رسید تأییدشده را نمی‌توان تغییر داد.']);
+   }
+   $purchase=DB::table('purchases')->where('company_id',$cid)->where('id',$receipt->purchase_id)->lockForUpdate()->first();
+   abort_unless($purchase,404);
+   if(!DB::table('locations')->where('id',$data['warehouse_location_id'])->where('company_id',$cid)->whereRaw("LOWER(TRIM(type)) = ?",['مواد اولیه'])->where('is_active',true)->exists()){
+    throw \Illuminate\Validation\ValidationException::withMessages(['warehouse_location_id'=>'انبار انتخاب‌شده معتبر یا فعال نیست. یک انبار فعال از نوع «مواد اولیه» انتخاب کنید.']);
+   }
+   $existing=DB::table('purchase_receipt_items')->where('purchase_receipt_id',$receipt->id)->orderBy('id')->get(['id','goods_id']);
+   $existingIds=$existing->pluck('id')->map(fn($value)=>(int)$value)->all();
+   $submittedIds=collect($data['items'])->pluck('id')->map(fn($value)=>(int)$value)->all();
+   if(count($existingIds)!==count($submittedIds)||array_diff($existingIds,$submittedIds)||array_diff($submittedIds,$existingIds)){
+    throw \Illuminate\Validation\ValidationException::withMessages(['items'=>'فهرست اقلام رسید تغییر کرده است؛ صفحه را تازه‌سازی کنید.']);
+   }
+   foreach($data['items'] as $index=>$item){
+    $receiptItem=$existing->firstWhere('id',(int)$item['id']);
+    if(!$receiptItem||(int)$receiptItem->goods_id!==(int)$item['goods_id']){
+     throw \Illuminate\Validation\ValidationException::withMessages(["items.{$index}.goods_id"=>'کالای این قلم با رسید ثبت‌شده مطابقت ندارد.']);
+    }
+    $purchaseItem=DB::table('purchase_items')->where('purchase_id',$purchase->id)->where('goods_id',$receiptItem->goods_id)->first();
+    if(!$purchaseItem){
+     throw \Illuminate\Validation\ValidationException::withMessages(["items.{$index}.goods_id"=>'این کالا دیگر در اقلام خرید وجود ندارد.']);
+    }
+    $reservedByOthers=(float)DB::table('purchase_receipt_items as x')
+     ->join('purchase_receipts as pr','pr.id','=','x.purchase_receipt_id')
+     ->where('pr.purchase_id',$purchase->id)->where('pr.id','<>',$receipt->id)
+     ->whereIn('pr.status',['pending','approved'])->where('x.goods_id',$receiptItem->goods_id)->sum('x.quantity');
+    if($reservedByOthers+(float)$item['quantity']>(float)$purchaseItem->quantity+0.0000001){
+     $remaining=max(0,(float)$purchaseItem->quantity-$reservedByOthers);
+     throw \Illuminate\Validation\ValidationException::withMessages(["items.{$index}.quantity"=>'مقدار این قلم از باقی‌مانده خرید بیشتر است. حداکثر مقدار مجاز: '.number_format($remaining,4,'.',',').'.']);
+    }
+    DB::table('purchase_receipt_items')->where('id',$receiptItem->id)->where('purchase_receipt_id',$receipt->id)->update([
+     'quantity'=>$item['quantity'],'updated_at'=>now(),
+    ]);
+   }
+   DB::table('purchase_receipts')->where('id',$receipt->id)->where('company_id',$cid)->update([
+    'warehouse_location_id'=>$data['warehouse_location_id'],
+    'received_at'=>$data['received_at'],
+    'notes'=>$data['notes']??null,
+    'updated_at'=>now(),
+   ]);
+  });
+  return redirect()->route('workflows.receipts')->with('success','رسید انبار به‌روزرسانی شد.');
+ }
  public function approveReceipt(Request $r,int $id){$cid=CompanyAuthorization::authorize($r,'purchase.receipt.approve');app(PurchaseReceiptController::class)->approve($r,$id);return back()->with('success','رسید تأیید شد و موجودی به‌روزرسانی شد.');}
  public function storeReceipt(Request $r){$cid=CompanyAuthorization::authorize($r,'purchase.receipt.create');$d=$r->validate(['purchase_id'=>'required|integer','warehouse_location_id'=>'required|integer','received_at'=>'required|date','notes'=>'nullable|string','items'=>'required|array|min:1','items.*.goods_id'=>'required|integer','items.*.quantity'=>'required|numeric|gt:0']);app(PurchaseReceiptController::class)->store($r);return back()->with('success','رسید خرید ثبت شد.');}
  public function labor(Request $r){$cid=CompanyAuthorization::authorize($r,'production.labor.create');return view('workflows.labor',['rows'=>DB::table('production_labor_entries')->where('company_id',$cid)->latest('id')->paginate(20),'personnel'=>DB::table('personnel')->where('account_id',$r->user()->account_id)->where('is_active',true)->get(),'runs'=>DB::table('production_operation_runs as r')->join('production_stage_runs as sr','sr.id','=','r.production_stage_run_id')->join('productions as p','p.id','=','sr.production_id')->where('p.company_id',$cid)->select('r.id','p.number')->latest('r.id')->get()]);}
