@@ -79,7 +79,6 @@ if (receiptForm) {
     const oldGoodsId = @json(old('items.0.goods_id'));
     const oldQuantity = @json(old('items.0.quantity'));
     const formatQuantity = value => Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 4 });
-    let firstRender = true;
 
     function refreshQuantityHint() {
         const purchaseId = purchaseSelect.value;
@@ -127,7 +126,6 @@ if (receiptForm) {
         } else {
             quantityInput.value = available ? String(available.remaining_quantity) : '';
         }
-        firstRender = false;
         refreshQuantityHint();
     }
 
