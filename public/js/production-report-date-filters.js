@@ -124,3 +124,11 @@ export function setupCostingRefreshButton(documentRef = globalThis.document) {
 
     return true;
 }
+
+if (globalThis.document) {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => setupCostingRefreshButton());
+    } else {
+        setupCostingRefreshButton();
+    }
+}
