@@ -17,6 +17,7 @@ class PurchaseReceiptController extends Controller
     {
         $companyId=CompanyAuthorization::authorize($request,'purchase.receipt.create');
         $data=$request->validate([
+            'purchase_id'=>'nullable|integer',
             'warehouse_location_id'=>'required|integer',
             'received_at'=>'required|date',
             'notes'=>'nullable|string',
@@ -26,13 +27,20 @@ class PurchaseReceiptController extends Controller
         ]);
 
         $id=DB::transaction(function()use($data,$companyId,$request){
+            $purchase=null;
+            if (!empty($data['purchase_id'])) {
+                $purchase=DB::table('purchases')->where('id',$data['purchase_id'])->where('company_id',$companyId)->lockForUpdate()->first();
+                if (!$purchase || $purchase->status==='cancelled') {
+                    throw ValidationException::withMessages(['purchase_id'=>'خرید انتخاب‌شده پیدا نشد یا لغو شده است. یک خرید معتبر انتخاب کنید.']);
+                }
+            }
             if (!DB::table('locations')->where('id',$data['warehouse_location_id'])->where('company_id',$companyId)->whereRaw("LOWER(TRIM(type)) = ?",['مواد اولیه'])->where('is_active',true)->exists()) {
                 throw ValidationException::withMessages(['warehouse_location_id'=>'انبار انتخاب‌شده معتبر یا فعال نیست. یک انبار فعال از نوع «مواد اولیه» انتخاب کنید.']);
             }
 
             $id=DB::table('purchase_receipts')->insertGetId([
                 'company_id'=>$companyId,
-                'purchase_id'=>null,
+                'purchase_id'=>$purchase?->id,
                 'warehouse_location_id'=>$data['warehouse_location_id'],
                 'received_by_user_id'=>$request->user()->id,
                 'received_at'=>$data['received_at'],
@@ -47,6 +55,20 @@ class PurchaseReceiptController extends Controller
                     ->where('purchasable',true)->where('is_active',true)->first();
                 if (!$goods) {
                     throw ValidationException::withMessages(["items.{$index}.goods_id"=>'کالای انتخاب‌شده معتبر، فعال یا قابل خرید نیست.']);
+                }
+                if ($purchase) {
+                    $pi=DB::table('purchase_items')->where('purchase_id',$purchase->id)->where('goods_id',$item['goods_id'])->first();
+                    if (!$pi) {
+                        throw ValidationException::withMessages(["items.{$index}.goods_id"=>'این کالا در اقلام خرید انتخاب‌شده وجود ندارد.']);
+                    }
+                    $approved=(float)DB::table('purchase_receipt_items as x')->join('purchase_receipts as pr','pr.id','=','x.purchase_receipt_id')
+                        ->where('pr.purchase_id',$purchase->id)->where('pr.status','approved')->where('x.goods_id',$item['goods_id'])->sum('x.quantity');
+                    $pending=(float)DB::table('purchase_receipt_items as x')->join('purchase_receipts as pr','pr.id','=','x.purchase_receipt_id')
+                        ->where('pr.purchase_id',$purchase->id)->where('pr.status','pending')->where('x.goods_id',$item['goods_id'])->sum('x.quantity');
+                    if ($approved+$pending+(float)$item['quantity']>(float)$pi->quantity+0.0000001) {
+                        $remaining=max(0,(float)$pi->quantity-$approved-$pending);
+                        throw ValidationException::withMessages(["items.{$index}.quantity"=>'مقدار رسید از باقی‌مانده خرید بیشتر است. حداکثر مقدار مجاز: '.number_format($remaining,4,'.',',').'.']);
+                    }
                 }
                 DB::table('purchase_receipt_items')->insert([
                     'purchase_receipt_id'=>$id,
