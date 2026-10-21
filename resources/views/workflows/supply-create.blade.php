@@ -94,11 +94,11 @@
 
                 <label class="supply-field" for="production_stage_run_id">
                     مرحله تولید
-                    <small>فقط نام مرحله تولید نمایش داده می‌شود.</small>
+                    <small>نام مرحله همراه با شماره دستور تولید و محصول نمایش داده می‌شود تا مراحل هم‌نام از هم قابل تشخیص باشند.</small>
                     <select id="production_stage_run_id" name="production_stage_run_id">
                         <option value="">انتخاب مرحله تولید (اختیاری)</option>
                         @foreach($productionStageRuns as $stageRun)
-                            <option value="{{ $stageRun->id }}" @selected((string) old('production_stage_run_id') === (string) $stageRun->id)>{{ $stageRun->stage_name }}</option>
+                            <option value="{{ $stageRun->id }}" @selected((string) old('production_stage_run_id') === (string) $stageRun->id)>{{ $stageRun->stage_name }} — دستور {{ $stageRun->number }} ({{ $stageRun->goods_name }})</option>
                         @endforeach
                     </select>
                 </label>
