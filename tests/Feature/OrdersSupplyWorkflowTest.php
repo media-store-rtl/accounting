@@ -70,6 +70,46 @@ class OrdersSupplyWorkflowTest extends TestCase
         $this->assertSame(1, substr_count($response->getContent(), 'value="'.$stage.'"'));
     }
 
+    public function test_supply_request_saves_the_selected_production_stage_definition(): void
+    {
+        $c = $this->context();
+        $route = DB::table('production_routes')->insertGetId([
+            'company_id' => $c['company'],
+            'goods_id' => $c['goods'],
+            'code' => 'STAGE-DEF-' . uniqid(),
+            'name' => 'مسیر تولید',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $stage = DB::table('production_stages')->insertGetId([
+            'production_route_id' => $route,
+            'code' => 'CUT-' . uniqid(),
+            'name' => 'برش',
+            'sequence' => 1,
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->from('/supply')->post('/supply', [
+            'fiscal_year_id' => $c['fy'],
+            'production_stage_id' => $stage,
+            'production_section_id' => '',
+            'production_id' => '',
+            'order_id' => '',
+            'needed_at' => '2026-10-20',
+            'items' => [['goods_id' => $c['goods'], 'quantity' => 2]],
+        ])->assertRedirect('/supply')->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('supply_requests', [
+            'company_id' => $c['company'],
+            'production_stage_id' => $stage,
+            'production_stage_run_id' => null,
+            'production_id' => null,
+        ]);
+    }
+
     public function test_order_number_is_generated_by_server_and_cannot_be_overridden(): void
     {
         $c = $this->context();
