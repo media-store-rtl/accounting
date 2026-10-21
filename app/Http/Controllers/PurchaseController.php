@@ -47,14 +47,9 @@ class PurchaseController extends Controller
             foreach($data['items'] as $item){
                 $qty=(float)$item['quantity'];
                 abort_unless(DB::table('goods')->where('id',$item['goods_id'])->where('company_id',$companyId)->where('purchasable',true)->where('is_active',true)->exists(),422,'کالا قابل خرید نیست.');
-                if ($sr) {
-                    $ri=DB::table('supply_request_items')->where('supply_request_id',$sr->id)->where('goods_id',$item['goods_id'])->lockForUpdate()->first();
-                    abort_unless($ri,422,'قلم خرید خارج از درخواست تأمین است.');
-                    // A supply request expresses the need, not a hard purchase cap.
-                    // Allow procurement to buy more than the shortage when operationally justified.
-                    // Received quantities still determine how much of the request has been supplied.
-
-                }
+                // Purchase lines are independent of supply-request lines. A purchase may be
+                // created without a request, and a linked purchase may include extra goods
+                // or quantities beyond the original request when procurement requires it.
                 $line=$qty*(float)$item['unit_price'];$subtotal+=$line;
                 DB::table('purchase_items')->insert(['purchase_id'=>$id,'goods_id'=>$item['goods_id'],'quantity'=>$qty,'unit_price'=>$item['unit_price'],'line_total'=>$line,'created_at'=>now(),'updated_at'=>now()]);
             }

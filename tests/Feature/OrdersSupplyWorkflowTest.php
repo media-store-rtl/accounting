@@ -267,26 +267,49 @@ class OrdersSupplyWorkflowTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $extraGoods = DB::table('goods')->insertGetId([
+            'company_id' => $c['company'],
+            'category_id' => DB::table('goods')->where('id', $c['goods'])->value('category_id'),
+            'code' => 'G-EXTRA',
+            'name' => 'Extra purchase item',
+            'purchasable' => true,
+            'producible' => false,
+            'sellable' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $this->from('/purchasing')->post('/purchasing', [
             'fiscal_year_id' => $c['fy'],
             'supplier_id' => '',
             'supply_request_id' => $requestId,
             'purchased_at' => '2026-10-16',
-            'items' => [['goods_id' => $c['goods'], 'quantity' => 3, 'unit_price' => 125]],
+            // The requested item can exceed the shortage, and an additional item not
+            // listed on the request can still be part of the same purchase.
+            'items' => [
+                ['goods_id' => $c['goods'], 'quantity' => 10, 'unit_price' => 125],
+                ['goods_id' => $extraGoods, 'quantity' => 2, 'unit_price' => 50],
+            ],
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('purchases', [
             'company_id' => $c['company'],
             'supply_request_id' => $requestId,
             'supplier_id' => null,
-            'total_amount' => 375,
+            'total_amount' => 1350,
         ]);
         $this->assertDatabaseHas('purchase_items', [
             'goods_id' => $c['goods'],
-            'quantity' => 3,
+            'quantity' => 10,
             'unit_price' => 125,
-            'line_total' => 375,
+            'line_total' => 1250,
+        ]);
+        $this->assertDatabaseHas('purchase_items', [
+            'goods_id' => $extraGoods,
+            'quantity' => 2,
+            'unit_price' => 50,
+            'line_total' => 100,
         ]);
         $this->assertDatabaseHas('supply_requests', [
             'id' => $requestId,
