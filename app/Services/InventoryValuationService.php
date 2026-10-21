@@ -146,7 +146,7 @@ final class InventoryValuationService
 
         $existing = DB::table('inventory_consumption_costs')->where('inventory_movement_id', $movementId)->first();
         if ($existing) {
-            return ['total_cost' => (float) $existing->total_cost, 'unit_cost' => (float) $existing->unit_cost, 'method' => $existing->valuation_method];
+            return $this->topUpExistingCost($movement, $fiscalYearId, $quantity, (int) $existing->id);
         }
 
         return DB::transaction(function () use ($movementId, $fiscalYearId, $quantity, $companyId, $locationId, $goodsId, $method, $movement) {
@@ -246,6 +246,121 @@ final class InventoryValuationService
                 'valued' => true,
                 'valued_quantity' => $valuedQuantity,
                 'unvalued_quantity' => max(0.0, $quantity - $valuedQuantity),
+            ];
+        });
+    }
+
+    /**
+     * Complete a previously partial valuation from remaining layers that existed
+     * by the movement timestamp. Existing allocations are immutable; only the
+     * missing quantity is allocated and appended to the existing cost record.
+     */
+    private function topUpExistingCost(object $movement, int $fiscalYearId, float $quantity, int $costId): array
+    {
+        return DB::transaction(function () use ($movement, $fiscalYearId, $quantity, $costId) {
+            $cost = DB::table('inventory_consumption_costs')->where('id', $costId)->lockForUpdate()->first();
+            if (!$cost) {
+                throw new RuntimeException('ردیف بهای مصرف برای تکمیل پیدا نشد.');
+            }
+
+            $existingQuantity = (float) $cost->quantity;
+            $missingQuantity = max(0.0, $quantity - $existingQuantity);
+            if ($missingQuantity <= 0.0000001) {
+                return [
+                    'total_cost' => (float) $cost->total_cost,
+                    'unit_cost' => (float) $cost->unit_cost,
+                    'method' => $cost->valuation_method,
+                    'valued' => true,
+                    'valued_quantity' => $existingQuantity,
+                    'unvalued_quantity' => 0.0,
+                ];
+            }
+
+            $method = $cost->valuation_method ?: $this->methodForCompany((int) $movement->company_id);
+            $column = $method === self::FIFO ? 'fifo_quantity_remaining' : 'weighted_average_quantity_remaining';
+            $layers = DB::table('inventory_cost_layers')
+                ->where('company_id', (int) $movement->company_id)
+                ->where('location_id', (int) $movement->location_id)
+                ->where('goods_id', (int) $movement->goods_id)
+                ->where('received_at', '<=', $movement->occurred_at)
+                ->where($column, '>', 0)
+                ->when($method === self::FIFO, fn ($query) => $query->orderBy('received_at')->orderBy('id'))
+                ->lockForUpdate()
+                ->get();
+
+            $available = (float) $layers->sum($column);
+            $valuedQuantity = min($missingQuantity, $available);
+            if ($valuedQuantity <= 0.0000001) {
+                return [
+                    'total_cost' => (float) $cost->total_cost,
+                    'unit_cost' => (float) $cost->unit_cost,
+                    'method' => $method,
+                    'valued' => true,
+                    'valued_quantity' => $existingQuantity,
+                    'unvalued_quantity' => $missingQuantity,
+                ];
+            }
+
+            $allocations = [];
+            $additionalCost = 0.0;
+            if ($method === self::FIFO) {
+                $remaining = $valuedQuantity;
+                foreach ($layers as $layer) {
+                    if ($remaining <= 0.0000001) break;
+                    $take = min($remaining, (float) $layer->{$column});
+                    $unitCost = (float) $layer->unit_cost;
+                    $allocations[] = [$layer, $take, $unitCost];
+                    $additionalCost += $take * $unitCost;
+                    $remaining -= $take;
+                }
+            } else {
+                $layerValue = 0.0;
+                foreach ($layers as $layer) {
+                    $layerValue += (float) $layer->{$column} * (float) $layer->unit_cost;
+                }
+                $average = $available > 0 ? $layerValue / $available : 0.0;
+                $fraction = $available > 0 ? min(1.0, $valuedQuantity / $available) : 0.0;
+                foreach ($layers as $layer) {
+                    $take = (float) $layer->{$column} * $fraction;
+                    if ($take <= 0.0000001) continue;
+                    $allocations[] = [$layer, $take, $average];
+                }
+                $additionalCost = $valuedQuantity * $average;
+            }
+
+            foreach ($allocations as [$layer, $take, $unitCost]) {
+                DB::table('inventory_cost_layers')->where('id', $layer->id)->update([
+                    $column => DB::raw($column.' - '.(float) $take),
+                    'updated_at' => now(),
+                ]);
+                DB::table('inventory_consumption_cost_items')->insert([
+                    'inventory_consumption_cost_id' => $costId,
+                    'inventory_cost_layer_id' => $layer->id,
+                    'quantity' => $take,
+                    'unit_cost' => $unitCost,
+                    'total_cost' => $take * $unitCost,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $newQuantity = $existingQuantity + $valuedQuantity;
+            $newTotalCost = (float) $cost->total_cost + $additionalCost;
+            $newUnitCost = $newQuantity > 0 ? $newTotalCost / $newQuantity : 0.0;
+            DB::table('inventory_consumption_costs')->where('id', $costId)->update([
+                'quantity' => $newQuantity,
+                'total_cost' => $newTotalCost,
+                'unit_cost' => $newUnitCost,
+                'updated_at' => now(),
+            ]);
+
+            return [
+                'total_cost' => $newTotalCost,
+                'unit_cost' => $newUnitCost,
+                'method' => $method,
+                'valued' => true,
+                'valued_quantity' => $newQuantity,
+                'unvalued_quantity' => max(0.0, $quantity - $newQuantity),
             ];
         });
     }
