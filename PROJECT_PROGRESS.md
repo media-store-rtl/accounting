@@ -4,8 +4,20 @@
 - رسید اولیه با `purchase_id = null` و وضعیت `pending` ذخیره می‌شود و به‌تنهایی موجودی یا لایه بهای تمام‌شده را تغییر نمی‌دهد. در نهایی‌سازی، خرید و اقلام آن از همان رسید ساخته می‌شوند؛ سپس در همان تراکنش مسیر موجود تأیید، ثبت حرکت موجودی و ارزش‌گذاری اجرا می‌شود. نهایی‌سازی مجدد برای رسید تأییدشده مجاز نیست.
 - سازگاری با رسیدهای قدیمی متصل به خرید حفظ شده است؛ مسیر قدیمی ثبت رسید همچنان در صورت ارسال `purchase_id` اعتبارسنجی و کار می‌کند. ویرایش رسید اولیه تا قبل از نهایی‌سازی نیز پشتیبانی می‌شود.
 - فایل‌ها: `database/migrations/2026_10_21_140000_make_purchase_receipt_purchase_nullable.php`, `app/Http/Controllers/PurchaseReceiptController.php`, `app/Http/Controllers/WorkflowPagesController.php`, `routes/web.php`, `resources/views/layouts/dashboard-shell.blade.php`, `resources/views/workflows/receipts.blade.php`, `resources/views/workflows/receipts-edit.blade.php`, `tests/Feature/OrdersSupplyWorkflowTest.php`, `PROJECT_PROGRESS.md`.
-- تست رگرسیون برای ثبت رسید بدون خرید، عدم تغییر موجودی پیش از نهایی‌سازی، ساخت خرید از رسید، ثبت موجودی/بهای تمام‌شده و جلوگیری از ثبت دوباره اضافه شد. تست محلی در این محیط اجرا نشده است. CI در GitHub Actions با اجرای `39584070959` روی commit `1a7fee3a230341bf910cc3b64c85cdd01151c8a8` موفق شد (job `phpunit`؛ شامل migrate و `php artisan test`). migration روی محیط واقعی، مرورگر، سایت زنده و Deploy بررسی نشده‌اند.
-- شاخه: `feat/warehouse-first-purchase-receipt`. PR [#221](https://github.com/media-store-rtl/accounting/pull/221) باز است و ادغام نشده است.
+- تست رگرسیون برای ثبت رسید بدون خرید، عدم تغییر موجودی پیش از نهایی‌سازی، ساخت خرید از رسید، ثبت موجودی/بهای تمام‌شده و جلوگیری از ثبت دوباره اضافه شد. CI در GitHub Actions با اجرای `39584070959` روی commit `1a7fee3a230341bf910cc3b64c85cdd01151c8a8` موفق شد (job `phpunit`؛ شامل migrate و `php artisan test`). migration روی محیط واقعی، مرورگر، سایت زنده و Deploy بررسی نشده‌اند.
+- شاخه: `feat/warehouse-first-purchase-receipt`. PR [#221](https://github.com/media-store-rtl/accounting/pull/221) در commit `882c9fb2bcbb1e44bf314cf5935c47d7e6abcd0a` ادغام شده است. ادغام به‌تنهایی تأیید Deploy زنده نیست.
+
+---
+
+# 123. انتقال نهایی‌سازی رسید به تدارکات، اعلان ریالی‌شدن و اصلاح سوابق — 2026-10-21
+
+- درخواست: حفظ هر دو مسیر رسید (رسید متصل به درخواست/خرید قبلی و رسیدی که انبار مستقیم بدون خرید ثبت می‌کند)، اعلان خودکار پس از ثبت رسید و انجام تکمیل قیمت‌ها و «تأیید و نهایی‌سازی» از بخش خریدها/تدارکات.
+- بخش «رسیدهای در انتظار ریالی‌شدن» به صفحه خریدها اضافه شد. تدارکات در همان‌جا برای رسیدهای بدون خرید، تأمین‌کننده و قیمت واحد را ثبت و خرید را از همان اقلام رسید ایجاد و نهایی می‌کند؛ برای رسیدهای متصل به خرید قبلی، مسیر تأیید موجود حفظ شده است. عملیات نهایی‌سازی از صفحه رسیدهای انبار حذف شده و صفحه انبار وضعیت/ویرایش رسید را نشان می‌دهد.
+- هنگام ثبت رسید، رویداد اعلان `purchase.receipt_pending_financialization` برای کاربران دارای مجوز `purchase.create` ارسال می‌شود. تست‌های جدید، ارسال اعلان و نمایش رسیدهای در انتظار در بخش تدارکات را پوشش می‌دهند.
+- فایل‌های تغییرکرده در این کار: `app/Http/Controllers/PurchaseReceiptController.php`, `app/Services/NotificationRecipientService.php`, `resources/views/notifications/index.blade.php`, `resources/views/workflows/purchasing.blade.php`, `resources/views/workflows/receipts.blade.php`, `tests/Feature/PurchaseReceiptProcurementWorkflowTest.php`, `tests/Feature/OrdersSupplyWorkflowTest.php`, `PROJECT_PROGRESS.md`.
+- بررسی CI اولیه PR #222 نشان داد 2 تست قدیمی در `OrdersSupplyWorkflowTest` هنوز انتظار داشتند عملیات نهایی‌سازی روی صفحه انبار باشد؛ این assertionها اصلاح شدند تا رفتار جدید (عدم نهایی‌سازی در صفحه انبار) را بررسی کنند. تست‌های تازه `PurchaseReceiptProcurementWorkflowTest` در همان اجرا موفق بودند. CI پس از اصلاح تست‌ها باید دوباره بررسی شود؛ اجرای محلی در این محیط ممکن نیست.
+- Migration جدیدی برای این تغییر اضافه نشده است. مرورگر، سایت زنده و Deploy بررسی نشده‌اند.
+- شاخه: `feat/purchase-receipt-procurement-notification`. PR [#222](https://github.com/media-store-rtl/accounting/pull/222) باز و ادغام‌نشده است.
 
 ---
 
