@@ -66,7 +66,32 @@
 @if($canReceiveShiftReport)<div style="margin-top:10px"><a href="{{ route('production.outputs.index') }}" style="color:#6ee7d0;text-decoration:none;font-size:11px">رفتن به خروجی تولید و تأیید دریافت ←</a></div>@endif
 @if($orderId)<div style="margin-top:10px;color:#9eb2c4;font-size:11px">شماره سفارش: <strong style="color:#e9f3fb">#{{ $orderId }}</strong>@if($canViewOrder)<a href="{{ route('sales.orders.show',$orderId) }}" style="margin-right:10px;color:#6ee7d0;text-decoration:none">مشاهده سفارش ←</a>@endif</div>@endif
 @if(in_array($event,['supply.stock_check_required','supply.shortage'],true)&&auth()->user()->hasCompanyPermission((int)session('company_id'),'supply_request.view'))<div style="margin-top:10px"><a href="{{ route('workflows.supply') }}" style="color:#6ee7d0;text-decoration:none;font-size:11px">رفتن به درخواست‌های مواد اولیه ←</a></div>@endif
-@if(count($extraData)>0)<div style="display:flex;flex-direction:column;gap:5px;margin-top:10px;color:#9eb2c4;font-size:11px;line-height:1.9;overflow-wrap:anywhere">@foreach($extraData as $k=>$v)@if($k!=='order_id')<div><span style="color:#71879d">{{ $fieldLabels[$k]??'جزئیات' }}:</span><strong style="color:#e9f3fb">@if($k==='goods_id'){{ $goodsName?:'کالای ثبت‌شده' }}@elseif($k==='location_id'){{ $locationName?:'انبار ثبت‌شده' }}@elseif($k==='work_date'&&is_scalar($v)&&$v!=='')<time class="notification-jalali-date" datetime="{{ \Illuminate\Support\Carbon::parse($v)->toIso8601String() }}">{{ \Illuminate\Support\Carbon::parse($v)->format('Y/m/d') }}</time>@elseif($k==='production_due_at'&&is_scalar($v)&&$v!=='')<time class="notification-jalali-datetime" datetime="{{ \Illuminate\Support\Carbon::parse($v)->toIso8601String() }}">{{ \Illuminate\Support\Carbon::parse($v)->format('Y/m/d H:i') }}</time>@elseif(is_numeric($v)&&in_array($k,['purchase_total_amount','direct_cost_total'],true)){{ number_format((float)$v,0).' ریال' }}@elseif(is_scalar($v) ){{ $v }}@endif</strong></div>@endif@endforeach</div>@endif
+@if(count($extraData) > 0)
+    <div style="display:flex;flex-direction:column;gap:5px;margin-top:10px;color:#9eb2c4;font-size:11px;line-height:1.9;overflow-wrap:anywhere">
+        @foreach($extraData as $k => $v)
+            @if($k !== 'order_id')
+                <div>
+                    <span style="color:#71879d">{{ $fieldLabels[$k] ?? 'جزئیات' }}:</span>
+                    <strong style="color:#e9f3fb">
+                        @if($k === 'goods_id')
+                            {{ $goodsName ?: 'کالای ثبت‌شده' }}
+                        @elseif($k === 'location_id')
+                            {{ $locationName ?: 'انبار ثبت‌شده' }}
+                        @elseif($k === 'work_date' && is_scalar($v) && $v !== '')
+                            <time class="notification-jalali-date" datetime="{{ \Illuminate\Support\Carbon::parse($v)->toIso8601String() }}">{{ \Illuminate\Support\Carbon::parse($v)->format('Y/m/d') }}</time>
+                        @elseif($k === 'production_due_at' && is_scalar($v) && $v !== '')
+                            <time class="notification-jalali-datetime" datetime="{{ \Illuminate\Support\Carbon::parse($v)->toIso8601String() }}">{{ \Illuminate\Support\Carbon::parse($v)->format('Y/m/d H:i') }}</time>
+                        @elseif(is_numeric($v) && in_array($k, ['purchase_total_amount', 'direct_cost_total'], true))
+                            {{ number_format((float) $v, 0) . ' ریال' }}
+                        @elseif(is_scalar($v))
+                            {{ $v }}
+                        @endif
+                    </strong>
+                </div>
+            @endif
+        @endforeach
+    </div>
+@endif
 @if($n->readers->isNotEmpty())<div style="margin-top:12px;padding:10px 12px;border:1px solid #245447;border-radius:9px;background:#0a2024"><strong style="display:block;color:#8ce8ce;font-size:11px;margin-bottom:7px">خوانده‌شده توسط</strong><div style="display:flex;flex-direction:column;gap:6px">@foreach($n->readers as $reader)<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px"><span style="color:#d2e5ee">{{ $reader->username ?: $reader->user_name }}</span><small style="color:#8198ac"><time class="notification-jalali-datetime" datetime="{{ \Illuminate\Support\Carbon::parse($reader->read_at)->toIso8601String() }}">{{ \Illuminate\Support\Carbon::parse($reader->read_at)->format('Y/m/d H:i') }}</time></small></div>@endforeach</div></div>@elseif(!empty($data['notification_batch_id']))<div style="margin-top:10px;color:#8198ac;font-size:10px">هنوز هیچ‌یک از گیرندگان این اعلان را نخوانده است.</div>@endif
 @if(!$n->read_at)<form method="POST" action="{{ route('notifications.read',$n->id) }}" style="margin-top:12px">@csrf<button type="submit" class="btn">متوجه شدم؛ علامت‌گذاری به‌عنوان خوانده‌شده</button></form>@else<div style="margin-top:10px;color:#8198ac;font-size:10px">این اعلان را خوانده‌اید.</div>@endif
 </article>
