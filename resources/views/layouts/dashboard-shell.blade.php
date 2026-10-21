@@ -55,6 +55,7 @@ if (!isset($can) || !is_array($can)) {
         $can[$key] = (bool) ($company && $user->hasCompanyPermission((int) $company->id, $permission));
     }
 }
+$can['receipts'] = (bool) (($can['receipts'] ?? false) || ($company && ($user->hasCompanyPermission((int) $company->id, 'purchase.create') || $user->hasCompanyPermission((int) $company->id, 'purchase.receipt.approve'))));
 $can['warehouse_requests'] = (bool) ($can['warehouse_requests'] ?? ($company && $user->hasCompanyPermission((int) $company->id, 'supply_request.handover.create')));
 $can['notification_recipients'] = (bool) ($can['notification_recipients'] ?? ($company && $user->hasCompanyPermission((int) $company->id, 'user.update')));
 $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifications()->count() : 0;
