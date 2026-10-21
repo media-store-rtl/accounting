@@ -58,11 +58,57 @@ class OrdersSupplyWorkflowTest extends TestCase
             ]);
         }
 
-        $this->get(route('workflows.supply.create'))
+        $response = $this->get(route('workflows.supply.create'))
             ->assertOk()
-            ->assertSee('برش — دستور PR-100')
-            ->assertSee('برش — دستور PR-101')
-            ->assertSee('production_stage_run_id');
+            ->assertSee('فقط مراحل تعریف‌شده در مسیر تولید نمایش داده می‌شوند؛ هر تعریف مرحله یک‌بار در فهرست می‌آید.')
+            ->assertSee('name="production_stage_id"', false)
+            ->assertSee('برش</option>', false)
+            ->assertDontSee('PR-100')
+            ->assertDontSee('PR-101')
+            ->assertDontSee('production_stage_run_id', false);
+
+        preg_match('/<select id="production_stage_id".*?<\/select>/s', $response->getContent(), $stageSelect);
+        $this->assertSame(1, substr_count($stageSelect[0] ?? '', 'value="'.$stage.'"'));
+    }
+
+    public function test_supply_request_saves_the_selected_production_stage_definition(): void
+    {
+        $c = $this->context();
+        $route = DB::table('production_routes')->insertGetId([
+            'company_id' => $c['company'],
+            'goods_id' => $c['goods'],
+            'code' => 'STAGE-DEF-' . uniqid(),
+            'name' => 'مسیر تولید',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $stage = DB::table('production_stages')->insertGetId([
+            'production_route_id' => $route,
+            'code' => 'CUT-' . uniqid(),
+            'name' => 'برش',
+            'sequence' => 1,
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->from('/supply')->post('/supply', [
+            'fiscal_year_id' => $c['fy'],
+            'production_stage_id' => $stage,
+            'production_section_id' => '',
+            'production_id' => '',
+            'order_id' => '',
+            'needed_at' => '2026-10-20',
+            'items' => [['goods_id' => $c['goods'], 'quantity' => 2]],
+        ])->assertRedirect('/supply')->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('supply_requests', [
+            'company_id' => $c['company'],
+            'production_stage_id' => $stage,
+            'production_stage_run_id' => null,
+            'production_id' => null,
+        ]);
     }
 
     public function test_order_number_is_generated_by_server_and_cannot_be_overridden(): void
@@ -464,9 +510,10 @@ class OrdersSupplyWorkflowTest extends TestCase
             ->assertSee('name="production_section_id"', false)
             ->assertSee('قسمت برش')
             ->assertSee('مرحله تولید و مقصد مصرف')
-            ->assertSee('نام مرحله همراه با شماره دستور تولید و محصول نمایش داده می‌شود تا مراحل هم‌نام از هم قابل تشخیص باشند.')
-            ->assertSee('name="production_stage_run_id"', false)
-            ->assertSee('برش — دستور PROD-1 (Material)')
+            ->assertSee('فقط مراحل تعریف‌شده در مسیر تولید نمایش داده می‌شوند؛ هر تعریف مرحله یک‌بار در فهرست می‌آید.')
+            ->assertSee('name="production_stage_id"', false)
+            ->assertSee('برش</option>', false)
+            ->assertDontSee('PROD-1')
             ->assertDontSee('مقدار برنامه‌ریزی‌شده:')
             ->assertSee('مشتری: Customer')
             ->assertSee('سفارش ORD-5')
@@ -570,7 +617,7 @@ class OrdersSupplyWorkflowTest extends TestCase
             'items' => [['goods_id' => $c['goods'], 'quantity' => 2]],
         ])->assertRedirect('/supply')
           ->assertSessionHasErrors([
-              'production_stage_run_id' => 'مرحله تولید، قسمت تولید یا سفارش باید مشخص شود.',
+              'production_stage_id' => 'مرحله تولید، قسمت تولید یا سفارش باید مشخص شود.',
           ]);
 
         $this->assertDatabaseCount('supply_requests', 0);

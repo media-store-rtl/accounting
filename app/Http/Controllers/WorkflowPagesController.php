@@ -30,7 +30,7 @@ class WorkflowPagesController extends Controller {
    'goods'=>DB::table('goods')->where('company_id',$cid)->where('is_active',true)->orderBy('name')->get(),
    'years'=>$years,
    'activeFiscalYearId'=>$activeFiscalYearId,
-   'productionStageRuns'=>DB::table('production_stage_runs as sr')->join('productions as p','p.id','=','sr.production_id')->join('production_stages as s','s.id','=','sr.production_stage_id')->join('production_routes as pr','pr.id','=','s.production_route_id')->join('goods as g','g.id','=','p.goods_id')->where('p.company_id',$cid)->where('s.status','active')->orderByDesc('p.id')->orderBy('sr.sequence')->get(['sr.id','sr.production_id','sr.sequence','sr.status as run_status','p.number','s.name as stage_name','g.name as goods_name']),
+   'productionStages'=>DB::table('production_stages as s')->join('production_routes as pr','pr.id','=','s.production_route_id')->where('pr.company_id',$cid)->where('s.status','active')->orderBy('s.sequence')->orderBy('s.name')->get(['s.id','s.name']),
    'orders'=>DB::table('orders as o')->join('customers as c','c.id','=','o.customer_id')->where('o.company_id',$cid)->orderByDesc('o.id')->get(['o.id','o.number','c.name as customer_name']),
    'sections'=>DB::table('production_sections as s')->join('locations as l','l.id','=','s.location_id')->where('l.company_id',$cid)->where('l.is_active',true)->where('s.is_active',true)->orderBy('l.name')->get(['s.id','l.name as name']),
   ]);
