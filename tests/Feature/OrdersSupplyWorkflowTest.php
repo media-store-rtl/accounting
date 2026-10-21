@@ -171,7 +171,7 @@ class OrdersSupplyWorkflowTest extends TestCase
             ->assertSee('مقدار دریافتی')
             ->assertSee('name="items[0][goods_id]"', false)
             ->assertDontSee('name="purchase_id"', false)
-            ->assertSee('موجودی انبار پس از تکمیل قیمت‌ها و نهایی‌سازی', false);
+            ->assertSee('تأیید و نهایی‌سازی از این صفحه انجام نمی‌شود', false);
     }
 
     public function test_purchase_edit_shows_a_friendly_notice_when_a_receipt_already_exists(): void
@@ -758,7 +758,7 @@ class OrdersSupplyWorkflowTest extends TestCase
             'reference_type' => 'purchase_receipts',
             'reference_id' => $receipt,
         ]);
-        $this->get('/receipts')->assertOk()->assertSee('تکمیل خرید و نهایی‌سازی');
+        $this->get('/receipts')->assertOk()->assertSee('تأیید و نهایی‌سازی از این صفحه انجام نمی‌شود')->assertDontSee('تکمیل خرید و نهایی‌سازی');
 
         $this->postJson('/api/purchase-receipts/'.$receipt.'/approve', [
             'supplier_id' => $c['supplier'],
