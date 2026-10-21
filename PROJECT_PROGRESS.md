@@ -5,8 +5,8 @@
 - برای حفظ صحت موجودی و بهای تمام‌شده، ویرایش خرید لغوشده یا خریدی که برای آن هر نوع رسید انبار ثبت شده باشد مسدود است. وضعیت و مرجع درخواست تأمین در ویرایش تغییر نمی‌کنند.
 - فرم تاریخ ویرایش از انتخاب‌گر شمسی مشترک پروژه استفاده می‌کند و تاریخ ISO میلادی را در فیلد مخفی می‌فرستد.
 - فایل‌های تغییرکرده: `resources/views/layouts/dashboard-shell.blade.php`, `routes/web.php`, `app/Http/Controllers/WorkflowPagesController.php`, `resources/views/workflows/purchasing.blade.php`, `resources/views/workflows/purchasing-edit.blade.php`, `tests/Feature/OrdersSupplyWorkflowTest.php`, `PROJECT_PROGRESS.md`.
-- تست رگرسیون ویرایش خرید و محاسبه مجدد جمع مبلغ اضافه شد؛ تست محلی در این محیط اجرا نشده و CI هنوز بررسی نشده است. مرورگر، مهاجرت و سایت زنده بررسی نشده‌اند؛ تغییر Schema لازم نبود.
-- شاخه: `feat/purchase-edit-and-inventory-receipts`. PR پس از ثبت تغییرات ایجاد می‌شود؛ ادغام نشده است.
+- تست رگرسیون ویرایش خرید و محاسبه مجدد جمع مبلغ اضافه شد؛ تست محلی در این محیط اجرا نشده است. CI مربوط به commit اولیه PR در زمان بازبینی در صف/در حال اجرا بود؛ نتیجه نهایی هنوز تأیید نشده است. مرورگر، مهاجرت و سایت زنده بررسی نشده‌اند؛ تغییر Schema لازم نبود.
+- شاخه: `feat/purchase-edit-and-inventory-receipts`. در PR [#218](https://github.com/media-store-rtl/accounting/pull/218) برای بازبینی پیشنهاد شده است؛ PR باز و ادغام‌نشده است.
 
 # 135. حذف انتخاب سال مالی و پشتیبانی از خرید چندقلمی — 2026-10-18
 
