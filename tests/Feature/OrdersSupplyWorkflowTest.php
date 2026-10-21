@@ -739,4 +739,81 @@ class OrdersSupplyWorkflowTest extends TestCase
         ]);
     }
 
+
+    public function test_warehouse_can_register_receipt_before_purchase_and_procurement_finalizes_it_once(): void
+    {
+        $c = $this->context();
+
+        $this->get('/receipts')
+            ->assertOk()
+            ->assertSee('ثبت رسید اولیه توسط انبار')
+            ->assertSee('تکمیل خرید و نهایی‌سازی')
+            ->assertDontSee('name="purchase_id"', false);
+
+        $receipt = $this->postJson('/api/purchase-receipts', [
+            'warehouse_location_id' => $c['warehouse'],
+            'received_at' => '2026-10-21 10:30:00',
+            'notes' => 'تحویل واقعی انبار',
+            'items' => [['goods_id' => $c['goods'], 'quantity' => 2]],
+        ])->assertCreated()->json('data.id');
+
+        $this->assertDatabaseHas('purchase_receipts', [
+            'id' => $receipt,
+            'company_id' => $c['company'],
+            'purchase_id' => null,
+            'status' => 'pending',
+        ]);
+        $this->assertDatabaseMissing('inventory_movements', [
+            'reference_type' => 'purchase_receipts',
+            'reference_id' => $receipt,
+        ]);
+
+        $this->postJson('/api/purchase-receipts/'.$receipt.'/approve', [
+            'supplier_id' => $c['supplier'],
+            'invoice_number' => 'INV-WH-1',
+            'unit_prices' => [$c['goods'] => 125],
+        ])->assertOk()->assertJsonPath('data.status', 'approved');
+
+        $purchaseId = (int) DB::table('purchase_receipts')->where('id', $receipt)->value('purchase_id');
+        $this->assertGreaterThan(0, $purchaseId);
+        $this->assertDatabaseHas('purchases', [
+            'id' => $purchaseId,
+            'company_id' => $c['company'],
+            'supplier_id' => $c['supplier'],
+            'invoice_number' => 'INV-WH-1',
+            'subtotal' => 250,
+            'total_amount' => 250,
+            'status' => 'received',
+        ]);
+        $this->assertDatabaseHas('purchase_items', [
+            'purchase_id' => $purchaseId,
+            'goods_id' => $c['goods'],
+            'quantity' => 2,
+            'unit_price' => 125,
+            'line_total' => 250,
+        ]);
+        $this->assertDatabaseHas('inventory_movements', [
+            'reference_type' => 'purchase_receipts',
+            'reference_id' => $receipt,
+            'goods_id' => $c['goods'],
+            'location_id' => $c['warehouse'],
+            'quantity' => 2,
+        ]);
+        $this->assertDatabaseHas('inventory_cost_layers', [
+            'purchase_id' => $purchaseId,
+            'purchase_receipt_id' => $receipt,
+            'goods_id' => $c['goods'],
+            'quantity_received' => 2,
+            'unit_cost' => 125,
+        ]);
+
+        $this->postJson('/api/purchase-receipts/'.$receipt.'/approve', [
+            'supplier_id' => $c['supplier'],
+            'unit_prices' => [$c['goods'] => 125],
+        ])->assertStatus(403);
+        $this->assertSame(1, DB::table('inventory_movements')
+            ->where('reference_type', 'purchase_receipts')->where('reference_id', $receipt)->count());
+    }
+
+
 }
