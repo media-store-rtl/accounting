@@ -35,6 +35,36 @@ class OrdersSupplyWorkflowTest extends TestCase
         return compact('company','user','fy','goods','customer','warehouse','supplier');
     }
 
+    public function test_supply_request_stage_options_distinguish_same_named_stages_by_production(): void
+    {
+        $c = $this->context();
+        $route = DB::table('production_routes')->insertGetId([
+            'company_id' => $c['company'], 'goods_id' => $c['goods'], 'code' => 'R' . uniqid(),
+            'name' => 'Route', 'status' => 'active', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $stage = DB::table('production_stages')->insertGetId([
+            'production_route_id' => $route, 'code' => 'CUT', 'name' => 'برش',
+            'sequence' => 1, 'status' => 'active', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        foreach (['PR-100', 'PR-101'] as $number) {
+            $production = DB::table('productions')->insertGetId([
+                'company_id' => $c['company'], 'fiscal_year_id' => $c['fy'], 'goods_id' => $c['goods'],
+                'production_route_id' => $route, 'number' => $number, 'planned_quantity' => 10,
+                'status' => 'in_progress', 'created_at' => now(), 'updated_at' => now(),
+            ]);
+            DB::table('production_stage_runs')->insert([
+                'production_id' => $production, 'production_stage_id' => $stage,
+                'sequence' => 1, 'status' => 'pending', 'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+
+        $this->get(route('workflows.supply.create'))
+            ->assertOk()
+            ->assertSee('برش — دستور PR-100')
+            ->assertSee('برش — دستور PR-101')
+            ->assertSee('production_stage_run_id');
+    }
+
     public function test_order_number_is_generated_by_server_and_cannot_be_overridden(): void
     {
         $c = $this->context();
