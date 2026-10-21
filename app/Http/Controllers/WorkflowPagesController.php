@@ -199,7 +199,7 @@ class WorkflowPagesController extends Controller {
     if ($purchase) {
      $purchaseItem=DB::table('purchase_items')->where('purchase_id',$purchase->id)->where('goods_id',$receiptItem->goods_id)->first();
      if(!$purchaseItem){
-      throw \\Illuminate\\Validation\\ValidationException::withMessages(["items.{$index}.goods_id"=>'این کالا دیگر در اقلام خرید وجود ندارد.']);
+      throw \Illuminate\Validation\ValidationException::withMessages(["items.{$index}.goods_id"=>'این کالا دیگر در اقلام خرید وجود ندارد.']);
      }
      $reservedByOthers=(float)DB::table('purchase_receipt_items as x')
       ->join('purchase_receipts as pr','pr.id','=','x.purchase_receipt_id')
@@ -207,11 +207,11 @@ class WorkflowPagesController extends Controller {
       ->whereIn('pr.status',['pending','approved'])->where('x.goods_id',$receiptItem->goods_id)->sum('x.quantity');
      if($reservedByOthers+(float)$item['quantity']>(float)$purchaseItem->quantity+0.0000001){
       $remaining=max(0,(float)$purchaseItem->quantity-$reservedByOthers);
-      throw \\Illuminate\\Validation\\ValidationException::withMessages(["items.{$index}.quantity"=>'مقدار این قلم از باقی‌مانده خرید بیشتر است. حداکثر مقدار مجاز: '.number_format($remaining,4,'.',',').'.']);
+      throw \Illuminate\Validation\ValidationException::withMessages(["items.{$index}.quantity"=>'مقدار این قلم از باقی‌مانده خرید بیشتر است. حداکثر مقدار مجاز: '.number_format($remaining,4,'.',',').'.']);
      }
     } else {
      $goods=DB::table('goods')->where('id',$receiptItem->goods_id)->where('company_id',$cid)->where('purchasable',true)->where('is_active',true)->exists();
-     if (!$goods) throw \\Illuminate\\Validation\\ValidationException::withMessages(["items.{$index}.goods_id"=>'کالای رسید معتبر یا قابل خرید نیست.']);
+     if (!$goods) throw \Illuminate\Validation\ValidationException::withMessages(["items.{$index}.goods_id"=>'کالای رسید معتبر یا قابل خرید نیست.']);
     }
     DB::table('purchase_receipt_items')->where('id',$receiptItem->id)->where('purchase_receipt_id',$receipt->id)->update([
      'quantity'=>$item['quantity'],'updated_at'=>now(),
