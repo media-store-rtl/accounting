@@ -191,7 +191,7 @@ final class CostingReportController extends Controller
             $metadata = $metadataByMovement[(int) $movement->id] ?? [];
             $supply = $supplies->get((int) ($metadata['supply_request_id'] ?? 0));
             $productionOrder = $productionOrders->get((int) ($metadata['production_id'] ?? 0));
-            $sectionId = (int) ($supply->production_section_id ?? $movement->location_section_id ?? 0);
+            $sectionId = (int) ($supply->production_section_id ?? $metadata['production_section_id'] ?? $movement->location_section_id ?? 0);
             if ($sectionId <= 0) continue;
             $orderId = (int) ($supply->order_id ?? $productionOrder->order_id ?? $metadata['order_id'] ?? 0);
             $key = $sectionId . ':' . (int) $movement->goods_id . ':' . $orderId;
