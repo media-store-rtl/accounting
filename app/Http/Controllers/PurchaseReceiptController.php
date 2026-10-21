@@ -86,7 +86,8 @@ class PurchaseReceiptController extends Controller
 
     public function approve(Request $request,int $purchaseReceipt): JsonResponse
     {
-        $candidate=DB::table('purchase_receipts')->where('id',$purchaseReceipt)->first();
+        $sessionCompanyId=(int)$request->session()->get('company_id');
+        $candidate=DB::table('purchase_receipts')->where('id',$purchaseReceipt)->where('company_id',$sessionCompanyId)->first();
         abort_unless($candidate,404);
         $companyId=CompanyAuthorization::authorize($request,$candidate->purchase_id ? 'purchase.receipt.approve' : 'purchase.create');
         $data=[];
