@@ -5,7 +5,7 @@
 - سازگاری با رسیدهای قدیمی متصل به خرید حفظ شده است؛ مسیر قدیمی ثبت رسید همچنان در صورت ارسال `purchase_id` اعتبارسنجی و کار می‌کند. ویرایش رسید اولیه تا قبل از نهایی‌سازی نیز پشتیبانی می‌شود.
 - فایل‌ها: `database/migrations/2026_10_21_140000_make_purchase_receipt_purchase_nullable.php`, `app/Http/Controllers/PurchaseReceiptController.php`, `app/Http/Controllers/WorkflowPagesController.php`, `routes/web.php`, `resources/views/layouts/dashboard-shell.blade.php`, `resources/views/workflows/receipts.blade.php`, `resources/views/workflows/receipts-edit.blade.php`, `tests/Feature/OrdersSupplyWorkflowTest.php`, `PROJECT_PROGRESS.md`.
 - تست رگرسیون برای ثبت رسید بدون خرید، عدم تغییر موجودی پیش از نهایی‌سازی، ساخت خرید از رسید، ثبت موجودی/بهای تمام‌شده و جلوگیری از ثبت دوباره اضافه شد. تست محلی در این محیط اجرا نشده است. CI در GitHub Actions با اجرای `39584070959` روی commit `1a7fee3a230341bf910cc3b64c85cdd01151c8a8` موفق شد (job `phpunit`؛ شامل migrate و `php artisan test`). migration روی محیط واقعی، مرورگر، سایت زنده و Deploy بررسی نشده‌اند.
-- شاخه: `feat/warehouse-first-purchase-receipt`. PR پس از ثبت تغییرات ایجاد می‌شود؛ ادغام انجام نشده است.
+- شاخه: `feat/warehouse-first-purchase-receipt`. PR [#221](https://github.com/media-store-rtl/accounting/pull/221) باز است و ادغام نشده است.
 
 ---
 
