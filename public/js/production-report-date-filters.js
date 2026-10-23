@@ -110,7 +110,7 @@ export function setupCostingRefreshButton(documentRef = globalThis.document) {
         button.style.cursor = 'wait';
 
         const reportIds = incompleteRows.map(row => {
-            const value = row.querySelector('td')?.textContent?.match(/#\\s*(\\d+)/)?.[1];
+            const value = row.querySelector('td')?.textContent?.match(/#\s*(\d+)/)?.[1];
             return value ? Number(value) : null;
         }).filter(Boolean);
 
