@@ -69,7 +69,7 @@ final class CostingReportController extends Controller
             return back()->with('error', 'برای تاریخ گزارش سال مالی متناظر پیدا نشد؛ ریالی‌سازی انجام نشد.');
         }
 
-        $result = DB::transaction(function () use ($movements, $fiscalYearId, $valuationService, $companyId) {
+        $result = DB::transaction(function () use ($movements, $fiscalYearId, $valuationService) {
             $valued = 0;
             $alreadyValued = 0;
             $unvalued = 0;
@@ -96,22 +96,11 @@ final class CostingReportController extends Controller
                     continue;
                 }
 
-                // Avoid creating a permanent partial cost row from this action:
-                // the ledger schema permits one cost row per movement, so a partial
-                // row cannot safely be topped up later after new receipts arrive.
-                $method = $valuationService->methodForCompany($companyId);
-                $layerColumn = $method === InventoryValuationService::FIFO ? 'fifo_quantity_remaining' : 'weighted_average_quantity_remaining';
-                $available = (float) DB::table('inventory_cost_layers')
-                    ->where('company_id', $companyId)
-                    ->where('goods_id', $movement->goods_id)
-                    ->where('location_id', $movement->location_id)
-                    ->where('received_at', '<=', $movement->occurred_at)
-                    ->sum($layerColumn);
-                if ($available + 0.0001 < abs((float) $movement->quantity)) {
-                    $unvalued++;
-                    continue;
-                }
-
+                // InventoryValuationService deliberately supports partial valuation.
+                // Do not pre-reject a movement merely because its currently available
+                // layers cover only part of the consumption. The service records the
+                // traceable portion and leaves the remainder unvalued so a later refresh
+                // can top it up when additional eligible layers exist.
                 $value = $valuationService->valueInventoryMovement((int) $movement->id, (int) $fiscalYearId);
                 if (!empty($value['valued']) && (float) ($value['valued_quantity'] ?? 0) > 0) {
                     $valued++;
@@ -126,8 +115,13 @@ final class CostingReportController extends Controller
             return compact('valued', 'alreadyValued', 'unvalued');
         });
 
+        $processed = $result['valued'] + $result['alreadyValued'];
+        if ($processed === 0 && $result['unvalued'] > 0) {
+            return back()->with('error', 'برای مصرف این گزارش هنوز بهای معتبر قابل ردیابی وجود ندارد؛ هیچ بهای ساختگی ثبت نشد.');
+        }
+
         if ($result['unvalued'] > 0) {
-            return back()->with('error', 'بخشی از مصرف هنوز بهای معتبر ندارد؛ موجودی لایه‌ایِ قابل ردیابی در تاریخ مصرف کافی نیست. هیچ بهای ساختگی ثبت نشد.');
+            return back()->with('success', 'بخشی از مواد ارزش‌گذاری شد: '.$result['valued'].' حرکت ارزش‌گذاری/تکمیل شد و '.$result['alreadyValued'].' حرکت از قبل کامل بود؛ '.$result['unvalued'].' حرکت هنوز بخشی بدون بها دارد و با بروزرسانی بعدی قابل تکمیل است.');
         }
 
         return back()->with('success', 'ریالی‌سازی ردیف بررسی شد: '.$result['valued'].' حرکت ارزش‌گذاری شد و '.$result['alreadyValued'].' حرکت از قبل ارزش‌گذاری شده بود؛ موجودی دوباره کسر نشد.');
