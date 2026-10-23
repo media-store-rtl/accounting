@@ -168,7 +168,8 @@ final class CostingReportController extends Controller
             ->orderBy('m.occurred_at')->orderBy('m.id')
             ->get([
                 'm.id', 'm.goods_id', 'm.quantity', 'm.location_id',
-                'm.occurred_at', 'm.metadata', 'ps.id as location_section_id',
+                'm.occurred_at', 'm.metadata', 'm.reference_type', 'm.reference_id',
+                'ps.id as location_section_id',
             ]);
 
         $metadataByMovement = [];
@@ -190,13 +191,36 @@ final class CostingReportController extends Controller
             ->groupBy('production_id')->map(fn ($links) => $links->first());
 
         $pools = [];
+        $usageReportIds = [];
+        $directMovements = [];
+        foreach ($usageRows as $usage) {
+            $usageReportIds[(int) $usage->report_id] = true;
+        }
+
         foreach ($consumptionRows as $movement) {
             $metadata = $metadataByMovement[(int) $movement->id] ?? [];
             $supply = $supplies->get((int) ($metadata['supply_request_id'] ?? 0));
             $productionOrder = $productionOrders->get((int) ($metadata['production_id'] ?? 0));
             $sectionId = (int) ($supply->production_section_id ?? $metadata['production_section_id'] ?? $movement->location_section_id ?? 0);
-            if ($sectionId <= 0) continue;
             $orderId = (int) ($supply->order_id ?? $productionOrder->order_id ?? $metadata['order_id'] ?? 0);
+
+            // Prefer the authoritative report link created when an approved shift report
+            // consumes its own materials. Do not let an earlier report in the same
+            // section/material/order pool consume that movement first.
+            $directReportId = (int) ($metadata['shift_report_id'] ?? 0);
+            if ($directReportId <= 0 && (string) $movement->reference_type === 'production_shift_reports') {
+                $directReportId = (int) $movement->reference_id;
+            }
+            if ($directReportId > 0 && isset($usageReportIds[$directReportId])) {
+                $directMovements[$directReportId][(int) $movement->goods_id][] = [
+                    'movement' => $movement,
+                    'remaining' => abs((float) $movement->quantity),
+                    'date' => substr((string) $movement->occurred_at, 0, 10),
+                ];
+                continue;
+            }
+
+            if ($sectionId <= 0) continue;
             $key = $sectionId . ':' . (int) $movement->goods_id . ':' . $orderId;
             $pools[$key][] = [
                 'movement' => $movement,
@@ -207,10 +231,40 @@ final class CostingReportController extends Controller
 
         $allocatedByGoods = [];
         $targetMovementIds = [];
+        $remainingByUsageRow = [];
+
+        // Allocate report-linked movements first, independently of the shared legacy
+        // pool. This prevents historical pool ordering from stealing an explicit link.
         foreach ($usageRows as $usage) {
+            $rowId = (int) $usage->material_row_id;
+            $remainingUsage = max(0.0, (float) $usage->quantity);
+            $reportIdForUsage = (int) $usage->report_id;
+            $materialId = (int) $usage->material_id;
+
+            foreach ($directMovements[$reportIdForUsage][$materialId] ?? [] as &$direct) {
+                if ($remainingUsage <= 0.0000001) break;
+                if ($direct['remaining'] <= 0.0000001) continue;
+                $allocated = min($remainingUsage, $direct['remaining']);
+                $direct['remaining'] -= $allocated;
+                $remainingUsage -= $allocated;
+                if ($reportIdForUsage === $reportId) {
+                    $allocatedByGoods[$materialId] = ($allocatedByGoods[$materialId] ?? 0.0) + $allocated;
+                    $targetMovementIds[(int) $direct['movement']->id] = true;
+                }
+            }
+            unset($direct);
+            $remainingByUsageRow[$rowId] = $remainingUsage;
+        }
+
+        // Preserve section + material + order + date allocation for legacy movements
+        // that do not identify a shift report directly.
+        foreach ($usageRows as $usage) {
+            $rowId = (int) $usage->material_row_id;
+            $remainingUsage = (float) ($remainingByUsageRow[$rowId] ?? max(0.0, (float) $usage->quantity));
+            if ($remainingUsage <= 0.0000001) continue;
+
             $key = (int) $usage->production_section_id . ':' . (int) $usage->material_id . ':' . (int) ($usage->order_id ?? 0);
             if (empty($pools[$key])) continue;
-            $remainingUsage = max(0.0, (float) $usage->quantity);
             foreach ($pools[$key] as &$pool) {
                 if ($remainingUsage <= 0.0000001) break;
                 if ($pool['remaining'] <= 0.0000001 || $pool['date'] > substr((string) $usage->work_date, 0, 10)) continue;
