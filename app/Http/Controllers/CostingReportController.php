@@ -241,18 +241,20 @@ final class CostingReportController extends Controller
             $reportIdForUsage = (int) $usage->report_id;
             $materialId = (int) $usage->material_id;
 
-            foreach ($directMovements[$reportIdForUsage][$materialId] ?? [] as &$direct) {
-                if ($remainingUsage <= 0.0000001) break;
-                if ($direct['remaining'] <= 0.0000001) continue;
-                $allocated = min($remainingUsage, $direct['remaining']);
-                $direct['remaining'] -= $allocated;
-                $remainingUsage -= $allocated;
-                if ($reportIdForUsage === $reportId) {
-                    $allocatedByGoods[$materialId] = ($allocatedByGoods[$materialId] ?? 0.0) + $allocated;
-                    $targetMovementIds[(int) $direct['movement']->id] = true;
+            if (!empty($directMovements[$reportIdForUsage][$materialId])) {
+                foreach ($directMovements[$reportIdForUsage][$materialId] as &$direct) {
+                    if ($remainingUsage <= 0.0000001) break;
+                    if ($direct['remaining'] <= 0.0000001) continue;
+                    $allocated = min($remainingUsage, $direct['remaining']);
+                    $direct['remaining'] -= $allocated;
+                    $remainingUsage -= $allocated;
+                    if ($reportIdForUsage === $reportId) {
+                        $allocatedByGoods[$materialId] = ($allocatedByGoods[$materialId] ?? 0.0) + $allocated;
+                        $targetMovementIds[(int) $direct['movement']->id] = true;
+                    }
                 }
+                unset($direct);
             }
-            unset($direct);
             $remainingByUsageRow[$rowId] = $remainingUsage;
         }
 
