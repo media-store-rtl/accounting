@@ -120,7 +120,8 @@ export function setupCostingRefreshButton(documentRef = globalThis.document) {
 
         let succeeded = 0;
         let failed = 0;
-        const messages = [];
+        const failures = [];
+        const partialResults = [];
         for (const reportId of reportIds) {
             try {
                 const response = await fetch(`/reports/costing/production-reports/${reportId}/value`, {
@@ -131,19 +132,20 @@ export function setupCostingRefreshButton(documentRef = globalThis.document) {
                 const payload = await response.json().catch(() => null);
                 if (!response.ok || !payload || payload.success !== true) {
                     failed++;
-                    messages.push(payload?.message || `گزارش #${reportId}: پاسخ معتبر از سرور دریافت نشد.`);
+                    failures.push(payload?.message || `گزارش #${reportId}: پاسخ معتبر از سرور دریافت نشد.`);
                 } else {
                     succeeded++;
-                    if (payload.message) messages.push(payload.message);
+                    if (payload.message && /بخشی|هنوز بخشی بدون بها/.test(payload.message)) partialResults.push(payload.message);
                 }
             } catch (error) {
                 failed++;
-                messages.push(`گزارش #${reportId}: ارتباط با سرور ناموفق بود.`);
+                failures.push(`گزارش #${reportId}: ارتباط با سرور ناموفق بود.`);
             }
         }
 
-        const detailMessages = messages.slice(0, 3).join(' | ');
-        const remainingMessages = messages.length > 3 ? ` (و ${messages.length - 3} پیام دیگر)` : '';
+        const visibleMessages = [...failures, ...partialResults];
+        const detailMessages = visibleMessages.slice(0, 3).join(' | ');
+        const remainingMessages = visibleMessages.length > 3 ? ` (و ${visibleMessages.length - 3} پیام دیگر)` : '';
         note.textContent = `نتیجه: ${succeeded} گزارش با پاسخ موفق، ${failed} گزارش ناموفق از ${reportIds.length} گزارش. ${detailMessages}${remainingMessages} برای دیدن ارقام تازه، روی دکمه بارگذاری مجدد بزنید.`;
         note.setAttribute('role', failed ? 'alert' : 'status');
         note.style.cssText = `color:${failed ? '#f0d58a' : '#a7e3c6'};font-size:10px;line-height:1.9`;
