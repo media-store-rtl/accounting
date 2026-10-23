@@ -1,3 +1,11 @@
+export function normalizeReportId(value) {
+    const normalized = String(value ?? '').replace(/[۰-۹٠-٩]/g, digit => (
+        String(digit.charCodeAt(0) - (digit >= '۰' && digit <= '۹' ? 0x06f0 : 0x0660))
+    ));
+    const match = normalized.match(/#\s*(\d+)/) ?? normalized.match(/^\s*(\d+)\s*$/);
+    return match ? Number(match[1]) : null;
+}
+
 export function normalizeIsoDateForPicker(value) {
     const match = String(value ?? '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
     return match ? `${match[1]}/${match[2]}/${match[3]}` : '';
@@ -110,9 +118,19 @@ export function setupCostingRefreshButton(documentRef = globalThis.document) {
         button.style.cursor = 'wait';
 
         const reportIds = incompleteRows.map(row => {
-            const value = row.querySelector('td')?.textContent?.match(/#\s*(\d+)/)?.[1];
-            return value ? Number(value) : null;
+            return normalizeReportId(row.querySelector('td')?.textContent);
         }).filter(Boolean);
+
+        if (!reportIds.length) {
+            note.textContent = 'شناسه هیچ گزارشی از جدول استخراج نشد؛ هیچ گزارشی پردازش نشده است. صفحه را تازه کنید و اگر مشکل باقی ماند، ساختار جدول باید بررسی شود.';
+            note.setAttribute('role', 'alert');
+            note.style.cssText = 'color:#f0d58a;font-size:10px;line-height:1.9';
+            button.disabled = false;
+            button.textContent = 'بارگذاری مجدد گزارش';
+            button.style.cursor = 'pointer';
+            finished = true;
+            return;
+        }
 
         const headers = { Accept: 'application/json' };
         if (csrfToken) headers['X-CSRF-TOKEN'] = csrfToken;
