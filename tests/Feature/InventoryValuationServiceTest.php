@@ -99,12 +99,21 @@ class InventoryValuationServiceTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $receiver = DB::table('users')->insertGetId([
+            'account_id' => $account,
+            'name' => 'Warehouse Receiver',
+            'username' => 'pvreceiver'.uniqid(),
+            'email' => uniqid().'@test.local',
+            'password' => bcrypt('secret'),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $receipt = DB::table('purchase_receipts')->insertGetId([
             'company_id' => $company,
             'purchase_id' => $purchase,
             'warehouse_location_id' => $location,
             'received_at' => '2026-04-01 09:00:00',
-            'received_by_user_id' => null,
+            'received_by_user_id' => $receiver,
             'approved_at' => '2026-04-01 09:00:00',
             'approved_by_user_id' => null,
             'status' => 'approved',
