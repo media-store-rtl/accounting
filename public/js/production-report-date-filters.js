@@ -98,7 +98,13 @@ export function setupCostingRefreshButton(documentRef = globalThis.document) {
     wrapper.append(button, note);
     heading.insertAdjacentElement('afterend', wrapper);
 
+    let finished = false;
     button.addEventListener('click', async () => {
+        if (finished) {
+            window.location.reload();
+            return;
+        }
+
         button.disabled = true;
         button.textContent = 'در حال بروزرسانی...';
         button.style.cursor = 'wait';
@@ -108,11 +114,14 @@ export function setupCostingRefreshButton(documentRef = globalThis.document) {
             return value ? Number(value) : null;
         }).filter(Boolean);
 
-        const headers = { Accept: 'text/html' };
+        const headers = { Accept: 'application/json' };
         if (csrfToken) headers['X-CSRF-TOKEN'] = csrfToken;
         if (xsrfCookie) headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrfCookie);
 
+        let succeeded = 0;
         let failed = 0;
+        const failures = [];
+        const partialResults = [];
         for (const reportId of reportIds) {
             try {
                 const response = await fetch(`/reports/costing/production-reports/${reportId}/value`, {
@@ -120,16 +129,30 @@ export function setupCostingRefreshButton(documentRef = globalThis.document) {
                     credentials: 'same-origin',
                     headers,
                 });
-                if (!response.ok) failed++;
+                const payload = await response.json().catch(() => null);
+                if (!response.ok || !payload || payload.success !== true) {
+                    failed++;
+                    failures.push(payload?.message || `گزارش #${reportId}: پاسخ معتبر از سرور دریافت نشد.`);
+                } else {
+                    succeeded++;
+                    if (payload.message && /بخشی|هنوز بخشی بدون بها/.test(payload.message)) partialResults.push(payload.message);
+                }
             } catch (error) {
                 failed++;
+                failures.push(`گزارش #${reportId}: ارتباط با سرور ناموفق بود.`);
             }
         }
 
-        note.textContent = failed
-            ? `${failed} گزارش قابل بروزرسانی نبود؛ وضعیت موجود بررسی و صفحه دوباره بارگذاری می‌شود.`
-            : 'بروزرسانی انجام شد؛ گزارش با داده‌های جدید دوباره محاسبه می‌شود.';
-        window.setTimeout(() => window.location.reload(), 350);
+        const visibleMessages = [...failures, ...partialResults];
+        const detailMessages = visibleMessages.slice(0, 3).join(' | ');
+        const remainingMessages = visibleMessages.length > 3 ? ` (و ${visibleMessages.length - 3} پیام دیگر)` : '';
+        note.textContent = `نتیجه: ${succeeded} گزارش با پاسخ موفق، ${failed} گزارش ناموفق از ${reportIds.length} گزارش. ${detailMessages}${remainingMessages} برای دیدن ارقام تازه، روی دکمه بارگذاری مجدد بزنید.`;
+        note.setAttribute('role', failed ? 'alert' : 'status');
+        note.style.cssText = `color:${failed ? '#f0d58a' : '#a7e3c6'};font-size:10px;line-height:1.9`;
+        button.disabled = false;
+        button.textContent = 'بارگذاری مجدد گزارش';
+        button.style.cursor = 'pointer';
+        finished = true;
     });
 
     return true;

@@ -39,7 +39,7 @@ final class CostingReportController extends Controller
             ->keyBy('goods_id');
 
         if ($materials->isEmpty()) {
-            return back()->with('error', 'برای این گزارش مادهٔ مصرفی ثبت نشده است.');
+            return $this->valuationResponse($request, 'برای این گزارش مادهٔ مصرفی ثبت نشده است.', false, 422);
         }
 
         // Resolve the same production-consumption pool used by CostingReportService.
@@ -49,12 +49,12 @@ final class CostingReportController extends Controller
         $movements = $allocation['movements'];
 
         if ($movements->isEmpty()) {
-            return back()->with('error', 'برای این گزارش مصرف قابل تخصیص از انبار پیدا نشد؛ ارتباط قسمت تولید، ماده، سفارش و تاریخ را بررسی کنید.');
+            return $this->valuationResponse($request, 'برای این گزارش مصرف قابل تخصیص از انبار پیدا نشد؛ ارتباط قسمت تولید، ماده، سفارش و تاریخ را بررسی کنید.', false, 422);
         }
 
         foreach ($materials as $goodsId => $material) {
             if (abs((float) ($allocation['allocated_by_goods'][$goodsId] ?? 0) - (float) $material->quantity) > 0.0001) {
-                return back()->with('error', 'مقدار مصرف قابل تخصیص به گزارش با ریز مواد همخوان نیست؛ برای جلوگیری از ارزش‌گذاری مصرف اشتباه، اقدامی انجام نشد.');
+                return $this->valuationResponse($request, 'مقدار مصرف قابل تخصیص به گزارش با ریز مواد همخوان نیست؛ برای جلوگیری از ارزش‌گذاری مصرف اشتباه، اقدامی انجام نشد.', false, 422);
             }
         }
 
@@ -66,7 +66,7 @@ final class CostingReportController extends Controller
             ->value('id');
 
         if (!$fiscalYearId) {
-            return back()->with('error', 'برای تاریخ گزارش سال مالی متناظر پیدا نشد؛ ریالی‌سازی انجام نشد.');
+            return $this->valuationResponse($request, 'برای تاریخ گزارش سال مالی متناظر پیدا نشد؛ ریالی‌سازی انجام نشد.', false, 422);
         }
 
         $result = DB::transaction(function () use ($movements, $fiscalYearId, $valuationService) {
@@ -117,16 +117,25 @@ final class CostingReportController extends Controller
 
         $processed = $result['valued'] + $result['alreadyValued'];
         if ($processed === 0 && $result['unvalued'] > 0) {
-            return back()->with('error', 'برای مصرف این گزارش هنوز بهای معتبر قابل ردیابی وجود ندارد؛ هیچ بهای ساختگی ثبت نشد.');
+            return $this->valuationResponse($request, 'برای مصرف این گزارش هنوز بهای معتبر قابل ردیابی وجود ندارد؛ هیچ بهای ساختگی ثبت نشد.', false, 422);
         }
 
         if ($result['unvalued'] > 0) {
-            return back()->with('success', 'بخشی از مواد ارزش‌گذاری شد: '.$result['valued'].' حرکت ارزش‌گذاری/تکمیل شد و '.$result['alreadyValued'].' حرکت از قبل کامل بود؛ '.$result['unvalued'].' حرکت هنوز بخشی بدون بها دارد و با بروزرسانی بعدی قابل تکمیل است.');
+            return $this->valuationResponse($request, 'بخشی از مواد ارزش‌گذاری شد: '.$result['valued'].' حرکت ارزش‌گذاری/تکمیل شد و '.$result['alreadyValued'].' حرکت از قبل کامل بود؛ '.$result['unvalued'].' حرکت هنوز بخشی بدون بها دارد و با بروزرسانی بعدی قابل تکمیل است.', true);
         }
 
-        return back()->with('success', 'ریالی‌سازی ردیف بررسی شد: '.$result['valued'].' حرکت ارزش‌گذاری شد و '.$result['alreadyValued'].' حرکت از قبل ارزش‌گذاری شده بود؛ موجودی دوباره کسر نشد.');
+        return $this->valuationResponse($request, 'ریالی‌سازی ردیف بررسی شد: '.$result['valued'].' حرکت ارزش‌گذاری شد و '.$result['alreadyValued'].' حرکت از قبل ارزش‌گذاری شده بود؛ موجودی دوباره کسر نشد.', true);
     }
 
+
+    private function valuationResponse(Request $request, string $message, bool $success, int $status = 200)
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['success' => $success, 'message' => $message], $status);
+        }
+
+        return back()->with($success ? 'success' : 'error', $message);
+    }
 
     /**
      * Allocate consumption movements to approved/received shift reports using
