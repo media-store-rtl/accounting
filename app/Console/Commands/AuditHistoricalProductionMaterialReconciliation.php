@@ -122,6 +122,7 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                 $fifoInvalidLayer = false;
                 if (Schema::hasTable('inventory_consumption_cost_items')) {
                     foreach ($valuations->filter(fn ($v) => strtolower((string) ($v->valuation_method ?? '')) === 'fifo') as $valuation) {
+                        $invalidLayer = false;
                         $allocation = DB::table('inventory_consumption_cost_items')
                             ->where('inventory_consumption_cost_id', $valuation->id)
                             ->selectRaw('COALESCE(SUM(quantity), 0) as quantity, COALESCE(SUM(total_cost), 0) as total_cost')
