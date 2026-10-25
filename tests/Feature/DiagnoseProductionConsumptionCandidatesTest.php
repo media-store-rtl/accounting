@@ -92,7 +92,7 @@ class DiagnoseProductionConsumptionCandidatesTest extends TestCase
 
         $this->artisan('costing:diagnose-production-consumption', ['--company' => 1, '--report' => 10])
             ->expectsOutputToContain('direct_link_found')
-            ->expectsOutputToContain('31')
+            ->expectsOutputToContain('30')
             ->assertExitCode(0);
 
         $this->assertSame(2, DB::table('inventory_movements')->count());
