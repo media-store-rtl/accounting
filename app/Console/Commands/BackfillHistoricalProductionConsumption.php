@@ -172,8 +172,9 @@ final class BackfillHistoricalProductionConsumption extends Command
             ->where('company_id', $companyId)
             ->whereDate('starts_at', '<=', $report->work_date)
             ->whereDate('ends_at', '>=', $report->work_date)
+            ->where('is_closed', false)
             ->orderByDesc('id')->value('id');
-        if (!$fiscalYearId) return ['eligible' => false, 'reason' => 'No fiscal year covers the report work date.', 'materials' => []];
+        if (!$fiscalYearId) return ['eligible' => false, 'reason' => 'No open fiscal year covers the report work date; closed-period reconciliation requires a separately approved accounting process.', 'materials' => []];
 
         $existing = DB::table('inventory_movements')
             ->where('company_id', $companyId)->where('reference_type', 'production_shift_reports')
