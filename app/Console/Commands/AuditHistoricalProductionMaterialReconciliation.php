@@ -78,15 +78,83 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                     ->where('quantity', '<', 0)
                     ->get(['id', 'quantity', 'occurred_at', 'location_id', 'metadata']);
                 $movementQty = (float) $movements->sum(fn ($m) => abs((float) $m->quantity));
+                $insufficientStockAtConsumption = false;
+                foreach ($movements as $movement) {
+                    if ((float) $movement->quantity >= 0 || empty($movement->occurred_at) || empty($movement->location_id)) {
+                        continue;
+                    }
+                    $stockBefore = (float) DB::table('inventory_movements')
+                        ->where('company_id', $companyId)
+                        ->where('goods_id', $material->goods_id)
+                        ->where('location_id', $movement->location_id)
+                        ->where(function ($query) use ($movement) {
+                            $query->where('occurred_at', '<', $movement->occurred_at)
+                                ->orWhere(function ($sameTime) use ($movement) {
+                                    $sameTime->where('occurred_at', '=', $movement->occurred_at)
+                                        ->where('id', '<', $movement->id);
+                                });
+                        })
+                        ->sum('quantity');
+                    if ($stockBefore + 0.0001 < abs((float) $movement->quantity)) {
+                        $insufficientStockAtConsumption = true;
+                        break;
+                    }
+                }
+                $movementAfterReportDate = $movements->contains(fn ($m) =>
+                    !empty($m->occurred_at) && substr((string) $m->occurred_at, 0, 10) > (string) $report->work_date
+                );
+                $movementSignatures = $movements->map(fn ($m) => implode('|', [
+                    (string) $m->quantity,
+                    (string) ($m->occurred_at ?? ''),
+                    (string) ($m->location_id ?? ''),
+                ]));
+                $hasDuplicateMovementSignature = $movementSignatures->count() !== $movementSignatures->unique()->count();
 
                 $movementIds = $movements->pluck('id')->all();
                 $valuations = $movementIds
                     ? DB::table('inventory_consumption_costs')
                         ->where('company_id', $companyId)->whereIn('inventory_movement_id', $movementIds)
-                        ->get(['inventory_movement_id', 'quantity', 'total_cost', 'consumed_at'])
+                        ->get(['id', 'inventory_movement_id', 'quantity', 'total_cost', 'consumed_at', 'valuation_method'])
                     : collect();
                 $valuedQty = (float) $valuations->sum(fn ($v) => (float) $v->quantity);
                 $cost = (float) $valuations->sum(fn ($v) => (float) $v->total_cost);
+                $fifoAllocationMismatch = false;
+                $fifoInvalidLayer = false;
+                if (Schema::hasTable('inventory_consumption_cost_items')) {
+                    foreach ($valuations->filter(fn ($v) => strtolower((string) ($v->valuation_method ?? '')) === 'fifo') as $valuation) {
+                        $invalidLayer = false;
+                        $allocation = DB::table('inventory_consumption_cost_items')
+                            ->where('inventory_consumption_cost_id', $valuation->id)
+                            ->selectRaw('COALESCE(SUM(quantity), 0) as quantity, COALESCE(SUM(total_cost), 0) as total_cost')
+                            ->first();
+                        if (abs((float) $allocation->quantity - (float) $valuation->quantity) > 0.0001
+                            || abs((float) $allocation->total_cost - (float) $valuation->total_cost) > 0.01) {
+                            $fifoAllocationMismatch = true;
+                        }
+                        $invalidLayer = $invalidLayer || DB::table('inventory_consumption_cost_items as ci')
+                            ->leftJoin('inventory_cost_layers as cl', 'cl.id', '=', 'ci.inventory_cost_layer_id')
+                            ->leftJoin('inventory_consumption_costs as cc', 'cc.id', '=', 'ci.inventory_consumption_cost_id')
+                            ->leftJoin('inventory_movements as im', 'im.id', '=', 'cc.inventory_movement_id')
+                            ->where('ci.inventory_consumption_cost_id', $valuation->id)
+                            ->where(function ($query) use ($companyId, $material, $valuation) {
+                                $query->whereNull('cl.id')
+                                    ->orWhere('cl.company_id', '!=', $companyId)
+                                    ->orWhere('cl.goods_id', '!=', $material->goods_id)
+                                    ->orWhere('cl.received_at', '>', $valuation->consumed_at)
+                                    ->orWhereColumn('ci.unit_cost', '!=', 'cl.unit_cost')
+                                    ->orWhereRaw('ABS(ci.total_cost - (ci.quantity * ci.unit_cost)) > 0.01');
+                            })
+                            ->exists();
+                        $invalidLayer = $invalidLayer || DB::table('inventory_consumption_cost_items as ci')
+                            ->join('inventory_cost_layers as cl', 'cl.id', '=', 'ci.inventory_cost_layer_id')
+                            ->join('inventory_consumption_costs as cc', 'cc.id', '=', 'ci.inventory_consumption_cost_id')
+                            ->join('inventory_movements as im', 'im.id', '=', 'cc.inventory_movement_id')
+                            ->where('ci.inventory_consumption_cost_id', $valuation->id)
+                            ->whereColumn('cl.location_id', '!=', 'im.location_id')
+                            ->exists();
+                        if ($invalidLayer) $fifoInvalidLayer = true;
+                    }
+                }
 
                 $effectiveAt = (string) $report->work_date . ' 23:59:59';
                 $layers = DB::table('inventory_cost_layers')
@@ -112,9 +180,14 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                     $status === 'rejected' => 'rejected_report',
                     $movementQty <= 0.0000001 && $handoverQty <= 0.0000001 => 'missing_movement_and_handover',
                     $movementQty <= 0.0000001 => 'missing_consumption_movement',
+                    $movementAfterReportDate => 'movement_after_report_date',
+                    $hasDuplicateMovementSignature => 'duplicate_consumption_movement_signature',
                     abs($movementQty - $reported) > 0.0001 => 'quantity_mismatch',
-                    $valuations->isEmpty() => $historicalLayerQty > 0 ? 'missing_valuation' : 'no_historical_layer',
+                    $fifoInvalidLayer => 'fifo_allocation_invalid_layer',
+                    $fifoAllocationMismatch => 'fifo_allocation_mismatch',
+                    $insufficientStockAtConsumption => 'insufficient_stock_at_consumption',
                     abs($valuedQty - $movementQty) > 0.0001 => 'partial_valuation',
+                    $valuations->isEmpty() => $historicalLayerQty > 0 ? 'missing_valuation' : 'no_historical_layer',
                     default => 'matched',
                 };
 
