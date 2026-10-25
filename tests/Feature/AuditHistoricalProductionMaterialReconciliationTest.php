@@ -115,6 +115,29 @@ class AuditHistoricalProductionMaterialReconciliationTest extends TestCase
         $this->assertSame(0, DB::table('inventory_consumption_costs')->count());
     }
 
+    public function test_consumption_linked_to_report_but_dated_later_is_flagged(): void
+    {
+        DB::table('production_shift_reports')->insert([
+            'id' => 9, 'company_id' => 1, 'production_section_id' => 1, 'goods_id' => 2,
+            'work_date' => '2026-10-14', 'status' => 'received',
+        ]);
+        DB::table('production_shift_report_materials')->insert([
+            'company_id' => 1, 'production_shift_report_id' => 9, 'goods_id' => 1, 'quantity' => 2,
+        ]);
+        DB::table('inventory_movements')->insert([
+            'id' => 31, 'company_id' => 1, 'goods_id' => 1, 'location_id' => 2,
+            'quantity' => -2, 'movement_type' => 'production_consumption',
+            'reference_type' => 'production_shift_reports', 'reference_id' => 9,
+            'occurred_at' => '2026-10-17 10:00:00', 'metadata' => json_encode(['shift_report_id' => 9]),
+        ]);
+
+        $this->artisan('costing:reconcile-production-materials', ['--company' => 1, '--report' => 9])
+            ->expectsOutputToContain('movement_after_report_date')->assertExitCode(0);
+
+        $this->assertSame(1, DB::table('inventory_movements')->count());
+        $this->assertSame(0, DB::table('inventory_consumption_costs')->count());
+    }
+
     public function test_rejected_report_is_never_classified_as_consumption_candidate(): void
     {
         DB::table('production_shift_reports')->insert([
