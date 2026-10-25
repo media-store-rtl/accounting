@@ -1,11 +1,11 @@
 <?php
 
-namespace App\\Console\\Commands;
+namespace App\Console\Commands;
 
-use App\\Services\\InventoryService;
-use Illuminate\\Console\\Command;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Schema;
+use App\Services\InventoryService;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 final class BackfillHistoricalProductionConsumption extends Command
@@ -119,7 +119,7 @@ final class BackfillHistoricalProductionConsumption extends Command
         } catch (RuntimeException $exception) {
             $this->error('NOT ELIGIBLE: ' . $exception->getMessage());
             return self::FAILURE;
-        } catch (\\Illuminate\\Validation\\ValidationException $exception) {
+        } catch (\Illuminate\Validation\ValidationException $exception) {
             $this->error('NOT ELIGIBLE: ' . collect($exception->errors())->flatten()->implode(' '));
             return self::FAILURE;
         }
