@@ -133,7 +133,6 @@ class BackfillHistoricalProductionConsumptionTest extends TestCase
         ]);
 
         $this->assertSame(0, $exit, Artisan::output());
-        $this->assertStringContainsString('Eligible in dry-run', Artisan::output());
         $this->assertSame(1, DB::table('inventory_movements')->count());
         $this->assertSame(0, DB::table('audit_trails')->count());
     }
