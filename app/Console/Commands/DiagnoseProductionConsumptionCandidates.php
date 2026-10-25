@@ -166,6 +166,20 @@ class DiagnoseProductionConsumptionCandidates extends Command
             ['Report', 'Work date', 'Status', 'Section', 'Order', 'Material', 'Reported qty', 'Direct #', 'Direct movement IDs (qty/date/ref)', 'Legacy #', 'Legacy IDs (qty/date/ref)', 'Diagnostic'],
             $rows
         );
+
+        // Keep candidate details available as plain output too, so they remain
+        // searchable in logs and aren't hidden by wide table rendering.
+        foreach ($rows as $row) {
+            $this->line(sprintf(
+                'Report %s / material %s: direct candidates=%s; legacy candidates=%s; diagnostic=%s',
+                $row[0],
+                $row[5],
+                $row[8],
+                $row[10],
+                $row[11]
+            ));
+        }
+
         $this->newLine();
         $this->warn('READ-ONLY DIAGNOSTIC ONLY: candidate matches are not proof of actual consumption. No inventory movements, valuations, cost layers, handovers, or reports were changed.');
         return self::SUCCESS;
