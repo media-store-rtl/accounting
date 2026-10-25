@@ -51,6 +51,7 @@ class AuditHistoricalProductionMaterialReconciliationTest extends TestCase
             $table->decimal('quantity', 12, 4);
             $table->decimal('unit_cost', 14, 4);
             $table->decimal('total_cost', 14, 4);
+            $table->string('valuation_method')->nullable();
             $table->dateTime('consumed_at')->nullable();
         });
         Schema::create('inventory_consumption_cost_items', function (Blueprint $table) {
