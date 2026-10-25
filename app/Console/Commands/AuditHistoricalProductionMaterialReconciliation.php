@@ -78,6 +78,28 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                     ->where('quantity', '<', 0)
                     ->get(['id', 'quantity', 'occurred_at', 'location_id', 'metadata']);
                 $movementQty = (float) $movements->sum(fn ($m) => abs((float) $m->quantity));
+                $insufficientStockAtConsumption = false;
+                foreach ($movements as $movement) {
+                    if ((float) $movement->quantity >= 0 || empty($movement->occurred_at) || empty($movement->location_id)) {
+                        continue;
+                    }
+                    $stockBefore = (float) DB::table('inventory_movements')
+                        ->where('company_id', $companyId)
+                        ->where('goods_id', $material->goods_id)
+                        ->where('location_id', $movement->location_id)
+                        ->where(function ($query) use ($movement) {
+                            $query->where('occurred_at', '<', $movement->occurred_at)
+                                ->orWhere(function ($sameTime) use ($movement) {
+                                    $sameTime->where('occurred_at', '=', $movement->occurred_at)
+                                        ->where('id', '<', $movement->id);
+                                });
+                        })
+                        ->sum('quantity');
+                    if ($stockBefore + 0.0001 < abs((float) $movement->quantity)) {
+                        $insufficientStockAtConsumption = true;
+                        break;
+                    }
+                }
                 $movementAfterReportDate = $movements->contains(fn ($m) =>
                     !empty($m->occurred_at) && substr((string) $m->occurred_at, 0, 10) > (string) $report->work_date
                 );
@@ -160,6 +182,7 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                     $movementAfterReportDate => 'movement_after_report_date',
                     $hasDuplicateMovementSignature => 'duplicate_consumption_movement_signature',
                     abs($movementQty - $reported) > 0.0001 => 'quantity_mismatch',
+                    $insufficientStockAtConsumption => 'insufficient_stock_at_consumption',
                     $valuations->isEmpty() => $historicalLayerQty > 0 ? 'missing_valuation' : 'no_historical_layer',
                     abs($valuedQty - $movementQty) > 0.0001 => 'partial_valuation',
                     $fifoInvalidLayer => 'fifo_allocation_invalid_layer',
