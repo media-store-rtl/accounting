@@ -97,6 +97,7 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                 $valuedQty = (float) $valuations->sum(fn ($v) => (float) $v->quantity);
                 $cost = (float) $valuations->sum(fn ($v) => (float) $v->total_cost);
                 $fifoAllocationMismatch = false;
+                $fifoInvalidLayer = false;
                 if (Schema::hasTable('inventory_consumption_cost_items')) {
                     foreach ($valuations->filter(fn ($v) => strtolower((string) ($v->valuation_method ?? '')) === 'fifo') as $valuation) {
                         $allocation = DB::table('inventory_consumption_cost_items')
@@ -106,8 +107,22 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                         if (abs((float) $allocation->quantity - (float) $valuation->quantity) > 0.0001
                             || abs((float) $allocation->total_cost - (float) $valuation->total_cost) > 0.01) {
                             $fifoAllocationMismatch = true;
-                            break;
                         }
+                        $invalidLayer = $invalidLayer || DB::table('inventory_consumption_cost_items as ci')
+                            ->leftJoin('inventory_cost_layers as cl', 'cl.id', '=', 'ci.inventory_cost_layer_id')
+                            ->where('ci.inventory_consumption_cost_id', $valuation->id)
+                            ->where(function ($query) use ($valuation) {
+                                $query->whereNull('cl.id')
+                                    ->orWhere('cl.company_id', '!=', $companyId)
+                                    ->orWhere('cl.goods_id', '!=', $material->goods_id)
+                                    ->orWhere('cl.location_id', '!=', function ($subquery) use ($valuation) {
+                                        $subquery->select('location_id')->from('inventory_movements')
+                                            ->where('id', $valuation->inventory_movement_id)->limit(1);
+                                    })
+                                    ->orWhere('cl.received_at', '>', $valuation->consumed_at);
+                            })
+                            ->exists();
+                        if ($invalidLayer) $fifoInvalidLayer = true;
                     }
                 }
 
@@ -140,6 +155,7 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                     abs($movementQty - $reported) > 0.0001 => 'quantity_mismatch',
                     $valuations->isEmpty() => $historicalLayerQty > 0 ? 'missing_valuation' : 'no_historical_layer',
                     abs($valuedQty - $movementQty) > 0.0001 => 'partial_valuation',
+                    $fifoInvalidLayer => 'fifo_allocation_invalid_layer',
                     $fifoAllocationMismatch => 'fifo_allocation_mismatch',
                     default => 'matched',
                 };
