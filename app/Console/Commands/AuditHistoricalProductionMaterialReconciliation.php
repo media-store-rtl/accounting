@@ -81,6 +81,12 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                 $movementAfterReportDate = $movements->contains(fn ($m) =>
                     !empty($m->occurred_at) && substr((string) $m->occurred_at, 0, 10) > (string) $report->work_date
                 );
+                $movementSignatures = $movements->map(fn ($m) => implode('|', [
+                    (string) $m->quantity,
+                    (string) ($m->occurred_at ?? ''),
+                    (string) ($m->location_id ?? ''),
+                ]));
+                $hasDuplicateMovementSignature = $movementSignatures->count() !== $movementSignatures->unique()->count();
 
                 $movementIds = $movements->pluck('id')->all();
                 $valuations = $movementIds
@@ -116,6 +122,7 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                     $movementQty <= 0.0000001 && $handoverQty <= 0.0000001 => 'missing_movement_and_handover',
                     $movementQty <= 0.0000001 => 'missing_consumption_movement',
                     $movementAfterReportDate => 'movement_after_report_date',
+                    $hasDuplicateMovementSignature => 'duplicate_consumption_movement_signature',
                     abs($movementQty - $reported) > 0.0001 => 'quantity_mismatch',
                     $valuations->isEmpty() => $historicalLayerQty > 0 ? 'missing_valuation' : 'no_historical_layer',
                     abs($valuedQty - $movementQty) > 0.0001 => 'partial_valuation',
