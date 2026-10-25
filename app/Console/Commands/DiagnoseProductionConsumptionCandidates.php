@@ -167,6 +167,16 @@ class DiagnoseProductionConsumptionCandidates extends Command
             $rows
         );
 
+        // Emit explicit machine-searchable candidate IDs separately from the wide table.
+        foreach ($rows as $row) {
+            $this->line(sprintf(
+                'Direct movement IDs for report %s / material %s: %s',
+                $row[0],
+                $row[5],
+                $row[8] === '-' ? '-' : $row[8]
+            ));
+        }
+
         // Keep candidate details available as plain output too, so they remain
         // searchable in logs and aren't hidden by wide table rendering.
         foreach ($rows as $row) {
