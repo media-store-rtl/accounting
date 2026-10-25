@@ -91,7 +91,7 @@ class AuditHistoricalProductionMaterialReconciliationTest extends TestCase
 
     protected function tearDown(): void
     {
-        foreach (['inventory_cost_layers', 'inventory_consumption_costs', 'inventory_movements', 'material_handover_items', 'material_handovers', 'production_shift_report_materials', 'production_shift_reports'] as $table) {
+        foreach (['inventory_consumption_cost_items', 'inventory_cost_layers', 'inventory_consumption_costs', 'inventory_movements', 'material_handover_items', 'material_handovers', 'production_shift_report_materials', 'production_shift_reports'] as $table) {
             Schema::dropIfExists($table);
         }
         parent::tearDown();
@@ -193,6 +193,12 @@ class AuditHistoricalProductionMaterialReconciliationTest extends TestCase
             'unit_cost' => 100, 'total_cost' => 200, 'valuation_method' => 'fifo',
             'consumed_at' => '2026-10-14 12:00:00',
         ]);
+        DB::table('inventory_cost_layers')->insert([
+            'id' => 71, 'company_id' => 1, 'goods_id' => 1, 'location_id' => 2,
+            'quantity_received' => 2, 'fifo_quantity_remaining' => 0,
+            'weighted_average_quantity_remaining' => 0, 'unit_cost' => 100,
+            'total_cost' => 200, 'received_at' => '2026-10-13 10:00:00',
+        ]);
         DB::table('inventory_consumption_cost_items')->insert([
             'inventory_consumption_cost_id' => 61, 'inventory_cost_layer_id' => 71,
             'quantity' => 1, 'unit_cost' => 100, 'total_cost' => 100,
@@ -204,6 +210,42 @@ class AuditHistoricalProductionMaterialReconciliationTest extends TestCase
 
         $this->assertSame(1, DB::table('inventory_movements')->count());
         $this->assertSame(1, DB::table('inventory_consumption_costs')->count());
+    }
+
+    public function test_fifo_allocation_to_later_receipt_layer_is_flagged(): void
+    {
+        DB::table('production_shift_reports')->insert([
+            'id' => 12, 'company_id' => 1, 'production_section_id' => 1, 'goods_id' => 2,
+            'work_date' => '2026-10-14', 'status' => 'received',
+        ]);
+        DB::table('production_shift_report_materials')->insert([
+            'company_id' => 1, 'production_shift_report_id' => 12, 'goods_id' => 1, 'quantity' => 1,
+        ]);
+        DB::table('inventory_movements')->insert([
+            'id' => 52, 'company_id' => 1, 'goods_id' => 1, 'location_id' => 2,
+            'quantity' => -1, 'movement_type' => 'production_consumption',
+            'reference_type' => 'production_shift_reports', 'reference_id' => 12,
+            'occurred_at' => '2026-10-14 12:00:00', 'metadata' => json_encode(['shift_report_id' => 12]),
+        ]);
+        DB::table('inventory_consumption_costs')->insert([
+            'id' => 62, 'company_id' => 1, 'inventory_movement_id' => 52, 'quantity' => 1,
+            'unit_cost' => 100, 'total_cost' => 100, 'valuation_method' => 'fifo',
+            'consumed_at' => '2026-10-14 12:00:00',
+        ]);
+        DB::table('inventory_cost_layers')->insert([
+            'id' => 72, 'company_id' => 1, 'goods_id' => 1, 'location_id' => 2,
+            'quantity_received' => 1, 'fifo_quantity_remaining' => 0,
+            'weighted_average_quantity_remaining' => 0, 'unit_cost' => 100,
+            'total_cost' => 100, 'received_at' => '2026-10-17 10:00:00',
+        ]);
+        DB::table('inventory_consumption_cost_items')->insert([
+            'inventory_consumption_cost_id' => 62, 'inventory_cost_layer_id' => 72,
+            'quantity' => 1, 'unit_cost' => 100, 'total_cost' => 100,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->artisan('costing:reconcile-production-materials', ['--company' => 1, '--report' => 12])
+            ->expectsOutputToContain('fifo_allocation_invalid_layer')->assertExitCode(0);
     }
 
     public function test_rejected_report_is_never_classified_as_consumption_candidate(): void
