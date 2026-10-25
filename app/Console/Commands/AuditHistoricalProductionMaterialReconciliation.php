@@ -110,7 +110,8 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                         }
                         $invalidLayer = $invalidLayer || DB::table('inventory_consumption_cost_items as ci')
                             ->leftJoin('inventory_cost_layers as cl', 'cl.id', '=', 'ci.inventory_cost_layer_id')
-                            ->leftJoin('inventory_movements as im', 'im.id', '=', 'ci.inventory_consumption_cost_id')
+                            ->leftJoin('inventory_consumption_costs as cc', 'cc.id', '=', 'ci.inventory_consumption_cost_id')
+                            ->leftJoin('inventory_movements as im', 'im.id', '=', 'cc.inventory_movement_id')
                             ->where('ci.inventory_consumption_cost_id', $valuation->id)
                             ->where(function ($query) use ($companyId, $material, $valuation) {
                                 $query->whereNull('cl.id')
@@ -121,7 +122,8 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                             ->exists();
                         $invalidLayer = $invalidLayer || DB::table('inventory_consumption_cost_items as ci')
                             ->join('inventory_cost_layers as cl', 'cl.id', '=', 'ci.inventory_cost_layer_id')
-                            ->join('inventory_movements as im', 'im.id', '=', 'ci.inventory_consumption_cost_id')
+                            ->join('inventory_consumption_costs as cc', 'cc.id', '=', 'ci.inventory_consumption_cost_id')
+                            ->join('inventory_movements as im', 'im.id', '=', 'cc.inventory_movement_id')
                             ->where('ci.inventory_consumption_cost_id', $valuation->id)
                             ->whereColumn('cl.location_id', '!=', 'im.location_id')
                             ->exists();
