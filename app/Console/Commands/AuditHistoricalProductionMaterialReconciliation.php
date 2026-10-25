@@ -78,6 +78,9 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                     ->where('quantity', '<', 0)
                     ->get(['id', 'quantity', 'occurred_at', 'location_id', 'metadata']);
                 $movementQty = (float) $movements->sum(fn ($m) => abs((float) $m->quantity));
+                $movementAfterReportDate = $movements->contains(fn ($m) =>
+                    !empty($m->occurred_at) && substr((string) $m->occurred_at, 0, 10) > (string) $report->work_date
+                );
 
                 $movementIds = $movements->pluck('id')->all();
                 $valuations = $movementIds
@@ -112,6 +115,7 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                     $status === 'rejected' => 'rejected_report',
                     $movementQty <= 0.0000001 && $handoverQty <= 0.0000001 => 'missing_movement_and_handover',
                     $movementQty <= 0.0000001 => 'missing_consumption_movement',
+                    $movementAfterReportDate => 'movement_after_report_date',
                     abs($movementQty - $reported) > 0.0001 => 'quantity_mismatch',
                     $valuations->isEmpty() => $historicalLayerQty > 0 ? 'missing_valuation' : 'no_historical_layer',
                     abs($valuedQty - $movementQty) > 0.0001 => 'partial_valuation',
