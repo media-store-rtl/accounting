@@ -110,17 +110,20 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                         }
                         $invalidLayer = $invalidLayer || DB::table('inventory_consumption_cost_items as ci')
                             ->leftJoin('inventory_cost_layers as cl', 'cl.id', '=', 'ci.inventory_cost_layer_id')
+                            ->leftJoin('inventory_movements as im', 'im.id', '=', 'ci.inventory_consumption_cost_id')
                             ->where('ci.inventory_consumption_cost_id', $valuation->id)
-                            ->where(function ($query) use ($valuation) {
+                            ->where(function ($query) use ($companyId, $material, $valuation) {
                                 $query->whereNull('cl.id')
                                     ->orWhere('cl.company_id', '!=', $companyId)
                                     ->orWhere('cl.goods_id', '!=', $material->goods_id)
-                                    ->orWhere('cl.location_id', '!=', function ($subquery) use ($valuation) {
-                                        $subquery->select('location_id')->from('inventory_movements')
-                                            ->where('id', $valuation->inventory_movement_id)->limit(1);
-                                    })
                                     ->orWhere('cl.received_at', '>', $valuation->consumed_at);
                             })
+                            ->exists();
+                        $invalidLayer = $invalidLayer || DB::table('inventory_consumption_cost_items as ci')
+                            ->join('inventory_cost_layers as cl', 'cl.id', '=', 'ci.inventory_cost_layer_id')
+                            ->join('inventory_movements as im', 'im.id', '=', 'ci.inventory_consumption_cost_id')
+                            ->where('ci.inventory_consumption_cost_id', $valuation->id)
+                            ->whereColumn('cl.location_id', '!=', 'im.location_id')
                             ->exists();
                         if ($invalidLayer) $fifoInvalidLayer = true;
                     }
