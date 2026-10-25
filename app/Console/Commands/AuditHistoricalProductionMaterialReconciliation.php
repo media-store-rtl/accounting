@@ -117,7 +117,9 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                                 $query->whereNull('cl.id')
                                     ->orWhere('cl.company_id', '!=', $companyId)
                                     ->orWhere('cl.goods_id', '!=', $material->goods_id)
-                                    ->orWhere('cl.received_at', '>', $valuation->consumed_at);
+                                    ->orWhere('cl.received_at', '>', $valuation->consumed_at)
+                                    ->orWhereColumn('ci.unit_cost', '!=', 'cl.unit_cost')
+                                    ->orWhereRaw('ABS(ci.total_cost - (ci.quantity * ci.unit_cost)) > 0.01');
                             })
                             ->exists();
                         $invalidLayer = $invalidLayer || DB::table('inventory_consumption_cost_items as ci')
