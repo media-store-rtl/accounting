@@ -1,10 +1,10 @@
 <?php
 
-namespace App\\Console\\Commands;
+namespace App\Console\Commands;
 
-use Illuminate\\Console\\Command;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Schema;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Read-only diagnostic for failed production-report material valuation.
@@ -33,7 +33,7 @@ class DiagnoseProductionConsumptionCandidates extends Command
         $from = $this->option('from');
         $to = $this->option('to');
         foreach (['from' => $from, 'to' => $to] as $name => $date) {
-            if ($date !== null && (!is_string($date) || !preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $date) || !strtotime($date))) {
+            if ($date !== null && (!is_string($date) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !strtotime($date))) {
                 $this->error("Invalid --{$name} date. Use YYYY-MM-DD.");
                 return self::FAILURE;
             }
