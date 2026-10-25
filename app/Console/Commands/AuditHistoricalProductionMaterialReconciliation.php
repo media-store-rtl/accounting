@@ -92,10 +92,24 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                 $valuations = $movementIds
                     ? DB::table('inventory_consumption_costs')
                         ->where('company_id', $companyId)->whereIn('inventory_movement_id', $movementIds)
-                        ->get(['inventory_movement_id', 'quantity', 'total_cost', 'consumed_at'])
+                        ->get(['id', 'inventory_movement_id', 'quantity', 'total_cost', 'consumed_at', 'valuation_method'])
                     : collect();
                 $valuedQty = (float) $valuations->sum(fn ($v) => (float) $v->quantity);
                 $cost = (float) $valuations->sum(fn ($v) => (float) $v->total_cost);
+                $fifoAllocationMismatch = false;
+                if (Schema::hasTable('inventory_consumption_cost_items')) {
+                    foreach ($valuations->filter(fn ($v) => strtolower((string) ($v->valuation_method ?? '')) === 'fifo') as $valuation) {
+                        $allocation = DB::table('inventory_consumption_cost_items')
+                            ->where('inventory_consumption_cost_id', $valuation->id)
+                            ->selectRaw('COALESCE(SUM(quantity), 0) as quantity, COALESCE(SUM(total_cost), 0) as total_cost')
+                            ->first();
+                        if (abs((float) $allocation->quantity - (float) $valuation->quantity) > 0.0001
+                            || abs((float) $allocation->total_cost - (float) $valuation->total_cost) > 0.01) {
+                            $fifoAllocationMismatch = true;
+                            break;
+                        }
+                    }
+                }
 
                 $effectiveAt = (string) $report->work_date . ' 23:59:59';
                 $layers = DB::table('inventory_cost_layers')
@@ -126,6 +140,7 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                     abs($movementQty - $reported) > 0.0001 => 'quantity_mismatch',
                     $valuations->isEmpty() => $historicalLayerQty > 0 ? 'missing_valuation' : 'no_historical_layer',
                     abs($valuedQty - $movementQty) > 0.0001 => 'partial_valuation',
+                    $fifoAllocationMismatch => 'fifo_allocation_mismatch',
                     default => 'matched',
                 };
 
