@@ -183,11 +183,11 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                     $movementAfterReportDate => 'movement_after_report_date',
                     $hasDuplicateMovementSignature => 'duplicate_consumption_movement_signature',
                     abs($movementQty - $reported) > 0.0001 => 'quantity_mismatch',
-                    $insufficientStockAtConsumption => 'insufficient_stock_at_consumption',
                     $valuations->isEmpty() => $historicalLayerQty > 0 ? 'missing_valuation' : 'no_historical_layer',
                     abs($valuedQty - $movementQty) > 0.0001 => 'partial_valuation',
                     $fifoInvalidLayer => 'fifo_allocation_invalid_layer',
                     $fifoAllocationMismatch => 'fifo_allocation_mismatch',
+                    $insufficientStockAtConsumption => 'insufficient_stock_at_consumption',
                     default => 'matched',
                 };
 
