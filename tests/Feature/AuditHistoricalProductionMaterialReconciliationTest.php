@@ -13,7 +13,7 @@ class AuditHistoricalProductionMaterialReconciliationTest extends TestCase
     {
         parent::setUp();
 
-        foreach (['inventory_cost_layers', 'inventory_consumption_costs', 'inventory_movements', 'material_handover_items', 'material_handovers', 'production_shift_report_materials', 'production_shift_reports'] as $table) {
+        foreach (['inventory_consumption_cost_items', 'inventory_cost_layers', 'inventory_consumption_costs', 'inventory_movements', 'material_handover_items', 'material_handovers', 'production_shift_report_materials', 'production_shift_reports'] as $table) {
             Schema::dropIfExists($table);
         }
 
@@ -52,6 +52,15 @@ class AuditHistoricalProductionMaterialReconciliationTest extends TestCase
             $table->decimal('unit_cost', 14, 4);
             $table->decimal('total_cost', 14, 4);
             $table->dateTime('consumed_at')->nullable();
+        });
+        Schema::create('inventory_consumption_cost_items', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('inventory_consumption_cost_id');
+            $table->unsignedBigInteger('inventory_cost_layer_id');
+            $table->decimal('quantity', 12, 4);
+            $table->decimal('unit_cost', 14, 4);
+            $table->decimal('total_cost', 14, 4);
+            $table->timestamps();
         });
         Schema::create('inventory_cost_layers', function (Blueprint $table) {
             $table->id();
@@ -161,6 +170,39 @@ class AuditHistoricalProductionMaterialReconciliationTest extends TestCase
 
         $this->assertSame(2, DB::table('inventory_movements')->count());
         $this->assertSame(0, DB::table('inventory_consumption_costs')->count());
+    }
+
+    public function test_fifo_valuation_with_mismatched_layer_allocations_is_flagged(): void
+    {
+        DB::table('production_shift_reports')->insert([
+            'id' => 11, 'company_id' => 1, 'production_section_id' => 1, 'goods_id' => 2,
+            'work_date' => '2026-10-14', 'status' => 'received',
+        ]);
+        DB::table('production_shift_report_materials')->insert([
+            'company_id' => 1, 'production_shift_report_id' => 11, 'goods_id' => 1, 'quantity' => 2,
+        ]);
+        DB::table('inventory_movements')->insert([
+            'id' => 51, 'company_id' => 1, 'goods_id' => 1, 'location_id' => 2,
+            'quantity' => -2, 'movement_type' => 'production_consumption',
+            'reference_type' => 'production_shift_reports', 'reference_id' => 11,
+            'occurred_at' => '2026-10-14 12:00:00', 'metadata' => json_encode(['shift_report_id' => 11]),
+        ]);
+        DB::table('inventory_consumption_costs')->insert([
+            'id' => 61, 'company_id' => 1, 'inventory_movement_id' => 51, 'quantity' => 2,
+            'unit_cost' => 100, 'total_cost' => 200, 'valuation_method' => 'fifo',
+            'consumed_at' => '2026-10-14 12:00:00',
+        ]);
+        DB::table('inventory_consumption_cost_items')->insert([
+            'inventory_consumption_cost_id' => 61, 'inventory_cost_layer_id' => 71,
+            'quantity' => 1, 'unit_cost' => 100, 'total_cost' => 100,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->artisan('costing:reconcile-production-materials', ['--company' => 1, '--report' => 11])
+            ->expectsOutputToContain('fifo_allocation_mismatch')->assertExitCode(0);
+
+        $this->assertSame(1, DB::table('inventory_movements')->count());
+        $this->assertSame(1, DB::table('inventory_consumption_costs')->count());
     }
 
     public function test_rejected_report_is_never_classified_as_consumption_candidate(): void
