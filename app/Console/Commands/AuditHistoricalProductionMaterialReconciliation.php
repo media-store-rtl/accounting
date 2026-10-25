@@ -185,8 +185,8 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                     abs($movementQty - $reported) > 0.0001 => 'quantity_mismatch',
                     $fifoInvalidLayer => 'fifo_allocation_invalid_layer',
                     $fifoAllocationMismatch => 'fifo_allocation_mismatch',
-                    abs($valuedQty - $movementQty) > 0.0001 => 'partial_valuation',
                     $insufficientStockAtConsumption => 'insufficient_stock_at_consumption',
+                    abs($valuedQty - $movementQty) > 0.0001 => 'partial_valuation',
                     $valuations->isEmpty() => $historicalLayerQty > 0 ? 'missing_valuation' : 'no_historical_layer',
                     default => 'matched',
                 };
