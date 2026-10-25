@@ -62,6 +62,7 @@ class BackfillHistoricalProductionConsumptionTest extends TestCase
             $table->unsignedBigInteger('company_id');
             $table->date('starts_at');
             $table->date('ends_at');
+            $table->boolean('is_closed')->default(false);
         });
         Schema::create('users', function (Blueprint $table) {
             $table->id();
@@ -162,7 +163,7 @@ class BackfillHistoricalProductionConsumptionTest extends TestCase
             'id' => 30, 'company_id' => 1, 'production_shift_report_id' => 20, 'goods_id' => 5, 'quantity' => 2,
         ]);
         DB::table('fiscal_years')->insert([
-            'id' => 1, 'company_id' => 1, 'starts_at' => '2026-01-01', 'ends_at' => '2026-12-31',
+            'id' => 1, 'company_id' => 1, 'starts_at' => '2026-01-01', 'ends_at' => '2026-12-31', 'is_closed' => false,
         ]);
     }
 }
