@@ -21,6 +21,7 @@ final class CostingReportController extends Controller
 
     public function valueProductionReport(Request $request, InventoryValuationService $valuationService, int $reportId)
     {
+        dd($request);
         $companyId = CompanyAuthorization::authorize($request, 'costing.report.view');
         $report = DB::table('production_shift_reports')
             ->where('company_id', $companyId)
