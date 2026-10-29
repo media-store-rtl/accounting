@@ -29,6 +29,19 @@ class LaborCostTest extends TestCase
         app(LaborCostService::class)->setRate($company,$personnel,'hourly',100,'2026-10-01');
         $entry=app(LaborCostService::class)->record($company,$run,$personnel,'hours',3,'2026-10-07 10:00:00',$user);
         $this->assertSame(300.0,(float)DB::table('production_labor_entries')->where('id',$entry)->value('total_cost'));
+
+        // A regular rate is configured as the full wage for an 8-hour shift.
+        app(LaborCostService::class)->setRate($company,$personnel,'regular',800,'2026-10-01');
+        $regularEntry=app(LaborCostService::class)->record($company,$run,$personnel,'hours',8,'2026-10-08 10:00:00',$user);
+        $this->assertSame(100.0,(float)DB::table('production_labor_entries')->where('id',$regularEntry)->value('unit_rate'));
+        $this->assertSame(800.0,(float)DB::table('production_labor_entries')->where('id',$regularEntry)->value('total_cost'));
+
+        // Overtime and holiday amounts are configured per hour.
+        app(LaborCostService::class)->setRate($company,$personnel,'overtime',150,'2026-10-01');
+        $overtimeEntry=app(LaborCostService::class)->record($company,$run,$personnel,'hours',2,'2026-10-09 10:00:00',$user,null,'overtime');
+        $this->assertSame(150.0,(float)DB::table('production_labor_entries')->where('id',$overtimeEntry)->value('unit_rate'));
+        $this->assertSame(300.0,(float)DB::table('production_labor_entries')->where('id',$overtimeEntry)->value('total_cost'));
+
         app(LaborCostService::class)->review($company,$entry,$user,true);
         $cost=DB::table('production_labor_costs')->where('labor_entry_id',$entry)->first();
         $this->assertNotNull($cost);

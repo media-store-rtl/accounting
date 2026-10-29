@@ -138,19 +138,26 @@ final class LaborCostService
         if (!in_array($rateType, self::RATE_TYPES, true)) {
             throw ValidationException::withMessages(['labor_rate_type' => 'نوع دستمزد انتخاب‌شده معتبر نیست.']);
         }
-        $rate = DB::table('personnel_labor_rates')
+        $rateRecord = DB::table('personnel_labor_rates')
             ->where('company_id',$companyId)->where('personnel_id',$personnelId)->whereIn('rate_type', $rateType === 'regular' ? ['regular', 'hourly'] : [$rateType])
             ->where('effective_from','<=',substr($workedAt,0,10))
             ->orderByRaw("CASE WHEN rate_type = ? THEN 0 ELSE 1 END", [$rateType])
             ->where(function($q) use ($workedAt){ $q->whereNull('effective_to')->orWhere('effective_to','>=',substr($workedAt,0,10)); })
-            ->orderByDesc('effective_from')->orderByDesc('id')->value('rate');
-        if ($rate === null) throw ValidationException::withMessages(['measure_quantity' => 'برای تاریخ کارکرد نرخ دستمزد معتبر ثبت نشده است.']);
+            ->orderByDesc('effective_from')->orderByDesc('id')->first();
+        if (!$rateRecord) throw ValidationException::withMessages(['measure_quantity' => 'برای تاریخ کارکرد نرخ دستمزد معتبر ثبت نشده است.']);
+
+        // New regular rates represent the full 8-hour shift amount.
+        // Legacy "hourly" rates and overtime/holiday rates remain hourly amounts.
+        $rate = (float) $rateRecord->rate;
+        $unitRate = $rateType === 'regular' && $rateRecord->rate_type === 'regular'
+            ? $rate / 8
+            : $rate;
 
         return DB::table('production_labor_entries')->insertGetId([
             'company_id'=>$companyId,'fiscal_year_id'=>$context->fiscal_year_id,'production_id'=>$context->production_id,
             'production_stage_id'=>$context->production_stage_id,'production_operation_run_id'=>$productionOperationRunId,
             'personnel_id'=>$personnelId,'measure_type'=>$measureType,'labor_rate_type'=>$rateType,'measure_quantity'=>$measureQuantity,
-            'unit_rate'=>(float)$rate,'total_cost'=>$measureQuantity*(float)$rate,'worked_at'=>$workedAt,
+            'unit_rate'=>$unitRate,'total_cost'=>$measureQuantity*$unitRate,'worked_at'=>$workedAt,
             'status'=>'pending','created_by_user_id'=>$createdByUserId,'notes'=>$notes,'created_at'=>now(),'updated_at'=>now(),
         ]);
     }

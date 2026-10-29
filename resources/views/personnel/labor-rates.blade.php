@@ -117,9 +117,9 @@
                 </label>
 
                 <label class="field">
-                    <span>مبلغ نرخ <span class="required">*</span></span>
-                    <input name="rate" type="number" min="0" step="0.000001" inputmode="decimal" value="{{ old('rate') }}" placeholder="مثلاً 250000" required>
-                    <span class="field-hint">مبلغ را به واحد پول ثبت‌شده در سامانه وارد کنید.</span>
+                    <span>مبلغ نرخ به ریال <span class="required">*</span></span>
+                    <input name="rate" type="number" min="0" step="1" inputmode="numeric" value="{{ old('rate') }}" placeholder="مثلاً 250000" required>
+                    <span class="field-hint">مبلغ را به ریال وارد کنید؛ کار عادی برای یک شیفت کامل ۸ ساعته و اضافه‌کاری/تعطیل‌کاری برای هر ساعت است.</span>
                 </label>
 
                 <label class="field">
@@ -161,7 +161,7 @@
                 <thead>
                     <tr>
                         <th>نوع دستمزد</th>
-                        <th>مبلغ نرخ</th>
+                        <th>مبلغ نرخ (ریال)</th>
                         <th>شروع اعتبار</th>
                         <th>پایان اعتبار</th>
                         <th>وضعیت زمانی</th>
@@ -172,7 +172,7 @@
                     @forelse($rates as $rate)
                         <tr>
                             <td>{{ ['regular' => 'کار عادی (شیفت ۸ ساعته)', 'hourly' => 'کار عادی (شیفت ۸ ساعته)', 'overtime' => 'اضافه‌کاری', 'holiday' => 'تعطیل‌کاری', 'per_unit' => 'به‌ازای هر واحد تولید'][$rate->rate_type] ?? $rate->rate_type }}</td>
-                            <td class="rate-amount">{{ number_format((float) $rate->rate, 2) }}</td>
+                            <td class="rate-amount">{{ number_format((float) $rate->rate, 0) }} ریال</td>
                             <td class="date-value"><time class="jalali-date" data-gregorian-date="{{ $rate->effective_from }}">{{ $rate->effective_from }}</time></td>
                             <td class="date-value">@if($rate->effective_to)<time class="jalali-date" data-gregorian-date="{{ $rate->effective_to }}">{{ $rate->effective_to }}</time>@else بدون تاریخ پایان @endif</td>
                             <td>
@@ -199,8 +199,8 @@
                                                 <option value="per_unit" @selected($rate->rate_type === 'per_unit')>به‌ازای هر واحد تولید</option>
                                             </select>
                                         </label>
-                                        <label class="field">مبلغ نرخ
-                                            <input name="rate" type="number" min="0" step="0.000001" value="{{ $rate->rate }}" required>
+                                        <label class="field">مبلغ نرخ به ریال
+                                            <input name="rate" type="number" min="0" step="1" inputmode="numeric" value="{{ (int) $rate->rate }}" required>
                                         </label>
                                         <label class="field">شروع اعتبار
                                             <input id="rate_effective_from_picker_{{ $rate->id }}" type="text" inputmode="none" autocomplete="off" placeholder="انتخاب تاریخ شمسی" value="{{ $rate->effective_from }}" readonly required>
