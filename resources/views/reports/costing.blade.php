@@ -211,12 +211,11 @@
 <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
 <script type="module">
-import { setupProductionReportDatePicker, setupCostingRefreshButton } from '/js/production-report-date-filters.js';
+import { setupProductionReportDatePicker } from '/js/production-report-date-filters.js';
 
 document.addEventListener('DOMContentLoaded', function () {
     setupProductionReportDatePicker('#costing-start-date-picker', '#costing-start-date');
     setupProductionReportDatePicker('#costing-end-date-picker', '#costing-end-date');
-    setupCostingRefreshButton();
 
     document.querySelectorAll('[data-costing-toggle]').forEach(function (button) {
         button.addEventListener('click', function () {
