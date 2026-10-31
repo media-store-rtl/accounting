@@ -173,7 +173,7 @@ class CostingReportDirectConsumptionAllocationTest extends TestCase
         ]);
 
         $service = new CostingReportService();
-        $method = new \\ReflectionMethod($service, 'attachReportMaterialDetails');
+        $method = new \ReflectionMethod($service, 'attachReportMaterialDetails');
         $method->setAccessible(true);
         $reports = $method->invoke($service, 1, [
             ['report_id' => 14],
