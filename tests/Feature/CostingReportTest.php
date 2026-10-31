@@ -265,6 +265,21 @@ class CostingReportTest extends TestCase
         $this->assertCount(1,$unassignedRows);
         $this->assertSame(15.0,$unassignedRows[0]['labor_cost']);
 
+        // A missing historical shift-report rate is picked up when that worker's
+        // rate is entered later with an effective date covering the original work.
+        DB::table('personnel_labor_rates')->where('company_id', $company)
+            ->where('personnel_id', $personnel)->where('rate_type', 'regular')->delete();
+        $withoutHistoricalRate = app(CostingReportService::class)->generate($company, $fy, $order, $goods);
+        $this->assertSame(30.0, $withoutHistoricalRate['rows'][0]['labor_cost']);
+
+        DB::table('personnel_labor_rates')->insert([
+            'company_id' => $company, 'personnel_id' => $personnel, 'rate_type' => 'regular',
+            'rate' => 15, 'effective_from' => '2026-10-01', 'effective_to' => null,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $withHistoricalRate = app(CostingReportService::class)->generate($company, $fy, $order, $goods);
+        $this->assertSame(60.0, $withHistoricalRate['rows'][0]['labor_cost']);
+
         $calculation=app(\App\Services\CostCalculationService::class)->calculate($company,$user,$fy,$order,$goods);
         $this->assertSame(1,$calculation['count']);
         $this->assertDatabaseHas('cost_calculations',['id'=>$calculation['ids'][0],'company_id'=>$company,'order_id'=>$order,'goods_id'=>$goods,'total_cost'=>92]);
