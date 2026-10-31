@@ -5,6 +5,7 @@ import {
     normalizeIsoDateForPicker,
     setupProductionReportDatePicker,
     setupCostingRefreshButton,
+    setupCostingRowRefreshButtons,
 } from '../../public/js/production-report-date-filters.js';
 
 test('converts an ISO Gregorian date to the matching picker input format', () => {
@@ -104,5 +105,36 @@ test('refresh button updates every report and reloads to show recalculated histo
     assert.match(note.textContent, /15 موفق، 3 ناموفق از 18 گزارش/);
     assert.match(note.textContent, /گزارش #15/);
     assert.equal(button.textContent, 'گزارش‌ها بروزرسانی شد');
+    assert.equal(reloads, 1);
+});
+
+
+test('row refresh button sends one report request and reloads after success', async () => {
+    let clickHandler; let request; let reloads = 0;
+    const button = {
+        dataset: { endpoint: '/reports/costing/production-reports/42/value' },
+        textContent: 'بروزرسانی', style: {},
+        addEventListener(event, handler) { assert.equal(event, 'click'); clickHandler = handler; },
+    };
+    const note = { textContent: '' };
+    const documentRef = {
+        querySelectorAll(selector) { assert.equal(selector, '[data-costing-refresh-row]'); return [button]; },
+        querySelector(selector) {
+            if (selector === '[data-costing-refresh-row-result="42"]') return note;
+            if (selector === 'meta[name="csrf-token"]') return { getAttribute: () => 'csrf-token' };
+            return null;
+        },
+    };
+    const fetchRef = async (url, options) => {
+        request = { url, options };
+        return { ok: true, async json() { return { success: true, message: 'مبالغ ریالی گزارش بروزرسانی شد.' }; } };
+    };
+    assert.equal(setupCostingRowRefreshButtons(documentRef, fetchRef, { reload() { reloads++; } }), true);
+    await clickHandler();
+    assert.equal(request.url, '/reports/costing/production-reports/42/value');
+    assert.equal(request.options.method, 'POST');
+    assert.equal(request.options.headers['X-CSRF-TOKEN'], 'csrf-token');
+    assert.equal(note.textContent, 'مبالغ ریالی گزارش بروزرسانی شد.');
+    assert.equal(button.textContent, 'بروزرسانی شد');
     assert.equal(reloads, 1);
 });
