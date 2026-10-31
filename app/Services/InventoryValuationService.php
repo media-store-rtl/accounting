@@ -276,9 +276,19 @@ final class InventoryValuationService
             // reconstructed; retain their existing documented amount.
             if ($items->isEmpty()) return;
 
+            $weightedAverage = null;
+            if ($cost->valuation_method === self::WEIGHTED_AVERAGE) {
+                $quantity = (float) $items->sum('quantity');
+                $weightedAverage = $quantity > 0
+                    ? $items->sum(fn ($item) => (float) $item->quantity * (float) $item->unit_cost) / $quantity
+                    : 0.0;
+            }
+
             $totalCost = 0.0;
             foreach ($items as $item) {
-                $unitCost = (float) $item->unit_cost;
+                // FIFO keeps the actual receipt-layer price; weighted average
+                // recomputes one common average from the same linked quantities.
+                $unitCost = $weightedAverage ?? (float) $item->unit_cost;
                 $lineTotal = (float) $item->quantity * $unitCost;
                 DB::table('inventory_consumption_cost_items')
                     ->where('id', $item->id)
