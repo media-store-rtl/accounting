@@ -13,7 +13,7 @@ class AuditHistoricalProductionMaterialReconciliationTest extends TestCase
     {
         parent::setUp();
 
-        foreach (['inventory_consumption_cost_items', 'inventory_cost_layers', 'inventory_consumption_costs', 'inventory_movements', 'material_handover_items', 'material_handovers', 'production_shift_report_materials', 'production_shift_reports'] as $table) {
+        foreach (['inventory_consumption_cost_items', 'inventory_cost_layers', 'inventory_consumption_costs', 'inventory_movements', 'material_handover_items', 'material_handovers', 'supply_requests', 'production_shift_report_materials', 'production_shift_reports'] as $table) {
             Schema::dropIfExists($table);
         }
 
@@ -22,6 +22,7 @@ class AuditHistoricalProductionMaterialReconciliationTest extends TestCase
             $table->unsignedBigInteger('company_id');
             $table->unsignedBigInteger('production_section_id')->nullable();
             $table->unsignedBigInteger('goods_id')->nullable();
+            $table->unsignedBigInteger('order_id')->nullable();
             $table->date('work_date');
             $table->string('status');
         });
@@ -78,8 +79,15 @@ class AuditHistoricalProductionMaterialReconciliationTest extends TestCase
         Schema::create('material_handovers', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('company_id');
+            $table->unsignedBigInteger('supply_request_id')->nullable();
             $table->unsignedBigInteger('production_section_id')->nullable();
             $table->dateTime('handed_over_at')->nullable();
+            $table->string('status')->default('completed');
+        });
+        Schema::create('supply_requests', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('company_id');
+            $table->unsignedBigInteger('order_id')->nullable();
         });
         Schema::create('material_handover_items', function (Blueprint $table) {
             $table->id();
@@ -320,5 +328,35 @@ class AuditHistoricalProductionMaterialReconciliationTest extends TestCase
         $this->artisan('costing:reconcile-production-materials', ['--company' => 1, '--report' => 7])
             ->expectsOutputToContain('rejected_report')->assertExitCode(0);
         $this->assertSame(0, DB::table('inventory_movements')->count());
+    }
+
+    public function test_handover_quantity_is_only_attributed_through_the_report_order_supply_request(): void
+    {
+        DB::table('production_shift_reports')->insert([
+            'id' => 16, 'company_id' => 1, 'production_section_id' => 1, 'goods_id' => 2,
+            'order_id' => 6, 'work_date' => '2026-10-18', 'status' => 'received',
+        ]);
+        DB::table('production_shift_report_materials')->insert([
+            'company_id' => 1, 'production_shift_report_id' => 16, 'goods_id' => 1, 'quantity' => 2,
+        ]);
+        DB::table('supply_requests')->insert([
+            ['id' => 1, 'company_id' => 1, 'order_id' => 1],
+            ['id' => 2, 'company_id' => 1, 'order_id' => null],
+            ['id' => 3, 'company_id' => 1, 'order_id' => 6],
+        ]);
+        DB::table('material_handovers')->insert([
+            ['id' => 1, 'company_id' => 1, 'supply_request_id' => 1, 'production_section_id' => 1, 'handed_over_at' => '2026-10-18 10:00:00', 'status' => 'completed'],
+            ['id' => 2, 'company_id' => 1, 'supply_request_id' => 2, 'production_section_id' => 1, 'handed_over_at' => '2026-10-18 11:00:00', 'status' => 'completed'],
+            ['id' => 3, 'company_id' => 1, 'supply_request_id' => 3, 'production_section_id' => 1, 'handed_over_at' => '2026-10-18 12:00:00', 'status' => 'completed'],
+        ]);
+        DB::table('material_handover_items')->insert([
+            ['material_handover_id' => 1, 'goods_id' => 1, 'quantity' => 1],
+            ['material_handover_id' => 2, 'goods_id' => 1, 'quantity' => 2],
+            ['material_handover_id' => 3, 'goods_id' => 1, 'quantity' => 3],
+        ]);
+
+        $this->artisan('costing:reconcile-production-materials', ['--company' => 1, '--report' => 16])
+            ->expectsOutputToContain('3.0000')
+            ->assertExitCode(0);
     }
 }
