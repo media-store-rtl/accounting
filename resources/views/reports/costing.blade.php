@@ -97,7 +97,7 @@
       <table class="costing-table costing-main-table">
         <thead>
           <tr>
-            <th>شماره گزارش</th><th>تاریخ تولید</th><th>محصول</th><th>مقدار تولید</th><th>تحویل‌شده</th><th>هزینه مواد ارزش‌گذاری‌شده</th><th>دستمزد</th><th>ضایعات محصول</th><th>جمع مواد + دستمزد*</th><th>وضعیت</th><th>جزئیات</th>
+            <th>شماره گزارش</th><th>تاریخ تولید</th><th>محصول</th><th>مقدار تولید</th><th>تحویل‌شده</th><th>هزینه مواد ارزش‌گذاری‌شده</th><th>دستمزد</th><th>ضایعات محصول</th><th>جمع مواد + دستمزد*</th><th>وضعیت</th><th>جزئیات</th><th>عملیات</th>
           </tr>
         </thead>
         <tbody>
@@ -122,10 +122,13 @@
               <td>{{ $formatCostingNumber($reportRecordedCost) }} ریال</td>
               <td><span class="costing-status {{ $reportCostComplete ? 'complete' : 'incomplete' }}">{{ $reportCostComplete ? 'ارزش‌گذاری مواد کامل' : 'ناقص: ' . $formatCostingNumber($reportUnvaluedQuantity) . ' واحد بدون ارزش' }}</span></td>
               <td><button class="costing-expand-btn" type="button" aria-expanded="false" aria-controls="{{ $detailId }}" data-costing-toggle="{{ $detailId }}">مشاهده جزئیات</button></td>
-
+              <td>
+                <button type="button" class="costing-action-button" data-costing-refresh-row data-endpoint="{{ route('reports.costing.production-reports.value', $productionReport['report_id']) }}">بروزرسانی</button>
+                <span data-costing-refresh-row-result="{{ $productionReport['report_id'] }}" role="status" style="display:block;font-size:9px;color:#91a6b9;margin-top:4px"></span>
+              </td>
             </tr>
             <tr id="{{ $detailId }}" class="costing-detail-row" hidden>
-              <td colspan="11">
+              <td colspan="12">
                 <div class="costing-detail-container">
                   <div class="costing-report-heading">
                     <h3>جزئیات گزارش #{{ $productionReport['report_id'] }}</h3>
@@ -188,7 +191,7 @@
             </tr>
           @endforeach
           <tr class="costing-summary-row">
-            <td>جمع کل</td><td>—</td><td>همه محصولات</td><td>{{ $formatCostingNumber($costingProducedTotal) }}</td><td>{{ $formatCostingNumber($costingReceivedTotal) }}</td><td>{{ $formatCostingNumber($costingAggregateMaterialTotal) }} ریال</td><td>{{ $formatCostingNumber($costingAggregateLaborTotal) }} ریال</td><td>{{ $formatCostingNumber($costingScrapTotal) }}</td><td>{{ $formatCostingNumber($costingAggregateTotal) }} ریال</td><td>{{ $costingUnvaluedTotal > 0 ? 'موقت؛ مواد بدون ارزش' : 'بر اساس داده‌های ثبت‌شده' }}</td><td>—</td>
+            <td>جمع کل</td><td>—</td><td>همه محصولات</td><td>{{ $formatCostingNumber($costingProducedTotal) }}</td><td>{{ $formatCostingNumber($costingReceivedTotal) }}</td><td>{{ $formatCostingNumber($costingAggregateMaterialTotal) }} ریال</td><td>{{ $formatCostingNumber($costingAggregateLaborTotal) }} ریال</td><td>{{ $formatCostingNumber($costingScrapTotal) }}</td><td>{{ $formatCostingNumber($costingAggregateTotal) }} ریال</td><td>{{ $costingUnvaluedTotal > 0 ? 'موقت؛ مواد بدون ارزش' : 'بر اساس داده‌های ثبت‌شده' }}</td><td>—</td><td>—</td>
           </tr>
         </tbody>
       </table>
