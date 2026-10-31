@@ -74,23 +74,46 @@ export function setupCostingRefreshButton(documentRef = globalThis.document, fet
     const note = documentRef?.querySelector('[data-costing-refresh-result]');
     if (!button || !note || typeof fetchRef !== 'function') return false;
     const csrfToken = documentRef.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || documentRef.querySelector('input[name="_token"]')?.value;
-    let finished = false;
+    let reloadPending = false;
     button.addEventListener('click', async () => {
-        if (finished) { locationRef?.reload?.(); return; }
+        if (reloadPending) { locationRef?.reload?.(); return; }
         button.disabled = true; button.textContent = 'در حال بروزرسانی همه گزارش‌ها...'; button.style.cursor = 'wait';
         const headers = { Accept: 'application/json' };
         if (csrfToken) headers['X-CSRF-TOKEN'] = csrfToken;
         try {
             const response = await fetchRef(button.dataset.endpoint, { method: 'POST', credentials: 'same-origin', headers });
             const payload = await response.json().catch(() => null);
-            if (!response.ok || !payload || payload.success !== true) throw new Error(payload?.message || 'پاسخ معتبر از سرور دریافت نشد.');
+            if (!response.ok || !payload || typeof payload !== 'object') {
+                throw new Error(payload?.message || 'پاسخ معتبر از سرور دریافت نشد.');
+            }
+
+            const processed = Number(payload.processed ?? 0);
+            const succeeded = Number(payload.succeeded ?? 0);
+            const failed = Number(payload.failed ?? 0);
+            const partial = Number(payload.partial ?? 0);
             const details = Array.isArray(payload.details) ? payload.details.join(' | ') : '';
-            note.textContent = `نتیجه بروزرسانی همه گزارش‌ها: ${payload.succeeded ?? 0} موفق، ${payload.failed ?? 0} ناموفق از ${payload.processed ?? 0} گزارش؛ ${payload.partial ?? 0} گزارش همچنان بخشی بدون بها دارد. ${details} برای مشاهده ارقام تازه، صفحه را بارگذاری مجدد کنید.`;
-            note.setAttribute('role', payload.failed ? 'alert' : 'status'); note.style.color = payload.failed ? '#f0d58a' : '#a7e3c6';
-            finished = true; button.textContent = 'گزارش‌ها بروزرسانی شد';
-            // The costing page resolves shift-report labor from the rate effective
-            // on each work date. Reload once so newly entered historical rates appear
-            // immediately after the company-wide refresh completes.
+            if (processed === 0) {
+                note.textContent = payload.message || 'هیچ گزارش واجد شرایطی برای بروزرسانی پیدا نشد.';
+                note.setAttribute('role', 'alert'); note.style.color = '#f0d58a';
+                button.textContent = 'تلاش دوباره برای بروزرسانی';
+                return;
+            }
+
+            note.textContent = `نتیجه بروزرسانی همه گزارش‌ها: ${succeeded} موفق، ${failed} ناموفق از ${processed} گزارش؛ ${partial} گزارش همچنان بخشی بدون بها دارد. ${details}`;
+            const hasIssues = failed > 0 || partial > 0 || payload.complete !== true;
+            note.setAttribute('role', hasIssues ? 'alert' : 'status');
+            note.style.color = hasIssues ? '#f0d58a' : '#a7e3c6';
+
+            if (hasIssues || payload.success !== true) {
+                reloadPending = true;
+                button.textContent = 'بارگذاری مجدد برای مشاهده نتیجه';
+                return;
+            }
+
+            // Only a fully successful run reloads automatically. Partial or failed
+            // runs stay visible so their counts and diagnostic details are not lost.
+            reloadPending = true;
+            button.textContent = 'گزارش‌ها بروزرسانی شد';
             locationRef?.reload?.();
         } catch (error) {
             note.textContent = error?.message || 'بروزرسانی گزارش‌ها ناموفق بود؛ دوباره تلاش کنید.';
