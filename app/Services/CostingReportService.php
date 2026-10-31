@@ -449,32 +449,32 @@ final class CostingReportService
                 $materialId = (int) $usage->material_id;
                 $workDate = substr((string) $usage->work_date, 0, 10);
                 if (!empty($directConsumptionGroups[$reportId][$materialId])) {
+                    foreach ($directConsumptionGroups[$reportId][$materialId] as &$source) {
+                        if ($remainingUsage <= 0.0000001) break;
+                        if ($source['handed_over_date'] > $workDate || $source['remaining_quantity'] <= 0.0000001) continue;
 
-                foreach ($sourceRows as $sourceIndex => &$source) {
-                    if ($remainingUsage <= 0.0000001) break;
-                    if ($source['handed_over_date'] > $workDate || $source['remaining_quantity'] <= 0.0000001) continue;
+                        $allocated = min($remainingUsage, (float) $source['remaining_quantity']);
+                        $source['remaining_quantity'] -= $allocated;
+                        $details[$materialRowId]['allocated_quantity'] += $allocated;
+                        $remainingUsage -= $allocated;
 
-                    $allocated = min($remainingUsage, (float) $source['remaining_quantity']);
-                    $source['remaining_quantity'] -= $allocated;
-                    $details[$materialRowId]['allocated_quantity'] += $allocated;
-                    $remainingUsage -= $allocated;
-
-                    $valuedRemaining = $allocated;
-                    foreach ($source['cost_slices'] as &$slice) {
-                        if ($valuedRemaining <= 0.0000001) break;
-                        if ($slice['remaining_quantity'] <= 0.0000001) continue;
-                        $valued = min($valuedRemaining, (float) $slice['remaining_quantity']);
-                        $slice['remaining_quantity'] -= $valued;
-                        $valuedRemaining -= $valued;
-                        $details[$materialRowId]['valued_quantity'] += $valued;
-                        $details[$materialRowId]['material_cost'] += $valued * (float) $slice['unit_cost'];
-                        if (!empty($source['valuation_method'])) {
-                            $details[$materialRowId]['valuation_methods'][$source['valuation_method']] = true;
+                        $valuedRemaining = $allocated;
+                        foreach ($source['cost_slices'] as &$slice) {
+                            if ($valuedRemaining <= 0.0000001) break;
+                            if ($slice['remaining_quantity'] <= 0.0000001) continue;
+                            $valued = min($valuedRemaining, (float) $slice['remaining_quantity']);
+                            $slice['remaining_quantity'] -= $valued;
+                            $valuedRemaining -= $valued;
+                            $details[$materialRowId]['valued_quantity'] += $valued;
+                            $details[$materialRowId]['material_cost'] += $valued * (float) $slice['unit_cost'];
+                            if (!empty($source['valuation_method'])) {
+                                $details[$materialRowId]['valuation_methods'][$source['valuation_method']] = true;
+                            }
                         }
+                        unset($slice);
                     }
-                    unset($slice);
+                    unset($source);
                 }
-                unset($source);
                 $remainingUsageByRow[$materialRowId] = $remainingUsage;
             }
 
