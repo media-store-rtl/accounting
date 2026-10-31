@@ -87,7 +87,11 @@ export function setupCostingRefreshButton(documentRef = globalThis.document, fet
             const details = Array.isArray(payload.details) ? payload.details.join(' | ') : '';
             note.textContent = `نتیجه بروزرسانی همه گزارش‌ها: ${payload.succeeded ?? 0} موفق، ${payload.failed ?? 0} ناموفق از ${payload.processed ?? 0} گزارش؛ ${payload.partial ?? 0} گزارش همچنان بخشی بدون بها دارد. ${details} برای مشاهده ارقام تازه، صفحه را بارگذاری مجدد کنید.`;
             note.setAttribute('role', payload.failed ? 'alert' : 'status'); note.style.color = payload.failed ? '#f0d58a' : '#a7e3c6';
-            finished = true; button.textContent = 'بارگذاری مجدد گزارش‌ها';
+            finished = true; button.textContent = 'گزارش‌ها بروزرسانی شد';
+            // The costing page resolves shift-report labor from the rate effective
+            // on each work date. Reload once so newly entered historical rates appear
+            // immediately after the company-wide refresh completes.
+            locationRef?.reload?.();
         } catch (error) {
             note.textContent = error?.message || 'بروزرسانی گزارش‌ها ناموفق بود؛ دوباره تلاش کنید.';
             note.setAttribute('role', 'alert'); note.style.color = '#f0d58a'; button.textContent = 'تلاش دوباره برای بروزرسانی';
