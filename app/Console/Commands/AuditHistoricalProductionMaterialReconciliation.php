@@ -50,7 +50,10 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
             ->when($to, fn ($q) => $q->whereDate('r.work_date', '<=', $to))
             ->when($this->option('report'), fn ($q, $id) => $q->where('r.id', (int) $id))
             ->orderBy('r.work_date')->orderBy('r.id')
-            ->get(['r.id', 'r.production_section_id', 'r.goods_id', 'r.work_date', 'r.status']);
+            ->get(array_values(array_filter([
+                'r.id', 'r.production_section_id', 'r.goods_id', 'r.work_date', 'r.status',
+                Schema::hasColumn('production_shift_reports', 'order_id') ? 'r.order_id' : null,
+            ])));
 
         if ($reports->isEmpty()) {
             $this->info('No production shift reports matched these filters.');
@@ -165,14 +168,28 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                 $historicalLayerQty = (float) $layers->sum(fn ($l) => (float) $l->quantity_received);
 
                 $handoverQty = 0.0;
-                if (Schema::hasTable('material_handovers') && Schema::hasTable('material_handover_items')) {
-                    $handoverQty = (float) DB::table('material_handover_items as hi')
+                // The current handover schema links to a supply request, not a
+                // particular shift report. Even an order match is not report-level
+                // proof when several reports can share that order. Count only an
+                // explicit report foreign key if a future schema provides one.
+                if (Schema::hasTable('material_handovers')
+                    && Schema::hasTable('material_handover_items')
+                    && Schema::hasColumn('material_handovers', 'production_shift_report_id')) {
+                    $handoverQuery = DB::table('material_handover_items as hi')
                         ->join('material_handovers as h', 'h.id', '=', 'hi.material_handover_id')
                         ->where('h.company_id', $companyId)
+                        ->where('h.production_shift_report_id', $report->id)
                         ->where('hi.goods_id', $material->goods_id)
-                        ->where('h.handed_over_at', '<=', $effectiveAt)
-                        ->when(Schema::hasColumn('material_handovers', 'production_section_id'), fn ($q) => $q->where('h.production_section_id', $report->production_section_id))
-                        ->sum('hi.quantity');
+                        ->where('h.handed_over_at', '<=', $effectiveAt);
+
+                    if (Schema::hasColumn('material_handovers', 'production_section_id')) {
+                        $handoverQuery->where('h.production_section_id', $report->production_section_id);
+                    }
+                    if (Schema::hasColumn('material_handovers', 'status')) {
+                        $handoverQuery->where('h.status', 'completed');
+                    }
+
+                    $handoverQty = (float) $handoverQuery->sum('hi.quantity');
                 }
 
                 $status = strtolower((string) $report->status);

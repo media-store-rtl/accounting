@@ -334,7 +334,7 @@ final class CostingReportService
                 ->orderBy('m.occurred_at')->orderBy('m.id')
                 ->get([
                     'm.id as movement_id', 'm.goods_id as material_id', 'm.quantity',
-                    'm.location_id', 'm.occurred_at', 'm.metadata',
+                    'm.location_id', 'm.occurred_at', 'm.metadata', 'm.reference_type', 'm.reference_id',
                     'ps.id as location_section_id',
                     'c.id as cost_id', 'c.quantity as cost_quantity', 'c.unit_cost',
                     'c.valuation_method',
@@ -376,17 +376,27 @@ final class CostingReportService
                 }
             }
 
-            $handoverGroups = [];
+            $legacyConsumptionGroups = [];
+            $directConsumptionGroups = [];
+            $usageReportMaterialRows = [];
+            foreach ($usageRows as $usage) {
+                $usageReportMaterialRows[(int) $usage->report_id][(int) $usage->material_id] = true;
+            }
+
             foreach ($consumptionRows as $movement) {
                 $metadata = json_decode((string) $movement->metadata, true) ?: [];
                 $supply = $supplies->get((int) ($metadata['supply_request_id'] ?? 0));
                 $productionOrder = $productionOrders->get((int) ($metadata['production_id'] ?? 0));
                 $sectionId = (int) ($supply->production_section_id ?? $movement->location_section_id ?? 0);
-                if ($sectionId <= 0) continue;
                 $orderKey = (int) ($supply->order_id ?? $productionOrder->order_id ?? $metadata['order_id'] ?? 0);
                 $key = $sectionId . ':' . (int) $movement->material_id . ':' . $orderKey;
                 $quantity = abs((float) $movement->quantity);
                 if ($quantity <= 0.0000001) continue;
+
+                $directReportId = (int) ($metadata['shift_report_id'] ?? 0);
+                if ($directReportId <= 0 && (string) $movement->reference_type === 'production_shift_reports') {
+                    $directReportId = (int) $movement->reference_id;
+                }
 
                 $costId = $movement->cost_id !== null ? (int) $movement->cost_id : null;
                 $override = $valuationOverrides[(int) $movement->movement_id] ?? null;
@@ -406,44 +416,100 @@ final class CostingReportService
                     }
                     $valuationMethodForMovement = $movement->valuation_method;
                 }
-                $handoverGroups[$key][] = [
+                $source = [
                     'handed_over_date' => substr((string) $movement->occurred_at, 0, 10),
                     'remaining_quantity' => $quantity,
                     'valuation_method' => $valuationMethodForMovement,
                     'cost_slices' => $slices,
                 ];
+
+                // An explicit shift-report reference is authoritative. Never put it
+                // into the legacy section/material/order pool, where an earlier report
+                // could otherwise consume it before its actual owner.
+                if ($directReportId > 0) {
+                    if (isset($usageReportMaterialRows[$directReportId][(int) $movement->material_id])) {
+                        $directConsumptionGroups[$directReportId][(int) $movement->material_id][] = $source;
+                    }
+                    continue;
+                }
+
+                if ($sectionId <= 0) continue;
+                $legacyConsumptionGroups[$key][] = $source;
             }
 
-            $nextHandoverByGroup = [];
-            $activeHandoversByGroup = [];
+            $remainingUsageByRow = [];
+
+            // First consume report-specific movements only for the matching report
+            // and material. A later report's explicit movement cannot be stolen by
+            // an earlier report in the same legacy allocation group.
+            foreach ($usageRows as $usage) {
+                $materialRowId = (int) $usage->material_row_id;
+                $remainingUsage = max(0.0, (float) $usage->quantity);
+                $reportId = (int) $usage->report_id;
+                $materialId = (int) $usage->material_id;
+                $workDate = substr((string) $usage->work_date, 0, 10);
+                if (!empty($directConsumptionGroups[$reportId][$materialId])) {
+                    foreach ($directConsumptionGroups[$reportId][$materialId] as &$source) {
+                        if ($remainingUsage <= 0.0000001) break;
+                        if ($source['handed_over_date'] > $workDate || $source['remaining_quantity'] <= 0.0000001) continue;
+
+                        $allocated = min($remainingUsage, (float) $source['remaining_quantity']);
+                        $source['remaining_quantity'] -= $allocated;
+                        $details[$materialRowId]['allocated_quantity'] += $allocated;
+                        $remainingUsage -= $allocated;
+
+                        $valuedRemaining = $allocated;
+                        foreach ($source['cost_slices'] as &$slice) {
+                            if ($valuedRemaining <= 0.0000001) break;
+                            if ($slice['remaining_quantity'] <= 0.0000001) continue;
+                            $valued = min($valuedRemaining, (float) $slice['remaining_quantity']);
+                            $slice['remaining_quantity'] -= $valued;
+                            $valuedRemaining -= $valued;
+                            $details[$materialRowId]['valued_quantity'] += $valued;
+                            $details[$materialRowId]['material_cost'] += $valued * (float) $slice['unit_cost'];
+                            if (!empty($source['valuation_method'])) {
+                                $details[$materialRowId]['valuation_methods'][$source['valuation_method']] = true;
+                            }
+                        }
+                        unset($slice);
+                    }
+                    unset($source);
+                }
+                $remainingUsageByRow[$materialRowId] = $remainingUsage;
+            }
+
+            // Only movements without an explicit report reference use the legacy
+            // section/material/order/date pool.
+            $nextLegacyByGroup = [];
+            $activeLegacyByGroup = [];
             foreach ($usageRows as $usage) {
                 $materialRowId = (int) $usage->material_row_id;
                 $key = (int) $usage->production_section_id . ':' . (int) $usage->material_id . ':' . (int) ($usage->order_id ?? 0);
-                $sourceRows = $handoverGroups[$key] ?? [];
+                $sourceRows = $legacyConsumptionGroups[$key] ?? [];
                 if (empty($sourceRows)) continue;
 
-                $next = $nextHandoverByGroup[$key] ?? 0;
-                $active = $activeHandoversByGroup[$key] ?? [];
+                $next = $nextLegacyByGroup[$key] ?? 0;
+                $active = $activeLegacyByGroup[$key] ?? [];
                 $workDate = substr((string) $usage->work_date, 0, 10);
                 while ($next < count($sourceRows) && $sourceRows[$next]['handed_over_date'] <= $workDate) {
                     $active[] = $next;
                     $next++;
                 }
-                $nextHandoverByGroup[$key] = $next;
-                $activeHandoversByGroup[$key] = $active;
+                $nextLegacyByGroup[$key] = $next;
+                $activeLegacyByGroup[$key] = $active;
 
-                $remainingUsage = (float) $usage->quantity;
+                $remainingUsage = (float) ($remainingUsageByRow[$materialRowId] ?? max(0.0, (float) $usage->quantity));
                 foreach ($active as $sourceIndex) {
                     if ($remainingUsage <= 0.0000001) break;
-                    if (($handoverGroups[$key][$sourceIndex]['remaining_quantity'] ?? 0) <= 0.0000001) continue;
+                    if (($legacyConsumptionGroups[$key][$sourceIndex]['remaining_quantity'] ?? 0) <= 0.0000001) continue;
 
-                    $allocated = min($remainingUsage, (float) $handoverGroups[$key][$sourceIndex]['remaining_quantity']);
-                    $handoverGroups[$key][$sourceIndex]['remaining_quantity'] -= $allocated;
+                    $allocated = min($remainingUsage, (float) $legacyConsumptionGroups[$key][$sourceIndex]['remaining_quantity']);
+                    $legacyConsumptionGroups[$key][$sourceIndex]['remaining_quantity'] -= $allocated;
                     $details[$materialRowId]['allocated_quantity'] += $allocated;
                     $remainingUsage -= $allocated;
 
                     $valuedRemaining = $allocated;
-                    foreach ($handoverGroups[$key][$sourceIndex]['cost_slices'] as &$slice) {
+                    foreach ($legacyConsumptionGroups[$key][$sourceIndex]['cost_slices'] as &$slice) {
                         if ($valuedRemaining <= 0.0000001) break;
                         if ($slice['remaining_quantity'] <= 0.0000001) continue;
                         $valued = min($valuedRemaining, (float) $slice['remaining_quantity']);
@@ -451,8 +517,8 @@ final class CostingReportService
                         $valuedRemaining -= $valued;
                         $details[$materialRowId]['valued_quantity'] += $valued;
                         $details[$materialRowId]['material_cost'] += $valued * (float) $slice['unit_cost'];
-                        if (!empty($handoverGroups[$key][$sourceIndex]['valuation_method'])) {
-                            $details[$materialRowId]['valuation_methods'][$handoverGroups[$key][$sourceIndex]['valuation_method']] = true;
+                        if (!empty($legacyConsumptionGroups[$key][$sourceIndex]['valuation_method'])) {
+                            $details[$materialRowId]['valuation_methods'][$legacyConsumptionGroups[$key][$sourceIndex]['valuation_method']] = true;
                         }
                     }
                     unset($slice);
