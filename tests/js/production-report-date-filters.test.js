@@ -82,7 +82,7 @@ test('does not initialise when date-picker dependencies are unavailable', () => 
     }), false);
 });
 
-test('refresh button updates every report through one company-wide request and then offers reload', async () => {
+test('refresh button updates every report and reloads to show recalculated historical labor', async () => {
     let clickHandler; let request; let reloads = 0;
     const button = { dataset: { endpoint: '/reports/costing/production-reports/refresh-all' }, textContent: 'بروزرسانی گزارش‌ها', style: {}, addEventListener(event, handler) { assert.equal(event, 'click'); clickHandler = handler; } };
     const note = { textContent: '', style: {}, setAttribute(name, value) { this[name] = value; } };
@@ -103,7 +103,6 @@ test('refresh button updates every report through one company-wide request and t
     assert.equal(request.options.headers['X-CSRF-TOKEN'], 'csrf-token');
     assert.match(note.textContent, /15 موفق، 3 ناموفق از 18 گزارش/);
     assert.match(note.textContent, /گزارش #15/);
-    assert.equal(button.textContent, 'بارگذاری مجدد گزارش‌ها');
-    await clickHandler();
+    assert.equal(button.textContent, 'گزارش‌ها بروزرسانی شد');
     assert.equal(reloads, 1);
 });
