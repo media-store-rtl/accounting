@@ -448,7 +448,7 @@ final class CostingReportService
                 $reportId = (int) $usage->report_id;
                 $materialId = (int) $usage->material_id;
                 $workDate = substr((string) $usage->work_date, 0, 10);
-                $sourceRows = $directConsumptionGroups[$reportId][$materialId] ?? [];
+                if (!empty($directConsumptionGroups[$reportId][$materialId])) {
 
                 foreach ($sourceRows as $sourceIndex => &$source) {
                     if ($remainingUsage <= 0.0000001) break;
