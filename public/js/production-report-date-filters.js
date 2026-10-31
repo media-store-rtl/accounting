@@ -100,10 +100,53 @@ export function setupCostingRefreshButton(documentRef = globalThis.document, fet
     return true;
 }
 
+
+export function setupCostingRowRefreshButtons(documentRef = globalThis.document, fetchRef = globalThis.fetch, locationRef = globalThis.location) {
+    const buttons = Array.from(documentRef?.querySelectorAll('[data-costing-refresh-row]') ?? []);
+    if (!buttons.length || typeof fetchRef !== 'function') return false;
+    const csrfToken = documentRef.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        || documentRef.querySelector('input[name="_token"]')?.value;
+
+    buttons.forEach(button => {
+        let finished = false;
+        const reportId = button.dataset.reportId || button.dataset.endpoint?.match(/production-reports\/(\d+)\/value/)?.[1] || '';
+        const note = documentRef.querySelector(`[data-costing-refresh-row-result="${reportId}"]`);
+        button.addEventListener('click', async () => {
+            if (finished) { locationRef?.reload?.(); return; }
+            button.disabled = true;
+            button.textContent = 'در حال بروزرسانی...';
+            button.style.cursor = 'wait';
+            if (note) note.textContent = 'در حال بررسی مواد و نرخ‌های معتبر...';
+            const headers = { Accept: 'application/json' };
+            if (csrfToken) headers['X-CSRF-TOKEN'] = csrfToken;
+            try {
+                const response = await fetchRef(button.dataset.endpoint, {
+                    method: 'POST', credentials: 'same-origin', headers,
+                });
+                const payload = await response.json().catch(() => null);
+                if (!response.ok || !payload || payload.success !== true) {
+                    throw new Error(payload?.message || 'بروزرسانی این گزارش انجام نشد.');
+                }
+                if (note) note.textContent = payload.message || 'گزارش بروزرسانی شد.';
+                finished = true;
+                button.textContent = 'بروزرسانی شد';
+                locationRef?.reload?.();
+            } catch (error) {
+                if (note) note.textContent = error?.message || 'خطا در بروزرسانی گزارش؛ دوباره تلاش کنید.';
+                button.textContent = 'تلاش دوباره';
+                button.disabled = false;
+                button.style.cursor = 'pointer';
+            }
+        });
+    });
+    return true;
+}
+
 if (globalThis.document) {
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => setupCostingRefreshButton());
+        document.addEventListener('DOMContentLoaded', () => { setupCostingRefreshButton(); setupCostingRowRefreshButtons(); });
     } else {
         setupCostingRefreshButton();
+        setupCostingRowRefreshButtons();
     }
 }
