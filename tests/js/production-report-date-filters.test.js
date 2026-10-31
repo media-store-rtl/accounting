@@ -95,14 +95,14 @@ test('global refresh keeps partial and failed results visible instead of auto-re
     } };
     const fetchRef = async (url, options) => {
         request = { url, options };
-        return { ok: true, async json() { return { success: false, complete: false, processed: 18, succeeded: 15, failed: 3, partial: 2, details: ['گزارش #15: بدون بهای قابل ردیابی'] }; } };
+        return { ok: true, async json() { return { success: false, complete: false, processed: 18, succeeded: 13, failed: 3, partial: 2, details: ['گزارش #15: بدون بهای قابل ردیابی'] }; } };
     };
     assert.equal(setupCostingRefreshButton(documentRef, fetchRef, { reload() { reloads++; } }), true);
     await clickHandler();
     assert.equal(request.url, '/reports/costing/production-reports/refresh-all');
     assert.equal(request.options.method, 'POST');
     assert.equal(request.options.headers['X-CSRF-TOKEN'], 'csrf-token');
-    assert.match(note.textContent, /15 موفق، 3 ناموفق از 18 گزارش/);
+    assert.match(note.textContent, /13 موفق، 3 ناموفق از 18 گزارش/);
     assert.match(note.textContent, /گزارش #15/);
     assert.equal(note.role, 'alert');
     assert.equal(button.textContent, 'بارگذاری مجدد برای مشاهده نتیجه');
