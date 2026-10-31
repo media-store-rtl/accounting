@@ -202,5 +202,34 @@ class InventoryValuationServiceTest extends TestCase
             'total_cost' => 56,
         ]);
         $this->assertSame(2, DB::table('inventory_consumption_cost_items')->where('inventory_consumption_cost_id', DB::table('inventory_consumption_costs')->where('inventory_movement_id', $movement)->value('id'))->count());
+
+        $costId = (int) DB::table('inventory_consumption_costs')->where('inventory_movement_id', $movement)->value('id');
+        $remainingBeforeRefresh = DB::table('inventory_cost_layers')->whereIn('id', function ($query) use ($costId) {
+            $query->select('inventory_cost_layer_id')->from('inventory_consumption_cost_items')
+                ->where('inventory_consumption_cost_id', $costId);
+        })->orderBy('id')->pluck('fifo_quantity_remaining')->all();
+
+        // A later price correction must update historical rial amounts, not skip
+        // the already-valued movement or consume the same stock layers again.
+        DB::table('inventory_cost_layers')->where('purchase_receipt_item_id', $receiptItem)
+            ->where('quantity_received', 2)->update(['unit_cost' => 11, 'total_cost' => 22]);
+        DB::table('inventory_cost_layers')->where('quantity_received', 3)
+            ->update(['unit_cost' => 13, 'total_cost' => 39]);
+
+        $refreshed = $service->valueInventoryMovement($movement, $fy);
+
+        $this->assertSame(5.0, (float) $refreshed['valued_quantity']);
+        $this->assertSame(0.0, (float) $refreshed['unvalued_quantity']);
+        $this->assertDatabaseHas('inventory_consumption_costs', [
+            'inventory_movement_id' => $movement,
+            'quantity' => 5,
+            'total_cost' => 61,
+        ]);
+        $this->assertSame(2, DB::table('inventory_consumption_cost_items')->where('inventory_consumption_cost_id', $costId)->count());
+        $remainingAfterRefresh = DB::table('inventory_cost_layers')->whereIn('id', function ($query) use ($costId) {
+            $query->select('inventory_cost_layer_id')->from('inventory_consumption_cost_items')
+                ->where('inventory_consumption_cost_id', $costId);
+        })->orderBy('id')->pluck('fifo_quantity_remaining')->all();
+        $this->assertSame($remainingBeforeRefresh, $remainingAfterRefresh);
     }
 }
