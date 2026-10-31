@@ -168,21 +168,17 @@ class AuditHistoricalProductionMaterialReconciliation extends Command
                 $historicalLayerQty = (float) $layers->sum(fn ($l) => (float) $l->quantity_received);
 
                 $handoverQty = 0.0;
-                // A section-wide handover is not evidence that a particular order
-                // received the material. Attribute it to a report only through its
-                // supply request's explicit order link; otherwise leave it unassigned.
-                if ($report->order_id !== null
-                    && Schema::hasTable('material_handovers')
+                // The current handover schema links to a supply request, not a
+                // particular shift report. Even an order match is not report-level
+                // proof when several reports can share that order. Count only an
+                // explicit report foreign key if a future schema provides one.
+                if (Schema::hasTable('material_handovers')
                     && Schema::hasTable('material_handover_items')
-                    && Schema::hasTable('supply_requests')
-                    && Schema::hasColumn('material_handovers', 'supply_request_id')
-                    && Schema::hasColumn('supply_requests', 'order_id')) {
+                    && Schema::hasColumn('material_handovers', 'production_shift_report_id')) {
                     $handoverQuery = DB::table('material_handover_items as hi')
                         ->join('material_handovers as h', 'h.id', '=', 'hi.material_handover_id')
-                        ->join('supply_requests as sr', 'sr.id', '=', 'h.supply_request_id')
                         ->where('h.company_id', $companyId)
-                        ->where('sr.company_id', $companyId)
-                        ->where('sr.order_id', $report->order_id)
+                        ->where('h.production_shift_report_id', $report->id)
                         ->where('hi.goods_id', $material->goods_id)
                         ->where('h.handed_over_at', '<=', $effectiveAt);
 
