@@ -146,6 +146,10 @@ final class InventoryValuationService
 
         $existing = DB::table('inventory_consumption_costs')->where('inventory_movement_id', $movementId)->first();
         if ($existing) {
+            // Recalculate the rial amounts from the already-linked receipt layers.
+            // Keep the consumed quantities and layer balances untouched; this is a
+            // monetary refresh, not a second inventory consumption.
+            $this->refreshExistingCostAmounts((int) $existing->id);
             return $this->topUpExistingCost($movement, $fiscalYearId, $quantity, (int) $existing->id);
         }
 
@@ -247,6 +251,52 @@ final class InventoryValuationService
                 'valued_quantity' => $valuedQuantity,
                 'unvalued_quantity' => max(0.0, $quantity - $valuedQuantity),
             ];
+        });
+    }
+
+    /**
+     * Refresh stored rial amounts using the receipt-layer prices already attached
+     * to a consumption cost. This deliberately does not alter quantities or layer
+     * balances, so rerunning a costing refresh cannot deduct inventory again.
+     */
+    private function refreshExistingCostAmounts(int $costId): void
+    {
+        DB::transaction(function () use ($costId) {
+            $cost = DB::table('inventory_consumption_costs')
+                ->where('id', $costId)->lockForUpdate()->first();
+            if (!$cost) return;
+
+            $items = DB::table('inventory_consumption_cost_items as item')
+                ->join('inventory_cost_layers as layer', 'layer.id', '=', 'item.inventory_cost_layer_id')
+                ->where('item.inventory_consumption_cost_id', $costId)
+                ->lockForUpdate()
+                ->get(['item.id', 'item.quantity', 'layer.unit_cost']);
+
+            // Legacy cost rows without layer-level details cannot be safely
+            // reconstructed; retain their existing documented amount.
+            if ($items->isEmpty()) return;
+
+            $totalCost = 0.0;
+            foreach ($items as $item) {
+                $unitCost = (float) $item->unit_cost;
+                $lineTotal = (float) $item->quantity * $unitCost;
+                DB::table('inventory_consumption_cost_items')
+                    ->where('id', $item->id)
+                    ->update([
+                        'unit_cost' => $unitCost,
+                        'total_cost' => $lineTotal,
+                        'updated_at' => now(),
+                    ]);
+                $totalCost += $lineTotal;
+            }
+
+            $quantity = (float) $items->sum('quantity');
+            DB::table('inventory_consumption_costs')->where('id', $costId)->update([
+                'quantity' => $quantity,
+                'unit_cost' => $quantity > 0 ? $totalCost / $quantity : 0,
+                'total_cost' => $totalCost,
+                'updated_at' => now(),
+            ]);
         });
     }
 
