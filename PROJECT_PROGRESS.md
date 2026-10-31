@@ -6,7 +6,7 @@
 - تست: تست JS برای ارسال یک درخواست گروهی، نمایش شمارش موفق/ناموفق/ناقص و بارگذاری مجدد اضافه شد. تست محلی در این محیط اجرا نشده؛ CI پس از ایجاد PR باید بررسی شود.
 - فایل‌ها: `app/Http/Controllers/CostingReportController.php`, `routes/web.php`, `resources/views/reports/costing.blade.php`, `public/js/production-report-date-filters.js`, `tests/js/production-report-date-filters.test.js`.
 - Migration یا تغییر مستقیم دیتابیس انجام نشده است. داده‌های سایت زنده، مرورگر و Deploy بررسی/اجرا نشده‌اند.
-- شاخه: `feat/costing-refresh-all-production-reports`. PR پس از ثبت commit ایجاد و وضعیت CI جداگانه گزارش می‌شود؛ ادغام انجام نشده است.
+- شاخه: `feat/costing-refresh-all-production-reports`. PR [#239](https://github.com/media-store-rtl/accounting/pull/239) ایجاد شد و CI در صف اجراست؛ ادغام انجام نشده است.
 
 ---
 # 129. اولویت‌دادن به مصرف انبار متصل مستقیم به گزارش تولید — 2026-10-23
