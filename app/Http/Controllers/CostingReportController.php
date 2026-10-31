@@ -39,15 +39,35 @@ final class CostingReportController extends Controller
             $message = (string) ($payload['message'] ?? '');
             if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300 && !empty($payload['success'])) {
                 $succeeded++;
-                if (str_contains($message, 'بخشی') || str_contains($message, 'هنوز بخشی بدون بها')) $partial++;
+                if (str_contains($message, 'بخشی') || str_contains($message, 'هنوز بخشی بدون بها')) {
+                    $partial++;
+                    $details[] = 'گزارش #' . (int) $reportId . ': ' . $message;
+                }
             } else {
                 $failed++;
                 $details[] = 'گزارش #' . (int) $reportId . ': ' . ($message !== '' ? $message : 'ارزش‌گذاری انجام نشد.');
             }
         }
+
+        $processed = $reportIds->count();
+        $complete = $processed > 0 && $failed === 0 && $partial === 0;
+        $success = $processed > 0 && $failed === 0;
+        $summary = $processed === 0
+            ? 'هیچ گزارش تولید واجد شرایطی برای بروزرسانی پیدا نشد.'
+            : ($failed > 0
+                ? 'بروزرسانی پایان یافت، اما تعدادی از گزارش‌ها ناموفق بودند؛ جزئیات را بررسی کنید.'
+                : ($partial > 0
+                    ? 'بروزرسانی انجام شد، اما تعدادی از گزارش‌ها هنوز بخشی بدون بها دارند.'
+                    : 'بروزرسانی همه گزارش‌ها با موفقیت کامل شد.'));
+
         return response()->json([
-            'success' => true, 'processed' => $reportIds->count(), 'succeeded' => $succeeded,
-            'failed' => $failed, 'partial' => $partial, 'message' => 'بروزرسانی همه گزارش‌ها پایان یافت.',
+            'success' => $success,
+            'complete' => $complete,
+            'processed' => $processed,
+            'succeeded' => $succeeded,
+            'failed' => $failed,
+            'partial' => $partial,
+            'message' => $summary,
             'details' => array_slice($details, 0, 5),
         ]);
     }
