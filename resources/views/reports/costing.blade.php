@@ -70,6 +70,10 @@
 <div class="costing-panel">
   <h2 style="font-size:14px;margin:0 0 8px">گزارش‌های تولید تأییدشده و تحویل‌شده</h2>
   <p style="font-size:10px;color:#91a6b9;margin:0 0 12px">برای مشاهده ریز مواد و هزینه‌های هر گزارش، روی «جزئیات» همان ردیف بزنید. جمع کل فقط یک‌بار در انتهای جدول محاسبه می‌شود.</p>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px">
+    <button type="button" class="costing-action-button" data-costing-refresh-all data-endpoint="{{ route('reports.costing.production-reports.refresh-all') }}">بروزرسانی گزارش‌ها</button>
+    <span data-costing-refresh-result role="status" style="font-size:10px;color:#91a6b9">با کلیک، تمام گزارش‌های تأییدشده و تحویل‌شده شرکت دوباره با مصرف انبار و لایه‌های قیمت بررسی می‌شوند.</span>
+  </div>
   @if(empty($report['production_reports']))
     <div class="costing-empty">گزارش تولید تأییدشده یا تحویل‌شده‌ای برای این فیلتر پیدا نشد.</div>
   @else
@@ -93,7 +97,7 @@
       <table class="costing-table costing-main-table">
         <thead>
           <tr>
-            <th>شماره گزارش</th><th>تاریخ تولید</th><th>محصول</th><th>مقدار تولید</th><th>تحویل‌شده</th><th>هزینه مواد ارزش‌گذاری‌شده</th><th>دستمزد</th><th>ضایعات محصول</th><th>جمع مواد + دستمزد*</th><th>وضعیت</th><th>جزئیات</th><th>عملیات</th>
+            <th>شماره گزارش</th><th>تاریخ تولید</th><th>محصول</th><th>مقدار تولید</th><th>تحویل‌شده</th><th>هزینه مواد ارزش‌گذاری‌شده</th><th>دستمزد</th><th>ضایعات محصول</th><th>جمع مواد + دستمزد*</th><th>وضعیت</th><th>جزئیات</th>
           </tr>
         </thead>
         <tbody>
@@ -118,10 +122,10 @@
               <td>{{ $formatCostingNumber($reportRecordedCost) }} ریال</td>
               <td><span class="costing-status {{ $reportCostComplete ? 'complete' : 'incomplete' }}">{{ $reportCostComplete ? 'ارزش‌گذاری مواد کامل' : 'ناقص: ' . $formatCostingNumber($reportUnvaluedQuantity) . ' واحد بدون ارزش' }}</span></td>
               <td><button class="costing-expand-btn" type="button" aria-expanded="false" aria-controls="{{ $detailId }}" data-costing-toggle="{{ $detailId }}">مشاهده جزئیات</button></td>
-              <td><form class="costing-action-form" method="POST" action="{{ route('reports.costing.production-reports.value', $productionReport['report_id']) }}">@csrf<button class="costing-action-button" type="submit">ریالی‌سازی مواد</button></form></td>
+
             </tr>
             <tr id="{{ $detailId }}" class="costing-detail-row" hidden>
-              <td colspan="12">
+              <td colspan="11">
                 <div class="costing-detail-container">
                   <div class="costing-report-heading">
                     <h3>جزئیات گزارش #{{ $productionReport['report_id'] }}</h3>
@@ -184,7 +188,7 @@
             </tr>
           @endforeach
           <tr class="costing-summary-row">
-            <td>جمع کل</td><td>—</td><td>همه محصولات</td><td>{{ $formatCostingNumber($costingProducedTotal) }}</td><td>{{ $formatCostingNumber($costingReceivedTotal) }}</td><td>{{ $formatCostingNumber($costingAggregateMaterialTotal) }} ریال</td><td>{{ $formatCostingNumber($costingAggregateLaborTotal) }} ریال</td><td>{{ $formatCostingNumber($costingScrapTotal) }}</td><td>{{ $formatCostingNumber($costingAggregateTotal) }} ریال</td><td>{{ $costingUnvaluedTotal > 0 ? 'موقت؛ مواد بدون ارزش' : 'بر اساس داده‌های ثبت‌شده' }}</td><td>—</td><td>—</td>
+            <td>جمع کل</td><td>—</td><td>همه محصولات</td><td>{{ $formatCostingNumber($costingProducedTotal) }}</td><td>{{ $formatCostingNumber($costingReceivedTotal) }}</td><td>{{ $formatCostingNumber($costingAggregateMaterialTotal) }} ریال</td><td>{{ $formatCostingNumber($costingAggregateLaborTotal) }} ریال</td><td>{{ $formatCostingNumber($costingScrapTotal) }}</td><td>{{ $formatCostingNumber($costingAggregateTotal) }} ریال</td><td>{{ $costingUnvaluedTotal > 0 ? 'موقت؛ مواد بدون ارزش' : 'بر اساس داده‌های ثبت‌شده' }}</td><td>—</td>
           </tr>
         </tbody>
       </table>
@@ -207,11 +211,12 @@
 <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
 <script type="module">
-import { setupProductionReportDatePicker } from '/js/production-report-date-filters.js';
+import { setupProductionReportDatePicker, setupCostingRefreshButton } from '/js/production-report-date-filters.js';
 
 document.addEventListener('DOMContentLoaded', function () {
     setupProductionReportDatePicker('#costing-start-date-picker', '#costing-start-date');
     setupProductionReportDatePicker('#costing-end-date-picker', '#costing-end-date');
+    setupCostingRefreshButton();
 
     document.querySelectorAll('[data-costing-toggle]').forEach(function (button) {
         button.addEventListener('click', function () {

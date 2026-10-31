@@ -4,6 +4,7 @@ import {
     formatGregorianIsoDate,
     normalizeIsoDateForPicker,
     setupProductionReportDatePicker,
+    setupCostingRefreshButton,
 } from '../../public/js/production-report-date-filters.js';
 
 test('converts an ISO Gregorian date to the matching picker input format', () => {
@@ -79,4 +80,30 @@ test('does not initialise when date-picker dependencies are unavailable', () => 
         jQueryRef: () => ({}),
         PersianDateCtor: class {},
     }), false);
+});
+
+test('refresh button updates every report through one company-wide request and then offers reload', async () => {
+    let clickHandler; let request; let reloads = 0;
+    const button = { dataset: { endpoint: '/reports/costing/production-reports/refresh-all' }, textContent: 'بروزرسانی گزارش‌ها', style: {}, addEventListener(event, handler) { assert.equal(event, 'click'); clickHandler = handler; } };
+    const note = { textContent: '', style: {}, setAttribute(name, value) { this[name] = value; } };
+    const documentRef = { querySelector(selector) {
+        if (selector === '[data-costing-refresh-all]') return button;
+        if (selector === '[data-costing-refresh-result]') return note;
+        if (selector === 'meta[name="csrf-token"]') return { getAttribute: () => 'csrf-token' };
+        return null;
+    } };
+    const fetchRef = async (url, options) => {
+        request = { url, options };
+        return { ok: true, async json() { return { success: true, processed: 18, succeeded: 15, failed: 3, partial: 2, details: ['گزارش #15: بدون بهای قابل ردیابی'] }; } };
+    };
+    assert.equal(setupCostingRefreshButton(documentRef, fetchRef, { reload() { reloads++; } }), true);
+    await clickHandler();
+    assert.equal(request.url, '/reports/costing/production-reports/refresh-all');
+    assert.equal(request.options.method, 'POST');
+    assert.equal(request.options.headers['X-CSRF-TOKEN'], 'csrf-token');
+    assert.match(note.textContent, /15 موفق، 3 ناموفق از 18 گزارش/);
+    assert.match(note.textContent, /گزارش #15/);
+    assert.equal(button.textContent, 'بارگذاری مجدد گزارش‌ها');
+    await clickHandler();
+    assert.equal(reloads, 1);
 });

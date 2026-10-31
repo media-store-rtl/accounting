@@ -19,6 +19,39 @@ final class CostingReportController extends Controller
         return $request->expectsJson() ? response()->json(['data'=>$result]) : back()->with('success','محاسبه بهای تمام‌شده ثبت و قابل ردیابی شد.');
     }
 
+    public function refreshAllProductionReports(Request $request, InventoryValuationService $valuationService)
+    {
+        $companyId = CompanyAuthorization::authorize($request, 'costing.report.view');
+        $reportIds = DB::table('production_shift_reports')
+            ->where('company_id', $companyId)
+            ->whereIn('status', ['approved', 'received'])
+            ->whereExists(function ($query) use ($companyId) {
+                $query->selectRaw('1')->from('production_shift_report_materials as rm')
+                    ->whereColumn('rm.production_shift_report_id', 'production_shift_reports.id')
+                    ->where('rm.company_id', $companyId);
+            })
+            ->orderBy('work_date')->orderBy('id')->pluck('id');
+        $succeeded = 0; $failed = 0; $partial = 0; $details = [];
+        foreach ($reportIds as $reportId) {
+            // Reuse the company-scoped, idempotent single-report valuation path.
+            $response = $this->valueProductionReport($request, $valuationService, (int) $reportId);
+            $payload = method_exists($response, 'getData') ? $response->getData(true) : [];
+            $message = (string) ($payload['message'] ?? '');
+            if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300 && !empty($payload['success'])) {
+                $succeeded++;
+                if (str_contains($message, 'بخشی') || str_contains($message, 'هنوز بخشی بدون بها')) $partial++;
+            } else {
+                $failed++;
+                $details[] = 'گزارش #' . (int) $reportId . ': ' . ($message !== '' ? $message : 'ارزش‌گذاری انجام نشد.');
+            }
+        }
+        return response()->json([
+            'success' => true, 'processed' => $reportIds->count(), 'succeeded' => $succeeded,
+            'failed' => $failed, 'partial' => $partial, 'message' => 'بروزرسانی همه گزارش‌ها پایان یافت.',
+            'details' => array_slice($details, 0, 5),
+        ]);
+    }
+
     public function valueProductionReport(Request $request, InventoryValuationService $valuationService, int $reportId)
     {
         
