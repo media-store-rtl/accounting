@@ -38,10 +38,11 @@ final class CostingReportController extends Controller
             $payload = method_exists($response, 'getData') ? $response->getData(true) : [];
             $message = (string) ($payload['message'] ?? '');
             if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300 && !empty($payload['success'])) {
-                $succeeded++;
                 if (str_contains($message, 'بخشی') || str_contains($message, 'هنوز بخشی بدون بها')) {
                     $partial++;
                     $details[] = 'گزارش #' . (int) $reportId . ': ' . $message;
+                } else {
+                    $succeeded++;
                 }
             } else {
                 $failed++;
