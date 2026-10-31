@@ -41,6 +41,7 @@ class CostingReportDirectConsumptionAllocationTest extends TestCase
             $table->unsignedBigInteger('production_shift_report_id');
             $table->unsignedBigInteger('goods_id');
             $table->decimal('quantity', 12, 4);
+            $table->decimal('scrap_quantity', 12, 4)->default(0);
         });
         Schema::create('inventory_movements', function (Blueprint $table) {
             $table->id();
