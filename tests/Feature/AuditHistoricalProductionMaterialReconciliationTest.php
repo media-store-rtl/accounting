@@ -99,7 +99,7 @@ class AuditHistoricalProductionMaterialReconciliationTest extends TestCase
 
     protected function tearDown(): void
     {
-        foreach (['inventory_consumption_cost_items', 'inventory_cost_layers', 'inventory_consumption_costs', 'inventory_movements', 'material_handover_items', 'material_handovers', 'production_shift_report_materials', 'production_shift_reports'] as $table) {
+        foreach (['inventory_consumption_cost_items', 'inventory_cost_layers', 'inventory_consumption_costs', 'inventory_movements', 'material_handover_items', 'material_handovers', 'supply_requests', 'production_shift_report_materials', 'production_shift_reports'] as $table) {
             Schema::dropIfExists($table);
         }
         parent::tearDown();
@@ -330,7 +330,7 @@ class AuditHistoricalProductionMaterialReconciliationTest extends TestCase
         $this->assertSame(0, DB::table('inventory_movements')->count());
     }
 
-    public function test_handover_quantity_is_only_attributed_through_the_report_order_supply_request(): void
+    public function test_order_linked_handover_is_not_attributed_to_a_report_without_a_direct_report_link(): void
     {
         DB::table('production_shift_reports')->insert([
             'id' => 16, 'company_id' => 1, 'production_section_id' => 1, 'goods_id' => 2,
@@ -356,7 +356,7 @@ class AuditHistoricalProductionMaterialReconciliationTest extends TestCase
         ]);
 
         $this->artisan('costing:reconcile-production-materials', ['--company' => 1, '--report' => 16])
-            ->expectsOutputToContain('3.0000')
+            ->expectsOutputToContain('missing_movement_and_handover')
             ->assertExitCode(0);
     }
 }
