@@ -19,6 +19,39 @@ final class CostingReportController extends Controller
         return $request->expectsJson() ? response()->json(['data'=>$result]) : back()->with('success','محاسبه بهای تمام‌شده ثبت و قابل ردیابی شد.');
     }
 
+    public function refreshAllProductionReports(Request $request, InventoryValuationService $valuationService)
+    {
+        $companyId = CompanyAuthorization::authorize($request, 'costing.report.view');
+        $reportIds = DB::table('production_shift_reports')
+            ->where('company_id', $companyId)
+            ->whereIn('status', ['approved', 'received'])
+            ->whereExists(function ($query) use ($companyId) {
+                $query->selectRaw('1')->from('production_shift_report_materials as rm')
+                    ->whereColumn('rm.production_shift_report_id', 'production_shift_reports.id')
+                    ->where('rm.company_id', $companyId);
+            })
+            ->orderBy('work_date')->orderBy('id')->pluck('id');
+        $succeeded = 0; $failed = 0; $partial = 0; $details = [];
+        foreach ($reportIds as $reportId) {
+            // Reuse the company-scoped, idempotent single-report valuation path.
+            $response = $this->valueProductionReport($request, $valuationService, (int) $reportId);
+            $payload = method_exists($response, 'getData') ? $response->getData(true) : [];
+            $message = (string) ($payload['message'] ?? '');
+            if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300 && !empty($payload['success'])) {
+                $succeeded++;
+                if (str_contains($message, 'بخشی') || str_contains($message, 'هنوز بخشی بدون بها')) $partial++;
+            } else {
+                $failed++;
+                $details[] = 'گزارش #' . (int) $reportId . ': ' . ($message !== '' ? $message : 'ارزش‌گذاری انجام نشد.');
+            }
+        }
+        return response()->json([
+            'success' => true, 'processed' => $reportIds->count(), 'succeeded' => $succeeded,
+            'failed' => $failed, 'partial' => $partial, 'message' => 'بروزرسانی همه گزارش‌ها پایان یافت.',
+            'details' => array_slice($details, 0, 5),
+        ]);
+    }
+
     public function valueProductionReport(Request $request, InventoryValuationService $valuationService, int $reportId)
     {
         
@@ -71,40 +104,16 @@ final class CostingReportController extends Controller
         }
 
         $result = DB::transaction(function () use ($movements, $fiscalYearId, $valuationService) {
-            $valued = 0;
-            $alreadyValued = 0;
+            $refreshed = 0;
             $unvalued = 0;
 
             foreach ($movements as $movement) {
-                $existing = DB::table('inventory_consumption_costs')
-                    ->where('inventory_movement_id', $movement->id)
-                    ->first(['id', 'quantity']);
-                if ($existing) {
-                    if ((float) $existing->quantity + 0.0001 >= abs((float) $movement->quantity)) {
-                        $alreadyValued++;
-                        continue;
-                    }
-
-                    // Complete only the missing quantity from remaining eligible layers.
-                    // The service appends allocations to the existing row without
-                    // changing its historical cost items or consuming layers twice.
-                    $value = $valuationService->valueInventoryMovement((int) $movement->id, (int) $fiscalYearId);
-                    if ((float) ($value['unvalued_quantity'] ?? 0) <= 0.0001) {
-                        $valued++;
-                    } else {
-                        $unvalued++;
-                    }
-                    continue;
-                }
-
-                // InventoryValuationService deliberately supports partial valuation.
-                // Do not pre-reject a movement merely because its currently available
-                // layers cover only part of the consumption. The service records the
-                // traceable portion and leaves the remainder unvalued so a later refresh
-                // can top it up when additional eligible layers exist.
+                // Revisit every movement, including fully valued ones. Existing
+                // rial amounts are recalculated from their linked receipt layers;
+                // only any still-missing quantity may be topped up.
                 $value = $valuationService->valueInventoryMovement((int) $movement->id, (int) $fiscalYearId);
                 if (!empty($value['valued']) && (float) ($value['valued_quantity'] ?? 0) > 0) {
-                    $valued++;
+                    $refreshed++;
                     if ((float) ($value['unvalued_quantity'] ?? 0) > 0.0001) {
                         $unvalued++;
                     }
@@ -113,19 +122,18 @@ final class CostingReportController extends Controller
                 }
             }
 
-            return compact('valued', 'alreadyValued', 'unvalued');
+            return compact('refreshed', 'unvalued');
         });
 
-        $processed = $result['valued'] + $result['alreadyValued'];
-        if ($processed === 0 && $result['unvalued'] > 0) {
+        if ($result['refreshed'] === 0 && $result['unvalued'] > 0) {
             return $this->valuationResponse($request, 'برای مصرف این گزارش هنوز بهای معتبر قابل ردیابی وجود ندارد؛ هیچ بهای ساختگی ثبت نشد.', false, 422);
         }
 
         if ($result['unvalued'] > 0) {
-            return $this->valuationResponse($request, 'بخشی از مواد ارزش‌گذاری شد: '.$result['valued'].' حرکت ارزش‌گذاری/تکمیل شد و '.$result['alreadyValued'].' حرکت از قبل کامل بود؛ '.$result['unvalued'].' حرکت هنوز بخشی بدون بها دارد و با بروزرسانی بعدی قابل تکمیل است.', true);
+            return $this->valuationResponse($request, 'مبالغ ریالی '.$result['refreshed'].' حرکت بروزرسانی شد؛ '.$result['unvalued'].' حرکت هنوز بخشی بدون بها دارد و پس از ثبت بهای معتبر دوباره قابل بروزرسانی است.', true);
         }
 
-        return $this->valuationResponse($request, 'ریالی‌سازی ردیف بررسی شد: '.$result['valued'].' حرکت ارزش‌گذاری شد و '.$result['alreadyValued'].' حرکت از قبل ارزش‌گذاری شده بود؛ موجودی دوباره کسر نشد.', true);
+        return $this->valuationResponse($request, 'مبالغ ریالی همه '.$result['refreshed'].' حرکت مصرف دوباره محاسبه و بروزرسانی شد؛ موجودی انبار دوباره کسر نشد.', true);
     }
 
 

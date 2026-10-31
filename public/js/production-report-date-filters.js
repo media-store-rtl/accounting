@@ -69,110 +69,34 @@ export function setupProductionReportDatePicker(pickerSelector, isoSelector, {
     return true;
 }
 
-export function setupCostingRefreshButton(documentRef = globalThis.document) {
-    const table = documentRef?.querySelector('.costing-main-table');
-    const panel = Array.from(documentRef?.querySelectorAll('.costing-panel') ?? [])
-        .find(candidate => candidate.querySelector('.costing-main-table'));
-    if (!table || !panel) return false;
-
-    const incompleteRows = Array.from(table.querySelectorAll('tbody tr'))
-        .filter(row => row.querySelector('.costing-status.incomplete'));
-    if (!incompleteRows.length) return false;
-
-    const csrfToken = documentRef.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-        || documentRef.querySelector('input[name="_token"]')?.value;
-    const xsrfCookie = documentRef.cookie
-        .split('; ')
-        .find(cookie => cookie.startsWith('XSRF-TOKEN='))
-        ?.slice('XSRF-TOKEN='.length);
-    if (!csrfToken && !xsrfCookie) return false;
-
-    const heading = panel.querySelector('h2');
-    if (!heading || panel.querySelector('[data-costing-refresh]')) return false;
-
-    const wrapper = documentRef.createElement('div');
-    wrapper.style.cssText = 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px';
-
-    const button = documentRef.createElement('button');
-    button.type = 'button';
-    button.textContent = `بروزرسانی و ارزش‌گذاری مجدد (${incompleteRows.length})`;
-    button.setAttribute('data-costing-refresh', 'true');
-    button.style.cssText = 'background:#24516b;border:1px solid #3a6a88;border-radius:9px;color:#dcebf6;padding:9px 13px;font:inherit;font-size:11px;cursor:pointer';
-
-    const note = documentRef.createElement('span');
-    note.textContent = 'گزارش‌های ناقص دوباره با لایه‌های موجودی و FIFO تطبیق داده می‌شوند.';
-    note.style.cssText = 'color:#91a6b9;font-size:10px';
-
-    wrapper.append(button, note);
-    heading.insertAdjacentElement('afterend', wrapper);
-
+export function setupCostingRefreshButton(documentRef = globalThis.document, fetchRef = globalThis.fetch, locationRef = globalThis.location) {
+    const button = documentRef?.querySelector('[data-costing-refresh-all]');
+    const note = documentRef?.querySelector('[data-costing-refresh-result]');
+    if (!button || !note || typeof fetchRef !== 'function') return false;
+    const csrfToken = documentRef.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || documentRef.querySelector('input[name="_token"]')?.value;
     let finished = false;
     button.addEventListener('click', async () => {
-        if (finished) {
-            window.location.reload();
-            return;
-        }
-
-        button.disabled = true;
-        button.textContent = 'در حال بروزرسانی...';
-        button.style.cursor = 'wait';
-
-        const reportIds = incompleteRows.map(row => {
-            return normalizeReportId(row.querySelector('td')?.textContent);
-        }).filter(Boolean);
-
-        if (!reportIds.length) {
-            note.textContent = 'شناسه هیچ گزارشی از جدول استخراج نشد؛ هیچ گزارشی پردازش نشده است. صفحه را تازه کنید و اگر مشکل باقی ماند، ساختار جدول باید بررسی شود.';
-            note.setAttribute('role', 'alert');
-            note.style.cssText = 'color:#f0d58a;font-size:10px;line-height:1.9';
-            button.disabled = false;
-            button.textContent = 'بارگذاری مجدد گزارش';
-            button.style.cursor = 'pointer';
-            finished = true;
-            return;
-        }
-
+        if (finished) { locationRef?.reload?.(); return; }
+        button.disabled = true; button.textContent = 'در حال بروزرسانی همه گزارش‌ها...'; button.style.cursor = 'wait';
         const headers = { Accept: 'application/json' };
         if (csrfToken) headers['X-CSRF-TOKEN'] = csrfToken;
-        if (xsrfCookie) headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrfCookie);
-
-        let succeeded = 0;
-        let failed = 0;
-        const failures = [];
-        const partialResults = [];
-        for (const reportId of reportIds) {
-            try {
-                const response = await fetch(`/reports/costing/production-reports/${reportId}/value`, {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers,
-                });
-                const payload = await response.json().catch(() => null);
-                if (!response.ok || !payload || payload.success !== true) {
-                    failed++;
-                    failures.push(payload?.message || `گزارش #${reportId}: پاسخ معتبر از سرور دریافت نشد.`);
-                } else {
-                    succeeded++;
-                    if (payload.message && /بخشی|هنوز بخشی بدون بها/.test(payload.message)) partialResults.push(payload.message);
-                }
-            } catch (error) {
-                failed++;
-                failures.push(`گزارش #${reportId}: ارتباط با سرور ناموفق بود.`);
-            }
-        }
-
-        const visibleMessages = [...failures, ...partialResults];
-        const detailMessages = visibleMessages.slice(0, 3).join(' | ');
-        const remainingMessages = visibleMessages.length > 3 ? ` (و ${visibleMessages.length - 3} پیام دیگر)` : '';
-        note.textContent = `نتیجه: ${succeeded} گزارش با پاسخ موفق، ${failed} گزارش ناموفق از ${reportIds.length} گزارش. ${detailMessages}${remainingMessages} برای دیدن ارقام تازه، روی دکمه بارگذاری مجدد بزنید.`;
-        note.setAttribute('role', failed ? 'alert' : 'status');
-        note.style.cssText = `color:${failed ? '#f0d58a' : '#a7e3c6'};font-size:10px;line-height:1.9`;
-        button.disabled = false;
-        button.textContent = 'بارگذاری مجدد گزارش';
-        button.style.cursor = 'pointer';
-        finished = true;
+        try {
+            const response = await fetchRef(button.dataset.endpoint, { method: 'POST', credentials: 'same-origin', headers });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload || payload.success !== true) throw new Error(payload?.message || 'پاسخ معتبر از سرور دریافت نشد.');
+            const details = Array.isArray(payload.details) ? payload.details.join(' | ') : '';
+            note.textContent = `نتیجه بروزرسانی همه گزارش‌ها: ${payload.succeeded ?? 0} موفق، ${payload.failed ?? 0} ناموفق از ${payload.processed ?? 0} گزارش؛ ${payload.partial ?? 0} گزارش همچنان بخشی بدون بها دارد. ${details} برای مشاهده ارقام تازه، صفحه را بارگذاری مجدد کنید.`;
+            note.setAttribute('role', payload.failed ? 'alert' : 'status'); note.style.color = payload.failed ? '#f0d58a' : '#a7e3c6';
+            finished = true; button.textContent = 'گزارش‌ها بروزرسانی شد';
+            // The costing page resolves shift-report labor from the rate effective
+            // on each work date. Reload once so newly entered historical rates appear
+            // immediately after the company-wide refresh completes.
+            locationRef?.reload?.();
+        } catch (error) {
+            note.textContent = error?.message || 'بروزرسانی گزارش‌ها ناموفق بود؛ دوباره تلاش کنید.';
+            note.setAttribute('role', 'alert'); note.style.color = '#f0d58a'; button.textContent = 'تلاش دوباره برای بروزرسانی';
+        } finally { button.disabled = false; button.style.cursor = 'pointer'; }
     });
-
     return true;
 }
 
