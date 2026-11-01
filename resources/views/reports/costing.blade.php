@@ -63,6 +63,12 @@
   </form>
 </div>
 
+<div class="costing-panel" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+  <strong style="font-size:12px;margin-left:8px">خروجی اکسل با فیلترهای فعلی:</strong>
+  <a href="{{ route('reports.costing.export', array_merge(request()->query(), ['format' => 'summary'])) }}" style="display:inline-block;background:#153b52;border:1px solid #315570;border-radius:9px;color:#dcebf6;padding:10px 14px;text-decoration:none;font-size:11px">دانلود اکسل خلاصه</a>
+  <a href="{{ route('reports.costing.export', array_merge(request()->query(), ['format' => 'full'])) }}" style="display:inline-block;background:#24516b;border:1px solid #47718c;border-radius:9px;color:#dcebf6;padding:10px 14px;text-decoration:none;font-size:11px">دانلود اکسل کامل (شیت‌های جدا)</a>
+</div>
+
 @if($report['totals']['unvalued_material_quantity']>0 || ($report['totals']['production_report_unvalued_material_quantity'] ?? 0)>0)
   <div class="costing-warn">مقدار بدون ارزش‌گذاری در دو شاخص جدا نمایش داده می‌شود: خروج انبارِ بدون ارزش‌گذاری و مصرف ثبت‌شده در گزارش تولید که هنوز با حواله/ارزش‌گذاری تطبیق کامل ندارد. این مقادیر برای جلوگیری از دوباره‌شماری به مبلغ بهای تمام‌شده اضافه نمی‌شوند. <strong>تا زمان رفع مغایرت، فی تمام‌شده هر واحد ممکن است ناقص باشد و نباید به‌عنوان بهای قطعی استفاده شود.</strong></div>
 @endif

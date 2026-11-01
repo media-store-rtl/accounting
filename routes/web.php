@@ -12,6 +12,8 @@ use App\Http\Controllers\LaborCostController;
 use App\Http\Controllers\MaterialHandoverController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CostingReportController;
+use App\Http\Controllers\CostingReportExportController;
+
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\PersonnelController;
 use App\Http\Controllers\PurchaseController;
@@ -66,6 +68,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/fiscal-years/{fiscalYear}', [FiscalYearController::class, 'update'])->middleware('company.permission:fiscal_year.update')->name('fiscal-years.update');
     Route::post('/fiscal-years/{fiscalYear}/close', [FiscalYearController::class, 'close'])->middleware('company.permission:fiscal_year.close')->name('fiscal-years.close');
 
+    Route::get('/reports/costing/export/{format}', [CostingReportExportController::class, 'export'])->whereIn('format', ['summary', 'full'])->middleware('company.permission:costing.report.view')->name('reports.costing.export');
+    Route::get('/reports/costing/export/{format}', [CostingReportExportController::class, 'export'])->whereIn('format', ['summary', 'full'])->middleware('company.permission:costing.report.view')->name('reports.costing.export');
     Route::get('/reports/costing', [CostingReportController::class, 'index'])
         ->middleware('company.permission:costing.report.view')->name('reports.costing');
     Route::post('/reports/costing/calculate', [CostingReportController::class, 'calculate'])->middleware('company.permission:costing.report.view')->name('reports.costing.calculate');
