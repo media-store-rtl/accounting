@@ -6,8 +6,8 @@
 - تست رگرسیون: سناریوی انتقال ۳ واحد با فقط ۲ واحد لایه ریالی باید رد شود؛ مانده لایه مبدأ باید دست‌نخورده بماند و در مقصد لایه‌ای ساخته نشود.
 - فایل‌ها: `app/Services/InventoryValuationService.php`, `tests/Feature/InventoryValuationServiceTest.php`, `PROJECT_PROGRESS.md`.
 - محدودیت: این اصلاح از انتقال ناقص جدید جلوگیری می‌کند؛ سوابق انتقال قدیمی یا گزارش #۱۵ را به‌صورت خودکار بازسازی/ارزش‌گذاری نمی‌کند. برای اصلاح سابقه باید سند خرید/رسید و تاریخ و مقدار انتقال تاریخی جداگانه تطبیق داده شود.
-- Migration، تغییر Schema، تغییر داده‌های production، اجرای backfill، Deploy و بررسی سایت زنده انجام نشده‌اند. تست محلی در این محیط اجرا نشده است؛ CI پس از ایجاد PR باید بررسی شود.
-- شاخه: `fix/reject-unvalued-production-transfers-20261101`. PR پس از ثبت تغییرات ایجاد می‌شود؛ ادغام نیازمند تأیید صریح کاربر است.
+- Migration یا تغییر Schema، تغییر داده‌های production، اجرای backfill، Deploy و بررسی سایت زنده انجام نشده‌اند. تست محلی در این محیط اجرا نشده است. CI run شمارهٔ `41335455614` روی commit `b985797ba5f5887d94c4b2aeb908c01bdcc9c2d4` موفق شد؛ `npm test`، نصب Composer، migrationهای SQLite محیط CI، `migrate:status`، `route:list` و `php artisan test` موفق بودند. اجرای اول CI به‌علت escape اشتباه نام کلاس ValidationException در تست شکست خورد؛ خطا اصلاح و اجرای بعدی موفق شد.
+- شاخه: `fix/reject-unvalued-production-transfers-20261101`. PR [#243](https://github.com/media-store-rtl/accounting/pull/243) باز است؛ ادغام نیازمند تأیید صریح کاربر است.
 
 ---
 
