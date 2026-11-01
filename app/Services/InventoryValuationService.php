@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 final class InventoryValuationService
@@ -96,10 +97,18 @@ final class InventoryValuationService
                 ->where('location_id', $fromLocationId)->where($column, '>', 0)
                 ->orderBy('received_at')->orderBy('id')->lockForUpdate()->get();
             $available = (float) $layers->sum($column);
-            // Legacy/adjusted stock may not have valuation layers; transfer the valued
-            // portion only and leave consumption explicitly unvalued when necessary.
-            $remaining = min($quantity, $available);
-            if ($remaining <= 0.0000001) return;
+            if ($available + 0.0000001 < $quantity) {
+                $unvaluedQuantity = max(0.0, $quantity - $available);
+
+                throw ValidationException::withMessages([
+                    'items' => 'انتقال انجام نشد؛ موجودی انبار مبدأ برای این کالا لایه بهای ریالی کافی ندارد. ابتدا ورود یا ارزش‌گذاری موجودی را تکمیل کنید. مقدار فاقد بهای قابل انتقال: '.$unvaluedQuantity,
+                ]);
+            }
+
+            // A production-section transfer must move the full quantity and its full
+            // cost basis together. Never silently create an unvalued balance at the
+            // destination when source valuation layers are missing or incomplete.
+            $remaining = $quantity;
             foreach ($layers as $layer) {
                 if ($remaining <= 0.0000001) break;
                 $take = min($remaining, (float) $layer->{$column});
