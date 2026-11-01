@@ -381,7 +381,7 @@ class InventoryValuationServiceTest extends TestCase
         try {
             app(InventoryValuationService::class)->transferLayers($company, $goods, $location, $destination, 3);
             $this->fail('A transfer larger than the valued source layers must be rejected.');
-        } catch (\\Illuminate\\Validation\\ValidationException $exception) {
+        } catch (\Illuminate\Validation\ValidationException $exception) {
             $this->assertArrayHasKey('items', $exception->errors());
             $this->assertStringContainsString('لایه بهای ریالی کافی ندارد', $exception->errors()['items'][0]);
         }
