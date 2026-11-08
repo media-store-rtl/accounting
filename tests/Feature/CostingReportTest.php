@@ -216,7 +216,7 @@ class CostingReportTest extends TestCase
         }
 
         // Approved labor without a sales order must still appear under a null order.
-        DB::table('production_shift_reports')->insert([
+        $approvedUnassignedShiftReportId = DB::table('production_shift_reports')->insertGetId([
             'company_id'=>$company,'production_section_id'=>$section,'goods_id'=>$goods,
             'order_id'=>null,'personnel_id'=>$personnel,'reported_by_user_id'=>$user,
             'shift_name'=>'Day Shift','worked_hours'=>1,'overtime_hours'=>0,'holiday_hours'=>0,
@@ -261,6 +261,11 @@ class CostingReportTest extends TestCase
         $this->assertSame(55.0,$filtered['product_rows'][0]['unit_cost']);
 
         $unassignedReport=app(CostingReportService::class)->generate($company,$fy,null,$goods);
+        $this->assertContains(
+            $approvedUnassignedShiftReportId,
+            array_column($unassignedReport['production_reports'], 'report_id'),
+            'Approved shift reports must remain visible before warehouse receipt.'
+        );
         $unassignedRows=array_values(array_filter($unassignedReport['rows'],fn($row)=>$row['order_id']===null&&$row['goods_id']===$goods));
         $this->assertCount(1,$unassignedRows);
         $this->assertSame(15.0,$unassignedRows[0]['labor_cost']);
