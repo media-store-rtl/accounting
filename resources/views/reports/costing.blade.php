@@ -52,6 +52,9 @@
 @if(session('warning'))
   <div class="costing-warn" role="status">{{ session('warning') }}</div>
 @endif
+@if(session('costing_labor_refreshed'))
+  <div class="costing-panel" role="status" style="border-color:#24634b;color:#a7e3c6">دستمزد نیز با اطلاعات و تأییدهای فعلی دوباره محاسبه شد.</div>
+@endif
 
 <div class="costing-filters">
   <form method="GET" action="{{ route('reports.costing') }}">
