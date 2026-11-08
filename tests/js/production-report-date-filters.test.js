@@ -92,4 +92,6 @@ test('costing refresh actions use normal POST forms instead of AJAX handlers', a
     assert.doesNotMatch(script, /fetch\s*\(/);
     assert.doesNotMatch(script, /setupCosting(?:RefreshButton|RowRefreshButtons)/);
     assert.match(view, /session\('costing_refresh_result'\)/);
+    assert.equal((view.match(/\$costingRefreshFilters as \$filter => \$value/g) || []).length, 2);
+    assert.match(view, /\$costingRefreshFilters = request\(\)->only\(\['fiscal_year_id'.*?'valuation_method'\]\)/);
 });
