@@ -81,7 +81,9 @@ final class CostingReportController extends Controller
         ];
 
         if (!$request->expectsJson()) {
-            return $this->redirectToCostingReport($request)->with('costing_refresh_result', $result);
+            return $this->redirectToCostingReport($request)
+                ->with('costing_refresh_result', $result)
+                ->with('costing_labor_refreshed', true);
         }
 
         return response()->json($result);
@@ -189,7 +191,9 @@ final class CostingReportController extends Controller
             return response()->json(['success' => $success, 'pending' => $pending, 'message' => $message], $status);
         }
 
-        return $this->redirectToCostingReport($request)->with($pending ? 'warning' : ($success ? 'success' : 'error'), $message);
+        return $this->redirectToCostingReport($request)
+            ->with($pending ? 'warning' : ($success ? 'success' : 'error'), $message)
+            ->with('costing_labor_refreshed', true);
     }
 
     /**
