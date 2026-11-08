@@ -104,12 +104,12 @@ final class CostingReportController extends Controller
         $movements = $allocation['movements'];
 
         if ($movements->isEmpty()) {
-            return $this->valuationResponse($request, 'برای این گزارش مصرف قابل تخصیص از انبار پیدا نشد؛ ارتباط قسمت تولید، ماده، سفارش و تاریخ را بررسی کنید.', false, 422);
+            return $this->valuationResponse($request, 'مواد مصرفی در گزارش ثبت شده‌اند، اما هنوز گردش مصرف متناظر در انبار ثبت نشده است. پس از ثبت مصرف انبار، دوباره بروزرسانی کنید.', false, 200, true);
         }
 
         foreach ($materials as $goodsId => $material) {
             if (abs((float) ($allocation['allocated_by_goods'][$goodsId] ?? 0) - (float) $material->quantity) > 0.0001) {
-                return $this->valuationResponse($request, 'مقدار مصرف قابل تخصیص به گزارش با ریز مواد همخوان نیست؛ برای جلوگیری از ارزش‌گذاری مصرف اشتباه، اقدامی انجام نشد.', false, 422);
+                return $this->valuationResponse($request, 'گردش مصرف انبار پیدا شد، اما مقدار آن با ریز مواد این گزارش تطبیق کامل ندارد؛ برای جلوگیری از ارزش‌گذاری اشتباه، مبلغی تغییر نکرد. ابتدا مغایرت مقدار/ارتباط گزارش را بررسی کنید.', false, 200, true);
             }
         }
 
@@ -147,7 +147,7 @@ final class CostingReportController extends Controller
         });
 
         if ($result['refreshed'] === 0 && $result['unvalued'] > 0) {
-            return $this->valuationResponse($request, 'برای مصرف این گزارش هنوز بهای معتبر قابل ردیابی وجود ندارد؛ هیچ بهای ساختگی ثبت نشد.', false, 422);
+            return $this->valuationResponse($request, 'گردش مصرف انبار ثبت شده است، اما هنوز بهای ریالی معتبر و قابل ردیابی برای آن وجود ندارد. پس از ثبت/تکمیل بهای خرید یا رسید، دوباره بروزرسانی کنید.', false, 200, true);
         }
 
         if ($result['unvalued'] > 0) {
@@ -158,10 +158,10 @@ final class CostingReportController extends Controller
     }
 
 
-    private function valuationResponse(Request $request, string $message, bool $success, int $status = 200)
+    private function valuationResponse(Request $request, string $message, bool $success, int $status = 200, bool $pending = false)
     {
         if ($request->expectsJson()) {
-            return response()->json(['success' => $success, 'message' => $message], $status);
+            return response()->json(['success' => $success, 'pending' => $pending, 'message' => $message], $status);
         }
 
         return back()->with($success ? 'success' : 'error', $message);
