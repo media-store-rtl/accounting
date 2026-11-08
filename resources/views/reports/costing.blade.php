@@ -48,6 +48,9 @@
 @if(session('error'))
   <div class="costing-warn" role="alert">{{ session('error') }}</div>
 @endif
+@if(session('warning'))
+  <div class="costing-warn" role="status">{{ session('warning') }}</div>
+@endif
 
 <div class="costing-filters">
   <form method="GET" action="{{ route('reports.costing') }}">
@@ -68,7 +71,6 @@
 @endif
 
 <div class="costing-panel">
-  @if(session('success'))<div class="costing-status complete" role="status">{{ session('success') }}</div>@elseif(session('warning'))<div class="costing-warn" role="status">{{ session('warning') }}</div>@elseif(session('error'))<div class="costing-warn" role="alert">{{ session('error') }}</div>@endif
   <h2 style="font-size:14px;margin:0 0 8px">گزارش‌های تولید تأییدشده و تحویل‌شده</h2>
   <p style="font-size:10px;color:#91a6b9;margin:0 0 12px">برای مشاهده ریز مواد و هزینه‌های هر گزارش، روی «جزئیات» همان ردیف بزنید. جمع کل فقط یک‌بار در انتهای جدول محاسبه می‌شود.</p>
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px">
