@@ -108,3 +108,16 @@ test('costing view initializes report totals before the empty/non-empty branch',
     assert.match(view, /@if\(\$costingReports->isEmpty\(\)\)/);
     assert.match(view, /\{\{ \$formatCostingNumber\(\$costingproducedtotal\) \}\}/);
 });
+
+
+test('costing material details use a balanced forelse block without a nested conditional', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const view = await readFile(new URL('../../resources/views/reports/costing.blade.php', import.meta.url), 'utf8');
+    const materialSection = view.split('<h4 class="costing-section-title">ریز مواد مصرفی همین گزارش</h4>')[1]?.split('<h4 class="costing-section-title">خلاصه هزینه همین گزارش</h4>')[0];
+
+    assert.ok(materialSection, 'the production report material detail section must exist');
+    assert.match(materialSection, /@forelse\(\$reportMaterials as \$material\)/);
+    assert.match(materialSection, /@empty[\s\S]*@endforelse/);
+    assert.doesNotMatch(materialSection, /@if\s*\(/, 'material details must not reopen a conditional inside the production report loop');
+    assert.doesNotMatch(materialSection, /@foreach\s*\(/, 'material rows use the single forelse control structure');
+});
