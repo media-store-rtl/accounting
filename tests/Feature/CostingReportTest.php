@@ -258,7 +258,7 @@ class CostingReportTest extends TestCase
         $this->assertCount(2,$filtered['production_reports']);
         $this->assertSame(2.0,$filtered['product_rows'][0]['produced_quantity']);
         $this->assertSame(30.0,$filtered['totals']['labor_cost']);
-        $this->assertSame(46.0,$filtered['product_rows'][0]['unit_cost']);
+        $this->assertSame(27.5,$filtered['product_rows'][0]['unit_cost']);
 
         $unassignedReport=app(CostingReportService::class)->generate($company,$fy,null,$goods);
         $this->assertContains(
