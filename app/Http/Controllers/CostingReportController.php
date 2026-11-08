@@ -32,9 +32,14 @@ final class CostingReportController extends Controller
             })
             ->orderBy('work_date')->orderBy('id')->pluck('id');
         $succeeded = 0; $failed = 0; $partial = 0; $details = [];
+        // The group action uses the same JSON response internally, but the browser
+        // submits a normal HTML form and receives a redirect with a flash summary.
+        $valuationRequest = clone $request;
+        $valuationRequest->headers->set('Accept', 'application/json');
+
         foreach ($reportIds as $reportId) {
             // Reuse the company-scoped, idempotent single-report valuation path.
-            $response = $this->valueProductionReport($request, $valuationService, (int) $reportId);
+            $response = $this->valueProductionReport($valuationRequest, $valuationService, (int) $reportId);
             $payload = method_exists($response, 'getData') ? $response->getData(true) : [];
             $message = (string) ($payload['message'] ?? '');
             if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300 && !empty($payload['pending'])) {
@@ -64,7 +69,7 @@ final class CostingReportController extends Controller
                     ? 'بروزرسانی انجام شد، اما تعدادی از گزارش‌ها هنوز بخشی بدون بها دارند.'
                     : 'بروزرسانی همه گزارش‌ها با موفقیت کامل شد.'));
 
-        return response()->json([
+        $result = [
             'success' => $success,
             'complete' => $complete,
             'processed' => $processed,
@@ -73,7 +78,13 @@ final class CostingReportController extends Controller
             'partial' => $partial,
             'message' => $summary,
             'details' => array_slice($details, 0, 5),
-        ]);
+        ];
+
+        if (!$request->expectsJson()) {
+            return back()->with('costing_refresh_result', $result);
+        }
+
+        return response()->json($result);
     }
 
     public function valueProductionReport(Request $request, InventoryValuationService $valuationService, int $reportId)
@@ -167,7 +178,7 @@ final class CostingReportController extends Controller
             return response()->json(['success' => $success, 'pending' => $pending, 'message' => $message], $status);
         }
 
-        return back()->with($success ? 'success' : 'error', $message);
+        return back()->with($pending ? 'warning' : ($success ? 'success' : 'error'), $message);
     }
 
     /**
