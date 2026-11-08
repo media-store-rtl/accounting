@@ -205,7 +205,7 @@ class CostingReportDirectConsumptionAllocationTest extends TestCase
         ]);
 
         $service = new CostingReportService();
-        $method = new \\ReflectionMethod($service, 'attachReportMaterialDetails');
+        $method = new \ReflectionMethod($service, 'attachReportMaterialDetails');
         $method->setAccessible(true);
         $reports = $method->invoke($service, 1, [['report_id' => 25]]);
         $material = $reports[0]['materials'][0];
@@ -225,9 +225,9 @@ class CostingReportDirectConsumptionAllocationTest extends TestCase
     public function test_pending_valuation_response_is_a_non_error_json_state(): void
     {
         $controller = new CostingReportController();
-        $method = new \\ReflectionMethod($controller, 'valuationResponse');
+        $method = new \ReflectionMethod($controller, 'valuationResponse');
         $method->setAccessible(true);
-        $request = \\Illuminate\\Http\\Request::create('/', 'POST', [], [], [], [
+        $request = \Illuminate\Http\Request::create('/', 'POST', [], [], [], [
             'HTTP_ACCEPT' => 'application/json',
         ]);
 
