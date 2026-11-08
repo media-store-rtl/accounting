@@ -532,6 +532,9 @@ final class CostingReportService
             $detail['valued_quantity'] = round($detail['valued_quantity'], 4);
             $detail['unmatched_quantity'] = round(max(0.0, $detail['quantity'] - $detail['allocated_quantity']), 4);
             $detail['unvalued_quantity'] = round(max(0.0, $detail['quantity'] - $detail['valued_quantity']), 4);
+            $detail['allocation_status'] = $detail['unmatched_quantity'] > 0.0001
+                ? 'pending_consumption'
+                : ($detail['unvalued_quantity'] > 0.0001 ? 'pending_valuation' : 'complete');
             $detail['material_cost'] = round($detail['material_cost'], 4);
             $detail['unit_cost'] = $detail['valued_quantity'] > 0
                 ? round($detail['material_cost'] / $detail['valued_quantity'], 6)

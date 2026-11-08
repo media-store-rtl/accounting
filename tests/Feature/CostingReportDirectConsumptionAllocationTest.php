@@ -188,4 +188,64 @@ class CostingReportDirectConsumptionAllocationTest extends TestCase
         $this->assertEqualsWithDelta(2.0, $linked['allocated_quantity'], 0.0001);
         $this->assertEqualsWithDelta(20000.0, $linked['material_cost'], 0.01);
     }
+    public function test_shift_report_materials_remain_visible_when_no_inventory_consumption_exists(): void
+    {
+        DB::table('goods')->insert(['id' => 101, 'code' => 'RM-101', 'name' => 'Unvalued raw material']);
+        DB::table('units')->insert(['id' => 8, 'name' => 'کیلوگرم', 'symbol' => 'kg']);
+        DB::table('goods_units')->insert([
+            'goods_id' => 101, 'is_base' => true, 'unit_id' => 8,
+        ]);
+        DB::table('production_shift_reports')->insert([
+            'id' => 25, 'company_id' => 1, 'production_section_id' => 5,
+            'order_id' => 7, 'work_date' => '2026-10-26', 'status' => 'received',
+        ]);
+        DB::table('production_shift_report_materials')->insert([
+            'id' => 55, 'company_id' => 1, 'production_shift_report_id' => 25,
+            'goods_id' => 101, 'quantity' => 2.5, 'scrap_quantity' => 0.25,
+        ]);
+
+        $service = new CostingReportService();
+        $method = new \ReflectionMethod($service, 'attachReportMaterialDetails');
+        $method->setAccessible(true);
+        $reports = $method->invoke($service, 1, [['report_id' => 25]]);
+        $material = $reports[0]['materials'][0];
+
+        $this->assertSame('Unvalued raw material', $material['material_name']);
+        $this->assertSame('kg', $material['unit_symbol']);
+        $this->assertEqualsWithDelta(2.5, $material['quantity'], 0.0001);
+        $this->assertEqualsWithDelta(0.25, $material['scrap_quantity'], 0.0001);
+        $this->assertEqualsWithDelta(0.0, $material['allocated_quantity'], 0.0001);
+        $this->assertEqualsWithDelta(2.5, $material['unmatched_quantity'], 0.0001);
+        $this->assertEqualsWithDelta(2.5, $material['unvalued_quantity'], 0.0001);
+        $this->assertSame('pending_consumption', $material['allocation_status']);
+        $this->assertEqualsWithDelta(0.0, $material['material_cost'], 0.0001);
+        $this->assertSame(0, DB::table('inventory_movements')->count());
+    }
+
+    public function test_pending_valuation_response_is_a_non_error_json_state(): void
+    {
+        $controller = new CostingReportController();
+        $method = new \ReflectionMethod($controller, 'valuationResponse');
+        $method->setAccessible(true);
+        $request = \Illuminate\Http\Request::create('/', 'POST', [], [], [], [
+            'HTTP_ACCEPT' => 'application/json',
+        ]);
+
+        $response = $method->invoke(
+            $controller,
+            $request,
+            'مصرف انبار هنوز ثبت نشده است.',
+            false,
+            200,
+            true
+        );
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame([
+            'success' => false,
+            'pending' => true,
+            'message' => 'مصرف انبار هنوز ثبت نشده است.',
+        ], $response->getData(true));
+    }
+
 }
