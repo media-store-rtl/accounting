@@ -216,7 +216,7 @@ class CostingReportTest extends TestCase
         }
 
         // Approved labor without a sales order must still appear under a null order.
-        DB::table('production_shift_reports')->insert([
+        $approvedUnassignedShiftReportId = DB::table('production_shift_reports')->insertGetId([
             'company_id'=>$company,'production_section_id'=>$section,'goods_id'=>$goods,
             'order_id'=>null,'personnel_id'=>$personnel,'reported_by_user_id'=>$user,
             'shift_name'=>'Day Shift','worked_hours'=>1,'overtime_hours'=>0,'holiday_hours'=>0,
@@ -233,7 +233,7 @@ class CostingReportTest extends TestCase
         $this->assertSame(['fifo'],$report['rows'][0]['valuation_methods']);
         $this->assertSame(4.0,$report['totals']['unvalued_material_quantity']);
         $this->assertSame(1.0, $report['totals']['production_report_unvalued_material_quantity']);
-        $this->assertCount(1,$report['production_reports']);
+        $this->assertCount(2,$report['production_reports']);
         $this->assertSame(['Stage'], $report['production_reports'][0]['stage_names']);
         $this->assertCount(2, $report['production_reports'][0]['materials']);
         $this->assertSame('Raw Material', $report['production_reports'][0]['materials'][0]['material_name']);
@@ -249,18 +249,23 @@ class CostingReportTest extends TestCase
         $this->assertFalse($report['production_reports'][0]['materials'][1]['cost_complete']);
         $this->assertFalse($report['production_reports'][0]['material_cost_complete']);
         $this->assertSame(27.0, $report['production_reports'][0]['material_cost']);
-        $this->assertSame(1.0,$report['product_rows'][0]['produced_quantity']);
-        $this->assertSame(92.0,$report['product_rows'][0]['unit_cost']);
+        $this->assertSame(2.0,$report['product_rows'][0]['produced_quantity']);
+        $this->assertSame(46.0,$report['product_rows'][0]['unit_cost']);
         $allGoodsReport=app(CostingReportService::class)->generate($company,$fy,$order);
         $this->assertSame(10.0,$allGoodsReport['totals']['direct_cost'],'Purchase-level direct costs must not multiply by the number of purchase lines.');
 
         $filtered=app(CostingReportService::class)->generate($company,$fy,$order,$goods,'2026-10-07','2026-10-07',$personnel);
-        $this->assertCount(1,$filtered['production_reports']);
-        $this->assertSame(1.0,$filtered['product_rows'][0]['produced_quantity']);
+        $this->assertCount(2,$filtered['production_reports']);
+        $this->assertSame(2.0,$filtered['product_rows'][0]['produced_quantity']);
         $this->assertSame(30.0,$filtered['totals']['labor_cost']);
-        $this->assertSame(55.0,$filtered['product_rows'][0]['unit_cost']);
+        $this->assertSame(27.5,$filtered['product_rows'][0]['unit_cost']);
 
         $unassignedReport=app(CostingReportService::class)->generate($company,$fy,null,$goods);
+        $this->assertContains(
+            $approvedUnassignedShiftReportId,
+            array_column($unassignedReport['production_reports'], 'report_id'),
+            'Approved shift reports must remain visible before warehouse receipt.'
+        );
         $unassignedRows=array_values(array_filter($unassignedReport['rows'],fn($row)=>$row['order_id']===null&&$row['goods_id']===$goods));
         $this->assertCount(1,$unassignedRows);
         $this->assertSame(15.0,$unassignedRows[0]['labor_cost']);

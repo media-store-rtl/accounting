@@ -53,7 +53,7 @@ final class CostingReportService
             foreach($row['valuation_methods'] as $method){$productRows[$gid]['valuation_methods'][$method]=true;}
         }
         foreach($productRows as &$productRow){$productRow['valuation_methods']=array_keys($productRow['valuation_methods']);} unset($productRow);
-        $productionQuantityReports=$this->productionShiftReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId,true);
+        $productionQuantityReports=$this->productionShiftReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId);
         foreach($productionQuantityReports as $productionReport){
             $gid=(int)$productionReport['goods_id'];
             if(!isset($productRows[$gid])){
@@ -72,7 +72,7 @@ final class CostingReportService
 
         // The detail table is specifically for reports already received by the warehouse.
         // Approved-but-not-received reports still contribute to product produced quantity above.
-        $productionReports=$this->productionShiftReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId,true);
+        $productionReports=$this->productionShiftReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId);
         $productionReports = $this->attachReportMaterialDetails($companyId, $productionReports, $valuationOverrides);
 
         $valuationMethods=[];

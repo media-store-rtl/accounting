@@ -96,3 +96,15 @@ test('costing refresh actions use normal POST forms instead of AJAX handlers', a
     assert.equal((view.match(/\$costingRefreshFilters as \$filter => \$value/g) || []).length, 2);
     assert.match(view, /\$costingRefreshFilters = request\(\)->only\(\['fiscal_year_id'.*?'valuation_method'\]\)/);
 });
+
+test('costing view initializes report totals before the empty/non-empty branch', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const view = await readFile(new URL('../../resources/views/reports/costing.blade.php', import.meta.url), 'utf8');
+    const topLevelTotals = view.indexOf('$costingproducedtotal = $costingReports->sum');
+    const reportBranch = view.indexOf('@if($costingReports->isEmpty())');
+
+    assert.ok(topLevelTotals >= 0, 'the lowercase variable used by the report summary must be initialized');
+    assert.ok(reportBranch > topLevelTotals, 'totals must be initialized before conditional report rendering');
+    assert.match(view, /@if\(\$costingReports->isEmpty\(\)\)/);
+    assert.match(view, /\{\{ \$formatCostingNumber\(\$costingproducedtotal\) \}\}/);
+});
