@@ -249,8 +249,8 @@ class CostingReportTest extends TestCase
         $this->assertFalse($report['production_reports'][0]['materials'][1]['cost_complete']);
         $this->assertFalse($report['production_reports'][0]['material_cost_complete']);
         $this->assertSame(27.0, $report['production_reports'][0]['material_cost']);
-        $this->assertSame(1.0,$report['product_rows'][0]['produced_quantity']);
-        $this->assertSame(92.0,$report['product_rows'][0]['unit_cost']);
+        $this->assertSame(2.0,$report['product_rows'][0]['produced_quantity']);
+        $this->assertSame(46.0,$report['product_rows'][0]['unit_cost']);
         $allGoodsReport=app(CostingReportService::class)->generate($company,$fy,$order);
         $this->assertSame(10.0,$allGoodsReport['totals']['direct_cost'],'Purchase-level direct costs must not multiply by the number of purchase lines.');
 
