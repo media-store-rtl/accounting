@@ -86,7 +86,7 @@ test('costing refresh actions use normal POST forms instead of AJAX handlers', a
     const view = await readFile(new URL('../../resources/views/reports/costing.blade.php', import.meta.url), 'utf8');
     const script = await readFile(new URL('../../public/js/production-report-date-filters.js', import.meta.url), 'utf8');
 
-    assert.match(view, /<form method="POST" action="{{ route\('reports\.costing\.production-reports\.refresh-all'\) }}">[\s\S]*?@csrf[\s\S]*?<button type="submit"[^>]*>بروزرسانی گزارش‌ها<\/button>/);
+    assert.match(view, /<form method="POST" action="{{ route\('reports\.costing\.production-reports\.refresh-all'\) }}"[^>]*>[\s\S]*?@csrf[\s\S]*?<button type="submit"[^>]*>بروزرسانی گزارش‌ها<\/button>/);
     assert.match(view, /<form method="POST" action="{{ route\('reports\.costing\.production-reports\.value', \$productionReport\['report_id'\]\) }}">[\s\S]*?@csrf[\s\S]*?<button type="submit"[^>]*>بروزرسانی<\/button>/);
     assert.doesNotMatch(view, /data-costing-refresh-(?:all|row)/);
     assert.doesNotMatch(script, /fetch\s*\(/);
