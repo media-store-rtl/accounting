@@ -5,7 +5,7 @@
 - اصلاح: گزارش‌های وضعیت `approved` و `received` هر دو در فهرست پایین صفحه و جمع مقدار تولید لحاظ می‌شوند؛ گزارش‌های `pending` همچنان حذف می‌شوند. تمام جمع‌های صفحه قبل از شرط خالی/غیرخالی بودن گزارش تعریف می‌شوند و نام `$costingproducedtotal` دقیقاً و با همان حروف کوچک مقداردهی می‌شود.
 - تست رگرسیون: تست PHP بررسی می‌کند گزارش تأییدشدهٔ بدون تحویل انبار در فهرست گزارش‌های بهای تمام‌شده باقی بماند؛ تست Node ترتیب مقداردهی متغیر خلاصه و شرط نمایش View را بررسی می‌کند.
 - فایل‌ها: `app/Services/CostingReportService.php`, `resources/views/reports/costing.blade.php`, `tests/Feature/CostingReportTest.php`, `tests/js/production-report-date-filters.test.js`, `PROJECT_PROGRESS.md`.
-- تست محلی اجرا نشده؛ نتیجهٔ CI پس از ایجاد PR بررسی می‌شود. سایت زنده/مرورگر، production DB، migration، backfill و Deploy بررسی/اجرا نشده‌اند.
+- تست محلی اجرا نشده است. CI نهایی موفق شد: push run `42478062742` و PR run `42478066634`؛ مراحل `npm test`، نصب Composer، migrationهای SQLite محیط CI، `migrate:status`، `route:list` و `php artisan test` همگی موفق بودند. دو اجرای اولیه فقط به‌دلیل انتظارات قدیمی/اشتباه تست پس از اضافه شدن گزارش‌های تأییدشده شکست خوردند؛ انتظارات اصلاح و اجرای نهایی سبز شد. سایت زنده/مرورگر، production DB، migration روی production، backfill و Deploy بررسی/اجرا نشده‌اند.
 - شاخه: `fix/costing-report-render-and-refresh-20261108`. تغییرات برای بازبینی در PR جداگانه ارائه می‌شوند؛ ادغام و Deploy نیازمند اجازهٔ جداگانه‌اند.
 
 ---
