@@ -9,7 +9,7 @@
 - فایل‌ها: `app/Http/Controllers/CostingReportController.php`, `app/Services/CostingReportService.php`, `resources/views/reports/costing.blade.php`, `public/js/production-report-date-filters.js`, `tests/Feature/CostingReportDirectConsumptionAllocationTest.php`, `tests/js/production-report-date-filters.test.js`, `PROJECT_PROGRESS.md`.
 - گزارش‌های ۵ و ۱۵: این اصلاح تضمین می‌کند ریزمواد ثبت‌شدهٔ هر دو گزارش حتی در نبود حرکت انبار نمایش داده شود؛ اما برای گزارش ۱۵ که بررسی قبلی نبود movement و رسید خرید متناظر را نشان داده بود، مبلغ ریالی واقعی تا زمان ثبت/تطبیق عملیات انبار و منبع بهای معتبر قابل تولید نیست. هیچ دادهٔ تاریخی یا انبار به‌صورت خودکار ساخته/اصلاح نشده است.
 - تست محلی در این محیط اجرا نشده؛ نتیجهٔ CI پس از بازشدن PR بررسی می‌شود. مرورگر/سایت زنده، دیتابیس production، backfill، migration و Deploy اجرا/بررسی نشده‌اند.
-- شاخه: `fix/costing-row-refresh-pending-materials-20261108`. PR پس از بررسی تغییرات ایجاد می‌شود؛ ادغام نیازمند تأیید صریح کاربر است.
+- شاخه: `fix/costing-row-refresh-pending-materials-20261108`. PR [#244](https://github.com/media-store-rtl/accounting/pull/244) باز است؛ CI در حال اجراست و ادغام نیازمند تأیید صریح کاربر است.
 
 ---
 
