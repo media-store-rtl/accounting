@@ -175,3 +175,40 @@ test('row refresh button sends one report request and reloads after success', as
     assert.equal(button.textContent, 'بروزرسانی شد');
     assert.equal(reloads, 1);
 });
+
+
+test('row refresh keeps reports pending when inventory consumption is not recorded yet', async () => {
+    let clickHandler; let reloads = 0;
+    const button = {
+        dataset: { endpoint: '/reports/costing/production-reports/15/value' },
+        textContent: 'بروزرسانی', style: {},
+        addEventListener(event, handler) { clickHandler = handler; },
+    };
+    const note = { textContent: '' };
+    const documentRef = {
+        querySelectorAll() { return [button]; },
+        querySelector(selector) {
+            if (selector === '[data-costing-refresh-row-result="15"]') return note;
+            if (selector === 'meta[name="csrf-token"]') return { getAttribute: () => 'csrf-token' };
+            return null;
+        },
+    };
+    const fetchRef = async () => ({
+        ok: true,
+        async json() {
+            return {
+                success: false,
+                pending: true,
+                message: 'مواد گزارش ثبت شده‌اند، اما گردش مصرف انبار هنوز ثبت نشده است.',
+            };
+        },
+    });
+
+    assert.equal(setupCostingRowRefreshButtons(documentRef, fetchRef, { reload() { reloads++; } }), true);
+    await clickHandler();
+
+    assert.match(note.textContent, /گردش مصرف انبار هنوز ثبت نشده/);
+    assert.equal(button.textContent, 'تلاش دوباره پس از تکمیل اطلاعات');
+    assert.equal(button.disabled, false);
+    assert.equal(reloads, 0);
+});
