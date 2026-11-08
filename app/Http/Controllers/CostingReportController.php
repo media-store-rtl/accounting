@@ -81,7 +81,7 @@ final class CostingReportController extends Controller
         ];
 
         if (!$request->expectsJson()) {
-            return back()->with('costing_refresh_result', $result);
+            return $this->redirectToCostingReport($request)->with('costing_refresh_result', $result);
         }
 
         return response()->json($result);
@@ -172,13 +172,24 @@ final class CostingReportController extends Controller
     }
 
 
+    private function redirectToCostingReport(Request $request)
+    {
+        $filters = $request->only([
+            'fiscal_year_id', 'order_id', 'goods_id', 'start_date', 'end_date',
+            'personnel_id', 'production_section_id', 'production_stage_id', 'valuation_method',
+        ]);
+        $filters = array_filter($filters, static fn ($value) => $value !== null && $value !== '');
+
+        return redirect()->route('reports.costing', $filters);
+    }
+
     private function valuationResponse(Request $request, string $message, bool $success, int $status = 200, bool $pending = false)
     {
         if ($request->expectsJson()) {
             return response()->json(['success' => $success, 'pending' => $pending, 'message' => $message], $status);
         }
 
-        return back()->with($pending ? 'warning' : ($success ? 'success' : 'error'), $message);
+        return $this->redirectToCostingReport($request)->with($pending ? 'warning' : ($success ? 'success' : 'error'), $message);
     }
 
     /**
