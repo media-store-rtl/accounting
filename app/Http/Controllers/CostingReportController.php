@@ -37,7 +37,10 @@ final class CostingReportController extends Controller
             $response = $this->valueProductionReport($request, $valuationService, (int) $reportId);
             $payload = method_exists($response, 'getData') ? $response->getData(true) : [];
             $message = (string) ($payload['message'] ?? '');
-            if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300 && !empty($payload['success'])) {
+            if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300 && !empty($payload['pending'])) {
+                $partial++;
+                $details[] = 'گزارش #' . (int) $reportId . ': ' . $message;
+            } elseif ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300 && !empty($payload['success'])) {
                 if (str_contains($message, 'بخشی') || str_contains($message, 'هنوز بخشی بدون بها')) {
                     $partial++;
                     $details[] = 'گزارش #' . (int) $reportId . ': ' . $message;
