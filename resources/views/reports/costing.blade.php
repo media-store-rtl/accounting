@@ -5,6 +5,7 @@
 @section('content')
 @php
   $formatCostingNumber = static fn ($value) => rtrim(rtrim(number_format((float) ($value ?? 0), 2, '.', ','), '0'), '.');
+  $costingRefreshFilters = request()->only(['fiscal_year_id', 'order_id', 'goods_id', 'start_date', 'end_date', 'personnel_id', 'production_section_id', 'production_stage_id', 'valuation_method']);
 @endphp
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
@@ -76,6 +77,9 @@
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px">
     <form method="POST" action="{{ route('reports.costing.production-reports.refresh-all') }}" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       @csrf
+      @foreach($costingRefreshFilters as $filter => $value)
+        @if($value !== null && $value !== '')<input type="hidden" name="{{ $filter }}" value="{{ $value }}">@endif
+      @endforeach
       <button type="submit" class="costing-action-button">بروزرسانی گزارش‌ها</button>
       <span style="font-size:10px;color:#91a6b9">با کلیک، تمام گزارش‌های تأییدشده و تحویل‌شده شرکت دوباره با مصرف انبار و لایه‌های قیمت بررسی می‌شوند.</span>
     </form>
@@ -142,6 +146,9 @@
               <td>
                 <form method="POST" action="{{ route('reports.costing.production-reports.value', $productionReport['report_id']) }}">
                   @csrf
+                  @foreach($costingRefreshFilters as $filter => $value)
+                    @if($value !== null && $value !== '')<input type="hidden" name="{{ $filter }}" value="{{ $value }}">@endif
+                  @endforeach
                   <button type="submit" class="costing-action-button">بروزرسانی</button>
                 </form>
               </td>
