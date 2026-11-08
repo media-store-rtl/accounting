@@ -175,33 +175,31 @@
                   </div>
 
                   <h4 class="costing-section-title">ریز مواد مصرفی همین گزارش</h4>
-                  @if($reportMaterials->isNotEmpty())
-                    <div class="costing-detail-material-wrap">
-                      <table class="costing-detail-materials">
-                        <thead><tr><th>کد و نام ماده</th><th>مقدار مصرف</th><th>ضایعات ماده</th><th>واحد</th><th>مقدار ارزش‌گذاری‌شده</th><th>نرخ واحد (ریال)</th><th>مبلغ ارزش‌گذاری‌شده (ریال)</th><th>بدون تطبیق انبار</th><th>بدون بهای ریالی</th><th>وضعیت</th></tr></thead>
-                        <tbody>
-                          @foreach($reportMaterials as $material)
-                            <tr>
-                              <td>{{ $material['material_code'] }} — {{ $material['material_name'] }}</td>
-                              <td>{{ $formatCostingNumber($material['quantity']) }}</td>
-                              <td>{{ $formatCostingNumber($material['scrap_quantity']) }}</td>
-                              <td>{{ $material['unit_symbol'] ?? $material['unit_name'] ?? '—' }}</td>
-                              <td>{{ $formatCostingNumber($material['valued_quantity']) }}</td>
-                              <td>{{ $material['unit_cost'] !== null ? $formatCostingNumber($material['unit_cost']) : '—' }}</td>
-                              <td>{{ $formatCostingNumber($material['material_cost']) }}</td>
-                              <td>{{ $formatCostingNumber($material['unmatched_quantity']) }}</td>
-                              <td>{{ $formatCostingNumber($material['unvalued_quantity']) }}</td>
-                              <td>{{ $material['allocation_status'] === 'pending_consumption' ? 'در انتظار ثبت/تطبیق مصرف انبار' : ($material['allocation_status'] === 'pending_valuation' ? 'در انتظار ارزش‌گذاری ریالی' : 'کامل') }}</td>
-                            </tr>
-                          @endforeach
-                          <tr class="costing-summary-row"><td>جمع مواد این گزارش</td><td>{{ $formatCostingNumber($reportMaterials->sum('quantity')) }}</td><td>{{ $formatCostingNumber($reportMaterials->sum('scrap_quantity')) }}</td><td>—</td><td>{{ $formatCostingNumber($reportMaterials->sum('valued_quantity')) }}</td><td>—</td><td>{{ $formatCostingNumber($reportMaterialCost) }}</td><td>{{ $formatCostingNumber($reportUnmatchedQuantity) }}</td><td>{{ $formatCostingNumber($reportUnvaluedQuantity) }}</td><td>{{ $reportCostComplete ? 'کامل' : 'ناقص' }}</td></tr>
-                        </tbody>
-                      </table>
-                    </div>
-                    <p class="costing-detail-note">هزینه مواد فقط بر اساس مقدار ارزش‌گذاری‌شده است. مقادیر فاقد تطبیق یا ارزش‌گذاری در هزینه منظور نشده‌اند و تا رفع مغایرت، مبلغ نهایی نیست.</p>
-                  @else
-                    <p class="costing-detail-note">برای این گزارش ریز مواد مصرفی ثبت نشده است.</p>
-                  @endif
+                  <div class="costing-detail-material-wrap">
+                    <table class="costing-detail-materials">
+                      <thead><tr><th>کد و نام ماده</th><th>مقدار مصرف</th><th>ضایعات ماده</th><th>واحد</th><th>مقدار ارزش‌گذاری‌شده</th><th>نرخ واحد (ریال)</th><th>مبلغ ارزش‌گذاری‌شده (ریال)</th><th>بدون تطبیق انبار</th><th>بدون بهای ریالی</th><th>وضعیت</th></tr></thead>
+                      <tbody>
+                        @forelse($reportMaterials as $material)
+                          <tr>
+                            <td>{{ $material['material_code'] }} — {{ $material['material_name'] }}</td>
+                            <td>{{ $formatCostingNumber($material['quantity']) }}</td>
+                            <td>{{ $formatCostingNumber($material['scrap_quantity']) }}</td>
+                            <td>{{ $material['unit_symbol'] ?? $material['unit_name'] ?? '—' }}</td>
+                            <td>{{ $formatCostingNumber($material['valued_quantity']) }}</td>
+                            <td>{{ $material['unit_cost'] !== null ? $formatCostingNumber($material['unit_cost']) : '—' }}</td>
+                            <td>{{ $formatCostingNumber($material['material_cost']) }}</td>
+                            <td>{{ $formatCostingNumber($material['unmatched_quantity']) }}</td>
+                            <td>{{ $formatCostingNumber($material['unvalued_quantity']) }}</td>
+                            <td>{{ $material['allocation_status'] === 'pending_consumption' ? 'در انتظار ثبت/تطبیق مصرف انبار' : ($material['allocation_status'] === 'pending_valuation' ? 'در انتظار ارزش‌گذاری ریالی' : 'کامل') }}</td>
+                          </tr>
+                        @empty
+                          <tr><td colspan="10">برای این گزارش ریز مواد مصرفی ثبت نشده است.</td></tr>
+                        @endforelse
+                        <tr class="costing-summary-row"><td>جمع مواد این گزارش</td><td>{{ $formatCostingNumber($reportMaterials->sum('quantity')) }}</td><td>{{ $formatCostingNumber($reportMaterials->sum('scrap_quantity')) }}</td><td>—</td><td>{{ $formatCostingNumber($reportMaterials->sum('valued_quantity')) }}</td><td>—</td><td>{{ $formatCostingNumber($reportMaterialCost) }}</td><td>{{ $formatCostingNumber($reportUnmatchedQuantity) }}</td><td>{{ $formatCostingNumber($reportUnvaluedQuantity) }}</td><td>{{ $reportCostComplete ? 'کامل' : 'ناقص' }}</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p class="costing-detail-note">هزینه مواد فقط بر اساس مقدار ارزش‌گذاری‌شده است. مقادیر فاقد تطبیق یا ارزش‌گذاری در هزینه منظور نشده‌اند و تا رفع مغایرت، مبلغ نهایی نیست.</p>
 
                   <h4 class="costing-section-title">خلاصه هزینه همین گزارش</h4>
                   <div class="costing-table-wrap">
