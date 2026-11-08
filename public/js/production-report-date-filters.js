@@ -147,8 +147,18 @@ export function setupCostingRowRefreshButtons(documentRef = globalThis.document,
                     method: 'POST', credentials: 'same-origin', headers,
                 });
                 const payload = await response.json().catch(() => null);
-                if (!response.ok || !payload || payload.success !== true) {
-                    throw new Error(payload?.message || 'بروزرسانی این گزارش انجام نشد.');
+                if (!response.ok || !payload || typeof payload !== 'object') {
+                    throw new Error(payload?.message || 'پاسخ معتبر از سرور دریافت نشد.');
+                }
+                if (payload.pending === true) {
+                    if (note) note.textContent = payload.message || 'این گزارش در انتظار ثبت مصرف انبار یا تکمیل ارزش‌گذاری است.';
+                    button.textContent = 'تلاش دوباره پس از تکمیل اطلاعات';
+                    button.disabled = false;
+                    button.style.cursor = 'pointer';
+                    return;
+                }
+                if (payload.success !== true) {
+                    throw new Error(payload.message || 'بروزرسانی این گزارش انجام نشد.');
                 }
                 if (note) note.textContent = payload.message || 'گزارش بروزرسانی شد.';
                 finished = true;
