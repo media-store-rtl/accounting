@@ -6,6 +6,21 @@
 @php
   $formatCostingNumber = static fn ($value) => rtrim(rtrim(number_format((float) ($value ?? 0), 2, '.', ','), '0'), '.');
   $costingRefreshFilters = request()->only(['fiscal_year_id', 'order_id', 'goods_id', 'start_date', 'end_date', 'personnel_id', 'production_section_id', 'production_stage_id', 'valuation_method']);
+  // Define report totals before conditional rendering so every branch has safe values.
+  $costingReports = collect($report['production_reports'] ?? []);
+  $costingProducts = collect($report['product_rows'] ?? []);
+  $costingproducedtotal = $costingReports->sum('produced_quantity');
+  $costingReceivedTotal = $costingReports->sum('received_quantity');
+  $costingScrapTotal = $costingReports->sum('scrap_quantity');
+  $costingLaborTotal = $costingReports->sum('labor_cost');
+  $costingMaterialDetailTotal = $costingReports->sum(fn ($r) => collect($r['materials'] ?? [])->sum('material_cost'));
+  $costingUnvaluedTotal = $costingReports->sum(fn ($r) => collect($r['materials'] ?? [])->sum('unvalued_quantity'));
+  $costingAggregateMaterialTotal = $costingProducts->sum('material_cost');
+  $costingAggregateLaborTotal = $costingProducts->sum('labor_cost');
+  $costingAggregateScrapTotal = $costingProducts->sum('scrap_cost');
+  $costingAggregateDirectTotal = $costingProducts->sum('direct_cost');
+  $costingAggregateTotal = $costingProducts->sum('total_cost');
+  $costingUnitTotal = $costingproducedtotal > 0 ? $costingAggregateTotal / $costingproducedtotal : null;
 @endphp
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
@@ -97,25 +112,9 @@
       </div>
     @endif
   </div>
-  @if(empty($report['production_reports']))
+  @if($costingReports->isEmpty())
     <div class="costing-empty">گزارش تولید تأییدشده یا تحویل‌شده‌ای برای این فیلتر پیدا نشد.</div>
   @else
-    @php
-      $costingReports = collect($report['production_reports']);
-      $costingProducts = collect($report['product_rows']);
-      $costingProducedTotal = $costingReports->sum('produced_quantity');
-      $costingReceivedTotal = $costingReports->sum('received_quantity');
-      $costingScrapTotal = $costingReports->sum('scrap_quantity');
-      $costingLaborTotal = $costingReports->sum('labor_cost');
-      $costingMaterialDetailTotal = $costingReports->sum(fn ($r) => collect($r['materials'] ?? [])->sum('material_cost'));
-      $costingUnvaluedTotal = $costingReports->sum(fn ($r) => collect($r['materials'] ?? [])->sum('unvalued_quantity'));
-      $costingAggregateMaterialTotal = $costingProducts->sum('material_cost');
-      $costingAggregateLaborTotal = $costingProducts->sum('labor_cost');
-      $costingAggregateScrapTotal = $costingProducts->sum('scrap_cost');
-      $costingAggregateDirectTotal = $costingProducts->sum('direct_cost');
-      $costingAggregateTotal = $costingProducts->sum('total_cost');
-      $costingUnitTotal = $costingProducedTotal > 0 ? $costingAggregateTotal / $costingProducedTotal : null;
-    @endphp
     <div class="costing-table-wrap">
       <table class="costing-table costing-main-table">
         <thead>
@@ -221,18 +220,18 @@
             </tr>
           @endforeach
           <tr class="costing-summary-row">
-            <td>جمع کل</td><td>—</td><td>همه محصولات</td><td>{{ $formatCostingNumber($costingProducedTotal) }}</td><td>{{ $formatCostingNumber($costingReceivedTotal) }}</td><td>{{ $formatCostingNumber($costingAggregateMaterialTotal) }} ریال</td><td>{{ $formatCostingNumber($costingAggregateLaborTotal) }} ریال</td><td>{{ $formatCostingNumber($costingScrapTotal) }}</td><td>{{ $formatCostingNumber($costingAggregateTotal) }} ریال</td><td>{{ $costingUnvaluedTotal > 0 ? 'موقت؛ مواد بدون ارزش' : 'بر اساس داده‌های ثبت‌شده' }}</td><td>—</td><td>—</td>
+            <td>جمع کل</td><td>—</td><td>همه محصولات</td><td>{{ $formatCostingNumber($costingproducedtotal) }}</td><td>{{ $formatCostingNumber($costingReceivedTotal) }}</td><td>{{ $formatCostingNumber($costingAggregateMaterialTotal) }} ریال</td><td>{{ $formatCostingNumber($costingAggregateLaborTotal) }} ریال</td><td>{{ $formatCostingNumber($costingScrapTotal) }}</td><td>{{ $formatCostingNumber($costingAggregateTotal) }} ریال</td><td>{{ $costingUnvaluedTotal > 0 ? 'موقت؛ مواد بدون ارزش' : 'بر اساس داده‌های ثبت‌شده' }}</td><td>—</td><td>—</td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <div class="costing-bottom-summary">
-      <div><small>مجموع مقدار تولید</small><strong>{{ $formatCostingNumber($costingProducedTotal) }}</strong></div>
+      <div><small>مجموع مقدار تولید</small><strong>{{ $formatCostingNumber($costingproducedtotal) }}</strong></div>
       <div><small>مجموع مواد ارزش‌گذاری‌شده</small><strong>{{ $formatCostingNumber($costingAggregateMaterialTotal) }} ریال</strong></div>
       <div><small>مجموع دستمزد</small><strong>{{ $formatCostingNumber($costingAggregateLaborTotal) }} ریال</strong></div>
       <div><small>جمع بهای تمام‌شده فعلی</small><strong>{{ $formatCostingNumber($costingAggregateTotal) }} ریال</strong></div>
-      <div><small>بهای تمام‌شده هر واحد{{ $costingUnvaluedTotal > 0 ? ' (موقت)' : '' }}</small><strong>{{ $costingProducedTotal > 0 ? $formatCostingNumber($costingAggregateTotal / $costingProducedTotal) : '—' }} ریال</strong></div>
+      <div><small>بهای تمام‌شده هر واحد{{ $costingUnvaluedTotal > 0 ? ' (موقت)' : '' }}</small><strong>{{ $costingproducedtotal > 0 ? $formatCostingNumber($costingAggregateTotal / $costingproducedtotal) : '—' }} ریال</strong></div>
     </div>
     @if($costingUnvaluedTotal > 0 || ($report['totals']['unvalued_material_quantity'] ?? 0) > 0 || ($report['totals']['production_report_unvalued_material_quantity'] ?? 0) > 0)
       <div class="costing-warn" style="margin-top:14px;margin-bottom:0">جمع بالا بر مبنای مبالغ فعلاً ارزش‌گذاری‌شده است. مقدار بدون ارزش‌گذاری: {{ $formatCostingNumber($costingUnvaluedTotal) }} واحد در ریز گزارش‌های تولید. این مقدار در هزینه وارد نشده است؛ بنابراین بهای تمام‌شده و فی هر واحد تا زمان رفع مغایرت قطعی نیست.</div>
