@@ -252,9 +252,9 @@ class CostingReportDirectConsumptionAllocationTest extends TestCase
     public function test_costing_refresh_redirect_preserves_report_filters(): void
     {
         $controller = new CostingReportController();
-        $method = new \\ReflectionMethod($controller, 'redirectToCostingReport');
+        $method = new \ReflectionMethod($controller, 'redirectToCostingReport');
         $method->setAccessible(true);
-        $request = \\Illuminate\\Http\\Request::create('/', 'POST', [
+        $request = \Illuminate\Http\Request::create('/', 'POST', [
             'fiscal_year_id' => '14',
             'order_id' => '27',
             'goods_id' => '39',
