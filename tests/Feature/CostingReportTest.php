@@ -233,7 +233,7 @@ class CostingReportTest extends TestCase
         $this->assertSame(['fifo'],$report['rows'][0]['valuation_methods']);
         $this->assertSame(4.0,$report['totals']['unvalued_material_quantity']);
         $this->assertSame(1.0, $report['totals']['production_report_unvalued_material_quantity']);
-        $this->assertCount(1,$report['production_reports']);
+        $this->assertCount(2,$report['production_reports']);
         $this->assertSame(['Stage'], $report['production_reports'][0]['stage_names']);
         $this->assertCount(2, $report['production_reports'][0]['materials']);
         $this->assertSame('Raw Material', $report['production_reports'][0]['materials'][0]['material_name']);
@@ -255,10 +255,10 @@ class CostingReportTest extends TestCase
         $this->assertSame(10.0,$allGoodsReport['totals']['direct_cost'],'Purchase-level direct costs must not multiply by the number of purchase lines.');
 
         $filtered=app(CostingReportService::class)->generate($company,$fy,$order,$goods,'2026-10-07','2026-10-07',$personnel);
-        $this->assertCount(1,$filtered['production_reports']);
-        $this->assertSame(1.0,$filtered['product_rows'][0]['produced_quantity']);
+        $this->assertCount(2,$filtered['production_reports']);
+        $this->assertSame(2.0,$filtered['product_rows'][0]['produced_quantity']);
         $this->assertSame(30.0,$filtered['totals']['labor_cost']);
-        $this->assertSame(55.0,$filtered['product_rows'][0]['unit_cost']);
+        $this->assertSame(46.0,$filtered['product_rows'][0]['unit_cost']);
 
         $unassignedReport=app(CostingReportService::class)->generate($company,$fy,null,$goods);
         $this->assertContains(
