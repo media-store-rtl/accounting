@@ -32,9 +32,14 @@ final class CostingReportController extends Controller
             })
             ->orderBy('work_date')->orderBy('id')->pluck('id');
         $succeeded = 0; $failed = 0; $partial = 0; $details = [];
+        // The group action uses the same JSON response internally, but the browser
+        // submits a normal HTML form and receives a redirect with a flash summary.
+        $valuationRequest = clone $request;
+        $valuationRequest->headers->set('Accept', 'application/json');
+
         foreach ($reportIds as $reportId) {
             // Reuse the company-scoped, idempotent single-report valuation path.
-            $response = $this->valueProductionReport($request, $valuationService, (int) $reportId);
+            $response = $this->valueProductionReport($valuationRequest, $valuationService, (int) $reportId);
             $payload = method_exists($response, 'getData') ? $response->getData(true) : [];
             $message = (string) ($payload['message'] ?? '');
             if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300 && !empty($payload['pending'])) {
@@ -64,7 +69,7 @@ final class CostingReportController extends Controller
                     ? 'بروزرسانی انجام شد، اما تعدادی از گزارش‌ها هنوز بخشی بدون بها دارند.'
                     : 'بروزرسانی همه گزارش‌ها با موفقیت کامل شد.'));
 
-        return response()->json([
+        $result = [
             'success' => $success,
             'complete' => $complete,
             'processed' => $processed,
@@ -73,7 +78,15 @@ final class CostingReportController extends Controller
             'partial' => $partial,
             'message' => $summary,
             'details' => array_slice($details, 0, 5),
-        ]);
+        ];
+
+        if (!$request->expectsJson()) {
+            return $this->redirectToCostingReport($request)
+                ->with('costing_refresh_result', $result)
+                ->with('costing_labor_refreshed', true);
+        }
+
+        return response()->json($result);
     }
 
     public function valueProductionReport(Request $request, InventoryValuationService $valuationService, int $reportId)
@@ -161,13 +174,26 @@ final class CostingReportController extends Controller
     }
 
 
+    private function redirectToCostingReport(Request $request)
+    {
+        $filters = $request->only([
+            'fiscal_year_id', 'order_id', 'goods_id', 'start_date', 'end_date',
+            'personnel_id', 'production_section_id', 'production_stage_id', 'valuation_method',
+        ]);
+        $filters = array_filter($filters, static fn ($value) => $value !== null && $value !== '');
+
+        return redirect()->route('reports.costing', $filters);
+    }
+
     private function valuationResponse(Request $request, string $message, bool $success, int $status = 200, bool $pending = false)
     {
         if ($request->expectsJson()) {
             return response()->json(['success' => $success, 'pending' => $pending, 'message' => $message], $status);
         }
 
-        return back()->with($success ? 'success' : 'error', $message);
+        return $this->redirectToCostingReport($request)
+            ->with($pending ? 'warning' : ($success ? 'success' : 'error'), $message)
+            ->with('costing_labor_refreshed', true);
     }
 
     /**

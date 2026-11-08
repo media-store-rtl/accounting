@@ -4,8 +4,6 @@ import {
     formatGregorianIsoDate,
     normalizeIsoDateForPicker,
     setupProductionReportDatePicker,
-    setupCostingRefreshButton,
-    setupCostingRowRefreshButtons,
 } from '../../public/js/production-report-date-filters.js';
 
 test('converts an ISO Gregorian date to the matching picker input format', () => {
@@ -83,132 +81,18 @@ test('does not initialise when date-picker dependencies are unavailable', () => 
     }), false);
 });
 
-test('global refresh keeps partial and failed results visible instead of auto-reloading', async () => {
-    let clickHandler; let request; let reloads = 0;
-    const button = { dataset: { endpoint: '/reports/costing/production-reports/refresh-all' }, textContent: 'بروزرسانی گزارش‌ها', style: {}, addEventListener(event, handler) { assert.equal(event, 'click'); clickHandler = handler; } };
-    const note = { textContent: '', style: {}, setAttribute(name, value) { this[name] = value; } };
-    const documentRef = { querySelector(selector) {
-        if (selector === '[data-costing-refresh-all]') return button;
-        if (selector === '[data-costing-refresh-result]') return note;
-        if (selector === 'meta[name="csrf-token"]') return { getAttribute: () => 'csrf-token' };
-        return null;
-    } };
-    const fetchRef = async (url, options) => {
-        request = { url, options };
-        return { ok: true, async json() { return { success: false, complete: false, processed: 18, succeeded: 13, failed: 3, partial: 2, details: ['گزارش #15: بدون بهای قابل ردیابی'] }; } };
-    };
-    assert.equal(setupCostingRefreshButton(documentRef, fetchRef, { reload() { reloads++; } }), true);
-    await clickHandler();
-    assert.equal(request.url, '/reports/costing/production-reports/refresh-all');
-    assert.equal(request.options.method, 'POST');
-    assert.equal(request.options.headers['X-CSRF-TOKEN'], 'csrf-token');
-    assert.match(note.textContent, /13 موفق، 3 ناموفق از 18 گزارش/);
-    assert.match(note.textContent, /گزارش #15/);
-    assert.equal(note.role, 'alert');
-    assert.equal(button.textContent, 'بارگذاری مجدد برای مشاهده نتیجه');
-    assert.equal(reloads, 0);
-    await clickHandler();
-    assert.equal(reloads, 1);
-});
+test('costing refresh actions use normal POST forms instead of AJAX handlers', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const view = await readFile(new URL('../../resources/views/reports/costing.blade.php', import.meta.url), 'utf8');
+    const script = await readFile(new URL('../../public/js/production-report-date-filters.js', import.meta.url), 'utf8');
 
-test('global refresh does not claim success or reload when no eligible reports were found', async () => {
-    let clickHandler; let reloads = 0;
-    const button = { dataset: { endpoint: '/reports/costing/production-reports/refresh-all' }, textContent: 'بروزرسانی گزارش‌ها', style: {}, addEventListener(event, handler) { clickHandler = handler; } };
-    const note = { textContent: '', style: {}, setAttribute(name, value) { this[name] = value; } };
-    const documentRef = { querySelector(selector) {
-        if (selector === '[data-costing-refresh-all]') return button;
-        if (selector === '[data-costing-refresh-result]') return note;
-        return null;
-    } };
-    const fetchRef = async () => ({ ok: true, async json() { return { success: false, complete: false, processed: 0, succeeded: 0, failed: 0, partial: 0, message: 'هیچ گزارش تولید واجد شرایطی پیدا نشد.' }; } });
-    assert.equal(setupCostingRefreshButton(documentRef, fetchRef, { reload() { reloads++; } }), true);
-    await clickHandler();
-    assert.match(note.textContent, /هیچ گزارش تولید واجد شرایطی/);
-    assert.equal(note.role, 'alert');
-    assert.equal(reloads, 0);
-    assert.equal(button.textContent, 'تلاش دوباره برای بروزرسانی');
-});
-
-test('global refresh reloads only after a fully successful run', async () => {
-    let clickHandler; let reloads = 0;
-    const button = { dataset: { endpoint: '/reports/costing/production-reports/refresh-all' }, textContent: 'بروزرسانی گزارش‌ها', style: {}, addEventListener(event, handler) { clickHandler = handler; } };
-    const note = { textContent: '', style: {}, setAttribute(name, value) { this[name] = value; } };
-    const documentRef = { querySelector(selector) {
-        if (selector === '[data-costing-refresh-all]') return button;
-        if (selector === '[data-costing-refresh-result]') return note;
-        return null;
-    } };
-    const fetchRef = async () => ({ ok: true, async json() { return { success: true, complete: true, processed: 4, succeeded: 4, failed: 0, partial: 0, details: [] }; } });
-    assert.equal(setupCostingRefreshButton(documentRef, fetchRef, { reload() { reloads++; } }), true);
-    await clickHandler();
-    assert.equal(reloads, 1);
-    assert.equal(button.textContent, 'گزارش‌ها بروزرسانی شد');
-});
-
-
-test('row refresh button sends one report request and reloads after success', async () => {
-    let clickHandler; let request; let reloads = 0;
-    const button = {
-        dataset: { endpoint: '/reports/costing/production-reports/42/value' },
-        textContent: 'بروزرسانی', style: {},
-        addEventListener(event, handler) { assert.equal(event, 'click'); clickHandler = handler; },
-    };
-    const note = { textContent: '' };
-    const documentRef = {
-        querySelectorAll(selector) { assert.equal(selector, '[data-costing-refresh-row]'); return [button]; },
-        querySelector(selector) {
-            if (selector === '[data-costing-refresh-row-result="42"]') return note;
-            if (selector === 'meta[name="csrf-token"]') return { getAttribute: () => 'csrf-token' };
-            return null;
-        },
-    };
-    const fetchRef = async (url, options) => {
-        request = { url, options };
-        return { ok: true, async json() { return { success: true, message: 'مبالغ ریالی گزارش بروزرسانی شد.' }; } };
-    };
-    assert.equal(setupCostingRowRefreshButtons(documentRef, fetchRef, { reload() { reloads++; } }), true);
-    await clickHandler();
-    assert.equal(request.url, '/reports/costing/production-reports/42/value');
-    assert.equal(request.options.method, 'POST');
-    assert.equal(request.options.headers['X-CSRF-TOKEN'], 'csrf-token');
-    assert.equal(note.textContent, 'مبالغ ریالی گزارش بروزرسانی شد.');
-    assert.equal(button.textContent, 'بروزرسانی شد');
-    assert.equal(reloads, 1);
-});
-
-
-test('row refresh keeps reports pending when inventory consumption is not recorded yet', async () => {
-    let clickHandler; let reloads = 0;
-    const button = {
-        dataset: { endpoint: '/reports/costing/production-reports/15/value' },
-        textContent: 'بروزرسانی', style: {},
-        addEventListener(event, handler) { clickHandler = handler; },
-    };
-    const note = { textContent: '' };
-    const documentRef = {
-        querySelectorAll() { return [button]; },
-        querySelector(selector) {
-            if (selector === '[data-costing-refresh-row-result="15"]') return note;
-            if (selector === 'meta[name="csrf-token"]') return { getAttribute: () => 'csrf-token' };
-            return null;
-        },
-    };
-    const fetchRef = async () => ({
-        ok: true,
-        async json() {
-            return {
-                success: false,
-                pending: true,
-                message: 'مواد گزارش ثبت شده‌اند، اما گردش مصرف انبار هنوز ثبت نشده است.',
-            };
-        },
-    });
-
-    assert.equal(setupCostingRowRefreshButtons(documentRef, fetchRef, { reload() { reloads++; } }), true);
-    await clickHandler();
-
-    assert.match(note.textContent, /گردش مصرف انبار هنوز ثبت نشده/);
-    assert.equal(button.textContent, 'تلاش دوباره پس از تکمیل اطلاعات');
-    assert.equal(button.disabled, false);
-    assert.equal(reloads, 0);
+    assert.match(view, /<form method="POST" action="{{ route\('reports\.costing\.production-reports\.refresh-all'\) }}"[^>]*>[\s\S]*?@csrf[\s\S]*?<button type="submit"[^>]*>بروزرسانی گزارش‌ها<\/button>/);
+    assert.match(view, /<form method="POST" action="{{ route\('reports\.costing\.production-reports\.value', \$productionReport\['report_id'\]\) }}">[\s\S]*?@csrf[\s\S]*?<button type="submit"[^>]*>بروزرسانی<\/button>/);
+    assert.doesNotMatch(view, /data-costing-refresh-(?:all|row)/);
+    assert.doesNotMatch(script, /fetch\s*\(/);
+    assert.doesNotMatch(script, /setupCosting(?:RefreshButton|RowRefreshButtons)/);
+    assert.match(view, /session\('costing_refresh_result'\)/);
+    assert.match(view, /session\('costing_labor_refreshed'\)/);
+    assert.equal((view.match(/\$costingRefreshFilters as \$filter => \$value/g) || []).length, 2);
+    assert.match(view, /\$costingRefreshFilters = request\(\)->only\(\['fiscal_year_id'.*?'valuation_method'\]\)/);
 });

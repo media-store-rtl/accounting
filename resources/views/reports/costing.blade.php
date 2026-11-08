@@ -5,6 +5,7 @@
 @section('content')
 @php
   $formatCostingNumber = static fn ($value) => rtrim(rtrim(number_format((float) ($value ?? 0), 2, '.', ','), '0'), '.');
+  $costingRefreshFilters = request()->only(['fiscal_year_id', 'order_id', 'goods_id', 'start_date', 'end_date', 'personnel_id', 'production_section_id', 'production_stage_id', 'valuation_method']);
 @endphp
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
@@ -48,6 +49,12 @@
 @if(session('error'))
   <div class="costing-warn" role="alert">{{ session('error') }}</div>
 @endif
+@if(session('warning'))
+  <div class="costing-warn" role="status">{{ session('warning') }}</div>
+@endif
+@if(session('costing_labor_refreshed'))
+  <div class="costing-panel" role="status" style="border-color:#24634b;color:#a7e3c6">دستمزد نیز با اطلاعات و تأییدهای فعلی دوباره محاسبه شد.</div>
+@endif
 
 <div class="costing-filters">
   <form method="GET" action="{{ route('reports.costing') }}">
@@ -71,8 +78,24 @@
   <h2 style="font-size:14px;margin:0 0 8px">گزارش‌های تولید تأییدشده و تحویل‌شده</h2>
   <p style="font-size:10px;color:#91a6b9;margin:0 0 12px">برای مشاهده ریز مواد و هزینه‌های هر گزارش، روی «جزئیات» همان ردیف بزنید. جمع کل فقط یک‌بار در انتهای جدول محاسبه می‌شود.</p>
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px">
-    <button type="button" class="costing-action-button" data-costing-refresh-all data-endpoint="{{ route('reports.costing.production-reports.refresh-all') }}">بروزرسانی گزارش‌ها</button>
-    <span data-costing-refresh-result role="status" style="font-size:10px;color:#91a6b9">با کلیک، تمام گزارش‌های تأییدشده و تحویل‌شده شرکت دوباره با مصرف انبار و لایه‌های قیمت بررسی می‌شوند.</span>
+    <form method="POST" action="{{ route('reports.costing.production-reports.refresh-all') }}" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      @csrf
+      @foreach($costingRefreshFilters as $filter => $value)
+        @if($value !== null && $value !== '')<input type="hidden" name="{{ $filter }}" value="{{ $value }}">@endif
+      @endforeach
+      <button type="submit" class="costing-action-button">بروزرسانی گزارش‌ها</button>
+      <span style="font-size:10px;color:#91a6b9">با کلیک، تمام گزارش‌های تأییدشده و تحویل‌شده شرکت دوباره با مصرف انبار و لایه‌های قیمت بررسی می‌شوند.</span>
+    </form>
+    @if(session('costing_refresh_result'))
+      @php($refreshResult = session('costing_refresh_result'))
+      <div role="status" class="costing-warn" style="margin-top:8px">
+        {{ $refreshResult['message'] }}
+        ({{ $refreshResult['succeeded'] }} موفق، {{ $refreshResult['failed'] }} ناموفق، {{ $refreshResult['partial'] }} ناقص از {{ $refreshResult['processed'] }} گزارش)
+        @if(!empty($refreshResult['details']))
+          <ul style="margin:6px 0 0;padding-right:18px">@foreach($refreshResult['details'] as $detail)<li>{{ $detail }}</li>@endforeach</ul>
+        @endif
+      </div>
+    @endif
   </div>
   @if(empty($report['production_reports']))
     <div class="costing-empty">گزارش تولید تأییدشده یا تحویل‌شده‌ای برای این فیلتر پیدا نشد.</div>
@@ -124,8 +147,13 @@
               <td><span class="costing-status {{ $reportCostComplete ? 'complete' : 'incomplete' }}">{{ $reportCostComplete ? 'ارزش‌گذاری مواد کامل' : (($reportUnmatchedQuantity > 0.0001 ? 'بدون تطبیق انبار: ' . $formatCostingNumber($reportUnmatchedQuantity) . '؛ ' : '') . ($reportUnvaluedQuantity > 0.0001 ? 'بدون بهای ریالی: ' . $formatCostingNumber($reportUnvaluedQuantity) : '')) }}</span></td>
               <td><button class="costing-expand-btn" type="button" aria-expanded="false" aria-controls="{{ $detailId }}" data-costing-toggle="{{ $detailId }}">مشاهده جزئیات</button></td>
               <td>
-                <button type="button" class="costing-action-button" data-costing-refresh-row data-endpoint="{{ route('reports.costing.production-reports.value', $productionReport['report_id']) }}">بروزرسانی</button>
-                <span data-costing-refresh-row-result="{{ $productionReport['report_id'] }}" role="status" style="display:block;font-size:9px;color:#91a6b9;margin-top:4px"></span>
+                <form method="POST" action="{{ route('reports.costing.production-reports.value', $productionReport['report_id']) }}">
+                  @csrf
+                  @foreach($costingRefreshFilters as $filter => $value)
+                    @if($value !== null && $value !== '')<input type="hidden" name="{{ $filter }}" value="{{ $value }}">@endif
+                  @endforeach
+                  <button type="submit" class="costing-action-button">بروزرسانی</button>
+                </form>
               </td>
             </tr>
             <tr id="{{ $detailId }}" class="costing-detail-row" hidden>

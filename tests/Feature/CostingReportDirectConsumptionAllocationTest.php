@@ -248,4 +248,39 @@ class CostingReportDirectConsumptionAllocationTest extends TestCase
         ], $response->getData(true));
     }
 
+
+    public function test_costing_refresh_redirect_preserves_report_filters(): void
+    {
+        $controller = new CostingReportController();
+        $method = new \ReflectionMethod($controller, 'redirectToCostingReport');
+        $method->setAccessible(true);
+        $request = \Illuminate\Http\Request::create('/', 'POST', [
+            'fiscal_year_id' => '14',
+            'order_id' => '27',
+            'goods_id' => '39',
+            'start_date' => '2026-10-01',
+            'end_date' => '2026-10-30',
+            'personnel_id' => '8',
+            'production_section_id' => '5',
+            'production_stage_id' => '3',
+            'valuation_method' => 'weighted_average',
+            'unrelated' => 'must-not-be-forwarded',
+        ]);
+
+        $response = $method->invoke($controller, $request);
+        parse_str((string) parse_url($response->getTargetUrl(), PHP_URL_QUERY), $query);
+
+        $this->assertSame([
+            'fiscal_year_id' => '14',
+            'order_id' => '27',
+            'goods_id' => '39',
+            'start_date' => '2026-10-01',
+            'end_date' => '2026-10-30',
+            'personnel_id' => '8',
+            'production_section_id' => '5',
+            'production_stage_id' => '3',
+            'valuation_method' => 'weighted_average',
+        ], $query);
+    }
+
 }
