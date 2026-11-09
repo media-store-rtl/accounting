@@ -75,6 +75,46 @@ final class CostingReportService
         $productionReports=$this->productionShiftReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId);
         $productionReports = $this->attachReportMaterialDetails($companyId, $productionReports, $valuationOverrides);
 
+        // Reconcile product-level material totals with report snapshots. Only the
+        // delta is applied, so movement-backed amounts already included in the
+        // aggregate are replaced rather than counted twice.
+        foreach ($productionReports as &$productionReport) {
+            $snapshotDelta = 0.0;
+            foreach ($productionReport['materials'] as &$materialDetail) {
+                if (!array_key_exists('_snapshot_previous_material_cost', $materialDetail)) continue;
+                $snapshotDelta += (float) $materialDetail['material_cost'] - (float) $materialDetail['_snapshot_previous_material_cost'];
+                unset($materialDetail['_snapshot_previous_material_cost']);
+            }
+            unset($materialDetail);
+
+            if (abs($snapshotDelta) <= 0.0000001) continue;
+            $goodsKey = (int) $productionReport['goods_id'];
+            $orderKey = $productionReport['order_id'] !== null ? (int) $productionReport['order_id'] : null;
+            $rowKey = $this->key($orderKey, $goodsKey);
+            $this->row($rows, $rowKey, $orderKey, $goodsKey);
+            $rows[$rowKey]['material_cost'] += $snapshotDelta;
+            $rows[$rowKey]['total_cost'] += $snapshotDelta;
+            if (!in_array('current_cost_snapshot', $rows[$rowKey]['valuation_methods'], true)) {
+                $rows[$rowKey]['valuation_methods'][] = 'current_cost_snapshot';
+            }
+
+            if (isset($productRows[$goodsKey])) {
+                $productRows[$goodsKey]['material_cost'] += $snapshotDelta;
+                $productRows[$goodsKey]['total_cost'] += $snapshotDelta;
+                if (!in_array('current_cost_snapshot', $productRows[$goodsKey]['valuation_methods'], true)) {
+                    $productRows[$goodsKey]['valuation_methods'][] = 'current_cost_snapshot';
+                }
+            }
+        }
+        unset($productionReport);
+
+        foreach ($productRows as &$productRow) {
+            $productRow['unit_cost'] = (float) ($productRow['produced_quantity'] ?? 0) > 0
+                ? round((float) $productRow['total_cost'] / (float) $productRow['produced_quantity'], 4)
+                : null;
+        }
+        unset($productRow);
+
         $valuationMethods=[];
         foreach($rows as $row){
             foreach(($row['valuation_methods'] ?? []) as $method){
@@ -540,6 +580,7 @@ final class CostingReportService
                 $snapshot = $snapshots->get($reportId . ':' . (int) $detail['material_id']);
                 if (!$snapshot) continue;
 
+                $detail['_snapshot_previous_material_cost'] = (float) $detail['material_cost'];
                 $quantity = (float) $detail['quantity'];
                 $unitCost = $snapshot->unit_cost !== null ? (float) $snapshot->unit_cost : null;
                 $valuedQuantity = $unitCost !== null ? $quantity : 0.0;
