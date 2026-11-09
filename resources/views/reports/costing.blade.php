@@ -102,7 +102,9 @@
       <span style="font-size:10px;color:#91a6b9">با کلیک، تمام گزارش‌های تأییدشده و تحویل‌شده شرکت دوباره با مصرف انبار و لایه‌های قیمت بررسی می‌شوند.</span>
     </form>
     @if(session('costing_refresh_result'))
-      @php($refreshResult = session('costing_refresh_result'))
+      @php
+        $refreshResult = session('costing_refresh_result');
+      @endphp
       <div role="status" class="costing-warn" style="margin-top:8px">
         {{ $refreshResult['message'] }}
         ({{ $refreshResult['succeeded'] }} موفق، {{ $refreshResult['failed'] }} ناموفق، {{ $refreshResult['partial'] }} ناقص از {{ $refreshResult['processed'] }} گزارش)

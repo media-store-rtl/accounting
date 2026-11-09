@@ -1,3 +1,23 @@
+# 143. رفع علت واقعی ParseError در قالب گزارش بهای تمام‌شده — 2026-11-09
+
+- علت قطعی که در CI بازتولید شد: دستور inline `@php($refreshResult = session('costing_refresh_result'))` در `resources/views/reports/costing.blade.php` (خط ۱۰۵) با Laravel 12.69.3 سازگار نبود. خروجی کامپایل‌شدهٔ Blade از نظر PHP نامعتبر می‌شد و خطا در انتهای حلقه با پیام `unexpected token "endforeach", expecting "elseif" or "else" or "endif"` ظاهر می‌شد.
+- شواهد: تست کامپایل واقعی قالب که در PR #248 اضافه شد، دقیقاً همین ParseError را در CI و هنگام `token_get_all($compiled, TOKEN_PARSE)` بازتولید کرد (۱ تست شکست‌خورده، ۱۱۱ تست دیگر موفق).
+- اصلاح: انتساب session به بلوک چندخطی پشتیبانی‌شده تبدیل شد: `@php ... @endphp`. هیچ منطق یا مقدار گزارش تغییر نکرده است.
+- تست رگرسیون: تست Feature کامپایل Blade حفظ شده و اکنون باید همان فایل را با PHP parser اعتبارسنجی کند.
+- فایل‌ها: `resources/views/reports/costing.blade.php`, `tests/Feature/CostingReportBladeCompilationTest.php`, `PROJECT_PROGRESS.md`.
+- تغییر روی شاخه `fix/costing-blade-compile-regression-20261108` در PR #248 ثبت شد. CI پس از این اصلاح دوباره بررسی می‌شود. هیچ تغییری در production، دیتابیس، cache سرور یا Deploy انجام نشده است.
+
+---
+# 142. افزودن تست کامپایل واقعی قالب گزارش بهای تمام‌شده — 2026-11-08
+
+- درخواست: خطای `ParseError` با پیام `unexpected token "endforeach", expecting "elseif" or "else" or "endif"` پس از ادغام PR #247 همچنان در سایت گزارش شد.
+- بررسی نسخه فعلی `main`: در بخش اطراف خط ۲۱۹، دستورات قابل مشاهدهٔ `@if/@else/@endif`، `@foreach/@endforeach` و `@forelse/@empty/@endforelse` از نظر ساختار منبع متوازن‌اند؛ بنابراین تست قبلی که فقط وجود directiveها را بررسی می‌کرد برای اثبات قابل‌کامپایل بودن Blade کافی نبود.
+- اقدام: تست Feature جدید `CostingReportBladeCompilationTest` اضافه شد. این تست قالب واقعی `resources/views/reports/costing.blade.php` را با Laravel Blade compiler کامپایل و خروجی PHP را با `token_get_all(..., TOKEN_PARSE)` از نظر syntax بررسی می‌کند؛ بدون اجرای view یا نیاز به دادهٔ production.
+- فایل‌ها: `tests/Feature/CostingReportBladeCompilationTest.php`, `PROJECT_PROGRESS.md`.
+- تست محلی در این محیط اجرا نشده است؛ نتیجهٔ CI پس از ایجاد PR بررسی می‌شود. هنوز اثبات نشده که فایل روی سرور production دقیقاً با نسخهٔ `main` یکسان است؛ هیچ دسترسی یا تغییری روی production، پاک‌سازی cache، migration، backfill یا Deploy انجام نشده است.
+- شاخه: `fix/costing-blade-compile-regression-20261108`. تغییر در PR جداگانه ارائه می‌شود؛ ادغام و Deploy مجوزهای مستقل دارند.
+
+---
 # 141. رفع ParseError حلقه جزئیات مواد در گزارش بهای تمام‌شده — 2026-11-08
 
 - درخواست: رفع خطای 500 در `/reports/costing` که در فایل `resources/views/reports/costing.blade.php:221` با پیام `unexpected token "endforeach", expecting "elseif" or "else" or "endif"` رخ می‌داد.
