@@ -71,6 +71,18 @@ class BackfillHistoricalProductionConsumptionTest extends TestCase
         });
         Schema::create('audit_trails', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('company_id');
+            $table->unsignedBigInteger('user_id');
+            $table->string('module');
+            $table->string('action');
+            $table->string('auditable_type');
+            $table->unsignedBigInteger('auditable_id');
+            $table->text('before')->nullable();
+            $table->text('after')->nullable();
+            $table->string('method');
+            $table->unsignedInteger('status_code');
+            $table->dateTime('created_at')->nullable();
+            $table->dateTime('updated_at')->nullable();
         });
         Schema::create('inventory_movements', function (Blueprint $table) {
             $table->id();
