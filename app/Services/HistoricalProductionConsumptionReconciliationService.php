@@ -169,6 +169,29 @@ final class HistoricalProductionConsumptionReconciliationService
         }
 
         $effectiveAt = (string) $report->work_date . ' 23:59:59';
+
+        // If any consumption issue already exists for this material in the
+        // production location by the report date, an empty report allocation
+        // may be a legacy-link mismatch rather than missing consumption.
+        // Refuse automatic backfill instead of risking a duplicate stock issue.
+        $materialsForSafety = DB::table('production_shift_report_materials')
+            ->where('company_id', $companyId)
+            ->where('production_shift_report_id', $reportId)
+            ->pluck('goods_id')
+            ->unique()
+            ->all();
+        $ambiguousExistingConsumption = DB::table('inventory_movements')
+            ->where('company_id', $companyId)
+            ->where('location_id', $section->location_id)
+            ->whereIn('goods_id', $materialsForSafety)
+            ->where('movement_type', 'production_consumption')
+            ->where('quantity', '<', 0)
+            ->where('occurred_at', '<=', $effectiveAt)
+            ->exists();
+        if ($ambiguousExistingConsumption) {
+            return ['eligible' => false, 'reason' => 'برای یکی از مواد در همین قسمت گردش مصرف قبلی وجود دارد، اما به این گزارش تخصیص داده نشده است؛ ابتدا ارتباط گردش‌های قدیمی باید بررسی شود.', 'materials' => []];
+        }
+
         $materials = [];
         foreach ($rows as $row) {
             $quantity = (float) $row->quantity;
