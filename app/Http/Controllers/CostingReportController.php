@@ -4,8 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\CostCalculationService;
 use App\Services\CostingReportService;
-use App\Services\InventoryValuationService;
-use App\Services\HistoricalProductionConsumptionReconciliationService;
+use App\Services\ProductionReportCurrentCostRefreshService;
 use App\Support\CompanyAuthorization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +19,7 @@ final class CostingReportController extends Controller
         return $request->expectsJson() ? response()->json(['data'=>$result]) : back()->with('success','محاسبه بهای تمام‌شده ثبت و قابل ردیابی شد.');
     }
 
-    public function refreshAllProductionReports(Request $request, InventoryValuationService $valuationService, HistoricalProductionConsumptionReconciliationService $historicalReconciliation)
+    public function refreshAllProductionReports(Request $request, ProductionReportCurrentCostRefreshService $currentCostRefresh)
     {
         $companyId = CompanyAuthorization::authorize($request, 'costing.report.view');
         $reportIds = DB::table('production_shift_reports')
@@ -40,7 +39,7 @@ final class CostingReportController extends Controller
 
         foreach ($reportIds as $reportId) {
             // Reuse the company-scoped, idempotent single-report valuation path.
-            $response = $this->valueProductionReport($valuationRequest, $valuationService, $historicalReconciliation, (int) $reportId);
+            $response = $this->valueProductionReport($valuationRequest, $currentCostRefresh, (int) $reportId);
             $payload = method_exists($response, 'getData') ? $response->getData(true) : [];
             $message = (string) ($payload['message'] ?? '');
             if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300 && !empty($payload['pending'])) {
@@ -90,125 +89,41 @@ final class CostingReportController extends Controller
         return response()->json($result);
     }
 
-    public function valueProductionReport(Request $request, InventoryValuationService $valuationService, HistoricalProductionConsumptionReconciliationService $historicalReconciliation, int $reportId)
+    public function valueProductionReport(Request $request, ProductionReportCurrentCostRefreshService $currentCostRefresh, int $reportId)
     {
-        
         $companyId = CompanyAuthorization::authorize($request, 'costing.report.view');
         $report = DB::table('production_shift_reports')
             ->where('company_id', $companyId)
             ->where('id', $reportId)
             ->whereIn('status', ['approved', 'received'])
-            ->first(['id', 'work_date', 'status']);
+            ->first(['id']);
 
         abort_unless($report, 404, 'گزارش تولید تأییدشده پیدا نشد.');
 
-        $materials = DB::table('production_shift_report_materials')
-            ->where('company_id', $companyId)
-            ->where('production_shift_report_id', $reportId)
-            ->select('goods_id', DB::raw('SUM(quantity) as quantity'))
-            ->groupBy('goods_id')
-            ->get()
-            ->keyBy('goods_id');
-
-        if ($materials->isEmpty()) {
-            return $this->valuationResponse($request, 'برای این گزارش مادهٔ مصرفی ثبت نشده است.', false, 422);
+        try {
+            // Costing refresh is a report-level monetary snapshot. It deliberately
+            // does not create inventory movements or change stock/layer quantities.
+            $result = $currentCostRefresh->refresh($companyId, $reportId, (int) $request->user()->id, 'WEB');
+        } catch (\\RuntimeException $exception) {
+            return $this->valuationResponse($request, $exception->getMessage(), false, 200, true);
         }
 
-        // Resolve the same production-consumption pool used by CostingReportService.
-        // Consumption movements are often linked to supply requests/production runs,
-        // not directly to the shift report id.
-        $allocation = $this->productionReportConsumptionMovements($companyId, $reportId);
-        $movements = $allocation['movements'];
-
-        if ($movements->isEmpty()) {
-            // Historical reports approved before automatic consumption was enabled
-            // may have report-material rows but no inventory issue. Reconcile only
-            // when the service can prove historical and current stock, eligible
-            // FIFO layers, an open fiscal year, and the absence of later issues.
-            try {
-                // A report-view permission alone must not authorize posting a stock issue.
-                CompanyAuthorization::authorize($request, 'production.operation.review');
-                $historicalReconciliation->apply(
-                    $companyId,
-                    $reportId,
-                    (int) $request->user()->id,
-                    'WEB'
-                );
-            } catch (\RuntimeException $exception) {
-                return $this->valuationResponse(
-                    $request,
-                    'مصرف تاریخی به‌صورت خودکار قابل تطبیق نیست: ' . $exception->getMessage(),
-                    false,
-                    200,
-                    true
-                );
-            } catch (\Illuminate\Validation\ValidationException $exception) {
-                return $this->valuationResponse(
-                    $request,
-                    'تطبیق مصرف تاریخی انجام نشد: ' . collect($exception->errors())->flatten()->implode(' '),
-                    false,
-                    200,
-                    true
-                );
-            }
-
-            $allocation = $this->productionReportConsumptionMovements($companyId, $reportId);
-            $movements = $allocation['movements'];
-            if ($movements->isEmpty()) {
-                return $this->valuationResponse($request, 'پس از تطبیق تاریخی، گردش مصرف قابل بازیابی پیدا نشد.', false, 200, true);
-            }
+        if ($result['unvalued_count'] > 0) {
+            return $this->valuationResponse(
+                $request,
+                'بهای فعلی برای ' . $result['unvalued_count'] . ' ماده پیدا نشد؛ سایر مواد با آخرین بهای ثبت‌شده بروزرسانی شدند.',
+                $result['valued_count'] > 0,
+                200,
+                true
+            );
         }
 
-        foreach ($materials as $goodsId => $material) {
-            if (abs((float) ($allocation['allocated_by_goods'][$goodsId] ?? 0) - (float) $material->quantity) > 0.0001) {
-                return $this->valuationResponse($request, 'گردش مصرف انبار پیدا شد، اما مقدار آن با ریز مواد این گزارش تطبیق کامل ندارد؛ برای جلوگیری از ارزش‌گذاری اشتباه، مبلغی تغییر نکرد. ابتدا مغایرت مقدار/ارتباط گزارش را بررسی کنید.', false, 200, true);
-            }
-        }
-
-        $fiscalYearId = DB::table('fiscal_years')
-            ->where('company_id', $companyId)
-            ->whereDate('starts_at', '<=', $report->work_date)
-            ->whereDate('ends_at', '>=', $report->work_date)
-            ->orderByDesc('id')
-            ->value('id');
-
-        if (!$fiscalYearId) {
-            return $this->valuationResponse($request, 'برای تاریخ گزارش سال مالی متناظر پیدا نشد؛ ریالی‌سازی انجام نشد.', false, 422);
-        }
-
-        $result = DB::transaction(function () use ($movements, $fiscalYearId, $valuationService) {
-            $refreshed = 0;
-            $unvalued = 0;
-
-            foreach ($movements as $movement) {
-                // Revisit every movement, including fully valued ones. Existing
-                // rial amounts are recalculated from their linked receipt layers;
-                // only any still-missing quantity may be topped up.
-                $value = $valuationService->valueInventoryMovement((int) $movement->id, (int) $fiscalYearId);
-                if (!empty($value['valued']) && (float) ($value['valued_quantity'] ?? 0) > 0) {
-                    $refreshed++;
-                    if ((float) ($value['unvalued_quantity'] ?? 0) > 0.0001) {
-                        $unvalued++;
-                    }
-                } else {
-                    $unvalued++;
-                }
-            }
-
-            return compact('refreshed', 'unvalued');
-        });
-
-        if ($result['refreshed'] === 0 && $result['unvalued'] > 0) {
-            return $this->valuationResponse($request, 'گردش مصرف انبار ثبت شده است، اما هنوز بهای ریالی معتبر و قابل ردیابی برای آن وجود ندارد. پس از ثبت/تکمیل بهای خرید یا رسید، دوباره بروزرسانی کنید.', false, 200, true);
-        }
-
-        if ($result['unvalued'] > 0) {
-            return $this->valuationResponse($request, 'مبالغ ریالی '.$result['refreshed'].' حرکت بروزرسانی شد؛ '.$result['unvalued'].' حرکت هنوز بخشی بدون بها دارد و پس از ثبت بهای معتبر دوباره قابل بروزرسانی است.', true);
-        }
-
-        return $this->valuationResponse($request, 'مبالغ ریالی همه '.$result['refreshed'].' حرکت مصرف دوباره محاسبه و بروزرسانی شد؛ موجودی انبار دوباره کسر نشد.', true);
+        return $this->valuationResponse(
+            $request,
+            'بهای مواد این گزارش با آخرین نرخ‌های ثبت‌شده بروزرسانی شد؛ هیچ گردش یا کسری موجودی انبار ایجاد نشد.',
+            true
+        );
     }
-
 
     private function redirectToCostingReport(Request $request)
     {
