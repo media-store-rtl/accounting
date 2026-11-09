@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\CostCalculationService;
 use App\Services\CostingReportService;
 use App\Services\InventoryValuationService;
+use App\Services\HistoricalProductionConsumptionReconciliationService;
 use App\Support\CompanyAuthorization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,7 @@ final class CostingReportController extends Controller
         return $request->expectsJson() ? response()->json(['data'=>$result]) : back()->with('success','محاسبه بهای تمام‌شده ثبت و قابل ردیابی شد.');
     }
 
-    public function refreshAllProductionReports(Request $request, InventoryValuationService $valuationService)
+    public function refreshAllProductionReports(Request $request, InventoryValuationService $valuationService, HistoricalProductionConsumptionReconciliationService $historicalReconciliation)
     {
         $companyId = CompanyAuthorization::authorize($request, 'costing.report.view');
         $reportIds = DB::table('production_shift_reports')
@@ -39,7 +40,7 @@ final class CostingReportController extends Controller
 
         foreach ($reportIds as $reportId) {
             // Reuse the company-scoped, idempotent single-report valuation path.
-            $response = $this->valueProductionReport($valuationRequest, $valuationService, (int) $reportId);
+            $response = $this->valueProductionReport($valuationRequest, $valuationService, $historicalReconciliation, (int) $reportId);
             $payload = method_exists($response, 'getData') ? $response->getData(true) : [];
             $message = (string) ($payload['message'] ?? '');
             if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300 && !empty($payload['pending'])) {
@@ -89,7 +90,7 @@ final class CostingReportController extends Controller
         return response()->json($result);
     }
 
-    public function valueProductionReport(Request $request, InventoryValuationService $valuationService, int $reportId)
+    public function valueProductionReport(Request $request, InventoryValuationService $valuationService, HistoricalProductionConsumptionReconciliationService $historicalReconciliation, int $reportId)
     {
         
         $companyId = CompanyAuthorization::authorize($request, 'costing.report.view');
@@ -120,7 +121,42 @@ final class CostingReportController extends Controller
         $movements = $allocation['movements'];
 
         if ($movements->isEmpty()) {
-            return $this->valuationResponse($request, 'مواد مصرفی در گزارش ثبت شده‌اند، اما هنوز گردش مصرف متناظر در انبار ثبت نشده است. پس از ثبت مصرف انبار، دوباره بروزرسانی کنید.', false, 200, true);
+            // Historical reports approved before automatic consumption was enabled
+            // may have report-material rows but no inventory issue. Reconcile only
+            // when the service can prove historical and current stock, eligible
+            // FIFO layers, an open fiscal year, and the absence of later issues.
+            try {
+                // A report-view permission alone must not authorize posting a stock issue.
+                CompanyAuthorization::authorize($request, 'production.operation.review');
+                $historicalReconciliation->apply(
+                    $companyId,
+                    $reportId,
+                    (int) $request->user()->id,
+                    'WEB'
+                );
+            } catch (\RuntimeException $exception) {
+                return $this->valuationResponse(
+                    $request,
+                    'مصرف تاریخی به‌صورت خودکار قابل تطبیق نیست: ' . $exception->getMessage(),
+                    false,
+                    200,
+                    true
+                );
+            } catch (\Illuminate\Validation\ValidationException $exception) {
+                return $this->valuationResponse(
+                    $request,
+                    'تطبیق مصرف تاریخی انجام نشد: ' . collect($exception->errors())->flatten()->implode(' '),
+                    false,
+                    200,
+                    true
+                );
+            }
+
+            $allocation = $this->productionReportConsumptionMovements($companyId, $reportId);
+            $movements = $allocation['movements'];
+            if ($movements->isEmpty()) {
+                return $this->valuationResponse($request, 'پس از تطبیق تاریخی، گردش مصرف قابل بازیابی پیدا نشد.', false, 200, true);
+            }
         }
 
         foreach ($materials as $goodsId => $material) {
