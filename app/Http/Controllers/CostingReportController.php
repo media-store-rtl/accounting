@@ -126,6 +126,8 @@ final class CostingReportController extends Controller
             // when the service can prove historical and current stock, eligible
             // FIFO layers, an open fiscal year, and the absence of later issues.
             try {
+                // A report-view permission alone must not authorize posting a stock issue.
+                CompanyAuthorization::authorize($request, 'production.operation.review');
                 $historicalReconciliation->apply(
                     $companyId,
                     $reportId,
