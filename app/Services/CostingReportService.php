@@ -584,7 +584,7 @@ final class CostingReportService
                 $quantity = (float) $detail['quantity'];
                 $unitCost = $snapshot->unit_cost !== null ? (float) $snapshot->unit_cost : null;
                 $valuedQuantity = $unitCost !== null ? $quantity : 0.0;
-                $detail['allocated_quantity'] = 0.0;
+                $detail['allocated_quantity'] = $quantity;
                 $detail['valued_quantity'] = $valuedQuantity;
                 $detail['unmatched_quantity'] = 0.0;
                 $detail['unvalued_quantity'] = max(0.0, $quantity - $valuedQuantity);
@@ -607,14 +607,16 @@ final class CostingReportService
             $detail['valued_quantity'] = round($detail['valued_quantity'], 4);
             $detail['unmatched_quantity'] = round(max(0.0, $detail['quantity'] - $detail['allocated_quantity']), 4);
             $detail['unvalued_quantity'] = round(max(0.0, $detail['quantity'] - $detail['valued_quantity']), 4);
-            $detail['allocation_status'] = $detail['unmatched_quantity'] > 0.0001
-                ? 'pending_consumption'
-                : ($detail['unvalued_quantity'] > 0.0001 ? 'pending_valuation' : 'complete');
             $detail['material_cost'] = round($detail['material_cost'], 4);
             $detail['unit_cost'] = $detail['valued_quantity'] > 0
                 ? round($detail['material_cost'] / $detail['valued_quantity'], 6)
                 : null;
             $detail['valuation_methods'] = array_keys($detail['valuation_methods']);
+            $detail['allocation_status'] = in_array('current_cost_snapshot', $detail['valuation_methods'], true)
+                ? 'current_cost_snapshot'
+                : ($detail['unmatched_quantity'] > 0.0001
+                    ? 'pending_consumption'
+                    : ($detail['unvalued_quantity'] > 0.0001 ? 'pending_valuation' : 'complete'));
             $detail['cost_complete'] = $detail['unvalued_quantity'] <= 0.0001;
             $byReport[$reportIdsByMaterialRow[$materialRowId]][] = $detail;
         }
