@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Services\HistoricalProductionConsumptionReconciliationService;
+use App\Services\InventoryService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
