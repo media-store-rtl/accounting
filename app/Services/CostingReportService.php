@@ -592,7 +592,7 @@ final class CostingReportService
                 // Each detail row may be one of several rows for the same good;
                 // apply the snapshot unit rate to this row's own quantity.
                 $detail['material_cost'] = $unitCost !== null ? $quantity * $unitCost : 0.0;
-                $detail['valuation_methods'] = $valuedQuantity > 0 ? ['current_cost_snapshot'] : [];
+                $detail['valuation_methods'] = $valuedQuantity > 0 ? ['current_cost_snapshot' => true] : [];
                 $detail['allocation_status'] = $detail['unvalued_quantity'] > 0.0001
                     ? 'pending_valuation'
                     : 'current_cost_snapshot';
