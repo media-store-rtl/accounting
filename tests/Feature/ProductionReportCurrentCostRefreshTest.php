@@ -24,14 +24,14 @@ class ProductionReportCurrentCostRefreshTest extends TestCase
         DB::setDefaultConnection('current_cost_test');
 
         Schema::create('production_shift_reports', function (Blueprint $table) {
-            $table->id(); $table->unsignedBigInteger('company_id'); $table->string('status');
+            $table->id(); $table->unsignedBigInteger('company_id'); $table->string('status'); $table->date('work_date')->nullable();
         });
         Schema::create('production_shift_report_materials', function (Blueprint $table) {
             $table->id(); $table->unsignedBigInteger('company_id');
             $table->unsignedBigInteger('production_shift_report_id');
             $table->unsignedBigInteger('goods_id'); $table->decimal('quantity', 16, 4);
         });
-        Schema::create('inventory_movements', function (Blueprint $table) { $table->id(); });
+        Schema::create('inventory_movements', function (Blueprint $table) { $table->id(); $table->unsignedBigInteger('company_id'); $table->unsignedBigInteger('goods_id'); $table->unsignedBigInteger('location_id'); $table->decimal('quantity', 16, 4); $table->dateTime('occurred_at'); });
         Schema::create('inventory_cost_layers', function (Blueprint $table) {
             $table->id(); $table->unsignedBigInteger('company_id'); $table->unsignedBigInteger('goods_id');
             $table->dateTime('received_at'); $table->decimal('unit_cost', 20, 4);
@@ -54,7 +54,8 @@ class ProductionReportCurrentCostRefreshTest extends TestCase
             $table->dateTime('updated_at')->nullable();
         });
 
-        DB::table('production_shift_reports')->insert(['id' => 8, 'company_id' => 1, 'status' => 'received']);
+        DB::table('production_shift_reports')->insert(['id' => 8, 'company_id' => 1, 'status' => 'received', 'work_date' => '2026-10-18']);
+        DB::table('inventory_movements')->insert(['id' => 90, 'company_id' => 1, 'goods_id' => 1, 'location_id' => 7, 'quantity' => -5, 'occurred_at' => '2026-10-22 09:00:00']);
         DB::table('production_shift_report_materials')->insert([
             ['company_id' => 1, 'production_shift_report_id' => 8, 'goods_id' => 1, 'quantity' => 5],
             ['company_id' => 1, 'production_shift_report_id' => 8, 'goods_id' => 2, 'quantity' => 3],
@@ -105,7 +106,8 @@ class ProductionReportCurrentCostRefreshTest extends TestCase
             'company_id' => 1, 'production_shift_report_id' => 8, 'goods_id' => 2,
             'valued_quantity' => 0, 'unit_cost' => null,
         ]);
-        $this->assertSame(0, DB::table('inventory_movements')->count());
+        $this->assertSame(1, DB::table('inventory_movements')->count());
+        $this->assertSame(-5.0, (float) DB::table('inventory_movements')->where('id', 90)->value('quantity'));
         $this->assertSame(0, DB::table('inventory_cost_layers')->where('goods_id', 1)->where('fifo_quantity_remaining', '<>', 0)->count());
         $this->assertDatabaseHas('audit_trails', [
             'company_id' => 1, 'user_id' => 55,
