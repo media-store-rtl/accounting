@@ -1,12 +1,12 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Services\\ProductionReportCurrentCostRefreshService;
-use Illuminate\\Database\\Schema\\Blueprint;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Schema;
-use Tests\\TestCase;
+use App\Services\ProductionReportCurrentCostRefreshService;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Tests\TestCase;
 
 class ProductionReportCurrentCostRefreshTest extends TestCase
 {
@@ -31,6 +31,7 @@ class ProductionReportCurrentCostRefreshTest extends TestCase
             $table->unsignedBigInteger('production_shift_report_id');
             $table->unsignedBigInteger('goods_id'); $table->decimal('quantity', 16, 4);
         });
+        Schema::create('inventory_movements', function (Blueprint $table) { $table->id(); });
         Schema::create('inventory_cost_layers', function (Blueprint $table) {
             $table->id(); $table->unsignedBigInteger('company_id'); $table->unsignedBigInteger('goods_id');
             $table->dateTime('received_at'); $table->decimal('unit_cost', 20, 4);
@@ -71,6 +72,24 @@ class ProductionReportCurrentCostRefreshTest extends TestCase
         parent::tearDown();
     }
 
+    public function test_repeated_refresh_replaces_the_report_snapshot_instead_of_adding_duplicate_cost_rows(): void
+    {
+        $service = app(ProductionReportCurrentCostRefreshService::class);
+        $service->refresh(1, 8, 55);
+        DB::table('inventory_cost_layers')->insert([
+            'id' => 12, 'company_id' => 1, 'goods_id' => 1,
+            'received_at' => '2026-11-08 10:00:00', 'unit_cost' => 175, 'fifo_quantity_remaining' => 0,
+        ]);
+
+        $service->refresh(1, 8, 55);
+
+        $this->assertSame(2, DB::table('production_shift_report_material_costs')->count());
+        $this->assertDatabaseHas('production_shift_report_material_costs', [
+            'company_id' => 1, 'production_shift_report_id' => 8, 'goods_id' => 1,
+            'unit_cost' => 175, 'total_cost' => 875, 'source_cost_layer_id' => 12,
+        ]);
+    }
+
     public function test_refresh_uses_latest_price_even_when_layer_is_fully_consumed_and_does_not_touch_inventory_movements(): void
     {
         $result = app(ProductionReportCurrentCostRefreshService::class)->refresh(1, 8, 55);
@@ -86,6 +105,7 @@ class ProductionReportCurrentCostRefreshTest extends TestCase
             'company_id' => 1, 'production_shift_report_id' => 8, 'goods_id' => 2,
             'valued_quantity' => 0, 'unit_cost' => null,
         ]);
+        $this->assertSame(0, DB::table('inventory_movements')->count());
         $this->assertSame(0, DB::table('inventory_cost_layers')->where('goods_id', 1)->where('fifo_quantity_remaining', '<>', 0)->count());
         $this->assertDatabaseHas('audit_trails', [
             'company_id' => 1, 'user_id' => 55,
