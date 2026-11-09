@@ -6,7 +6,7 @@
 - جزئیات گزارش، منبع نرخ را با عنوان «ارزش‌گذاری با آخرین بهای ثبت‌شده» مشخص می‌کند تا snapshot فعلی با تخصیص واقعی گردش انبار اشتباه نشود.
 - فایل‌ها: `app/Services/ProductionReportCurrentCostRefreshService.php`, `app/Http/Controllers/CostingReportController.php`, `app/Services/CostingReportService.php`, `resources/views/reports/costing.blade.php`, migration جدول snapshot، تست سرویس و `PROJECT_PROGRESS.md`.
 - تست محلی، migration، مرورگر، production DB و Deploy در این محیط اجرا نشده‌اند؛ نتیجه CI پس از PR بررسی خواهد شد. هیچ داده production تغییر نکرده است.
-- شاخه: `fix/costing-refresh-current-material-prices-20261109`. PR برای بازبینی ساخته می‌شود؛ ادغام فقط با تأیید صریح کاربر انجام خواهد شد.
+- شاخه: `fix/costing-refresh-current-material-prices-20261109`; PR [#250](https://github.com/media-store-rtl/accounting/pull/250) باز است و ادغام نشده. CI پس از ایجاد PR در حال اجرا/بررسی است؛ آخرین commit شاخه پس از ثبت این یادداشت باید از GitHub بررسی شود. ادغام فقط با تأیید صریح کاربر انجام خواهد شد.
 
 ---
 
