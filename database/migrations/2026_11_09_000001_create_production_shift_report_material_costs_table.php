@@ -21,7 +21,7 @@ return new class extends Migration {
             $table->dateTime('refreshed_at')->nullable();
             $table->timestamps();
             $table->unique(['company_id', 'production_shift_report_id', 'goods_id'], 'shift_report_material_cost_unique');
-            $table->index(['company_id', 'production_shift_report_id']);
+            $table->index(['company_id', 'production_shift_report_id'], 'shift_report_material_cost_lookup_idx');
         });
     }
 
