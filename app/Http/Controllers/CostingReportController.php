@@ -20,7 +20,7 @@ final class CostingReportController extends Controller
         return $request->expectsJson() ? response()->json(['data'=>$result]) : back()->with('success','محاسبه بهای تمام‌شده ثبت و قابل ردیابی شد.');
     }
 
-    public function refreshAllProductionReports(Request $request, InventoryValuationService $valuationService)
+    public function refreshAllProductionReports(Request $request, InventoryValuationService $valuationService, HistoricalProductionConsumptionReconciliationService $historicalReconciliation)
     {
         $companyId = CompanyAuthorization::authorize($request, 'costing.report.view');
         $reportIds = DB::table('production_shift_reports')
@@ -40,7 +40,7 @@ final class CostingReportController extends Controller
 
         foreach ($reportIds as $reportId) {
             // Reuse the company-scoped, idempotent single-report valuation path.
-            $response = $this->valueProductionReport($valuationRequest, $valuationService, (int) $reportId);
+            $response = $this->valueProductionReport($valuationRequest, $valuationService, $historicalReconciliation, (int) $reportId);
             $payload = method_exists($response, 'getData') ? $response->getData(true) : [];
             $message = (string) ($payload['message'] ?? '');
             if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300 && !empty($payload['pending'])) {
