@@ -104,7 +104,7 @@ final class CostingReportController extends Controller
             // Costing refresh is a report-level monetary snapshot. It deliberately
             // does not create inventory movements or change stock/layer quantities.
             $result = $currentCostRefresh->refresh($companyId, $reportId, (int) $request->user()->id, 'WEB');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             return $this->valuationResponse($request, $exception->getMessage(), false, 200, true);
         }
 
