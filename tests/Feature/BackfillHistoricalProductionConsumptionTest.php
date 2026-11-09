@@ -165,6 +165,33 @@ class BackfillHistoricalProductionConsumptionTest extends TestCase
         $this->assertSame(0, DB::table('inventory_movements')->count());
     }
 
+    public function test_preview_refuses_backfill_when_an_unmatched_legacy_consumption_exists(): void
+    {
+        $this->seedReport('2026-10-18', 'received');
+        DB::table('inventory_movements')->insert([
+            [
+                'company_id' => 1, 'goods_id' => 5, 'location_id' => 10, 'quantity' => 2,
+                'movement_type' => 'production_material_receipt', 'reference_type' => 'material_handovers',
+                'reference_id' => 1, 'occurred_at' => '2026-10-17 12:00:00',
+            ],
+            [
+                'company_id' => 1, 'goods_id' => 5, 'location_id' => 10, 'quantity' => -1,
+                'movement_type' => 'production_consumption', 'reference_type' => 'legacy',
+                'reference_id' => 9, 'occurred_at' => '2026-10-17 13:00:00',
+            ],
+        ]);
+        DB::table('inventory_cost_layers')->insert([
+            'company_id' => 1, 'goods_id' => 5, 'location_id' => 10,
+            'received_at' => '2026-10-17 12:00:00', 'fifo_quantity_remaining' => 2,
+        ]);
+
+        $result = app(HistoricalProductionConsumptionReconciliationService::class)->preview(1, 20);
+
+        $this->assertFalse($result['eligible']);
+        $this->assertStringContainsString('گردش مصرف قبلی وجود دارد', $result['reason']);
+        $this->assertSame(2, DB::table('inventory_movements')->count());
+    }
+
     public function test_web_reconciliation_rechecks_eligibility_and_records_audit_attribution(): void
     {
         $this->seedReport('2026-10-18', 'received');
