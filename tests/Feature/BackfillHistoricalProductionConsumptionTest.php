@@ -151,6 +151,50 @@ class BackfillHistoricalProductionConsumptionTest extends TestCase
         $this->assertSame(0, DB::table('inventory_movements')->count());
     }
 
+    public function test_web_reconciliation_rechecks_eligibility_and_records_audit_attribution(): void
+    {
+        $this->seedReport('2026-10-18', 'received');
+        DB::table('inventory_movements')->insert([
+            'company_id' => 1, 'goods_id' => 5, 'location_id' => 10, 'quantity' => 2,
+            'movement_type' => 'production_material_receipt', 'reference_type' => 'material_handovers',
+            'reference_id' => 1, 'occurred_at' => '2026-10-17 12:00:00',
+        ]);
+        DB::table('inventory_cost_layers')->insert([
+            'company_id' => 1, 'goods_id' => 5, 'location_id' => 10,
+            'received_at' => '2026-10-17 12:00:00', 'fifo_quantity_remaining' => 2,
+        ]);
+        DB::table('users')->insert(['id' => 55]);
+
+        $inventory = \Mockery::mock(InventoryService::class);
+        $inventory->shouldReceive('consumeFromProductionSection')
+            ->once()
+            ->with(
+                1,
+                2,
+                5,
+                2.0,
+                'production_shift_reports',
+                20,
+                \Mockery::on(fn ($metadata) => ($metadata['historical_reconciliation'] ?? false) === true
+                    && ($metadata['shift_report_id'] ?? null) === 20
+                    && ($metadata['effective_occurred_at'] ?? null) === '2026-10-18 23:59:59')
+            );
+        $this->app->instance(InventoryService::class, $inventory);
+
+        $result = app(HistoricalProductionConsumptionReconciliationService::class)->apply(1, 20, 55, 'WEB');
+
+        $this->assertTrue($result['eligible']);
+        $this->assertDatabaseHas('audit_trails', [
+            'company_id' => 1,
+            'user_id' => 55,
+            'action' => 'production_shift_report.historical_consumption_reconciled',
+            'auditable_type' => 'production_shift_reports',
+            'auditable_id' => 20,
+            'method' => 'WEB',
+            'status_code' => 200,
+        ]);
+    }
+
     private function seedReport(string $workDate, string $status): void
     {
         DB::table('locations')->insert(['id' => 10, 'company_id' => 1, 'is_active' => true]);
