@@ -89,7 +89,7 @@ final class CostingReportController extends Controller
         return response()->json($result);
     }
 
-    public function valueProductionReport(Request $request, InventoryValuationService $valuationService, int $reportId)
+    public function valueProductionReport(Request $request, InventoryValuationService $valuationService, HistoricalProductionConsumptionReconciliationService $historicalReconciliation, int $reportId)
     {
         
         $companyId = CompanyAuthorization::authorize($request, 'costing.report.view');
@@ -120,7 +120,40 @@ final class CostingReportController extends Controller
         $movements = $allocation['movements'];
 
         if ($movements->isEmpty()) {
-            return $this->valuationResponse($request, 'مواد مصرفی در گزارش ثبت شده‌اند، اما هنوز گردش مصرف متناظر در انبار ثبت نشده است. پس از ثبت مصرف انبار، دوباره بروزرسانی کنید.', false, 200, true);
+            // Historical reports approved before automatic consumption was enabled
+            // may have report-material rows but no inventory issue. Reconcile only
+            // when the service can prove historical and current stock, eligible
+            // FIFO layers, an open fiscal year, and the absence of later issues.
+            try {
+                $historicalReconciliation->apply(
+                    $companyId,
+                    $reportId,
+                    (int) $request->user()->id,
+                    'WEB'
+                );
+            } catch (\RuntimeException $exception) {
+                return $this->valuationResponse(
+                    $request,
+                    'مصرف تاریخی به‌صورت خودکار قابل تطبیق نیست: ' . $exception->getMessage(),
+                    false,
+                    200,
+                    true
+                );
+            } catch (\Illuminate\Validation\ValidationException $exception) {
+                return $this->valuationResponse(
+                    $request,
+                    'تطبیق مصرف تاریخی انجام نشد: ' . collect($exception->errors())->flatten()->implode(' '),
+                    false,
+                    200,
+                    true
+                );
+            }
+
+            $allocation = $this->productionReportConsumptionMovements($companyId, $reportId);
+            $movements = $allocation['movements'];
+            if ($movements->isEmpty()) {
+                return $this->valuationResponse($request, 'پس از تطبیق تاریخی، گردش مصرف قابل بازیابی پیدا نشد.', false, 200, true);
+            }
         }
 
         foreach ($materials as $goodsId => $material) {
