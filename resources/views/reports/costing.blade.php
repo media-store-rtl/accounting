@@ -192,7 +192,7 @@
                             <td>{{ $formatCostingNumber($material['material_cost']) }}</td>
                             <td>{{ $formatCostingNumber($material['unmatched_quantity']) }}</td>
                             <td>{{ $formatCostingNumber($material['unvalued_quantity']) }}</td>
-                            <td>{{ $material['allocation_status'] === 'pending_consumption' ? 'در انتظار ثبت/تطبیق مصرف انبار' : ($material['allocation_status'] === 'pending_valuation' ? 'در انتظار ارزش‌گذاری ریالی' : 'کامل') }}</td>
+                            <td>{{ $material['allocation_status'] === 'current_cost_snapshot' ? 'ارزش‌گذاری با آخرین بهای ثبت‌شده' : ($material['allocation_status'] === 'pending_consumption' ? 'در انتظار ثبت/تطبیق مصرف انبار' : ($material['allocation_status'] === 'pending_valuation' ? 'در انتظار ارزش‌گذاری ریالی' : 'کامل')) }}</td>
                           </tr>
                         @empty
                           <tr><td colspan="10">برای این گزارش ریز مواد مصرفی ثبت نشده است.</td></tr>
@@ -214,7 +214,7 @@
                       </tbody>
                     </table>
                   </div>
-                  <p class="costing-detail-note">* این جمع شامل مواد ارزش‌گذاری‌شده و دستمزد این گزارش است. هزینه‌های خرید مستقیم و سربار، در صورت وجود، در این ردیف سرشکن نشده‌اند. بهای قطعی فقط پس از رفع مغایرت مواد قابل تعیین است.</p>
+                  <p class="costing-detail-note">* این جمع شامل مواد ارزش‌گذاری‌شده و دستمزد این گزارش است. در صورت نمایش «ارزش‌گذاری با آخرین بهای ثبت‌شده»، مبلغ مواد یک snapshot ریالی از آخرین نرخ معتبر است و به معنی ثبت گردش مصرف یا کسر موجودی انبار نیست. هزینه‌های خرید مستقیم و سربار در این ردیف سرشکن نشده‌اند.</p>
                 </div>
               </td>
             </tr>
