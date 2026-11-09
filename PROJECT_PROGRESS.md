@@ -7,7 +7,7 @@
 - گردش مصرف موجود همچنان از مسیر فعلی valueInventoryMovement دوباره ارزش‌گذاری می‌شود؛ این مسیر مقدار مصرف و مانده لایه‌های قبلاً تخصیص‌یافته را دوباره کسر نمی‌کند و مبلغ را از لایه‌های پیوندخورده با نرخ فعلی می‌خواند.
 - فایل‌ها: app/Services/HistoricalProductionConsumptionReconciliationService.php, app/Console/Commands/BackfillHistoricalProductionConsumption.php, app/Http/Controllers/CostingReportController.php, tests/Feature/BackfillHistoricalProductionConsumptionTest.php, PROJECT_PROGRESS.md.
 - تست رگرسیون: حفظ dry-run فرمان تاریخی، جلوگیری از backfill در حضور گردش مصرف قدیمیِ تخصیص‌نیافته، و ثبت تطبیق واجد شرایط همراه انتساب کاربر و Audit Trail.
-- تست محلی در این محیط اجرا نشده است؛ CI پس از ایجاد PR باید بررسی شود. هیچ دستور روی production، تغییر دادهٔ سایت، migration، backfill واقعی، Deploy یا پاک‌سازی cache اجرا نشده است.
+- تست محلی در این محیط اجرا نشده است. اجرای نخست CI (run 42573464914) در مجموع ۱۱۲ تست موفق و ۲ تست ناموفق داشت؛ هر دو شکست فقط به‌دلیل انتظار متن انگلیسی قدیمی در تست فرمان بود، درحالی‌که پیام سرویس جدید فارسی است. assertionها به پیام واقعی فارسی اصلاح شدند و CI جدید در حال اجراست. هیچ دستور روی production، تغییر دادهٔ سایت، migration، backfill واقعی، Deploy یا پاک‌سازی cache اجرا نشده است.
 - شاخه: fix/costing-historical-refresh-reconciliation-20261109. تغییرات در PR جداگانه ارائه می‌شوند؛ ادغام نیازمند تأیید صریح کاربر است.
 
 ---
