@@ -126,7 +126,7 @@ class BackfillHistoricalProductionConsumptionTest extends TestCase
         ]);
 
         $this->assertSame(1, $exit);
-        $this->assertStringContainsString('insufficient ledger stock on the report date', Artisan::output());
+        $this->assertStringContainsString('موجودی دفتری مادهٔ 5 در تاریخ گزارش کافی نبوده است', Artisan::output());
         $this->assertSame(1, DB::table('inventory_movements')->count());
     }
 
@@ -161,7 +161,7 @@ class BackfillHistoricalProductionConsumptionTest extends TestCase
         ]);
 
         $this->assertSame(1, $exit);
-        $this->assertStringContainsString('Only approved/received reports', Artisan::output());
+        $this->assertStringContainsString('فقط گزارش تأییدشده یا تحویل‌شده', Artisan::output());
         $this->assertSame(0, DB::table('inventory_movements')->count());
     }
 
