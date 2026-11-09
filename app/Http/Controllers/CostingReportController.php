@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\CostCalculationService;
 use App\Services\CostingReportService;
 use App\Services\InventoryValuationService;
+use App\Services\HistoricalProductionConsumptionReconciliationService;
 use App\Support\CompanyAuthorization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
