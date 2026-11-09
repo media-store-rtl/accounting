@@ -75,6 +75,46 @@ final class CostingReportService
         $productionReports=$this->productionShiftReports($companyId,$fiscalYearId,$orderId,$goodsId,$startDate,$endDate,$personnelId,$productionSectionId,$productionStageId);
         $productionReports = $this->attachReportMaterialDetails($companyId, $productionReports, $valuationOverrides);
 
+        // Reconcile product-level material totals with report snapshots. Only the
+        // delta is applied, so movement-backed amounts already included in the
+        // aggregate are replaced rather than counted twice.
+        foreach ($productionReports as &$productionReport) {
+            $snapshotDelta = 0.0;
+            foreach ($productionReport['materials'] as &$materialDetail) {
+                if (!array_key_exists('_snapshot_previous_material_cost', $materialDetail)) continue;
+                $snapshotDelta += (float) $materialDetail['material_cost'] - (float) $materialDetail['_snapshot_previous_material_cost'];
+                unset($materialDetail['_snapshot_previous_material_cost']);
+            }
+            unset($materialDetail);
+
+            if (abs($snapshotDelta) <= 0.0000001) continue;
+            $goodsKey = (int) $productionReport['goods_id'];
+            $orderKey = $productionReport['order_id'] !== null ? (int) $productionReport['order_id'] : null;
+            $rowKey = $this->key($orderKey, $goodsKey);
+            $this->row($rows, $rowKey, $orderKey, $goodsKey);
+            $rows[$rowKey]['material_cost'] += $snapshotDelta;
+            $rows[$rowKey]['total_cost'] += $snapshotDelta;
+            if (!in_array('current_cost_snapshot', $rows[$rowKey]['valuation_methods'], true)) {
+                $rows[$rowKey]['valuation_methods'][] = 'current_cost_snapshot';
+            }
+
+            if (isset($productRows[$goodsKey])) {
+                $productRows[$goodsKey]['material_cost'] += $snapshotDelta;
+                $productRows[$goodsKey]['total_cost'] += $snapshotDelta;
+                if (!in_array('current_cost_snapshot', $productRows[$goodsKey]['valuation_methods'], true)) {
+                    $productRows[$goodsKey]['valuation_methods'][] = 'current_cost_snapshot';
+                }
+            }
+        }
+        unset($productionReport);
+
+        foreach ($productRows as &$productRow) {
+            $productRow['unit_cost'] = (float) ($productRow['produced_quantity'] ?? 0) > 0
+                ? round((float) $productRow['total_cost'] / (float) $productRow['produced_quantity'], 4)
+                : null;
+        }
+        unset($productRow);
+
         $valuationMethods=[];
         foreach($rows as $row){
             foreach(($row['valuation_methods'] ?? []) as $method){
@@ -526,20 +566,57 @@ final class CostingReportService
             }
         }
 
+        // Current-cost snapshots are report-specific monetary values. They
+        // intentionally do not depend on inventory movement dates or FIFO balances.
+        if (DB::getSchemaBuilder()->hasTable('production_shift_report_material_costs')) {
+            $snapshots = DB::table('production_shift_report_material_costs')
+                ->where('company_id', $companyId)
+                ->whereIn('production_shift_report_id', array_values(array_unique($reportIdsByMaterialRow)))
+                ->get()
+                ->keyBy(fn ($snapshot) => (int) $snapshot->production_shift_report_id . ':' . (int) $snapshot->goods_id);
+
+            foreach ($details as $materialRowId => &$detail) {
+                $reportId = (int) $reportIdsByMaterialRow[$materialRowId];
+                $snapshot = $snapshots->get($reportId . ':' . (int) $detail['material_id']);
+                if (!$snapshot) continue;
+
+                $detail['_snapshot_previous_material_cost'] = (float) $detail['material_cost'];
+                $quantity = (float) $detail['quantity'];
+                $unitCost = $snapshot->unit_cost !== null ? (float) $snapshot->unit_cost : null;
+                $valuedQuantity = $unitCost !== null ? $quantity : 0.0;
+                $detail['allocated_quantity'] = $quantity;
+                $detail['valued_quantity'] = $valuedQuantity;
+                $detail['unmatched_quantity'] = 0.0;
+                $detail['unvalued_quantity'] = max(0.0, $quantity - $valuedQuantity);
+                $detail['unit_cost'] = $unitCost;
+                // Each detail row may be one of several rows for the same good;
+                // apply the snapshot unit rate to this row's own quantity.
+                $detail['material_cost'] = $unitCost !== null ? $quantity * $unitCost : 0.0;
+                $detail['valuation_methods'] = $valuedQuantity > 0 ? ['current_cost_snapshot' => true] : [];
+                $detail['allocation_status'] = $detail['unvalued_quantity'] > 0.0001
+                    ? 'pending_valuation'
+                    : 'current_cost_snapshot';
+                $detail['cost_complete'] = $detail['unvalued_quantity'] <= 0.0001;
+            }
+            unset($detail);
+        }
+
         $byReport = [];
         foreach ($details as $materialRowId => &$detail) {
             $detail['allocated_quantity'] = round($detail['allocated_quantity'], 4);
             $detail['valued_quantity'] = round($detail['valued_quantity'], 4);
             $detail['unmatched_quantity'] = round(max(0.0, $detail['quantity'] - $detail['allocated_quantity']), 4);
             $detail['unvalued_quantity'] = round(max(0.0, $detail['quantity'] - $detail['valued_quantity']), 4);
-            $detail['allocation_status'] = $detail['unmatched_quantity'] > 0.0001
-                ? 'pending_consumption'
-                : ($detail['unvalued_quantity'] > 0.0001 ? 'pending_valuation' : 'complete');
             $detail['material_cost'] = round($detail['material_cost'], 4);
             $detail['unit_cost'] = $detail['valued_quantity'] > 0
                 ? round($detail['material_cost'] / $detail['valued_quantity'], 6)
                 : null;
             $detail['valuation_methods'] = array_keys($detail['valuation_methods']);
+            $detail['allocation_status'] = in_array('current_cost_snapshot', $detail['valuation_methods'], true)
+                ? 'current_cost_snapshot'
+                : ($detail['unmatched_quantity'] > 0.0001
+                    ? 'pending_consumption'
+                    : ($detail['unvalued_quantity'] > 0.0001 ? 'pending_valuation' : 'complete'));
             $detail['cost_complete'] = $detail['unvalued_quantity'] <= 0.0001;
             $byReport[$reportIdsByMaterialRow[$materialRowId]][] = $detail;
         }

@@ -291,6 +291,31 @@ class CostingReportTest extends TestCase
         $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'material','amount'=>27]);
         $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'labor','amount'=>60]);
         $this->assertDatabaseHas('cost_components',['cost_calculation_id'=>$calculation['ids'][0],'component_type'=>'direct','amount'=>5]);
+
+        // A current-cost snapshot replaces the report's allocated movement cost
+        // in both report details and product-level totals, without double counting.
+        DB::table('production_shift_report_material_costs')->insert([
+            'company_id' => $company,
+            'production_shift_report_id' => $receivedShiftReportId,
+            'goods_id' => $rawMaterial,
+            'quantity' => 4,
+            'valued_quantity' => 4,
+            'unit_cost' => 11,
+            'total_cost' => 44,
+            'source_cost_layer_id' => null,
+            'refreshed_by' => $user,
+            'refreshed_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $snapshotReport = app(CostingReportService::class)->generate($company, $fy, $order, $goods);
+        $receivedDetails = collect($snapshotReport['production_reports'])
+            ->firstWhere('report_id', $receivedShiftReportId);
+        $this->assertSame(44.0, $receivedDetails['material_cost']);
+        $this->assertSame(22.0, $receivedDetails['materials'][0]['material_cost']);
+        $this->assertSame('current_cost_snapshot', $receivedDetails['materials'][0]['allocation_status']);
+        $this->assertSame(44.0, $snapshotReport['product_rows'][0]['material_cost']);
+        $this->assertSame(44.0, $snapshotReport['totals']['material_cost']);
     }
     public function test_default_valuation_method_is_fixed_fifo_without_rewriting_historical_cost_rows(): void
     {
