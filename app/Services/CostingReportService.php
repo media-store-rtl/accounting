@@ -526,6 +526,37 @@ final class CostingReportService
             }
         }
 
+        // Current-cost snapshots are report-specific monetary values. They
+        // intentionally do not depend on inventory movement dates or FIFO balances.
+        if (DB::getSchemaBuilder()->hasTable('production_shift_report_material_costs')) {
+            $snapshots = DB::table('production_shift_report_material_costs')
+                ->where('company_id', $companyId)
+                ->whereIn('production_shift_report_id', array_values(array_unique($reportIdsByMaterialRow)))
+                ->get()
+                ->keyBy(fn ($snapshot) => (int) $snapshot->production_shift_report_id . ':' . (int) $snapshot->goods_id);
+
+            foreach ($details as $materialRowId => &$detail) {
+                $reportId = (int) $reportIdsByMaterialRow[$materialRowId];
+                $snapshot = $snapshots->get($reportId . ':' . (int) $detail['material_id']);
+                if (!$snapshot) continue;
+
+                $quantity = (float) $detail['quantity'];
+                $valuedQuantity = min($quantity, (float) $snapshot->valued_quantity);
+                $detail['allocated_quantity'] = 0.0;
+                $detail['valued_quantity'] = $valuedQuantity;
+                $detail['unmatched_quantity'] = 0.0;
+                $detail['unvalued_quantity'] = max(0.0, $quantity - $valuedQuantity);
+                $detail['unit_cost'] = $snapshot->unit_cost !== null ? (float) $snapshot->unit_cost : null;
+                $detail['material_cost'] = (float) ($snapshot->total_cost ?? 0);
+                $detail['valuation_methods'] = $valuedQuantity > 0 ? ['current_cost_snapshot'] : [];
+                $detail['allocation_status'] = $detail['unvalued_quantity'] > 0.0001
+                    ? 'pending_valuation'
+                    : 'current_cost_snapshot';
+                $detail['cost_complete'] = $detail['unvalued_quantity'] <= 0.0001;
+            }
+            unset($detail);
+        }
+
         $byReport = [];
         foreach ($details as $materialRowId => &$detail) {
             $detail['allocated_quantity'] = round($detail['allocated_quantity'], 4);
