@@ -541,13 +541,16 @@ final class CostingReportService
                 if (!$snapshot) continue;
 
                 $quantity = (float) $detail['quantity'];
-                $valuedQuantity = min($quantity, (float) $snapshot->valued_quantity);
+                $unitCost = $snapshot->unit_cost !== null ? (float) $snapshot->unit_cost : null;
+                $valuedQuantity = $unitCost !== null ? $quantity : 0.0;
                 $detail['allocated_quantity'] = 0.0;
                 $detail['valued_quantity'] = $valuedQuantity;
                 $detail['unmatched_quantity'] = 0.0;
                 $detail['unvalued_quantity'] = max(0.0, $quantity - $valuedQuantity);
-                $detail['unit_cost'] = $snapshot->unit_cost !== null ? (float) $snapshot->unit_cost : null;
-                $detail['material_cost'] = (float) ($snapshot->total_cost ?? 0);
+                $detail['unit_cost'] = $unitCost;
+                // Each detail row may be one of several rows for the same good;
+                // apply the snapshot unit rate to this row's own quantity.
+                $detail['material_cost'] = $unitCost !== null ? $quantity * $unitCost : 0.0;
                 $detail['valuation_methods'] = $valuedQuantity > 0 ? ['current_cost_snapshot'] : [];
                 $detail['allocation_status'] = $detail['unvalued_quantity'] > 0.0001
                     ? 'pending_valuation'
