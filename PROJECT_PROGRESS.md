@@ -1,3 +1,15 @@
+# 147. تثبیت مرز مسئولیت Laravel و Dolibarr در تعریف پروژه — 2026-11-13
+
+- درخواست تأییدشده: هم‌راستا کردن تعریف اصلی پروژه با معماری Dolibarr؛ Laravel فقط صلاحیت ورود کاربر/شرکت را بررسی کند و Dolibarr تمام منطق حسابداری و مجوزهای داخلی خود را نگه دارد.
+- در `PROJECT_DEFINITION.md` بند مستقل ۱۴.۵ برای entitlement صریح و شرکت‌محور `dolibarr.access` اضافه شد؛ اشتراک عمومی Accounting به‌تنهایی مجوز Dolibarr نیست و منبع حقیقت/قرارداد entitlement همچنان تصمیم باز است.
+- بخش ۱۶.۱ مرز دو سامانه، مالکیت داده و عملیات حسابداری Dolibarr، handoff امن کوتاه‌عمر و یک‌بارمصرف، جلوگیری از دور زدن درگاه، عدم استفاده ضمنی از SSO/secretهای Web2022 و تصمیم‌های باز هویت/ابطال/نشست را ثبت می‌کند. بخش‌های ۱۷ و ۱۹ نیز با این مرز هماهنگ شدند.
+- فایل‌های تغییرکرده: `PROJECT_DEFINITION.md`, `PROJECT_PROGRESS.md`. هیچ کد runtime، منطق حسابداری، API، migration، منبع upstream یا تنظیم production تغییر نکرده است.
+- بررسی‌ها: وضعیت زنده PR #254 در زمان کار باز و ادغام‌نشده بود؛ CI آخرین commit پیش از این تغییر مستنداتی در run شماره 3802 با نتیجه `success` گزارش شده است. پس از commitهای مستندات باید CI جدید همین شاخه/PR بررسی شود. تست محلی، مرورگر، migration و Deploy اجرا نشده‌اند.
+- منبع حقیقت entitlement و قرارداد payload/API، نگاشت هویت Laravel به کاربر/موجودیت Dolibarr، تازگی و ابطال entitlement، عمر نشست و enforcement غیرقابل دور زدن همچنان پیش‌نیازهای طراحی و پیاده‌سازی runtime هستند.
+- شاخه: `chore/dolibarr-stable-release-tracking`. PR [#254](https://github.com/media-store-rtl/accounting/pull/254) باز می‌ماند؛ ادغام فقط با تأیید صریح جداگانه کاربر مجاز است.
+
+---
+
 # 146. اصلاح نام طولانی index مهاجرت هزینه مواد گزارش تولید برای MySQL — 2026-11-09
 
 - علت فنی شناسایی‌شده در migration جدید PR #250: تعریف index ترکیبی بدون نام صریح، نام خودکاری با طول ۸۲ کاراکتر تولید می‌کرد (`production_shift_report_material_costs_company_id_production_shift_report_id_index`). این نام از سقف ۶۴ کاراکتری MySQL بیشتر است و می‌تواند اجرای `php artisan migrate --force` در Deploy را متوقف کند؛ SQLite این محدودیت را آشکار نمی‌کند.
