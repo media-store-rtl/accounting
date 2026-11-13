@@ -122,5 +122,4 @@ jobs:
             - Change: update the pinned Git submodule and release record only.
 
             Review release notes, custom-module compatibility, patch applicability, installation/upgrade behavior, and entity isolation before merging. This PR is never auto-merged and does not deploy to production.
-          labels: dependencies
           draft: false
