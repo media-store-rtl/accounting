@@ -1435,3 +1435,13 @@
 - گردش‌کار ردیابی نسخه به همگام‌سازی واقعی submodule ارتقا داده می‌شود: فقط latest stable رسمی، بررسی هفتگی/اجرای دستی، ساخت PR برای تغییر pointer؛ بدون auto-merge و بدون Deploy.
 - وضعیت: pointer و مستندات در PR برای بازبینی ثبت می‌شوند. checkout کامل submodule، اجرای تست نصب/ارتقا Dolibarr، اتصال runtime به Laravel، تست‌های multi-entity و Deploy هنوز انجام نشده‌اند. برای دریافت سورس در clone محلی باید `git submodule update --init --depth 1 dolibarr/upstream` اجرا شود.
 - هیچ migration یا تغییری در دیتابیس/production انجام نشده است؛ PR #254 باز می‌ماند و merge نیازمند تأیید صریح کاربر است.
+
+
+# 149. تعیین مرز اتصال Dolibarr و کنترل مجوز ورود در Laravel — 2026-11-13
+
+- تصمیم معماری کاربر: Laravel فقط بررسی می‌کند کاربر واردشده در شرکت انتخاب‌شده مجوز/اشتراک استفاده از Dolibarr را دارد یا خیر؛ منطق حسابداری و عملیات تجاری در Dolibarr می‌ماند و در Laravel بازسازی یا همگام‌سازی نمی‌شود.
+- مستند `docs/dolibarr-integration-boundary.md` اضافه شد: مالکیت مسئولیت‌ها، شرط entitlement اختصاصی `dolibarr.access`، منع اعطای دسترسی صرفاً بر اساس active بودن یک اشتراک عمومی، جریان ورود امن با assertion امضاشده یک‌بارمصرف، لزوم جلوگیری از دسترسی مستقیم به مبدأ Dolibarr، مراحل اجرا و معیارهای آزمون.
+- بررسی کد فعلی: Laravel جدول `subscription_entitlements` و مدل `SubscriptionEntitlement` در سطح شرکت دارد؛ `isActive()` فعلی فقط status و expires_at را می‌سنجد و شروع اشتراک، مجوز محصول Dolibarr و تازگی اعتبارسنجی را پوشش نمی‌دهد. کنترل دسترسی کاربر/عضویت شرکت نیز در مدل‌های موجود است.
+- `AccountingSsoController` فعلی مربوط به اتصال Web2022/فروشگاه است و نباید بدون طراحی مستقل به‌عنوان SSO دولیبار استفاده شود یا secretهای آن بازاستفاده شوند.
+- این مرحله عمداً فقط طراحی و مستندسازی است؛ هنوز route، middleware، entitlement، SSO adapter یا Dolibarr business API عملیاتی اضافه نشده است. برای پیاده‌سازی امن باید قرارداد feature entitlement با سامانه اشتراک، نگاشت هویت به کاربر Dolibarr، محل میزبانی و راه جلوگیری از دورزدن gate مشخص شود.
+- تغییرات فقط در PR #254 ثبت می‌شوند؛ merge، نصب runtime، تغییر دیتابیس و Deploy انجام نشده است.
