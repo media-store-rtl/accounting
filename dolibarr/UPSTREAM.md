@@ -16,7 +16,7 @@ The source is pinned to the official release tag, not to the moving development 
 Clone this repository with submodules:
 
 ```bash
-git clone --recurse-submodules https://github.com/media-store-rtl/accounting.git
+git clone --recurse-submodules --shallow-submodules https://github.com/media-store-rtl/accounting.git
 ```
 
 If the repository is already cloned:
