@@ -58,3 +58,17 @@ Every code or documentation change must be accompanied by an update to `PROJECT_
 - A clear instruction such as “merge PR #56” is explicit approval for that named PR only; it does not authorize merging other PRs. Do not infer permission from earlier approvals, urgency, silence, or general project instructions.
 - Never close a PR without explicit user permission either. Preserve any PR-specific restrictions, including the restriction on PR #52.
 - After an explicitly approved merge, verify the merged state and merge commit on GitHub and update PROJECT_PROGRESS.md in a follow-up branch/PR if needed; do not commit directly to main.
+
+
+## Dolibarr / Medimo SaaS integration boundaries
+
+- The current Dolibarr source repository for this project is `media-store-rtl/erp`. Use that repository as the ERP codebase unless the user explicitly changes this decision; do not create or assume a separate Dolibarr repository.
+- Keep Accounting and Dolibarr as separate applications. Accounting remains the specialized manufacturing cost-accounting application and owns its Account/Company context, local user membership/permissions, subscription entitlement enforcement, and the integration orchestration already connected to Web2022.
+- Dolibarr is the ERP application/engine for capabilities explicitly assigned to it. Do not silently duplicate or move Accounting's manufacturing-costing domain into Dolibarr. Before implementing overlapping workflows (orders, inventory, purchasing, production, sales, or reporting), document which application owns each record and which system is authoritative.
+- The intended sign-in flow is Web2022 → Accounting → Dolibarr. Accounting should broker a short-lived, single-use SSO ticket for Dolibarr; never pass passwords or long-lived shared secrets through the browser. Keep API credentials and signing secrets server-side.
+- The intended customer experience is one Medimo product with Accounting as the main navigation/entry point. Dolibarr may run on a separate subdomain/origin while retaining consistent branding. Do not use an iframe as the default integration; assess browser cookie, CSP, clickjacking, and session constraints before proposing embedded rendering.
+- The current architectural direction is one shared Dolibarr installation with a distinct Dolibarr Entity per SaaS customer. This is a target to validate, not a proven security guarantee. Before enabling real customer data, verify tenant isolation across core modules, custom modules, API endpoints, files/documents, reports, background jobs, exports, and third-party modules. If a safe isolation guarantee cannot be demonstrated, stop and present alternatives.
+- Map each Accounting Account/Company to exactly one intended Dolibarr Entity through a server-controlled mapping. Never trust a client-supplied Entity ID as authorization. Map users and plan limits explicitly; enforce subscription status and dates on the server.
+- On subscription expiry, restrict the agreed paid operations without deleting or corrupting customer data. Renewal should restore permitted access while preserving historical records.
+- Do not access, inspect, modify, deploy to, or use `https://erp.mymedimo.ir`; it is explicitly out of scope unless the user later authorizes it.
+- Architectural decisions in these documents describe the agreed direction only. Do not claim SSO, Entity provisioning, MultiCompany support, tenant isolation, or production integration is implemented until code and tests verify it.
