@@ -18,7 +18,7 @@ The launch decision is scoped to the active Laravel user and selected company. I
 4. The entitlement status is active, its start time has passed, and it has not expired.
 5. The entitlement is sufficiently fresh according to the subscription verification policy.
 
-An active generic subscription alone must not grant Dolibarr access. A plan without the explicit `dolibarr.access` entitlement must be denied. A missing, pending, suspended, expired, not-yet-started, or stale/unverifiable entitlement must be denied. Subscription expiry blocks new launches and must not delete either application's data.
+An active generic subscription alone must not grant Dolibarr access. A plan without the explicit `dolibarr.access` entitlement must be denied. A missing, pending, not-yet-started, or stale/unverifiable entitlement must be denied. **Ordinary expiry is a distinct state:** it changes the customer's existing Dolibarr environment to read-only rather than deleting data or making historical records inaccessible. The user may still launch a restricted read-only session to view, search, print, and download existing records and reports. All data-changing operations must be rejected server-side across the UI, direct requests, APIs, bulk actions, imports/uploads, and background operations. Hiding UI controls alone is insufficient. Renewal restores normal permitted operation in the same Dolibarr environment and database; it does not create a new database or fiscal year. Suspension or explicit revocation for security, fraud, or legal reasons may instead block access entirely under a separately defined policy.
 
 This is a product entitlement check, not a copy of Dolibarr's internal role/permission system. Once inside Dolibarr, Dolibarr itself decides what the mapped Dolibarr user can do. Laravel must not mirror Dolibarr roles or individual module permissions.
 
@@ -84,3 +84,17 @@ The Dolibarr authentication adapter is a narrow trust-boundary component, not a 
 - Synchronizing Dolibarr ledgers, invoices, payments, inventory or permissions into Laravel.
 - Automatically provisioning a super-admin or copying Laravel roles into Dolibarr.
 - Installing or deploying Dolibarr to production without a separate reviewed and approved deployment plan.
+
+
+## Expired subscription: read-only access and renewal
+
+The subscription period and the customer's fiscal year are independent. Buying or renewing a plan must not create a fiscal year or a replacement Dolibarr database. Each customer retains the same Dolibarr environment across renewals.
+
+- While the `dolibarr.access` entitlement is active, the user may perform operations allowed by that user's native Dolibarr roles and permissions.
+- When the entitlement expires normally, the customer may still enter the existing Dolibarr environment in **read-only mode**. Viewing, searching, printing, and downloading existing documents and reports remain available.
+- In read-only mode, all mutations are forbidden: create, edit, delete, validate, post, submit, pay, stock movement, import, upload, configuration changes, and user/role administration. Enforcement must be server-side and cover forms, direct HTTP requests, APIs, bulk actions, and background jobs. UI button hiding is not a security boundary.
+- Laravel remains responsible only for determining the entitlement state and conveying the allowed access mode through the secure handoff. Dolibarr or a non-bypassable enforcement layer must enforce read-only behavior for every request, including attempts made through an existing session or direct origin access.
+- Renewing the entitlement restores the same environment to normal operation subject to the user's Dolibarr permissions. It does not create a new database, user space, or fiscal year.
+- Normal expiry must never delete or reset the customer's database, documents, uploaded files, or financial history. Explicit suspension/revocation for security, fraud, or legal reasons may block access entirely and is distinct from ordinary expiry.
+
+This policy is a required acceptance criterion. Tests must prove that read and export operations remain available after expiry and that every write path is rejected; they must also prove that renewal restores permitted writes without replacing the database or historical data.
