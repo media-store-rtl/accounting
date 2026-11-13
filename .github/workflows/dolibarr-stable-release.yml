@@ -1,0 +1,125 @@
+name: Dolibarr stable upstream sync
+
+on:
+  schedule:
+    - cron: "17 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: dolibarr-upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  propose-upstream-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Accounting with the pinned upstream submodule
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Resolve latest official stable Dolibarr release
+        id: release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = 'Dolibarr';
+            const repo = 'dolibarr';
+            const response = await fetch('https://api.github.com/repos/Dolibarr/dolibarr/releases/latest', {
+              headers: {
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28'
+              }
+            });
+            if (!response.ok) {
+              throw new Error('Unable to read latest Dolibarr release: HTTP ' + response.status);
+            }
+            const release = await response.json();
+            if (release.draft || release.prerelease || !release.tag_name) {
+              throw new Error('The latest release endpoint did not return a published stable release.');
+            }
+
+            const tagRef = await github.rest.git.getRef({
+              owner, repo, ref: 'tags/' + release.tag_name
+            });
+            let object = tagRef.data.object;
+            while (object.type === 'tag') {
+              const annotated = await github.rest.git.getTag({
+                owner, repo, tag_sha: object.sha
+              });
+              object = annotated.data.object;
+            }
+            if (object.type !== 'commit') {
+              throw new Error('Stable release tag does not resolve to a commit.');
+            }
+
+            core.setOutput('tag', release.tag_name);
+            core.setOutput('release_url', release.html_url);
+            core.setOutput('commit_sha', object.sha);
+            core.info('Stable Dolibarr ' + release.tag_name + ' resolves to ' + object.sha);
+
+      - name: Update the pinned upstream submodule and release record
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_URL: ${{ steps.release.outputs.release_url }}
+          EXPECTED_SHA: ${{ steps.release.outputs.commit_sha }}
+        run: |
+          set -euo pipefail
+          test -f .gitmodules
+          test -d dolibarr/upstream
+          git -C dolibarr/upstream fetch --depth=1 origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+          git -C dolibarr/upstream checkout --detach "${RELEASE_TAG}"
+          ACTUAL_SHA="$(git -C dolibarr/upstream rev-parse HEAD)"
+          if [ "${ACTUAL_SHA}" != "${EXPECTED_SHA}" ]; then
+            echo "Tag resolved to ${ACTUAL_SHA}, expected ${EXPECTED_SHA}" >&2
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          import re
+
+          path = Path("dolibarr/UPSTREAM.md")
+          content = path.read_text(encoding="utf-8")
+          replacements = [
+              (r"(?m)^- Current imported stable release: .*?$",
+               "- Current imported stable release: " + os.environ["RELEASE_TAG"]),
+              (r"(?m)^- Release page: .*?$",
+               "- Release page: " + os.environ["RELEASE_URL"]),
+              (r"(?m)^- Upstream commit: .*?$",
+               "- Upstream commit: `" + os.environ["EXPECTED_SHA"] + "`"),
+          ]
+          for pattern, replacement in replacements:
+              content, count = re.subn(pattern, lambda _: replacement, content)
+              if count != 1:
+                  raise SystemExit("Expected exactly one matching release metadata line: " + pattern)
+          path.write_text(content, encoding="utf-8")
+          PY
+
+          git add dolibarr/upstream dolibarr/UPSTREAM.md
+          git diff --cached --check
+
+      - name: Open or update a review PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: automation/dolibarr-upstream-sync
+          delete-branch: true
+          commit-message: "chore(dolibarr): sync stable upstream ${{ steps.release.outputs.tag }}"
+          title: "chore(dolibarr): sync stable upstream ${{ steps.release.outputs.tag }}"
+          body: |
+            A new official stable Dolibarr release was detected.
+
+            - Release: ${{ steps.release.outputs.tag }}
+            - Upstream commit: ${{ steps.release.outputs.commit_sha }}
+            - Release notes: ${{ steps.release.outputs.release_url }}
+            - Change: update the pinned Git submodule and release record only.
+
+            Review release notes, custom-module compatibility, patch applicability, installation/upgrade behavior, and entity isolation before merging. This PR is never auto-merged and does not deploy to production.
+          draft: false
