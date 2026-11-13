@@ -1,0 +1,3 @@
+[submodule "dolibarr/upstream"]
+	path = dolibarr/upstream
+	url = https://github.com/Dolibarr/dolibarr.git

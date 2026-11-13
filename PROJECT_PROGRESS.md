@@ -1426,3 +1426,12 @@
 - محدودیت عمدی این مرحله: گردش‌کار فقط metadata انتشار را ثبت می‌کند و سورس Dolibarr را دانلود/جایگزین/ادغام یا Deploy نمی‌کند. واردکردن درخت کامل upstream به dolibarr/upstream/ باید در تغییر جداگانه با بررسی اندازه، ساختار، مجوزها، فایل‌های پیکربندی و تست سازگاری انجام شود؛ نباید فایل‌های Laravel در ریشه Accounting بازنویسی شوند.
 - تست محلی و اجرای واقعی workflow انجام نشده است؛ پس از بازشدن PR باید CI و اعتبار YAML/اجرای workflow در GitHub Actions بررسی شود. هیچ migration، تغییر production یا Deploy انجام نشده است.
 - PR برای بازبینی انسانی ایجاد می‌شود؛ auto-merge و auto-deploy فعال نشده‌اند. هیچ PR موجودی (از جمله PR #253) تغییر یا ادغام نشده است.
+
+# 148. واردکردن سورس رسمی Dolibarr به‌صورت submodule نسخه پایدار — 2026-11-13
+
+- بررسی اندازه upstream در tag رسمی 24.0.3: حدود 274.5 MiB و 15,641 فایل؛ کپی‌کردن کل درخت در مخزن Laravel، حجم و تاریخچه Accounting را بی‌جهت سنگین می‌کند. بنابراین روش ادغام به Git submodule تغییر کرد تا سورس رسمی با commit دقیق و قابل تکرار pin شود و تاریخچه upstream جدا بماند.
+- submodule رسمی `https://github.com/Dolibarr/dolibarr.git` در مسیر `dolibarr/upstream` به commit `5c6c7ff6a5112413b1c27221c8d11750afad56f8` (tag پایدار 24.0.3) متصل شد. فایل `.gitmodules` و راهنمای clone/update نیز اضافه شدند.
+- مرز سفارشی‌سازی: ماژول‌های محلی در `dolibarr/custom-modules/` و patchهای ضروری در `dolibarr/patches/` نگهداری می‌شوند؛ ویرایش مستقیم submodule ممنوع است. ریشه Laravel دست‌نخورده می‌ماند؛ document root خود Dolibarr برابر `dolibarr/upstream/htdocs` است.
+- گردش‌کار ردیابی نسخه به همگام‌سازی واقعی submodule ارتقا داده می‌شود: فقط latest stable رسمی، بررسی هفتگی/اجرای دستی، ساخت PR برای تغییر pointer؛ بدون auto-merge و بدون Deploy.
+- وضعیت: pointer و مستندات در PR برای بازبینی ثبت می‌شوند. checkout کامل submodule، اجرای تست نصب/ارتقا Dolibarr، اتصال runtime به Laravel، تست‌های multi-entity و Deploy هنوز انجام نشده‌اند. برای دریافت سورس در clone محلی باید `git submodule update --init --depth 1 dolibarr/upstream` اجرا شود.
+- هیچ migration یا تغییری در دیتابیس/production انجام نشده است؛ PR #254 باز می‌ماند و merge نیازمند تأیید صریح کاربر است.
