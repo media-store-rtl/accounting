@@ -30,7 +30,7 @@
 <body>
 @php
 $user = auth()->user();
-$companies = $user->companies()->where('companies.is_active', true)->orderBy('companies.name')->get();
+$companies = $user->companies()->where('companies.is_active', true)->wherePivot('is_active', true)->orderBy('companies.name')->get();
 $company = $companies->firstWhere('id', (int) session('company_id'));
 $fiscalYears = $company?->fiscalYears()->orderByDesc('starts_at')->get() ?? collect();
 $fiscalYear = $fiscalYears->firstWhere('id', (int) session('fiscal_year_id'));
