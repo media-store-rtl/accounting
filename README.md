@@ -11,6 +11,7 @@ Dolibarr is the target primary product for this online accounting/ERP service. C
 - `docs/dolibarr-cpanel-deployment-preparation.md`: proposed cPanel tenant layout, deployment constraints, and future installation/acceptance checklist.
 - `docs/provisioning-service-architecture.md`: approved ownership boundaries and high-level Provisioning architecture within Accounting.
 - `docs/accounting-provisioning-module-design.md`: proposed internal module boundaries, API/event contracts, tenant lifecycle, security and implementation gates.
+- `docs/web2022-accounting-integration-contract.md`: detailed proposed contract for Web2022 subscription events, Accounting Inbox processing, idempotency, security, status and reconciliation.
 
 The existing Accounting project is retained. Provisioning is an additional capability implemented within Accounting itself; it is not a replacement project, a separate service, or a reason to retire Accounting. The current Laravel application remains part of the project. Dolibarr is the direct accounting/ERP workspace for each provisioned business, while the coexistence and future division of responsibilities between existing Accounting capabilities and Dolibarr remain subject to explicit, feature-by-feature decisions. This documentation does not authorize removal or retirement of existing Accounting code, data, database, files, or functionality.
 
