@@ -1,142 +1,175 @@
 @extends('layouts.dashboard-shell')
 
-@section('title', 'داشبورد | حسابداری صنعتی')
+@section('title', 'مدیریت اشتراک و سال‌های مالی')
 
 @push('styles')
 <style>
-.welcome{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:18px}.eyebrow{color:#6ee7d0;font-size:9px;font-weight:800;letter-spacing:1px}.welcome h1{font-size:29px;margin:7px 0 0;letter-spacing:-.7px}.welcome p{margin:7px 0 0;color:#71879d;font-size:11px}
-.notice{margin-bottom:18px;padding:13px 16px;border:1px solid #28445d;border-radius:13px;background:#0a1b2b;color:#9eb2c4;font-size:10px;line-height:1.9}.notice strong{color:#dcebf5}.notice.warn{border-color:#5a4b2c}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}.card{background:#0a1b2b;border:1px solid #1b354b;border-radius:17px;padding:19px}.card small{color:#698096;font-size:9px}.card b{display:block;font-size:23px;margin-top:10px}.card span{display:block;margin-top:6px;color:#617b91;font-size:8px}
-.section{margin-top:18px;display:grid;grid-template-columns:1.35fr .65fr;gap:18px}.panel{background:#0a1b2b;border:1px solid #1b354b;border-radius:18px;padding:21px}.panel h2{font-size:14px;margin:0}.panel p{font-size:10px;color:#71879d;line-height:2;margin:8px 0 18px}
-.flow{display:grid;grid-template-columns:repeat(6,1fr);gap:9px}.step{padding:14px 8px;text-align:center;background:#0d2235;border:1px solid #1a3449;border-radius:12px;text-decoration:none;color:#dcebf5}.step strong{font-size:10px;display:block}.step span{font-size:8px;color:#617a91;display:block;margin-top:5px}.step.disabled{opacity:.48;cursor:not-allowed}
-.quick a,.quick .disabled-link{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #173047;color:#b9cbd9;text-decoration:none;font-size:10px}.quick a:last-child,.quick .disabled-link:last-child{border-bottom:0}.disabled-link{opacity:.45}
-.modules{margin-top:18px}.module-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.module{padding:15px;border:1px solid #1b354b;border-radius:13px;background:#0d2235}.module strong{display:block;font-size:10px}.module span{display:block;color:#71879d;font-size:8px;margin-top:5px;line-height:1.8}.module.ready{border-color:#285b59}.module.pending{opacity:.62}
-.empty{padding:25px;text-align:center;border:1px dashed #29455d;border-radius:13px;color:#71879d;font-size:10px;line-height:2}
-@media(max-width:1100px){.grid{grid-template-columns:1fr 1fr}.module-grid{grid-template-columns:1fr 1fr}.flow{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:900px){.section{grid-template-columns:1fr}}
-@media(max-width:560px){.grid{grid-template-columns:1fr 1fr;gap:9px}.card{padding:14px}.card b{font-size:20px}.welcome{display:block;margin-bottom:18px}.welcome h1{font-size:23px}.panel{padding:16px}.flow{grid-template-columns:1fr 1fr}.module-grid{grid-template-columns:1fr}}
+/* Dolibarr-inspired account overview: restrained blue, light workspace, compact panels. */
+body.subscription-dashboard{background:#f4f6f8;color:#253746;font-family:"Vazirmatn","Segoe UI",Tahoma,sans-serif}
+body.subscription-dashboard .app{display:block;min-height:100vh}
+body.subscription-dashboard .main{min-height:100vh;background:#f4f6f8}
+body.subscription-dashboard .top{min-height:66px;background:#fff;border-bottom:1px solid #d9e0e6;padding:0 30px;box-shadow:0 1px 2px rgba(25,45,60,.04)}
+body.subscription-dashboard .company{gap:10px}
+body.subscription-dashboard .company:before{content:"حساب کاربری";font-size:12px;font-weight:700;color:#34495e;margin-left:8px}
+body.subscription-dashboard .company select{background:#fff;color:#34495e;border:1px solid #cbd5de;border-radius:4px;padding:8px 11px;font-size:12px;max-width:260px}
+body.subscription-dashboard .user strong{color:#34495e;font-size:12px}
+body.subscription-dashboard .user small{color:#778795;font-size:10px}
+body.subscription-dashboard .avatar{background:#e8eef3;color:#34546d}
+body.subscription-dashboard .logout{color:#28658c;border:1px solid #cbd8e2;border-radius:4px;padding:7px 12px;background:#fff}
+body.subscription-dashboard .content{max-width:1440px;margin:0 auto;padding:28px 30px 48px}
+.subscription-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:22px}
+.subscription-heading h1{font-size:23px;color:#253746;margin:0;font-weight:700}
+.subscription-heading p{font-size:12px;color:#738391;margin:7px 0 0;line-height:1.9}
+.subscription-kicker{font-size:10px;color:#2876a5;font-weight:700;letter-spacing:.3px;margin-bottom:6px}
+.subscription-panel{background:#fff;border:1px solid #dce3e8;border-radius:5px;padding:20px;margin-bottom:18px;box-shadow:0 1px 2px rgba(20,40,55,.035)}
+.subscription-panel h2{font-size:15px;color:#34495e;margin:0 0 5px}
+.subscription-muted{font-size:11px;color:#7a8995;line-height:1.9}
+.subscription-status{display:inline-flex;align-items:center;gap:6px;border-radius:3px;padding:5px 10px;font-size:11px;font-weight:700;border:1px solid}
+.subscription-status.active{background:#eaf5ed;color:#31734a;border-color:#c7e4ce}
+.subscription-status.expired{background:#fff1ef;color:#a34437;border-color:#f0d0ca}
+.subscription-status.pending{background:#fff7e8;color:#8b6424;border-color:#eadbb8}
+.subscription-status.neutral{background:#edf2f6;color:#526575;border-color:#d6e0e7}
+.subscription-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.subscription-metric{border:1px solid #e0e6eb;background:#fbfcfd;border-radius:4px;padding:13px 15px;min-width:0}
+.subscription-metric span{display:block;color:#7a8995;font-size:10px}
+.subscription-metric strong{display:block;color:#34495e;font-size:18px;margin-top:7px;overflow-wrap:anywhere}
+.subscription-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin-top:18px;border-top:1px solid #e7ecef}
+.subscription-detail{padding:13px 12px 4px 0;min-width:0}
+.subscription-detail span{display:block;color:#83919b;font-size:10px;margin-bottom:5px}
+.subscription-detail strong{display:block;color:#34495e;font-size:12px;overflow-wrap:anywhere}
+.subscription-table-wrap{overflow-x:auto;margin-top:16px}
+.subscription-table{width:100%;border-collapse:collapse;white-space:nowrap;text-align:right;font-size:11px}
+.subscription-table th{background:#f2f5f7;color:#60717e;font-weight:700;border-bottom:1px solid #dce3e8;padding:12px 13px}
+.subscription-table td{color:#34495e;border-bottom:1px solid #e8edf0;padding:13px}
+.subscription-table tbody tr:hover{background:#f8fafb}
+.subscription-pill{display:inline-block;padding:4px 8px;border-radius:3px;font-size:10px;background:#edf2f6;color:#526575}
+.subscription-pill.open{background:#eaf5ed;color:#31734a}
+.subscription-pill.closed{background:#edf0f3;color:#687784}
+.subscription-pill.past{background:#fff1ef;color:#a34437}
+.subscription-pill.current{background:#eaf3fb;color:#28658c;margin-right:5px}
+.subscription-empty{padding:28px 16px;text-align:center;border:1px dashed #cbd6de;border-radius:4px;color:#7b8994;font-size:12px;line-height:2;background:#fbfcfd}
+.subscription-note{font-size:10px;color:#87939c;line-height:1.9;margin:14px 0 0}
+@media(max-width:900px){.subscription-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.subscription-details{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){body.subscription-dashboard .top{padding:10px 14px;align-items:flex-start;flex-wrap:wrap}.subscription-heading{display:block}.subscription-heading h1{font-size:20px}body.subscription-dashboard .content{padding:20px 13px 36px}.subscription-panel{padding:15px}.subscription-summary{gap:8px}.subscription-metric{padding:11px}.subscription-metric strong{font-size:16px}.subscription-details{grid-template-columns:1fr 1fr}.subscription-detail{padding:11px 4px 3px 0}}
 </style>
 @endpush
 
 @section('content')
-<div class="welcome">
-<div><div class="eyebrow">CONTROL CENTER</div><h1>داشبورد حسابداری صنعتی</h1><p>وضعیت واقعی زنجیره سفارش، تأمین، انبار، تولید و هزینه‌های ثبت‌شده.</p></div>
+@php
+    $today = today();
+    $subscriptionExpired = $subscription?->expires_at && $subscription->expires_at->lt(today());
+    $subscriptionLabel = !$subscription
+        ? 'ثبت نشده'
+        : ($subscriptionActive ? 'فعال' : ($subscriptionExpired ? 'منقضی شده' : 'غیرفعال / در انتظار تأیید'));
+    $subscriptionClass = $subscriptionActive ? 'active' : ($subscriptionExpired ? 'expired' : ($subscription ? 'pending' : 'neutral'));
+    $pastFiscalYears = $fiscalYears->filter(fn ($year) => $year->ends_at && $year->ends_at->lt($today))->count();
+    $openFiscalYears = $fiscalYears->where('is_closed', false)->count();
+    $closedFiscalYears = $fiscalYears->where('is_closed', true)->count();
+    $planName = data_get($subscription?->metadata, 'plan_name')
+        ?? data_get($subscription?->metadata, 'plan.title')
+        ?? null;
+@endphp
+
+<div class="subscription-heading">
+    <div>
+        <div class="subscription-kicker">مرکز مدیریت کسب‌وکار</div>
+        <h1>اشتراک و سال‌های مالی</h1>
+        <p>اطلاعات مالک، وضعیت اعتبار اشتراک و سوابق سال‌های مالی شرکت انتخاب‌شده.</p>
+    </div>
+    @if($user->isAccountOwner())
+        <span class="subscription-status {{ $subscriptionClass }}">{{ $subscriptionLabel }}</span>
+    @endif
 </div>
 
 @if(!$company)
-<div class="notice warn"><strong>راه‌اندازی اولیه:</strong> این حساب هنوز شرکت فعالی ندارد. ابتدا اطلاعات شرکت باید ایجاد/تکمیل شود.</div>
-@elseif(!$subscriptionActive && $can['company'])
-<div class="notice warn"><strong>اشتراک:</strong> وضعیت اشتراک این مجموعه فعال نیست. داده‌های قبلی قابل مشاهده‌اند، اما ایجاد سال مالی و عملیات نیازمند اشتراک فعال باید محدود بماند.</div>
-@elseif(!$fiscalYear && $can['fiscal_years'])
-<div class="notice warn"><strong>سال مالی:</strong> برای این مجموعه سال مالی باز وجود ندارد.</div>
-@endif
-
-@if($can['inventory'] || $can['orders'] || $can['supply'] || $can['productions'])
-<div class="grid">
-@if($can['inventory'])<div class="card"><small>موجودی تعدادی انبار</small><b>{{ number_format($stats['inventory_quantity'], 2, '.', ',') }}</b><span>جمع موجودی ثبت‌شده</span></div>@endif
-@if($can['orders'])<div class="card"><small>سفارش‌های باز</small><b>{{ number_format($stats['open_orders']) }}</b><span>غیر از سفارش‌های تکمیل/لغو‌شده</span></div>@endif
-@if($can['supply'])<div class="card"><small>کسری‌های تأمین</small><b>{{ number_format($stats['shortage_requests']) }}</b><span>نیازمند پیگیری تدارکات</span></div>@endif
-@if($can['productions'])<div class="card"><small>تولیدهای جاری</small><b>{{ number_format($stats['active_productions']) }}</b><span>تولیدهای تکمیل‌نشده</span></div>@endif
-</div>
-@endif
-
-@if($can['goods'])
-<div class="panel" style="margin-top:18px">
-<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-<div><h2>کالاها و کد کالا</h2><p style="margin-bottom:0">تعداد کالاهای فعال: {{ number_format($goodsCount) }} — آخرین کالاهای ثبت‌شده در این مجموعه</p></div>
-<a href="{{ route('master.index', 'goods') }}" style="color:#6ee7d0;text-decoration:none;font-size:10px;white-space:nowrap">مشاهده همه کالاها ←</a>
-</div>
-@if($goods->isNotEmpty())
-<div style="overflow-x:auto;margin-top:14px">
-<table style="width:100%;border-collapse:collapse;font-size:10px;text-align:right">
-<thead><tr style="color:#71879d;border-bottom:1px solid #1b354b"><th style="padding:10px">کد کالا</th><th style="padding:10px">نام کالا</th></tr></thead>
-<tbody>
-@foreach($goods as $good)
-<tr style="border-bottom:1px solid #173047">
-<td style="padding:11px 10px;color:#6ee7d0;font-weight:700;white-space:nowrap">{{ $good->code }}</td>
-<td style="padding:11px 10px">{{ $good->name }}</td>
-</tr>
-@endforeach
-</tbody></table>
-</div>
+    <div class="subscription-panel">
+        <h2>هنوز کسب‌وکار فعالی برای این حساب ثبت نشده است.</h2>
+        <p class="subscription-muted">پس از اتصال کسب‌وکار به حساب شما در Web2022 و Accounting، اطلاعات اشتراک و سال‌های مالی اینجا نمایش داده می‌شود.</p>
+    </div>
 @else
-<div class="empty" style="margin-top:14px">هنوز کالای فعالی ثبت نشده است. از بخش کالاها می‌توانید کالای جدید اضافه کنید.</div>
+    @if($user->isAccountOwner())
+    <section class="subscription-panel" aria-labelledby="subscription-title">
+        <h2 id="subscription-title">اطلاعات مالک و اشتراک</h2>
+        <div class="subscription-muted">سوابق زیر مربوط به عضویت فعال کاربر در همین شرکت است.</div>
+
+        @if($can['fiscal_years'])
+        <div class="subscription-summary">
+            <div class="subscription-metric"><span>تعداد سال‌های مالی</span><strong>{{ number_format($fiscalYears->count()) }}</strong></div>
+            <div class="subscription-metric"><span>سال‌های مالی باز</span><strong>{{ number_format($openFiscalYears) }}</strong></div>
+            <div class="subscription-metric"><span>سال‌های مالی بسته</span><strong>{{ number_format($closedFiscalYears) }}</strong></div>
+            <div class="subscription-metric"><span>سال‌های پایان‌یافته</span><strong>{{ number_format($pastFiscalYears) }}</strong></div>
+        </div>
+        @endif
+
+        <div class="subscription-details">
+            <div class="subscription-detail"><span>نام کاربر</span><strong>{{ $user->name }}</strong></div>
+            <div class="subscription-detail"><span>شناسه کاربر Web2022</span><strong data-number-format="off">{{ $user->web2022_user_id ?: 'ثبت نشده' }}</strong></div>
+            <div class="subscription-detail"><span>نام شرکت / کسب‌وکار</span><strong>{{ $company->name }}</strong></div>
+            <div class="subscription-detail"><span>وضعیت اشتراک</span><strong><span class="subscription-status {{ $subscriptionClass }}">{{ $subscriptionLabel }}</span></strong></div>
+            <div class="subscription-detail"><span>نام پلن</span><strong>{{ $planName ?: 'در اطلاعات فعلی ثبت نشده' }}</strong></div>
+            <div class="subscription-detail"><span>شناسه اشتراک خارجی</span><strong data-number-format="off">{{ $subscription?->external_subscription_id ?: 'ثبت نشده' }}</strong></div>
+            <div class="subscription-detail"><span>تاریخ شروع اعتبار</span><strong>@if($subscription?->starts_at)<time class="jalali-date" datetime="{{ $subscription->starts_at->format('Y-m-d') }}">{{ $subscription->starts_at->format('Y/m/d') }}</time>@else ثبت نشده @endif</strong></div>
+            <div class="subscription-detail"><span>تاریخ انقضای اشتراک</span><strong>@if($subscription?->expires_at)<time class="jalali-date" datetime="{{ $subscription->expires_at->format('Y-m-d') }}">{{ $subscription->expires_at->format('Y/m/d') }}</time>@else نامشخص @endif</strong></div>
+            <div class="subscription-detail"><span>آخرین اعتبارسنجی</span><strong>@if($subscription?->last_verified_at)<time class="jalali-date" datetime="{{ $subscription->last_verified_at->format('Y-m-d') }}">{{ $subscription->last_verified_at->format('Y/m/d') }}</time>@else ثبت نشده @endif</strong></div>
+        </div>
+    </section>
+    @else
+        <section class="subscription-panel"><h2>اطلاعات مالکیت اشتراک</h2><p class="subscription-muted">جزئیات مالکیت و اعتبار اشتراک فقط برای مالک اصلی حساب نمایش داده می‌شود.</p></section>
+    @endif
+
+    @if($can['fiscal_years'])
+    <section class="subscription-panel" aria-labelledby="fiscal-years-title">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+            <div>
+                <h2 id="fiscal-years-title">سوابق سال‌های مالی</h2>
+                <div class="subscription-muted">نام، بازه زمانی و وضعیت هر سال مالی ثبت‌شده برای {{ $company->name }}.</div>
+            </div>
+            <span class="subscription-status neutral">{{ number_format($fiscalYears->count()) }} دوره ثبت‌شده</span>
+        </div>
+
+        @if($fiscalYears->isNotEmpty())
+            <div class="subscription-table-wrap">
+                <table class="subscription-table">
+                    <thead><tr>
+                        <th>نام سال مالی</th><th>کد</th><th>تاریخ شروع</th><th>تاریخ پایان</th><th>وضعیت دوره</th><th>وضعیت زمانی</th>
+                    </tr></thead>
+                    <tbody>
+                    @foreach($fiscalYears as $year)
+                        @php
+                            $yearHasEnded = $year->ends_at && $year->ends_at->lt($today);
+                            $yearState = $year->is_closed ? 'بسته' : 'باز';
+                        @endphp
+                        <tr>
+                            <td><strong>{{ $year->name }}</strong>@if($fiscalYear && (int) $fiscalYear->id === (int) $year->id) <span class="subscription-pill current">انتخاب‌شده</span>@endif</td>
+                            <td data-number-format="off">{{ $year->code }}</td>
+                            <td>@if($year->starts_at)<time class="jalali-date" datetime="{{ $year->starts_at->format('Y-m-d') }}">{{ $year->starts_at->format('Y/m/d') }}</time>@else — @endif</td>
+                            <td>@if($year->ends_at)<time class="jalali-date" datetime="{{ $year->ends_at->format('Y-m-d') }}">{{ $year->ends_at->format('Y/m/d') }}</time>@else — @endif</td>
+                            <td><span class="subscription-pill {{ $year->is_closed ? 'closed' : 'open' }}">{{ $yearState }}</span></td>
+                            <td><span class="subscription-pill {{ $yearHasEnded ? 'past' : 'open' }}">{{ $yearHasEnded ? 'پایان‌یافته' : 'در بازه زمانی' }}</span></td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <div class="subscription-empty">برای این شرکت هنوز سال مالی ثبت نشده است.</div>
+        @endif
+        <p class="subscription-note">این اطلاعات فقط از سوابق موجود Accounting برای شرکت انتخاب‌شده خوانده می‌شود. نمایش این صفحه هیچ سال مالی جدیدی ایجاد یا تغییر نمی‌دهد و سوابق سایر شرکت‌ها را در بر نمی‌گیرد.</p>
+    </section>
+    @endif
 @endif
-</div>
-@endif
 
-<div class="section">
-<div class="panel">
-<h2>زنجیره اصلی پروژه</h2>
-<p>ترتیب زیر مطابق تعریف پروژه است. فقط بخش‌هایی که در نسخه فعلی route و رابط عملیاتی دارند قابل ورود مستقیم هستند.</p>
-<div class="flow">
-@if($can['orders'])<a class="step" href="{{ route('sales.orders.index') }}"><strong>۱. سفارش</strong><span>مشتری و اقلام</span></a>@else<div class="step disabled"><strong>۱. سفارش</strong><span>بدون مجوز مشاهده</span></div>@endif
-@if($can['supply'] || $can['purchasing'])<div class="step disabled"><strong>۲. تأمین</strong><span>Backend موجود؛ UI مستقل هنوز ندارد</span></div>@endif
-@if($can['inventory'])<div class="step disabled"><strong>۳. انبار</strong><span>گردش موجودی در Backend</span></div>@endif
-@if($can['productions'] || $can['production_execution'])<div class="step disabled"><strong>۴. تولید</strong><span>Workflow در حال تکمیل</span></div>@endif
-@if($can['production_outputs'] || $can['inventory'])<div class="step disabled"><strong>۵. کالای ساخته‌شده</strong><span>Receipt در Backend</span></div>@endif
-@if($can['deliveries'])<a class="step" href="{{ route('sales.deliveries.index') }}"><strong>۶. تحویل</strong><span>درخواست و خروج</span></a>@else<div class="step disabled"><strong>۶. تحویل</strong><span>بدون مجوز مشاهده</span></div>@endif
-</div>
-</div>
-
-<div class="panel quick">
-<h2>دسترسی سریع</h2>
-@if($can['customers'])<a href="{{ route('sales.customers.index') }}">مشتریان <span>←</span></a>@endif
-@if($can['orders'])<a href="{{ route('sales.orders.index') }}">سفارش‌های فروش <span>←</span></a>@endif
-@if($can['deliveries'])<a href="{{ route('sales.deliveries.index') }}">تحویل‌ها <span>←</span></a>@endif
-@if($can['costing'])<a href="{{ route('reports.costing') }}">گزارش بهای تمام‌شده <span>←</span></a>@endif
-@if($can['goods'])<a href="{{ route('master.index', 'goods') }}">کالاها و کد کالا <span>←</span></a>@endif
-@if($can['backups'])<a href="{{ route('backups.index') }}">پشتیبان‌گیری <span>←</span></a>@endif
-@if($can['company'])<a href="{{ route('company.edit') }}">اطلاعات مجموعه <span>←</span></a>@endif
-@if($can['fiscal_years'])<a href="{{ route('fiscal-years.index') }}">سال‌های مالی <span>←</span></a>@endif
-@if(!$can['customers'] && !$can['orders'] && !$can['deliveries'] && !$can['costing'] && !$can['backups'] && !$can['fiscal_years'])
-<div class="empty">برای کاربر جاری دسترسی عملیاتی قابل نمایش ثبت نشده است.</div>
-@endif
-</div>
-</div>
-
-@if($can['orders'] || $can['customers'] || $can['deliveries'] || $can['supply'] || $can['purchasing'] || $can['inventory'] || $can['productions'] || $can['production_execution'] || $can['production_outputs'] || $can['costing'] || $can['notifications'] || $can['backups'] || $can['imports'])
-<div class="panel modules" id="modules">
-<h2>وضعیت حوزه‌های اصلی</h2>
-<p>این بخش وضعیت واقعی implementation را نشان می‌دهد و قابلیت‌هایی که هنوز صفحه مستقل ندارند به‌صورت ساختگی لینک نشده‌اند.</p>
-<div class="module-grid">
-@if($can['orders'] || $can['customers'] || $can['deliveries'])<div class="module ready"><strong>سفارش و فروش</strong><span>مشتری، ثبت سفارش، کنترل موجودی، درخواست تحویل و تحویل.</span></div>@endif
-@if($can['supply'] || $can['purchasing'])<div class="module ready"><strong>تأمین و خرید</strong><span>درخواست تأمین، کسری، خرید، هزینه مستقیم و رسید خرید در Backend.</span></div>@endif
-@if($can['inventory'])<div class="module ready"><strong>انبار و گردش کالا</strong><span>موجودی، ورود/خروج و ارزش‌گذاری مواد در Backend.</span></div>@endif
-@if($can['productions'] || $can['production_execution'])<div class="module pending"><strong>تولید</strong><span>Schema و بخشی از سرویس‌ها موجود است؛ UI و workflow کامل هنوز نیازمند تکمیل است.</span></div>@endif
-@if($can['production_outputs'] || $can['inventory'])<div class="module pending"><strong>کالای ساخته‌شده</strong><span>Output و Receipt وجود دارد؛ صفحه عملیاتی مستقل هنوز اضافه نشده است.</span></div>@endif
-@if($can['costing'])<div class="module pending"><strong>بهای تمام‌شده</strong><span>گزارش فعلی مواد و دستمزد را جمع می‌کند؛ ضایعات و سایر اجزای تعریف‌شده هنوز کامل نیستند.</span></div>@endif
-@if($can['notifications'])<div class="module pending"><strong>Notification و Audit</strong><span>Notification workflow برای چند رویداد وجود دارد؛ Audit Trail مستقل هنوز تکمیل نشده است.</span></div>@endif
-@if($can['backups'] || $can['imports'])<div class="module ready"><strong>Backup و Import</strong><span>سرویس‌های Backup و Excel Import وجود دارند؛ رابط کاربری مستقل باید تکمیل شود.</span></div>@endif
-</div>
-</div>
-
-@endif
-
-@if($can['costing'])
-<div class="section" style="grid-template-columns:1fr">
-<div class="panel">
-<h2>هزینه‌های ثبت‌شده در سال جاری</h2>
-<p>این ارقام عمداً با عنوان «بهای تمام‌شده کامل» نمایش داده نمی‌شوند؛ چون در نسخه فعلی گزارش، مواد و دستمزد پیاده شده‌اند و ضایعات/سربار هنوز کامل نشده‌اند.</p>
-<div class="grid" style="grid-template-columns:repeat(3,1fr)">
-<div class="card"><small>مواد مصرف‌شده ارزش‌گذاری‌شده</small><b>{{ number_format($stats['material_cost'], 0, '.', ',') }}</b></div>
-<div class="card"><small>دستمزد تأییدشده</small><b>{{ number_format($stats['labor_cost'], 0, '.', ',') }}</b></div>
-<div class="card"><small>جمع فعلی قابل‌ردگیری</small><b>{{ number_format($stats['material_cost'] + $stats['labor_cost'], 0, '.', ',') }}</b></div>
-</div>
-</div>
-</div>
-
-@endif
-
-@if(($can['production_outputs'] || $can['inventory']) && $stats['pending_finished_goods'] > 0)
-<div class="panel" style="margin-top:18px"><div class="notice" style="margin:0"><strong>کالای ساخته‌شده:</strong> {{ number_format($stats['pending_finished_goods']) }} رسید کالای ساخته‌شده در انتظار تأیید انبار است.</div></div>
-@endif
-
-@if(!$company)
-<div class="panel" style="margin-top:18px"><div class="empty">برای شروع، ابتدا شرکت/مجموعه را در ساختار حساب ایجاد کنید.</div></div>
-@elseif($fiscalYears->isEmpty())
-<div class="panel" style="margin-top:18px"><div class="empty">برای این شرکت هنوز سال مالی تعریف نشده است.</div></div>
-@elseif(!$fiscalYear)
-<div class="panel" style="margin-top:18px"><div class="empty">هیچ سال مالی باز و قابل استفاده‌ای وجود ندارد.</div></div>
-@endif
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.jalali-date').forEach(function (element) {
+        const match = String(element.dateTime || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!match) return;
+        const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+        const options = {year:'numeric', month:'2-digit', day:'2-digit', timeZone:'UTC'};
+        element.textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', options).format(date);
+    });
+});
+</script>
+@endpush
 @endsection
