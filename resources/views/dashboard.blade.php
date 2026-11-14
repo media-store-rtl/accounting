@@ -90,12 +90,14 @@ body.subscription-dashboard .content{max-width:1440px;margin:0 auto;padding:28px
         <h2 id="subscription-title">اطلاعات مالک و اشتراک</h2>
         <div class="subscription-muted">سوابق زیر مربوط به عضویت فعال کاربر در همین شرکت است.</div>
 
+        @if($can['fiscal_years'])
         <div class="subscription-summary">
             <div class="subscription-metric"><span>تعداد سال‌های مالی</span><strong>{{ number_format($fiscalYears->count()) }}</strong></div>
             <div class="subscription-metric"><span>سال‌های مالی باز</span><strong>{{ number_format($openFiscalYears) }}</strong></div>
             <div class="subscription-metric"><span>سال‌های مالی بسته</span><strong>{{ number_format($closedFiscalYears) }}</strong></div>
             <div class="subscription-metric"><span>سال‌های پایان‌یافته</span><strong>{{ number_format($pastFiscalYears) }}</strong></div>
         </div>
+        @endif
 
         <div class="subscription-details">
             <div class="subscription-detail"><span>نام کاربر</span><strong>{{ $user->name }}</strong></div>
