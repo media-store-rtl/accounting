@@ -1,15 +1,15 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\Account;
-use App\\Models\\Company;
-use App\\Models\\FiscalYear;
-use App\\Models\\Permission;
-use App\\Models\\Role;
-use App\\Models\\User;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Tests\\TestCase;
+use App\Models\Account;
+use App\Models\Company;
+use App\Models\FiscalYear;
+use App\Models\Permission;
+use App\Models\Role;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class DashboardFiscalYearsTest extends TestCase
 {
