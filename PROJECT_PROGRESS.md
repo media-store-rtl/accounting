@@ -1513,3 +1513,14 @@
 - بررسی GitHub پیش از تغییر: شاخه `main` روی commit `2ac60c4ffb87f781e7225395d2f789f5aac292e9` بود؛ PR باز در مخزن یافت نشد. وضعیت combined commit status برای SHA بررسی‌شده، status entry گزارش نکرد. آخرین workflow run کلی که در فهرست دیده شد متعلق به شاخه دیگری بود و به‌عنوان CI مربوط به main تلقی نشد.
 - تست نرم‌افزاری، browser test، نصب Dolibarr و تست production اجرا نشده‌اند؛ این تغییر مستنداتی است. پس از commit باید CI شاخه بررسی شود. Deploy انجام نشده و تأیید نشده است.
 - شاخه کاری: `docs/dolibarr-direct-product-architecture`. PR و merge هنوز ایجاد/انجام نشده‌اند.
+
+
+# 154. ادغام معماری Dolibarr-first در main — 2026-11-14
+
+- کاربر صریحاً درخواست ادغام مستندات PR #257 را داد.
+- PR #257 با روش squash در GitHub با موفقیت ادغام شد؛ وضعیت زنده PR: closed و merged=true.
+- Merge commit روی main: `770af21c843479edaf4e572fc7d76edf34ab89c6`. این SHA به‌عنوان HEAD فعلی main نیز از GitHub تأیید شد.
+- CI مربوط به head commit پیش از ادغام، workflow `tests` run #3835، با conclusion=success پایان یافت؛ job `phpunit` و مراحل npm/composer/migrate/test در CI موفق گزارش شدند. این CI روی شاخه PR اجرا شده است، نه یک تست production.
+- فایل‌های ادغام‌شده: `PROJECT_DEFINITION.md`, `README.md`, `dolibarr/README.md`, `dolibarr/UPSTREAM.md`, `docs/dolibarr-integration-boundary.md`, `PROJECT_PROGRESS.md`.
+- این تغییر مستنداتی است. هیچ کد runtime، دیتابیس، migration، provisioning، تنظیم سرور/DNS، نصب Dolibarr، حذف Laravel یا Deploy انجام نشده است. وضعیت production بررسی/تغییر داده نشده است.
+- برای حفظ قاعده عدم commit مستقیم به main، ثبت این نتیجه در همین فایل در شاخه جداگانه انجام می‌شود و از طریق PR مستقل ارائه خواهد شد.
