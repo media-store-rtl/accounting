@@ -13,6 +13,7 @@ class DashboardController extends Controller
 
         $companies = $user->companies()
             ->where('companies.is_active', true)
+            ->wherePivot('is_active', true)
             ->orderBy('companies.name')
             ->get();
 
