@@ -1538,3 +1538,21 @@
 - شاخه کاری: `docs/dolibarr-cpanel-deployment-preparation`.
 - فایل‌های تغییرکرده: `docs/dolibarr-cpanel-deployment-preparation.md` (جدید)، `README.md` و `dolibarr/README.md`؛ این entry نیز در همین شاخه افزوده شد.
 - تست runtime، نصب Dolibarr، تست مرورگر، ساخت دیتابیس/tenant، backup/restore، تغییر cPanel/DNS، Deploy و حذف یا تغییر Laravel انجام نشده‌اند. هنوز commit/PR و CI این شاخه باید تکمیل و بررسی شوند؛ merge انجام نشده است.
+
+
+# 156. ثبت جریان فعلی خرید Web2022 و شکاف اتصال به Dolibarr — 2026-11-14
+
+- درخواست کاربر: یافته‌های بررسی جریان خرید و پرداخت Web2022 و مسیر ورود فعلی به Accounting در فایل‌های پروژه ثبت شود.
+- کاربر صریحاً تأیید کرد صفحه خرید و پرداخت اشتراک فعلی در Web2022 قرار دارد. این واقعیت وضعیت فعلی را مشخص می‌کند، اما به معنی تصویب حفظ دائمی Web2022 نیست.
+- بررسی کد Web2022: مسیرهای `/accounting-plan` و `/accounting-plan/{slug}` برای نمایش پلن وجود دارند؛ `CartController` پلن را به سبد خرید اضافه می‌کند؛ `OrderController::store()` خرید اشتراک را به مسیر کیف پول هدایت می‌کند و در صورت کمبود موجودی، شارژ کیف پول را لازم می‌داند.
+- `OrderController::purchaseAccountingSubscriptions()` سفارش و آیتم‌ها را در تراکنش ایجاد می‌کند، `AccountingSubscription` را بر اساس `user_id` و `accounting_subscription_plan_id` فعال یا تمدید می‌کند، پرداخت را ثبت می‌کند و در پایان کاربر را به `order.index` برمی‌گرداند. در مسیر بررسی‌شده provisioning یا tenant mapping برای Dolibarr وجود ندارد.
+- callbackهای بانکی در `PaymentController::verify()` هستند. در بررسی اولیه، شاخه‌های Behpardakht و Sepehr `bpVerifyRequest` را فراخوانی می‌کنند ولی مقایسه صریح مقدار بازگشتی SOAP با کد موفقیت قبل از ثبت `Deposit.status = 4` مشاهده نشد؛ این مورد به‌عنوان ریسک نیازمند ممیزی مستقل ثبت شد، نه اثبات قطعی نقص همه مسیرهای پرداخت. مسیر سامان پاسخ `ResultCode == '0'` را بررسی می‌کند.
+- مسیر SSO فعلی جدا از checkout است: Web2022 توکن کوتاه‌عمر/یک‌بارمصرف صادر می‌کند؛ `AccountingSsoController` در Laravel آن را مبادله می‌کند، کاربر/شرکت/entitlement لاراول را مدیریت می‌کند و به `/dashboard` Laravel می‌فرستد. این مسیر ورود به Dolibarr نیست.
+- شکاف‌ها: مدل اشتراک فعلی به tenant/DB مستقل Dolibarr نگاشت نشده؛ خرید موفق provisioning ایجاد نمی‌کند؛ redirect خرید به سفارش‌هاست؛ SSO فعلی مقصد Laravel دارد.
+- جهت پیشنهادی مستندشده: Web2022 در صورت تصویب نهایی مالک checkout و وضعیت تجاری اشتراک؛ سرویس مستقل Provisioning برای ایجاد/بازیابی idempotent tenant؛ Dolibarr به‌عنوان مقصد مستقیم و مرجع کاربران/مجوزهای عملیاتی/داده‌های ERP. تمدید باید همان tenant و DB را حفظ کند؛ retry provisioning نباید پرداخت دوباره ایجاد کند.
+- تصمیم‌های باز: حفظ دائمی Web2022، منبع حقیقت entitlement، شناسه پایدار مشتری/سازمان، قرارداد امضاشده API/event، idempotency/replay protection، SSO به Dolibarr و مدیریت خطا.
+- فایل‌های تغییرکرده: `docs/web2022-subscription-to-dolibarr-flow.md` (جدید)، `PROJECT_DEFINITION.md`، `docs/dolibarr-integration-boundary.md` و همین فایل.
+- فقط مستندات تغییر کرده‌اند؛ هیچ route/controller/model، SSO، provisioning، entitlement enforcement، read-only، migration، DB، پرداخت واقعی، cPanel، DNS، سرور، production یا Laravel حذف/تغییر داده نشده است.
+- بررسی پیش از تغییر: `AGENTS.md`, `PROJECT_DEFINITION.md`, `PROJECT_PROGRESS.md`, `README.md` و اسناد مرتبط خوانده شدند. main روی `4034f6ea1de2c9dc665450aa3296345988140a10` بود. PR #260 باز است و دست‌نخورده باقی مانده است. combined status و PR-workflow lookup برای HEAD main هیچ entry برنگرداندند؛ CI main در این بررسی قابل تأیید نیست.
+- تست خودکار، lint مستندات، browser/runtime، پرداخت، provisioning و production test اجرا نشده‌اند. پس از ایجاد PR باید CI همان PR بررسی شود. Deploy انجام نشده و تأیید نشده است.
+- شاخه کاری: `docs/record-web2022-subscription-flow`. PR این کار پس از commitها ایجاد می‌شود؛ merge انجام نشده و فقط با تأیید صریح همین PR مجاز خواهد بود.
