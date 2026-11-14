@@ -40,6 +40,74 @@
 </div>
 @endif
 
+@if($company && $can['fiscal_years'])
+<div class="panel" style="margin-top:18px" id="dashboard-fiscal-years">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap">
+        <div>
+            <h2>سال‌های مالی این شرکت</h2>
+            <p style="margin-bottom:0">
+                کاربر: {{ $user->name }}
+                @if($user->web2022_user_id)
+                    — شناسه Web2022: <span data-number-format="off">{{ $user->web2022_user_id }}</span>
+                @endif
+                — شرکت: {{ $company->name }}
+                — تعداد دوره‌ها: {{ number_format($fiscalYears->count()) }}
+            </p>
+        </div>
+        <a href="{{ route('fiscal-years.index') }}" style="color:#6ee7d0;text-decoration:none;font-size:10px;white-space:nowrap">مدیریت و مشاهده جزئیات ←</a>
+    </div>
+
+    @if($fiscalYears->isNotEmpty())
+        <div class="table-wrap" style="margin-top:14px">
+            <table>
+                <thead>
+                    <tr>
+                        <th>نام سال مالی</th>
+                        <th>کد</th>
+                        <th>تاریخ شروع</th>
+                        <th>تاریخ پایان</th>
+                        <th>وضعیت</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($fiscalYears as $year)
+                        <tr>
+                            <td>{{ $year->name }}</td>
+                            <td>{{ $year->code }}</td>
+                            <td><time class="dashboard-persian-date" datetime="{{ $year->starts_at?->format('Y-m-d') }}">{{ $year->starts_at?->format('Y/m/d') }}</time></td>
+                            <td><time class="dashboard-persian-date" datetime="{{ $year->ends_at?->format('Y-m-d') }}">{{ $year->ends_at?->format('Y/m/d') }}</time></td>
+                            <td>
+                                <span class="status {{ $year->is_closed ? 'inactive' : 'active' }}">{{ $year->is_closed ? 'بسته' : 'باز' }}</span>
+                                @if(!$year->is_closed && $fiscalYear && (int) $fiscalYear->id === (int) $year->id)
+                                    <span class="status active">سال جاری</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @else
+        <div class="empty" style="margin-top:14px">برای این شرکت هنوز سال مالی ثبت نشده است.</div>
+    @endif
+    <p style="margin:12px 0 0;color:#71879d;font-size:9px;line-height:1.8">
+        این فهرست فقط سوابق ثبت‌شده در Accounting برای شرکت انتخاب‌شده و عضویت فعال همین کاربر را نشان می‌دهد؛ اطلاعات شرکت‌های دیگر نمایش داده نمی‌شود.
+    </p>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.dashboard-persian-date').forEach(function (element) {
+        const match = String(element.dateTime || '').match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+        if (!match) return;
+        const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+        element.textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+            year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'UTC'
+        }).format(date);
+    });
+});
+</script>
+@endif
+
 @if($can['goods'])
 <div class="panel" style="margin-top:18px">
 <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
@@ -132,11 +200,7 @@
 <div class="panel" style="margin-top:18px"><div class="notice" style="margin:0"><strong>کالای ساخته‌شده:</strong> {{ number_format($stats['pending_finished_goods']) }} رسید کالای ساخته‌شده در انتظار تأیید انبار است.</div></div>
 @endif
 
-@if(!$company)
-<div class="panel" style="margin-top:18px"><div class="empty">برای شروع، ابتدا شرکت/مجموعه را در ساختار حساب ایجاد کنید.</div></div>
-@elseif($fiscalYears->isEmpty())
-<div class="panel" style="margin-top:18px"><div class="empty">برای این شرکت هنوز سال مالی تعریف نشده است.</div></div>
-@elseif(!$fiscalYear)
-<div class="panel" style="margin-top:18px"><div class="empty">هیچ سال مالی باز و قابل استفاده‌ای وجود ندارد.</div></div>
+@if($company && $fiscalYears->isNotEmpty() && !$fiscalYear)
+<div class="panel" style="margin-top:18px"><div class="empty">هیچ سال مالی باز و قابل استفاده‌ای برای این شرکت وجود ندارد.</div></div>
 @endif
 @endsection
