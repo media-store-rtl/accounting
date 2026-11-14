@@ -11,9 +11,9 @@ No server, cPanel, DNS, database, Laravel deployment, or production setting is c
 ## Deployment constraints
 
 1. Dolibarr is the direct product. Customer registration, login, user administration, roles, and business operations belong in Dolibarr.
-2. Each customer must have a separate Dolibarr database, database credentials, configuration, document storage, and session/cookie context.
+2. Each business must have a separate Dolibarr tenant: database and credentials, configuration, document storage, and session/cookie context. One customer may own multiple businesses.
 3. A customer subdomain is the intended routing pattern, subject to the final domain decision and DNS/TLS validation.
-4. The existing Laravel Accounting application, database, files, cron jobs, and deployment must remain untouched until a separately approved migration and decommissioning plan is completed.
+4. The existing Laravel Accounting project is intended to host the Provisioning control plane. Do not remove or destructively alter its current database, files, cron jobs, or deployment while repurposing it; inventory and a separately approved migration/rollback plan are required.
 5. The current root `.cpanel.yml` deploys Laravel and runs Laravel Composer/npm/migration/seeder commands. It must not be reused as a Dolibarr deployment script. Do not trigger it as part of Dolibarr preparation.
 6. Do not implement subscription enforcement or expired-plan read-only behavior in this deployment-preparation task. Those require a separately approved design and implementation task.
 
@@ -37,11 +37,11 @@ The following is a proposed layout to validate against the hosting account. Repl
   public_html/                         # existing unrelated site content; do not overwrite
 ```
 
-For each tenant, configure its cPanel subdomain's document root to that tenant's `htdocs/` directory (or to a dedicated public directory containing only the intended web entry point if later security review chooses that layout). Keep `documents/` and backup staging outside every web-accessible document root.
+For each business tenant, configure its cPanel subdomain's document root to that tenant's `htdocs/` directory (or to a dedicated public directory containing only the intended web entry point if later security review chooses that layout). Keep `documents/` and backup staging outside every web-accessible document root.
 
 ### Important code-isolation decision
 
-Do not point multiple tenants at one physical Dolibarr `htdocs/` tree while expecting each tenant to have a different `htdocs/conf/conf.php`: that configuration file is installation-specific. The conservative cPanel plan is to deploy the same reviewed, version-pinned upstream release into a separate tenant application tree for each customer, with tenant-specific configuration and data directories. This duplicates application files but avoids relying on unproven per-request configuration switching, symlink behavior, or shared mutable configuration.
+Do not point multiple tenants at one physical Dolibarr `htdocs/` tree while expecting each tenant to have a different `htdocs/conf/conf.php`: that configuration file is installation-specific. The conservative cPanel plan is to deploy the same reviewed, version-pinned upstream release into a separate tenant application tree for each business, with tenant-specific configuration and data directories. This duplicates application files but avoids relying on unproven per-request configuration switching, symlink behavior, or shared mutable configuration.
 
 A future shared-code optimization may be considered only after a runtime proof demonstrates isolated configuration, sessions, cache, temporary files, custom modules, and data paths under the actual cPanel/PHP handler. It is not part of this plan.
 
@@ -75,7 +75,7 @@ Never place database passwords, API secrets, or customer data in Git, this repos
 9. Apply the upstream installation hardening guidance, including locking the installer after successful setup. Confirm that configuration and private documents cannot be downloaded over HTTP.
 10. Verify tenant isolation using two test tenants: database separation, file access denial, session/cookie separation, and inability to access another tenant's URL or resources.
 11. Test backup and restore into a non-production test location before onboarding real customer data.
-12. Repeat independently for each tenant. Never clone a live tenant database or copy its `conf.php` to another tenant.
+12. Repeat independently for each business tenant. Never clone a live tenant database or copy its `conf.php` to another tenant.
 
 ## Upgrade and rollback model
 
@@ -96,7 +96,7 @@ Never place database passwords, API secrets, or customer data in Git, this repos
 - [ ] Backup and restore test passes for a disposable tenant.
 - [ ] Installer lock and file permissions verified.
 - [ ] Existing Laravel deployment and resources remain intact.
-- [ ] Separate approval obtained for any production installation, DNS change, cutover, or Laravel retirement.
+- [ ] Separate approval obtained for any production installation, DNS change, cutover, or destructive change/removal affecting the existing Accounting application or its resources.
 
 ## Official references
 
