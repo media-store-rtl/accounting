@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Models\FiscalYear;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\SubscriptionEntitlement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
