@@ -57,7 +57,7 @@ body.subscription-dashboard .content{max-width:1440px;margin:0 auto;padding:28px
 @section('content')
 @php
     $today = today();
-    $subscriptionExpired = $subscription?->expires_at && $subscription->expires_at->lt(now());
+    $subscriptionExpired = $subscription?->expires_at && $subscription->expires_at->lt(today());
     $subscriptionLabel = !$subscription
         ? 'ثبت نشده'
         : ($subscriptionActive ? 'فعال' : ($subscriptionExpired ? 'منقضی شده' : 'غیرفعال / در انتظار تأیید'));
@@ -105,7 +105,7 @@ body.subscription-dashboard .content{max-width:1440px;margin:0 auto;padding:28px
             <div class="subscription-detail"><span>شناسه اشتراک خارجی</span><strong data-number-format="off">{{ $subscription?->external_subscription_id ?: 'ثبت نشده' }}</strong></div>
             <div class="subscription-detail"><span>تاریخ شروع اعتبار</span><strong>@if($subscription?->starts_at)<time class="jalali-date" datetime="{{ $subscription->starts_at->format('Y-m-d') }}">{{ $subscription->starts_at->format('Y/m/d') }}</time>@else ثبت نشده @endif</strong></div>
             <div class="subscription-detail"><span>تاریخ انقضای اشتراک</span><strong>@if($subscription?->expires_at)<time class="jalali-date" datetime="{{ $subscription->expires_at->format('Y-m-d') }}">{{ $subscription->expires_at->format('Y/m/d') }}</time>@else نامشخص @endif</strong></div>
-            <div class="subscription-detail"><span>آخرین اعتبارسنجی</span><strong>@if($subscription?->last_verified_at)<time class="jalali-date" datetime="{{ $subscription->last_verified_at->format('Y-m-d') }}">{{ $subscription->last_verified_at->format('Y/m/d H:i') }}</time>@else ثبت نشده @endif</strong></div>
+            <div class="subscription-detail"><span>آخرین اعتبارسنجی</span><strong>@if($subscription?->last_verified_at)<time class="jalali-date" datetime="{{ $subscription->last_verified_at->format('Y-m-d') }}">{{ $subscription->last_verified_at->format('Y/m/d') }}</time>@else ثبت نشده @endif</strong></div>
         </div>
     </section>
 
@@ -157,10 +157,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!match) return;
         const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
         const options = {year:'numeric', month:'2-digit', day:'2-digit', timeZone:'UTC'};
-        if (element.dateTime && element.textContent.includes(':')) {
-            options.hour = '2-digit';
-            options.minute = '2-digit';
-        }
         element.textContent = new Intl.DateTimeFormat('fa-IR-u-ca-persian', options).format(date);
     });
 });
