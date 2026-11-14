@@ -85,6 +85,7 @@ body.subscription-dashboard .content{max-width:1440px;margin:0 auto;padding:28px
         <p class="subscription-muted">پس از اتصال کسب‌وکار به حساب شما در Web2022 و Accounting، اطلاعات اشتراک و سال‌های مالی اینجا نمایش داده می‌شود.</p>
     </div>
 @else
+    @if($user->isAccountOwner())
     <section class="subscription-panel" aria-labelledby="subscription-title">
         <h2 id="subscription-title">اطلاعات مالک و اشتراک</h2>
         <div class="subscription-muted">سوابق زیر مربوط به عضویت فعال کاربر در همین شرکت است.</div>
@@ -108,7 +109,11 @@ body.subscription-dashboard .content{max-width:1440px;margin:0 auto;padding:28px
             <div class="subscription-detail"><span>آخرین اعتبارسنجی</span><strong>@if($subscription?->last_verified_at)<time class="jalali-date" datetime="{{ $subscription->last_verified_at->format('Y-m-d') }}">{{ $subscription->last_verified_at->format('Y/m/d') }}</time>@else ثبت نشده @endif</strong></div>
         </div>
     </section>
+    @else
+        <section class="subscription-panel"><h2>اطلاعات مالکیت اشتراک</h2><p class="subscription-muted">جزئیات مالکیت و اعتبار اشتراک فقط برای مالک اصلی حساب نمایش داده می‌شود.</p></section>
+    @endif
 
+    @if($can['fiscal_years'])
     <section class="subscription-panel" aria-labelledby="fiscal-years-title">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
             <div>
@@ -147,6 +152,7 @@ body.subscription-dashboard .content{max-width:1440px;margin:0 auto;padding:28px
         @endif
         <p class="subscription-note">این اطلاعات فقط از سوابق موجود Accounting برای شرکت انتخاب‌شده خوانده می‌شود. نمایش این صفحه هیچ سال مالی جدیدی ایجاد یا تغییر نمی‌دهد و سوابق سایر شرکت‌ها را در بر نمی‌گیرد.</p>
     </section>
+    @endif
 @endif
 
 @push('scripts')
