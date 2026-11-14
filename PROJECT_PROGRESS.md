@@ -1556,3 +1556,13 @@
 - بررسی پیش از تغییر: `AGENTS.md`, `PROJECT_DEFINITION.md`, `PROJECT_PROGRESS.md`, `README.md` و اسناد مرتبط خوانده شدند. main روی `4034f6ea1de2c9dc665450aa3296345988140a10` بود. PR #260 باز است و دست‌نخورده باقی مانده است. combined status و PR-workflow lookup برای HEAD main هیچ entry برنگرداندند؛ CI main در این بررسی قابل تأیید نیست.
 - تست خودکار، lint مستندات، browser/runtime، پرداخت، provisioning و production test اجرا نشده‌اند. پس از ایجاد PR باید CI همان PR بررسی شود. Deploy انجام نشده و تأیید نشده است.
 - شاخه کاری: `docs/record-web2022-subscription-flow`. PR این کار پس از commitها ایجاد می‌شود؛ merge انجام نشده و فقط با تأیید صریح همین PR مجاز خواهد بود.
+
+
+# 157. ادغام PR #261 و ثبت جریان خرید Web2022 — 2026-11-14
+
+- کاربر صریحاً درخواست ادغام PR #261 را داد؛ همین PR با روش Squash در GitHub با موفقیت ادغام شد.
+- وضعیت زنده پس از عملیات: PR #261 بسته و merged=true؛ زمان ادغام `2026-11-14T09:21:34Z`؛ merge commit برابر `a701172db601126d1bdbbda42a713d02bbeda00b` است و HEAD شاخه main نیز به همین SHA تأیید شد.
+- CI روی commit نهایی شاخه PR پیش از ادغام، دو check با نام `phpunit` و نتیجه `success` گزارش کرد. پس از ادغام، check جدید روی merge commit در زمان ثبت این سابقه هنوز در حال اجرا بود؛ نتیجه نهایی آن باید جداگانه بررسی شود.
+- فایل‌های ادغام‌شده: `PROJECT_DEFINITION.md`، `PROJECT_PROGRESS.md`، `docs/dolibarr-integration-boundary.md` و `docs/web2022-subscription-to-dolibarr-flow.md`؛ مجموع تغییر PR برابر ۱۵۱ خط افزوده و بدون حذف بود.
+- این PR فقط مستندات را تغییر داد. هیچ کد runtime، پرداخت، SSO، provisioning، دیتابیس، migration، سرور، cPanel، DNS، production، نصب Dolibarr یا حذف/تغییر Laravel انجام نشد. تست محلی، browser/runtime و production test اجرا نشده‌اند؛ Deploy از merge قابل استنتاج نیست.
+- ثبت این نتیجه در این commit روی شاخه مستقل انجام می‌شود تا قاعده عدم commit مستقیم به main رعایت شود.
