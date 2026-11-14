@@ -153,12 +153,14 @@ elseif ($can['production_operations']) $productionHome = route('master.index', '
 @foreach($companies as $item)<option value="{{ $item->id }}" @selected($company?->id === $item->id)>{{ $item->name }}</option>@endforeach
 </select>
 @else<span style="color:#71879d;font-size:10px">هنوز شرکتی تعریف نشده</span>@endif
+@if(!request()->routeIs('dashboard'))
 @if($fiscalYears->isNotEmpty() && $can['fiscal_years'])
 <form method="POST" action="{{ route('fiscal-years.select', $fiscalYear ?? $fiscalYears->first()) }}" style="margin:0">@csrf
 <select aria-label="انتخاب سال مالی" onchange="this.form.action='{{ url('/fiscal-years') }}/'+this.value+'/select';this.form.submit()">
 @foreach($fiscalYears as $year)<option value="{{ $year->id }}" @selected($fiscalYear?->id === $year->id) @disabled($year->is_closed)>{{ $year->name }}{{ $year->is_closed ? ' (بسته)' : '' }}</option>@endforeach
 </select></form>
 @elseif($company && $can['fiscal_years'])<a href="{{ route('fiscal-years.create') }}" style="color:#6ee7d0;font-size:10px;text-decoration:none">+ تعریف سال مالی</a>@endif
+@endif
 </div>
 <div class="user"><div><strong>{{ $user->name }}</strong><small>{{ $company?->name ?? 'حسابداری صنعتی' }}</small></div><div class="avatar">{{ mb_substr($user->name,0,1) }}</div>
 @if(!request()->routeIs('dashboard'))
