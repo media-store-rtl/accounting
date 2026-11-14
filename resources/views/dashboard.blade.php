@@ -76,7 +76,9 @@ body.subscription-dashboard .content{max-width:1440px;margin:0 auto;padding:28px
         <h1>اشتراک و سال‌های مالی</h1>
         <p>اطلاعات مالک، وضعیت اعتبار اشتراک و سوابق سال‌های مالی شرکت انتخاب‌شده.</p>
     </div>
-    <span class="subscription-status {{ $subscriptionClass }}">{{ $subscriptionLabel }}</span>
+    @if($user->isAccountOwner())
+        <span class="subscription-status {{ $subscriptionClass }}">{{ $subscriptionLabel }}</span>
+    @endif
 </div>
 
 @if(!$company)
