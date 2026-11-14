@@ -1551,4 +1551,4 @@
 - شاخه کاری: `docs/dolibarr-first-tenant-staging-runbook`. فایل‌های تغییرکرده: سند runbook جدید و این ثبت پیشرفت.
 - هیچ PHP/runtime code، migration، test automation، cPanel change، database/user creation، subdomain/TLS/DNS change، installer execution، backup/restore واقعی، browser/live-site check، Deploy یا تغییر/حذف Laravel انجام نشده است. این موارد تا دسترسی و تأیید جداگانه اجرا نشده‌اند.
 - تست نرم‌افزاری محلی در این محیط اجرا نشد؛ CI شاخه پس از ایجاد PR باید جداگانه بررسی شود. وضعیت CI main در این بررسی با status endpoint خالی قابل تأیید نبود.
-- وضعیت: مستندات روی شاخه کاری ثبت شدند؛ PR و CI هنوز باید ایجاد و بررسی شوند؛ merge انجام نشده است.
+- PR شماره 260 ایجاد شد: https://github.com/media-store-rtl/accounting/pull/260. پس از ایجاد PR، combined status و workflow-run endpoint برای head commit هیچ status/run entry برنگرداندند؛ بنابراین CI هنوز قابل تأیید نیست. PR باز است و merge نشده است.
