@@ -1,3 +1,37 @@
+# 162. ثبت نتایج ممیزی روابط و مالکیت داده Accounting — 2026-11-14
+
+- درخواست: ادامه ممیزی read-only و ثبت یافته‌های مدل‌های هویت، عضویت، entitlement و SSO در اسناد مرجع پروژه.
+- بررسی زنده پیش از تغییر: `main` روی `a701172db601126d1bdbbda42a713d02bbeda00b` بود. PR #262 و PR #263 باز و mergeنشده بودند؛ PR #263 روی شاخه/تغییرات PR #262 قرار دارد و این زنجیره در این مرحله تغییر داده نشد. PR #263 همان PR فعال برای اصلاح هویت Accounting و Provisioning است.
+- فایل‌های کد بررسی‌شده در `main`: `app/Models/Account.php`, `Company.php`, `User.php`, `SubscriptionEntitlement.php`, `app/Http/Controllers/AccountingSsoController.php` و `UserManagementController.php`.
+- یافته رابطه‌ها: Account رابطه users از نوع HasMany و company از نوع HasOne دارد؛ Company به Account تعلق دارد و کاربران را از طریق pivot `company_user` با `role_id` و `is_active` نگهداری می‌کند؛ User یک `account_id` دارد و عضویت‌های Company از pivot خوانده می‌شوند؛ Company یک SubscriptionEntitlement دارد؛ User نیز `web2022_subscription_id` را نگه می‌دارد.
+- یافته کنترل دسترسی: UserManagementController کاربر و Personnel را در account عامل ایجاد می‌کند و عضویت/نقش را روی Company pivot ثبت می‌کند. دسترسی به کاربر، account مشترک و عضویت فعال در Company را بررسی می‌کند و ظرفیت کاربران را از entitlement همان Company می‌خواند.
+- یافته SSO: callback ابتدا بر اساس `web2022_user_id` و سپس email تطبیق می‌دهد؛ در ایجاد کاربر جدید Account و Company با کد `MAIN` می‌سازد؛ شناسه اشتراک را روی User می‌نویسد و entitlement شرکت جاری را به‌روز می‌کند؛ سپس session Laravel می‌سازد و به `/dashboard` می‌رود. این SSO مقصد Dolibarr نیست. ناهماهنگی نام config secret در مسیر logout نیز برای بررسی مستقل ثبت شد.
+- شکاف Provisioning در baseline: Registry canonical مشتری/Business/Tenant، نگاشت DB tenant، API داخلی، Inbox/Outbox، idempotency store و jobهای orchestration در main مشاهده نشدند. مقدار QUEUE_CONNECTION در نمونه محیط، آمادگی runtime queue/worker را اثبات نمی‌کند.
+- محدودیت مهم: رابطه HasOne در Account با مدل هدف چند Business نیازمند بررسی تمام call siteها و قیود migration است. unique/FK/cascadeهای کامل و داده‌های واقعی production در این مرحله تأیید نشدند؛ هیچ تصمیمی برای تغییر cardinality یا schema گرفته نشد.
+- شمارش ساختار مخزن در snapshot ممیزی‌شده: ۲۸ کنترلر، ۲۰ مدل، ۱۶ سرویس، ۵ middleware، ۵ فرمان CLI، ۸۴ migration، ۲۹ تست Feature، یک تست Unit، دو تست JavaScript، ۵۴ View و ۱۴۷ route وب؛ `routes/api.php` و پوشه‌های اختصاصی Jobs/Events/Listeners مشاهده نشدند.
+- فایل‌های به‌روزشده در این مرحله: `PROJECT_DEFINITION.md` (افزودن بخش baseline ممیزی) و `PROJECT_PROGRESS.md` (این entry). فقط مستندات تغییر کرده‌اند.
+- هیچ route/controller/model، migration، schema، DB، داده production، API runtime، queue/worker، پرداخت، SSO، tenant، read-only enforcement، cPanel/server/DNS، production یا قابلیت legacy تغییر نکرده است.
+- تست محلی، lint مستندات، browser/runtime، database، cPanel و production test اجرا نشده‌اند. CI قبلی PR #263 روی commit پیشین `c13ff2260f8cf751fce69ecfac2ae004c69a37fe` در run #3919 با نتیجه success ثبت شده بود؛ این نتیجه تغییرات مستنداتی جدید را پوشش نمی‌دهد و CI پس از commit جدید باید بررسی شود.
+- شاخه کاری: `docs/provisioning-business-registry-architecture`. تغییرات به PR [#263](https://github.com/media-store-rtl/accounting/pull/263) افزوده می‌شوند؛ PR باز می‌ماند و merge فقط با تأیید صریح کاربر مجاز است. هیچ Deploy انجام نشده است.
+
+---
+
+# 161. اصلاح تصمیم معماری: حفظ Accounting و افزودن Provisioning درون آن — 2026-11-14
+
+- اصلاح برداشت معماری پس از توضیح صریح کاربر: منظور از «Accounting مساوی Provisioning» این نیست که Accounting به پروژه‌ای جدید تبدیل یا از محصول حذف شود؛ پروژه و هویت Accounting موجود باید حفظ شود و Provisioning یک قابلیت درون همان Accounting است.
+- نام‌گذاری اسناد نیز بر همین اساس یکدست شد: نام پروژه همیشه Accounting است و Provisioning نام قابلیت/ماژول داخل آن است؛ از به‌کاربردن «Accounting/Provisioning» به‌عنوان نام یک پروژه یا سامانه مرکب پرهیز می‌شود.
+- عنوان پیوند سند طراحی داخلی نیز یکدست شد تا Accounting نام پروژه و Provisioning نام قابلیت داخل آن باشد.
+- Dolibarr همچنان محیط مستقیم عملیات روزمره حسابداری/ERP هر tenant است؛ این موضوع به معنی حذف یا بازنشستگی خودکار قابلیت‌های موجود Accounting/Laravel نیست. مرز همزیستی و تقسیم مسئولیت این قابلیت‌ها هنوز باز است و باید feature-by-feature تصمیم‌گیری شود.
+- متن‌هایی که قابلیت‌های قدیمی Laravel را از پیش «خارج از محصول» یا «مرحله‌ای بازنشسته» معرفی می‌کردند اصلاح شدند. هیچ قابلیت، کد، داده، دیتابیس، فایل یا تنظیم فعلی Accounting حذف یا خاموش نمی‌شود و این تغییر مجوز چنین کاری نیست.
+- فایل‌های به‌روزشده: `PROJECT_DEFINITION.md`, `README.md`, `docs/provisioning-service-architecture.md`, `docs/accounting-provisioning-module-design.md`, `docs/web2022-subscription-to-dolibarr-flow.md`, `docs/dolibarr-integration-boundary.md`, `docs/dolibarr-cpanel-deployment-preparation.md` و همین فایل.
+- فقط مستندات و تعریف معماری تغییر می‌کنند؛ هیچ route/controller/model، migration، DB، job/worker، API runtime، payment، SSO، read-only enforcement، cPanel/server/DNS، production یا Laravel/Accounting runtime تغییر نمی‌کند.
+- پیش از تغییر: `AGENTS.md`, `README.md`, `PROJECT_DEFINITION.md`, `PROJECT_PROGRESS.md` و اسناد معماری مرتبط بررسی شدند. وضعیت زنده PR #263 باز و mergeable و PR #262 باز و mergeنشده بود. PR #263 روی شاخه PR #262 قرار دارد و این زنجیره بدون تغییر base حفظ می‌شود. main در SHA `a701172db601126d1bdbbda42a713d02bbeda00b` است.
+- CI قبلی PR #263 روی head پیشین `5618d8c04673c581489c26748beefa994e215710` در run شماره 3913 با نتیجه `success` پایان یافته است؛ این نتیجه CI commit جدید این اصلاحیه را پوشش نمی‌دهد. پس از commit جدید، CI باید دوباره بررسی شود.
+- تست خودکار محلی، lint مستندات، browser/runtime، payment، provisioning، database، cPanel و production test اجرا نشده‌اند؛ این کار صرفاً اصلاح مستندات است. هیچ merge یا deployment انجام نشده است.
+- شاخه: `docs/provisioning-business-registry-architecture`. PR [#263](https://github.com/media-store-rtl/accounting/pull/263) باز می‌ماند و merge آن فقط با تأیید صریح کاربر مجاز است. PR [#262](https://github.com/media-store-rtl/accounting/pull/262) نیز باز و بدون تغییر باقی می‌ماند.
+
+---
+
 # 147. تثبیت مرز مسئولیت Laravel و Dolibarr در تعریف پروژه — 2026-11-13
 
 - درخواست تأییدشده: هم‌راستا کردن تعریف اصلی پروژه با معماری Dolibarr؛ Laravel فقط صلاحیت ورود کاربر/شرکت را بررسی کند و Dolibarr تمام منطق حسابداری و مجوزهای داخلی خود را نگه دارد.
@@ -1566,3 +1600,42 @@
 - فایل‌های ادغام‌شده: `PROJECT_DEFINITION.md`، `PROJECT_PROGRESS.md`، `docs/dolibarr-integration-boundary.md` و `docs/web2022-subscription-to-dolibarr-flow.md`؛ مجموع تغییر PR برابر ۱۵۱ خط افزوده و بدون حذف بود.
 - این PR فقط مستندات را تغییر داد. هیچ کد runtime، پرداخت، SSO، provisioning، دیتابیس، migration، سرور، cPanel، DNS، production، نصب Dolibarr یا حذف/تغییر Laravel انجام نشد. تست محلی، browser/runtime و production test اجرا نشده‌اند؛ Deploy از merge قابل استنتاج نیست.
 - ثبت این نتیجه در این commit روی شاخه مستقل انجام می‌شود تا قاعده عدم commit مستقیم به main رعایت شود.
+
+
+# 158. تثبیت Registry کسب‌وکار و سرویس مستقل Provisioning — 2026-11-14
+
+- درخواست و تأیید کاربر: مشتری می‌تواند چند کسب‌وکار مستقل داشته باشد؛ هر کسب‌وکار اشتراک و محیط Dolibarr مستقل و پرداخت/تمدید/انقضای جداگانه دارد. کاربر همچنین تأیید کرد که ایجاد و مدیریت کسب‌وکار از رابط Web2022 انجام شود، اما شناسه و Registry canonical در سرویس مستقل Provisioning نگهداری شود.
+- مرز مالکیت ثبت‌شده: Web2022 رابط مشتری برای ایجاد/مدیریت کسب‌وکار و مالک checkout، پرداخت، سفارش و منبع حقیقت وضعیت تجاری اشتراک است؛ Provisioning مالک UUIDهای canonical مشتری/کسب‌وکار/tenant، Registry و چرخه عمر محیط است؛ Dolibarr مالک ورود، کاربران، نقش‌ها، مجوزها و عملیات حسابداری/ERP هر tenant است.
+- مدل پایه: یک Customer می‌تواند چند Business داشته باشد؛ هر Business یک subscription جاری مستقل و یک tenant Dolibarr مستقل با DB، config، documents، session و runtime جداگانه دارد. تمدید همان subscription و tenant/DB را حفظ می‌کند؛ وضعیت یک کسب‌وکار روی کسب‌وکار دیگر اثر ندارد. اشتراک‌های هم‌زمان برای یک Business و قواعد تغییر پلن هنوز باز هستند.
+- قرارداد مفهومی مستند شد: Web2022 از Backend و API احرازاصالت‌شده Provisioning برای ایجاد/مدیریت Business استفاده می‌کند؛ Provisioning شناسه پایدار برمی‌گرداند؛ پس از commit خرید، Outbox رویداد نسخه‌بندی‌شده را منتشر می‌کند؛ Provisioning با Inbox، event ID یکتا، aggregate version، idempotency، retry و reconciliation پردازش می‌کند. پس از آماده‌سازی، مشتری مستقیماً وارد Dolibarr می‌شود.
+- فایل‌های تغییرکرده: `docs/provisioning-service-architecture.md` (جدید)، `PROJECT_DEFINITION.md`، `docs/dolibarr-integration-boundary.md`، `docs/web2022-subscription-to-dolibarr-flow.md`، `docs/dolibarr-cpanel-deployment-preparation.md`، `README.md` و همین فایل.
+- محدودیت‌های ثبت‌شده: فناوری و محل اجرای Provisioning، DB Registry، endpoint/schema نهایی، امضا و key rotation، transport/callback یا polling، worker/queue، مالکیت چندکاربره، لغو/refund/chargeback، entitlement propagation و DNS هنوز تصمیم‌های فنی باز هستند. Provisioning نباید به DB، مدل‌ها، session یا secretهای Laravel وابسته شود.
+- این تغییر فقط مستندات و تعریف معماری است. هیچ کد runtime، API، migration، DB، tenant، پرداخت، SSO، read-only enforcement، cPanel، DNS، سرور، production، Deploy یا حذف/تغییر Laravel انجام نشده است.
+- پیش از تغییر: `AGENTS.md`، `PROJECT_DEFINITION.md`، `PROJECT_PROGRESS.md`، `README.md` و اسناد مرجع Dolibarr/اشتراک/استقرار خوانده شدند؛ وضعیت زنده main روی `a701172db601126d1bdbbda42a713d02bbeda00b` بررسی شد. PR #260 و PR #262 باز و بدون تغییر باقی ماندند. CI مربوط به PR #262 در run شماره 3864 موفق بود؛ status endpoint برای آن SHA وضعیت جداگانه‌ای برنگرداند. status و workflow-run lookup روی main نیز در این بررسی entry نداشتند.
+- تست خودکار، lint مستندات، browser/runtime، payment، provisioning، database، cPanel و production test اجرا نشده‌اند؛ چون این تغییر فقط مستنداتی است. CI شاخه/PR جدید پس از ایجاد PR بررسی خواهد شد. Deploy انجام نشده و تأیید نشده است.
+- شاخه کاری: `docs/provisioning-business-registry-architecture`، بر پایه شاخه باز `docs/record-pr261-merge` (PR #262) برای جلوگیری از تعارض هم‌زمان در `PROJECT_PROGRESS.md`. PR [#263](https://github.com/media-store-rtl/accounting/pull/263) با base همان شاخه باز شد و GitHub آن را mergeable گزارش کرد. CI run شماره 3873 (شناسه 43581553499) روی head قبلی `49dfb9cbeb7de0346ab7568c3e5ff9e6776c3d4a` با نتیجه `success` کامل شد؛ برای head نهایی فعلی `e738d6cf2d04f16ab3619798e36435286e5ff5f7`، lookup مربوط به workflow/status هنوز entry برنگردانده و CI نهایی تأیید نشده است. پس از تعیین تکلیف PR #262، base این PR در صورت نیاز به main تغییر می‌کند. ادغام هیچ‌یک بدون تأیید صریح همان PR مجاز نیست.
+
+
+# 159. تغییر تصمیم معماری: Provisioning درون پروژه Accounting — 2026-11-14
+
+- درخواست و تأیید کاربر: «Provisioning همون اکانتینگ باشه». تصمیم قبلی درباره ساخت سرویس/پروژه مستقل Provisioning جایگزین شد؛ Provisioning قابلیت و ماژول اصلی خود پروژه Accounting است و سرویس/مخزن مستقل دیگری در کنار آن ساخته نمی‌شود.
+- نقش مقصد: پروژه Accounting به کنترل‌پلین Provisioning برای Registry canonical مشتری/کسب‌وکار/tenant، API امن مورد استفاده Backend وب‌سایت Web2022، پردازش رویدادهای خرید و اشتراک، jobها، audit و چرخه عمر tenantهای Dolibarr تبدیل می‌شود. برنامه Laravel موجود پایه فنی/میزبان این کنترل‌پلین خواهد بود.
+- تفکیک مسئولیت‌ها: Web2022 رابط ایجاد/مدیریت کسب‌وکار و مالک checkout، پرداخت و وضعیت تجاری اشتراک می‌ماند؛ Accounting/Provisioning مالک Registry و ساخت/بازیابی/مدیریت tenant است؛ Dolibarr مقصد مستقیم مشتری و مالک کاربران عملیاتی، مجوزها و عملیات حسابداری/ERP است.
+- قابلیت‌های قدیمی داشبورد و عملیات حسابداری Laravel مقصد محصول نیستند و در مسیر مهاجرت مرحله‌ای از تجربه مشتری خارج خواهند شد؛ اما این تصمیم مجوز حذف فوری Laravel، دیتابیس، فایل‌ها، jobها یا داده‌ها نیست. هر بازطراحی، migration یا حذف مخرب نیازمند inventory، backup قابل‌بازیابی و آزمون restore، برنامه cutover/rollback و تأیید جداگانه است.
+- مسیر مشتری حفظ می‌شود: پس از خرید موفق در Web2022، Backend آن از مسیر احرازشده به Accounting/Provisioning اطلاع می‌دهد؛ در خرید اول tenant ساخته و پس از آماده‌شدن، مشتری به Dolibarr همان کسب‌وکار هدایت می‌شود؛ در تمدید، همان tenant و DB قبلی حفظ می‌شوند. جزئیات نهایی قرارداد API/event، SSO/ورود، retry و وضعیت خطا همچنان نیازمند طراحی‌اند.
+- فایل‌های مستنداتی اصلاح‌شده: `PROJECT_DEFINITION.md`, `README.md`, `docs/provisioning-service-architecture.md`, `docs/dolibarr-integration-boundary.md`, `docs/web2022-subscription-to-dolibarr-flow.md`, `docs/dolibarr-cpanel-deployment-preparation.md` و همین فایل.
+- هیچ کد runtime، route/controller/model، API، migration، DB، payment، SSO، tenant، read-only enforcement، cPanel/server/DNS یا production تغییر نکرده است. تست خودکار و lint مستندات اجرا نشده‌اند؛ browser/runtime، payment، provisioning و backup/restore نیز اجرا یا تأیید نشده‌اند. این PR صرفاً اصلاح مستندات و تصمیم معماری است.
+- پیش از تغییر: `AGENTS.md`, `PROJECT_PROGRESS.md`, `README.md`, `PROJECT_DEFINITION.md` و اسناد فنی مرتبط بررسی شدند. PR #263 باز و merge نشده بود؛ PR #262 نیز باز و merge نشده است. CI روی head قبلی PR #263 با SHA `d1d4cf8718d439783ee3f9b4b501c698d74c6c8a` در run #3886 با نتیجه success پایان یافته بود؛ این نتیجه CI برای commitهای جدید این اصلاحیه نیست.
+- شاخه کاری: `docs/provisioning-business-registry-architecture`، PR #263 به‌صورت stacked روی شاخه PR #262 باقی می‌ماند. merge یا deployment انجام نشده است؛ CI commit جدید باید جداگانه بررسی شود.
+
+
+# 160. طراحی داخلی ماژول Accounting/Provisioning و قرارداد پیشنهادی API — 2026-11-14
+
+- درخواست کاربر: «برو گام بعدی». گام بعدی به طراحی داخلی ماژول Provisioning درون پروژه Accounting اختصاص یافت؛ تصمیم قبلی ساخت سرویس مستقل حفظ نشد و این سند صریحاً Modular Monolith در همان برنامه Laravel را به‌عنوان پیشنهاد معماری ثبت می‌کند.
+- سند جدید `docs/accounting-provisioning-module-design.md` ایجاد شد: شواهد وضع موجود Laravel، لایه‌های داخلی، مرز ماژول‌ها، مدل داده مفهومی، API versioned پیشنهادی برای Web2022، event envelope، Inbox/idempotency/ordering، lifecycle tenant، retry/reconciliation، امنیت، مراحل اجرا و ماتریس آزمون آینده.
+- مسئولیت‌ها شفاف شدند: Web2022 مالک UI کسب‌وکار، checkout/پرداخت و وضعیت تجاری اشتراک و Outbox است؛ Accounting/Provisioning مالک Registry canonical، API، Inbox و orchestration است؛ Dolibarr مالک هویت عملیاتی و عملیات حسابداری/ERP است. Provisioning درخواست روزمره کاربر را proxy نمی‌کند.
+- شواهد کد بررسی‌شده در شاخه: `routes/web.php`، `AccountingSsoController`، `AuthController`، `config/services.php`، `composer.json`، `phpunit.xml` و `User.php`. مسیر `routes/api.php` در شاخه یافت نشد؛ تست‌های نامزد `tests/Feature/AccountingSsoTest.php` و `AuthTest.php` نیز با مسیرهای حدسی در GitHub قابل بازیابی نبودند و فهرست کامل tests از طریق ابزار موجود قابل استخراج نشد. پیش از هر تغییر runtime، inventory محلی کامل و تست‌های واقعی باید بررسی شوند.
+- فایل‌های به‌روزشده: `README.md`، `PROJECT_DEFINITION.md`، `docs/provisioning-service-architecture.md`، `docs/web2022-subscription-to-dolibarr-flow.md` و همین فایل؛ در مجموع یک سند جدید و پنج فایل به‌روزشده.
+- هیچ route/controller/model، migration، DB، job/worker، API، payment، SSO، tenant، read-only enforcement، cPanel، DNS، سرور، production یا Laravel legacy حذف/تغییر نشده است. تست خودکار و lint مستندات اجرا نشده‌اند؛ این تغییر صرفاً مستنداتی است. Browser/runtime، قرارداد دوطرفه Web2022، provisioning، backup/restore و tenant isolation اجرا یا تأیید نشده‌اند.
+- پیش از تغییر: `AGENTS.md`، README، تعریف محصول، progress، اسناد معماری، جریان Web2022، کدهای مرتبط و وضعیت زنده GitHub/PR/CI بررسی شدند. PR #263 باز و merge نشده بود؛ PR #262 نیز باز و merge نشده است. CI head قبلی PR #263 با SHA `cace7d81e72ceba25a593bf5c588bbb82e52c2e7` در run #3903 با نتیجه success پایان یافته بود؛ این نتیجه CI برای commitهای جدید این مرحله نیست.
+- شاخه کاری: `docs/provisioning-business-registry-architecture`؛ تغییرات به همان PR باز #263 اضافه می‌شوند تا از PR موازی با تغییرات هم‌پوشان جلوگیری شود. PR #263 همچنان stacked بر پایه PR #262 است؛ PR #262 باید جداگانه با تأیید صریح کاربر تعیین تکلیف شود. هیچ merge یا deployment انجام نشده است؛ CI head جدید باید جداگانه بررسی شود.
