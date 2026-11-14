@@ -1538,3 +1538,17 @@
 - شاخه کاری: `docs/dolibarr-cpanel-deployment-preparation`.
 - فایل‌های تغییرکرده: `docs/dolibarr-cpanel-deployment-preparation.md` (جدید)، `README.md` و `dolibarr/README.md`؛ این entry نیز در همین شاخه افزوده شد.
 - تست runtime، نصب Dolibarr، تست مرورگر، ساخت دیتابیس/tenant، backup/restore، تغییر cPanel/DNS، Deploy و حذف یا تغییر Laravel انجام نشده‌اند. هنوز commit/PR و CI این شاخه باید تکمیل و بررسی شوند؛ merge انجام نشده است.
+
+
+# 156. طراحی runbook محیط آزمایشی اولین tenant دالیبار — 2026-11-14
+
+- بنا به موافقت کاربر، آماده‌سازی مرحله بعد برای نخستین tenant در محدوده طراحی و مستندسازی محیط staging انجام شد؛ هیچ دسترسی یا تغییری در cPanel، سرور، DNS یا دیتابیس واقعی انجام نشد.
+- وضعیت زنده مخزن پیش از تغییر: `main` روی `4034f6ea1de2c9dc665450aa3296345988140a10`؛ مخزن در دسترس و عمومی؛ جست‌وجوی PRهای باز نتیجه‌ای نداشت. combined commit status برای این SHA هیچ status entry برنگرداند؛ بنابراین CI موفق روی main در این بررسی قابل تأیید نبود.
+- اسناد `AGENTS.md`, `PROJECT_DEFINITION.md`, `PROJECT_PROGRESS.md`, `README.md`, `docs/dolibarr-cpanel-deployment-preparation.md`, `dolibarr/UPSTREAM.md`, `.gitmodules` و `.cpanel.yml` بررسی شدند. فایل `.cpanel.yml` همچنان Laravel-specific است و عمداً اجرا یا تغییر داده نشد.
+- سورس رسمی Dolibarr در commit pin‌شده `5c6c7ff6a5112413b1c27221c8d11750afad56f8` بررسی شد: `htdocs/filefunc.inc.php` مسیر پیش‌فرض `conf/conf.php` را نسبت به درخت برنامه بار می‌کند؛ `conf.php.example` مسیر document/data و مشخصات DB و instance ID را نگه می‌دارد؛ `main.inc.php` نام session را بر اساس prefix یکتای instance می‌سازد؛ installer فایل پیکربندی را ایجاد می‌کند. این بررسی منبع، جایگزین تست runtime/browser نیست.
+- هشدار ثبت شد که `dolibarr_main_db_readonly` فقط یک کلید global برای منع مجموعه‌ای از SQL write/DDLها است و جایگزین سیاست محصولی read-only پلن منقضی نیست؛ پیاده‌سازی سیاست انقضا همچنان خارج از محدوده است.
+- سند جدید `docs/dolibarr-first-tenant-staging-runbook.md` شامل preflight فقط‌خواندنی cPanel، نصب tenant آزمایشی A، ساخت tenant آزمایشی B برای اثبات جداسازی DB/files/config/session/URL، آزمون backup/restore، معیار توقف و دروازه تأیید production است.
+- شاخه کاری: `docs/dolibarr-first-tenant-staging-runbook`. فایل‌های تغییرکرده: سند runbook جدید و این ثبت پیشرفت.
+- هیچ PHP/runtime code، migration، test automation، cPanel change، database/user creation، subdomain/TLS/DNS change، installer execution، backup/restore واقعی، browser/live-site check، Deploy یا تغییر/حذف Laravel انجام نشده است. این موارد تا دسترسی و تأیید جداگانه اجرا نشده‌اند.
+- تست نرم‌افزاری محلی در این محیط اجرا نشد؛ CI شاخه پس از ایجاد PR باید جداگانه بررسی شود. وضعیت CI main در این بررسی با status endpoint خالی قابل تأیید نبود.
+- PR شماره 260 ایجاد شد: https://github.com/media-store-rtl/accounting/pull/260. پس از ایجاد PR، combined status و workflow-run endpoint برای head commit هیچ status/run entry برنگرداندند؛ بنابراین CI هنوز قابل تأیید نیست. PR باز است و merge نشده است.
