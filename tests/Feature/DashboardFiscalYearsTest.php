@@ -65,6 +65,16 @@ class DashboardFiscalYearsTest extends TestCase
             'ends_at' => '2026-03-20',
             'is_closed' => false,
         ]);
+        SubscriptionEntitlement::create([
+            'company_id' => $company->id,
+            'external_subscription_id' => 'WEB-SUB-98765',
+            'status' => 'active',
+            'starts_at' => '2025-03-21 00:00:00',
+            'expires_at' => '2027-03-20 23:59:59',
+            'last_verified_at' => '2026-11-13 10:00:00',
+            'metadata' => ['plan_name' => 'پلن حرفه‌ای'],
+        ]);
+
         FiscalYear::create([
             'company_id' => $otherCompany->id,
             'name' => 'سال مالی شرکت دیگر',
@@ -79,7 +89,13 @@ class DashboardFiscalYearsTest extends TestCase
             ->get('/dashboard');
 
         $response->assertOk()
-            ->assertSee('سال‌های مالی این شرکت')
+            ->assertSee('سوابق سال‌های مالی')
+            ->assertSee('اطلاعات مالک و اشتراک')
+            ->assertSee('پلن حرفه‌ای')
+            ->assertSee('WEB-SUB-98765')
+            ->assertSee('2027/03/20')
+            ->assertSee('سال‌های مالی')
+            ->assertSee('subscription-dashboard')
             ->assertSee('شرکت مجاز')
             ->assertSee('98765', false)
             ->assertSee($visibleYear->name)
