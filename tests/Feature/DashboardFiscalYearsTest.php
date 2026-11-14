@@ -41,6 +41,8 @@ class DashboardFiscalYearsTest extends TestCase
             'is_active' => true,
         ]);
 
+        $account->update(['owner_user_id' => $user->id]);
+
         $permission = Permission::create([
             'name' => 'مشاهده سال مالی',
             'slug' => 'fiscal_year.view',
