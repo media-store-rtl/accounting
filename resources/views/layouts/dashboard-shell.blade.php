@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
+body.subscription-dashboard .sidebar,body.subscription-dashboard .mobile-nav,body.subscription-dashboard .mobile-sales-panel,body.subscription-dashboard .mobile-base-panel{display:none!important}
+body.subscription-dashboard .app{grid-template-columns:1fr}
 :root{font-family:"Vazirmatn","Segoe UI",Tahoma,sans-serif;background:#07111f;color:#e9f3fb}
 *{box-sizing:border-box}body{margin:0;background:#07111f;color:#e9f3fb}.app{min-height:100vh;display:grid;grid-template-columns:270px 1fr}
 .sidebar{background:#091725;border-left:1px solid #1c3348;padding:22px 16px;position:sticky;top:0;height:100vh;overflow-y:auto}
@@ -27,7 +29,7 @@
 </style>
 @stack('styles')
 </head>
-<body>
+<body class="{{ request()->routeIs('dashboard') ? 'subscription-dashboard' : '' }}">
 @php
 $user = auth()->user();
 $companies = $user->companies()->where('companies.is_active', true)->wherePivot('is_active', true)->orderBy('companies.name')->get();
@@ -61,6 +63,7 @@ $can['notification_recipients'] = (bool) ($can['notification_recipients'] ?? ($c
 $unreadNotificationCount = !empty($can['notifications']) ? $user->unreadNotifications()->count() : 0;
 @endphp
 <div class="app">
+@if(!request()->routeIs('dashboard'))
 <aside class="sidebar">
 <div class="brand"><div class="logo">ح</div><div><b>حسابداری صنعتی</b><span>مدیریت تولید و بهای تمام‌شده</span></div></div>
 <nav class="nav">
@@ -141,6 +144,7 @@ elseif ($can['production_operations']) $productionHome = route('master.index', '
 @endif
 </nav>
 </aside>
+@endif
 <main class="main">
 <header class="top">
 <div class="company">
@@ -157,14 +161,17 @@ elseif ($can['production_operations']) $productionHome = route('master.index', '
 @elseif($company && $can['fiscal_years'])<a href="{{ route('fiscal-years.create') }}" style="color:#6ee7d0;font-size:10px;text-decoration:none">+ تعریف سال مالی</a>@endif
 </div>
 <div class="user"><div><strong>{{ $user->name }}</strong><small>{{ $company?->name ?? 'حسابداری صنعتی' }}</small></div><div class="avatar">{{ mb_substr($user->name,0,1) }}</div>
+@if(!request()->routeIs('dashboard'))
 @if($can['notifications'])
 <a class="notification-bell" href="{{ route('notifications.index') }}" aria-label="مرکز اعلان‌ها" title="مرکز اعلان‌ها"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>@if($unreadNotificationCount > 0)<span class="count">{{ $unreadNotificationCount > 99 ? '99+' : $unreadNotificationCount }}</span>@endif</a>
+@endif
 @endif
 <form method="POST" action="{{ route('logout') }}">@csrf<button class="logout">خروج</button></form></div>
 </header>
 <section class="content">@yield('content')</section>
 </main>
 </div>
+@if(!request()->routeIs('dashboard'))
 <nav class="mobile-nav" aria-label="ناوبری موبایل">
 <a class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" href="#" onclick="document.getElementById('mobile-home-panel')?.classList.add('open');return false;"><span>⌂</span>خانه</a>
 @if($can['orders'])<a class="{{ request()->routeIs('sales.orders.*') ? 'active' : '' }}" href="#" onclick="document.getElementById('mobile-sales-panel')?.classList.add('open');return false;"><span>▤</span>فروش</a>@endif
@@ -254,6 +261,8 @@ elseif ($can['production_operations']) $productionHome = route('master.index', '
 </div>
 @endif
 </div></div>
+
+@endif
 
 <script>
 (function () {
