@@ -1524,3 +1524,17 @@
 - فایل‌های ادغام‌شده: `PROJECT_DEFINITION.md`, `README.md`, `dolibarr/README.md`, `dolibarr/UPSTREAM.md`, `docs/dolibarr-integration-boundary.md`, `PROJECT_PROGRESS.md`.
 - این تغییر مستنداتی است. هیچ کد runtime، دیتابیس، migration، provisioning، تنظیم سرور/DNS، نصب Dolibarr، حذف Laravel یا Deploy انجام نشده است. وضعیت production بررسی/تغییر داده نشده است.
 - برای حفظ قاعده عدم commit مستقیم به main، ثبت این نتیجه در همین فایل در شاخه جداگانه انجام می‌شود و از طریق PR مستقل ارائه خواهد شد.
+
+
+# 155. آماده‌سازی مستندات استقرار Dolibarr روی cPanel — 2026-11-14
+
+- بنا به درخواست کاربر، آماده‌سازی ساختار استقرار Dolibarr در مخزن آغاز شد؛ محدوده این کار مستنداتی و بدون تغییر محیط میزبانی است.
+- کاربر تأیید کرد امکانات موردنیاز cPanel شامل انتخاب PHP، ساخت دیتابیس، زیردامنه، SSL، Cron و دسترسی‌های اجرایی لازم را پیش‌تر بررسی کرده و روی هاست فعلی در دسترس بوده‌اند. این تأیید جایگزین خواندن نسخه‌ها، سقف منابع و تنظیمات واقعی در زمان استقرار نیست.
+- سند جدید `docs/dolibarr-cpanel-deployment-preparation.md` ساختار پیشنهادی tenantها، مسیرهای مجزا، قاعده عدم اشتراک `conf.php`، نقشه منابع هر مشتری، مراحل نصب آتی، ارتقا/بازگشت و چک‌لیست پذیرش را ثبت می‌کند.
+- نکته معماری مهم: تا وقتی جداسازی config و session در runtime واقعی اثبات نشده، یک درخت فیزیکی مشترک `htdocs` برای چند tenant فرض نمی‌شود؛ طرح محافظه‌کارانه، انتشار نسخه واحد upstream در درخت‌های اجرایی جداگانه برای هر tenant است.
+- `README.md` و `dolibarr/README.md` برای ارجاع به طرح استقرار و هشدار درباره `.cpanel.yml` به‌روزرسانی شدند. فایل `.cpanel.yml` همچنان Laravel-specific است و عمداً تغییر نکرد.
+- بررسی پیش از کار: دستورالعمل‌های `AGENTS.md`، تعریف محصول، تاریخچه پیشرفت، READMEها، `.cpanel.yml`، `.gitmodules` و مستندات Dolibarr بررسی شدند. شاخه `main` روی `4743cbe15e7caa99219d39708a1a41e471f30493` بود؛ PR باز وجود نداشت؛ آخرین CI روی main، run #3841، موفق بود.
+- منابع رسمی Dolibarr بررسی شدند: راهنمای نصب شامل دستورالعمل shared hosting و قفل‌کردن installer است؛ پیش‌نیازها به وب‌سرور PHP و دیتابیس پشتیبانی‌شده وابسته‌اند. این منابع، وضعیت واقعی این حساب cPanel را مستقلاً اثبات نمی‌کنند.
+- شاخه کاری: `docs/dolibarr-cpanel-deployment-preparation`.
+- فایل‌های تغییرکرده: `docs/dolibarr-cpanel-deployment-preparation.md` (جدید)، `README.md` و `dolibarr/README.md`؛ این entry نیز در همین شاخه افزوده شد.
+- تست runtime، نصب Dolibarr، تست مرورگر، ساخت دیتابیس/tenant، backup/restore، تغییر cPanel/DNS، Deploy و حذف یا تغییر Laravel انجام نشده‌اند. هنوز commit/PR و CI این شاخه باید تکمیل و بررسی شوند؛ merge انجام نشده است.
