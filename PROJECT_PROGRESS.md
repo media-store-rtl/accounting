@@ -9,7 +9,7 @@
 - تست رگرسیون افزوده‌شده: نمایش سال مالی شرکت مجاز و عدم نمایش سال شرکت دیگر؛ رد شرکت دارای عضویت غیرفعال و انتخاب شرکت مجاز جایگزین.
 - تست محلی، PHP lint و مرورگر در این محیط اجرا نشده‌اند؛ نتیجه CI پس از ایجاد PR باید بررسی شود. داده واقعی production یا Web2022 قابل خواندن از GitHub نیست؛ این تغییر فهرست داده‌های موجود در دیتابیس Accounting همان کاربر واردشده را در زمان اجرا نمایش می‌دهد.
 - هیچ migration، تغییر schema، ایجاد/ویرایش داده، SSO، provisioning، Dolibarr runtime، subscription enforcement، cPanel، DNS، server، production یا deployment انجام نشده است.
-- شاخه: `feat/dashboard-fiscal-year-overview-20261114`. PR پس از بررسی diff و CI ایجاد می‌شود؛ merge فقط با تأیید صریح کاربر مجاز است.
+- شاخه: `feat/dashboard-fiscal-year-overview-20261114`؛ PR [#266](https://github.com/media-store-rtl/accounting/pull/266) باز و ادغام‌نشده است. اجرای CI برای head فعلی هنوز در GitHub گزارش نشده؛ merge فقط با تأیید صریح کاربر مجاز است.
 
 ---
 
