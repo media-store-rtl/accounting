@@ -8,6 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FiscalYearController;
 use App\Http\Controllers\FarnamSiteContentController;
 use App\Http\Controllers\FarnamLeadController;
+use App\Http\Controllers\FarnamPublicContentController;
 use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\LaborCostController;
