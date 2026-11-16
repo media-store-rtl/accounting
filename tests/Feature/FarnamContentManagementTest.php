@@ -28,9 +28,12 @@ class FarnamContentManagementTest extends TestCase
         return $owner;
     }
 
-    public function test_account_owner_can_open_farnam_content_editor(): void
+    public function test_configured_site_owner_can_open_farnam_content_editor(): void
     {
-        $this->actingAs($this->owner())
+        $owner = $this->owner();
+        config(['services.farnam.site_admin_user_id' => $owner->id]);
+
+        $this->actingAs($owner)
             ->get('/farnam-admin')
             ->assertOk()
             ->assertSee('مدیریت محتوای وب‌سایت فرنام')
@@ -55,6 +58,7 @@ class FarnamContentManagementTest extends TestCase
     public function test_owner_can_update_homepage_copy_and_services_and_public_page_uses_them(): void
     {
         $owner = $this->owner();
+        config(['services.farnam.site_admin_user_id' => $owner->id]);
         $payload = [
             'hero_eyebrow' => 'معرفی تازه فرنام',
             'hero_title' => 'عنوان جدید صفحه اصلی',
