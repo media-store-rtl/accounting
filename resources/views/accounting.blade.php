@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="خدمات مشاوره حسابداری، مالی و مالیاتی فرنام؛ همراه کسب‌وکارها برای شفافیت مالی، کنترل بهتر و تصمیم‌گیری آگاهانه.">
+    <meta name="description" content="{{ $siteContent['hero_copy'] }}">
     <meta name="theme-color" content="#142d46">
     <meta property="og:type" content="website">
     <meta property="og:locale" content="fa_IR">
@@ -197,6 +197,7 @@ $siteContent = array_merge([
 ],
 ], $siteContent ?? []);
 @endphp
+@php($displayPhone = strtr($siteContent['phone'], '0123456789', '۰۱۲۳۴۵۶۷۸۹'))
 <div class="site">
     <header class="topbar">
         <div class="container nav">
@@ -351,7 +352,7 @@ $siteContent = array_merge([
                 <div class="contact-card">
                     <strong>خدمات مشاوره حسابداری مالی و مالیاتی فرنام</strong>
                     <span>حسابداری · مشاوره مالی · مشاوره مالیاتی · حسابداری صنعتی</span>
-                    <a class="contact-phone" href="tel:{{ preg_replace('/[^0-9+]/', '', $siteContent['phone']) }}">{{ $siteContent['phone'] }}</a>
+                    <a class="contact-phone" href="tel:{{ preg_replace('/[^0-9+]/', '', $siteContent['phone']) }}" aria-label="تماس تلفنی با فرنام: {{ $displayPhone }}">{{ $displayPhone }}</a>
                     <span class="contact-phone-label">برای تماس مستقیم، شماره را لمس کنید.</span>
                 </div>
             </div>
