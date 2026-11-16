@@ -37,6 +37,8 @@ class FarnamLeadManagementTest extends TestCase
             'business_type' => 'production',
             'service_interest' => 'industrial_costing',
             'message' => 'برای محاسبه بهای تمام‌شده نیاز به بررسی داریم.',
+            'source' => 'instagram',
+            'source_detail' => 'campaign-november',
             'consent' => '1',
         ])->assertRedirect('/#request-consultation')
             ->assertSessionHas('lead_status');
@@ -47,7 +49,8 @@ class FarnamLeadManagementTest extends TestCase
             'business_type' => 'production',
             'service_interest' => 'industrial_costing',
             'status' => 'new',
-            'source' => 'website',
+            'source' => 'instagram',
+            'source_detail' => 'campaign-november',
         ]);
     }
 
@@ -61,6 +64,40 @@ class FarnamLeadManagementTest extends TestCase
         ])->assertSessionHasErrors('consent');
 
         $this->assertDatabaseCount('farnam_leads', 0);
+    }
+
+    public function test_business_name_and_need_description_are_required(): void
+    {
+        $this->from('/')->post('/farnam-leads', [
+            'name' => 'مریم رضایی',
+            'phone' => '09120000000',
+            'business_type' => 'services',
+            'service_interest' => 'accounting',
+            'consent' => '1',
+        ])->assertSessionHasErrors(['business_name', 'message']);
+
+        $this->assertDatabaseCount('farnam_leads', 0);
+    }
+
+    public function test_acquisition_source_and_campaign_are_saved(): void
+    {
+        $this->post('/farnam-leads', [
+            'name' => 'مریم رضایی',
+            'phone' => '09120000000',
+            'business_name' => 'شرکت نمونه',
+            'business_type' => 'services',
+            'service_interest' => 'finance',
+            'message' => 'برای بررسی جریان نقدی درخواست جلسه داریم.',
+            'source' => 'linkedin',
+            'source_detail' => 'founder-outreach',
+            'consent' => '1',
+        ])->assertRedirect('/#request-consultation');
+
+        $this->assertDatabaseHas('farnam_leads', [
+            'business_name' => 'شرکت نمونه',
+            'source' => 'linkedin',
+            'source_detail' => 'founder-outreach',
+        ]);
     }
 
     public function test_only_account_owner_can_manage_leads_and_update_status(): void
@@ -82,7 +119,7 @@ class FarnamLeadManagementTest extends TestCase
             ->assertSee('مشتری آزمایشی');
 
         $this->actingAs($owner)->patch('/farnam-admin/leads/' . $lead->id, [
-            'status' => 'proposal',
+            'status' => 'negotiation',
             'internal_notes' => 'پیشنهاد همکاری ارسال شد.',
         ])->assertRedirect();
 
