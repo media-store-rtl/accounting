@@ -3,102 +3,363 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <meta name="google-site-verification" content="yf4KgEqBzZnkLBfYb3GV1xqN_M51SGulNqyKWj94sMA" />
-    <meta name="description" content="نرم‌افزار حسابداری صنعتی برای مدیریت خرید، انبار، مواد اولیه، تولید، دستمزد، سربار و محاسبه بهای تمام‌شده محصولات؛ مناسب کسب‌وکارهای تولیدی.">
-    <meta name="robots" content="index, follow, max-image-preview:large">
-    <meta name="theme-color" content="#050b14">
+    <meta name="description" content="خدمات مشاوره حسابداری، مالی و مالیاتی فرنام؛ همراه کسب‌وکارها برای شفافیت مالی، کنترل بهتر و تصمیم‌گیری آگاهانه.">
+    <meta name="theme-color" content="#142d46">
     <meta property="og:type" content="website">
     <meta property="og:locale" content="fa_IR">
-    <meta property="og:title" content="حسابداری صنعتی | کنترل تولید و بهای تمام‌شده">
-    <meta property="og:description" content="مدیریت یکپارچه خرید، انبار، مواد اولیه، تولید و بهای تمام‌شده برای کسب‌وکارهای تولیدی.">
+    <meta property="og:title" content="خدمات مشاوره حسابداری مالی و مالیاتی فرنام">
+    <meta property="og:description" content="مشاوره تخصصی حسابداری، مالی، مالیاتی و حسابداری صنعتی برای کسب‌وکارها.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="canonical" href="https://mymedimo.ir/">
-    <meta property="og:url" content="https://mymedimo.ir/">
-    <title>حسابداری صنعتی | کنترل تولید و بهای تمام‌شده</title>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <title>خدمات مشاوره حسابداری مالی و مالیاتی فرنام</title>
     <style>
-        :root{font-family:"Vazirmatn","Segoe UI",Tahoma,sans-serif;color:#edf5ff;background:#050b14;font-synthesis:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
-        *{box-sizing:border-box}
-        html{scroll-behavior:smooth}
-        body{margin:0;min-width:320px;background:#050b14;color:#edf5ff;font-family:"Vazirmatn","Segoe UI",Tahoma,sans-serif;font-weight:400}
-        a{color:inherit}
-        .page{min-height:100vh;overflow:hidden;background:radial-gradient(circle at 78% 5%,rgba(56,189,248,.14),transparent 24%),radial-gradient(circle at 8% 42%,rgba(45,212,191,.09),transparent 25%),#050b14}
-        .container{width:min(1200px,92%);margin:auto}
-        .nav{height:86px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(148,163,184,.11)}
-        .brand{display:flex;align-items:center;gap:12px;text-decoration:none}
-        .logo{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;font-size:21px;font-weight:900;color:#041019;background:linear-gradient(135deg,#6ee7d0,#67b7ff);box-shadow:0 18px 45px rgba(68,210,188,.18)}
-        .brand strong{display:block;font-size:16px;font-weight:800;letter-spacing:-.25px}.brand span{display:block;margin-top:4px;color:#748ba2;font-size:10px;font-weight:400}
-        .nav-link{display:flex;align-items:center;gap:24px;color:#8298ad;font-size:12px;font-weight:500}.nav-link a{text-decoration:none}.nav-link a:not(.nav-login):hover{color:#dcecff}
-        .nav-login{padding:11px 18px;border:1px solid #29445e;border-radius:12px;color:#eaf3fc;background:#0a1726}
-        .hero{position:relative;display:grid;grid-template-columns:1.02fr .98fr;gap:72px;align-items:center;padding:82px 0 104px}
-        .hero-copy-wrap{position:relative;z-index:2}
-        .eyebrow{display:inline-flex;align-items:center;gap:10px;color:#6ee7d0;font-size:10px;font-weight:900;letter-spacing:1.4px}.eyebrow i{width:7px;height:7px;border-radius:50%;background:#6ee7d0;box-shadow:0 0 0 7px rgba(110,231,208,.08)}
-        h1{font-size:clamp(44px,6vw,76px);line-height:1.08;letter-spacing:-1.8px;font-weight:800;margin:19px 0 23px;max-width:720px}h1 em{font-style:normal;color:#6ee7d0}
-        .hero-copy{color:#91a6ba;font-size:16px;line-height:2.2;font-weight:400;max-width:660px;margin:0}
-        .actions{display:flex;gap:11px;flex-wrap:wrap;margin-top:32px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:14px 21px;border-radius:13px;text-decoration:none;font-size:12px;font-weight:700;transition:.2s}.btn:hover{transform:translateY(-2px)}
-        .primary{background:#6ee7d0;color:#04121a;box-shadow:0 18px 40px rgba(61,210,180,.16)}.secondary{background:#091625;border:1px solid #29445e;color:#dbe8f4}
-        .trust{display:flex;gap:9px;flex-wrap:wrap;margin-top:24px}.trust span{padding:8px 11px;border:1px solid #1b3147;border-radius:10px;color:#748ba1;background:rgba(8,22,36,.7);font-size:9px}
-        .hero-orb{position:absolute;width:480px;height:480px;right:-270px;top:-90px;border:1px solid rgba(103,214,194,.08);border-radius:50%;box-shadow:inset 0 0 80px rgba(76,201,240,.025)}
-        .preview{position:relative}.glow{position:absolute;inset:4% -13%;background:radial-gradient(circle,rgba(52,150,232,.25),transparent 63%);filter:blur(30px)}
-        .dashboard{position:relative;border:1px solid #28445d;border-radius:28px;padding:14px;background:linear-gradient(145deg,rgba(10,25,41,.98),rgba(5,14,24,.97));box-shadow:0 45px 110px rgba(0,0,0,.45);transform:rotate(-1.2deg)}
-        .dash-top{height:45px;display:flex;align-items:center;justify-content:space-between;padding:0 9px;color:#71889e;font-size:9px}.traffic{display:flex;gap:5px}.traffic i{width:7px;height:7px;border-radius:50%;background:#30465c}
-        .dash-body{display:grid;grid-template-columns:62px 1fr;gap:11px}.side{border-radius:16px;background:#071726;padding:9px;display:grid;align-content:start;gap:8px}.side i{height:30px;border-radius:9px;background:#102538}.side i:first-child{background:linear-gradient(90deg,#218f80,#123e50)}
-        .screen{min-height:370px;border-radius:17px;background:#071522;padding:16px}.screen-head{display:flex;justify-content:space-between;align-items:center}.screen-title{font-weight:900;font-size:13px}.screen-date{font-size:9px;color:#667e95}
-        .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:14px}.stat{padding:13px;border:1px solid #1a344b;border-radius:12px;background:#0a1d30}.stat small{display:block;color:#667e95;font-size:8px}.stat b{display:block;margin-top:8px;font-size:17px}
-        .chart{height:118px;margin-top:10px;border:1px solid #1a344b;border-radius:12px;background:linear-gradient(180deg,#0b2034,#081725);display:flex;align-items:end;gap:7px;padding:15px}.bar{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#59ddca,#236678)}.bar:nth-child(1){height:34%}.bar:nth-child(2){height:51%}.bar:nth-child(3){height:43%}.bar:nth-child(4){height:68%}.bar:nth-child(5){height:59%}.bar:nth-child(6){height:88%}
-        .rows{display:grid;gap:7px;margin-top:10px}.dash-row{height:31px;border-radius:8px;background:#0a1d30;border:1px solid #173047}
-        .section{padding:12px 0 96px}.section-head{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:26px}.section-kicker{color:#6ee7d0;font-size:9px;font-weight:900;letter-spacing:1.5px}.section h2{font-size:31px;letter-spacing:-.7px;font-weight:800;margin:9px 0 0}.section-head p{max-width:500px;color:#70869c;font-size:12px;line-height:2;margin:0}
-        .modules{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.module{position:relative;min-height:208px;padding:24px;border:1px solid #1a344b;border-radius:21px;background:linear-gradient(145deg,rgba(11,29,47,.95),rgba(6,17,29,.96));overflow:hidden;transition:.2s}.module:hover{transform:translateY(-5px);border-color:#315a73;box-shadow:0 20px 50px rgba(0,0,0,.22)}.module:after{content:"";position:absolute;width:150px;height:150px;left:-70px;bottom:-85px;border-radius:50%;background:rgba(110,231,208,.055)}
-        .module-icon{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:#0e283d;color:#6ee7d0;font-size:17px}.module h3{font-size:16px;margin:18px 0 8px;font-weight:700;letter-spacing:-.2px}.module p{margin:0;color:#71879d;font-size:11px;line-height:2}.module small{display:inline-block;margin-top:16px;color:#9aafc2;font-size:9px}
-        .flow-wrap{border:1px solid #1b374e;border-radius:23px;padding:19px;background:rgba(8,21,35,.65);box-shadow:inset 0 1px rgba(255,255,255,.02)}.flow{display:grid;grid-template-columns:repeat(9,1fr);align-items:center;gap:8px}.flow-item{padding:18px 8px;text-align:center;border:1px solid #1a3449;border-radius:15px;background:#081725}.flow-item strong{display:block;font-size:10px}.flow-item span{display:block;margin-top:6px;color:#627b92;font-size:8px}.arrow{display:flex;align-items:center;justify-content:center;color:#426983}
-        .numbers{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-top:23px}.number{padding:21px;border:1px solid #1a344b;border-radius:17px;background:#091a2b}.number b{display:block;font-size:25px;color:#dceaf5}.number span{display:block;margin-top:5px;color:#70869d;font-size:10px}
-        .cta{margin:0 0 48px;padding:32px;border:1px solid #23465e;border-radius:24px;background:radial-gradient(circle at 15% 50%,rgba(64,193,176,.12),transparent 35%),linear-gradient(100deg,rgba(13,42,57,.92),rgba(8,22,36,.97));display:flex;align-items:center;justify-content:space-between;gap:25px}.cta h2{font-size:24px;margin:0 0 8px;font-weight:800;letter-spacing:-.5px}.cta p{margin:0;color:#7d93a8;font-size:11px}
-        .footer{border-top:1px solid rgba(148,163,184,.1);padding:23px 0 35px;color:#5f768c;font-size:9px;display:flex;justify-content:space-between}
-        @media(max-width:900px){.hero{grid-template-columns:1fr;gap:52px;padding-top:58px}.preview{max-width:720px;margin:auto}.modules{grid-template-columns:1fr 1fr}.flow{grid-template-columns:1fr 1fr 1fr}.numbers{grid-template-columns:1fr 1fr}.section-head{display:block}.section-head p{margin-top:13px}.cta{display:block}.cta .btn{margin-top:19px}}
-        @media(max-width:560px){.nav-link a:not(.nav-login){display:none}.hero{padding:45px 0 65px}h1{font-size:40px}.dash-body{grid-template-columns:46px 1fr}.stats{grid-template-columns:1fr}.modules,.flow,.numbers{grid-template-columns:1fr}.flow-item{display:flex;align-items:center;justify-content:space-between;text-align:right}.footer{display:block}.footer span{display:block;margin-top:8px}}
+        :root {
+            color-scheme: light;
+            font-family: "Vazirmatn", Tahoma, sans-serif;
+            color: #203247;
+            background: #f6f7f8;
+            font-synthesis: none;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            --navy: #142d46;
+            --navy-deep: #0d2136;
+            --gold: #b99a5b;
+            --gold-light: #e8dcc0;
+            --ink: #203247;
+            --muted: #718092;
+            --line: #e6e9ed;
+            --surface: #ffffff;
+            --soft: #f2f4f6;
+        }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; scroll-padding-top: 92px; }
+        body { margin: 0; min-width: 320px; background: #f6f7f8; color: var(--ink); }
+        body, button, a { font-family: "Vazirmatn", Tahoma, sans-serif; }
+        a { color: inherit; }
+        button, a { -webkit-tap-highlight-color: transparent; }
+        .site { overflow: hidden; }
+        .container { width: min(1160px, calc(100% - 44px)); margin-inline: auto; }
+        .topbar { position: relative; z-index: 5; background: rgba(255,255,255,.94); border-bottom: 1px solid rgba(20,45,70,.08); }
+        .nav { min-height: 86px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+        .brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; flex: 0 0 auto; }
+        .brand-mark { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 15px; color: var(--gold); background: var(--navy); box-shadow: 0 9px 22px rgba(20,45,70,.13); }
+        .brand-mark svg { width: 29px; height: 29px; }
+        .brand-name { display: block; color: var(--navy); font-size: 23px; font-weight: 900; line-height: 1.2; letter-spacing: -.7px; }
+        .brand-caption { display: block; margin-top: 5px; color: #7c8793; font-size: 10px; font-weight: 500; }
+        .nav-links { display: flex; align-items: center; gap: clamp(15px, 2.2vw, 29px); color: #667587; font-size: 12px; font-weight: 600; }
+        .nav-links a { text-decoration: none; transition: color .2s; }
+        .nav-links a:hover { color: var(--gold); }
+        .nav-actions { display: flex; align-items: center; gap: 10px; }
+        .login-link { color: var(--navy); text-decoration: none; font-size: 11px; font-weight: 700; padding: 10px 12px; }
+        .button { min-height: 46px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 11px 20px; border: 1px solid transparent; border-radius: 12px; text-decoration: none; font-size: 12px; font-weight: 800; transition: transform .2s, box-shadow .2s, background .2s; cursor: pointer; }
+        .button:hover { transform: translateY(-2px); }
+        .button-gold { color: #fff; background: var(--gold); box-shadow: 0 10px 24px rgba(185,154,91,.2); }
+        .button-gold:hover { background: #a88749; box-shadow: 0 13px 28px rgba(185,154,91,.27); }
+        .button-outline { color: #fff; border-color: rgba(255,255,255,.3); background: rgba(255,255,255,.04); }
+        .button-outline:hover { background: rgba(255,255,255,.1); }
+        .hero { position: relative; isolation: isolate; padding: 78px 0 84px; color: #fff; background: var(--navy); }
+        .hero::before, .hero::after { content: ""; position: absolute; z-index: -1; border: 1px solid rgba(232,220,192,.12); border-radius: 50%; pointer-events: none; }
+        .hero::before { width: 620px; height: 620px; top: -365px; left: -130px; }
+        .hero::after { width: 430px; height: 430px; bottom: -310px; right: 33%; }
+        .hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; align-items: center; gap: 68px; }
+        .eyebrow { display: inline-flex; align-items: center; gap: 10px; color: #e2c994; font-size: 11px; font-weight: 800; letter-spacing: .2px; }
+        .eyebrow::before { content: ""; width: 24px; height: 1px; background: var(--gold); }
+        .hero h1 { max-width: 650px; margin: 20px 0 19px; color: #fff; font-size: clamp(35px, 4.7vw, 59px); font-weight: 900; line-height: 1.55; letter-spacing: -1.5px; }
+        .hero h1 span { color: #e2c994; }
+        .hero-copy { max-width: 600px; margin: 0; color: #c3cfda; font-size: 14px; line-height: 2.35; }
+        .hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 29px; }
+        .hero-note { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 29px; color: #aebdca; font-size: 10px; }
+        .hero-note span { display: inline-flex; align-items: center; gap: 7px; }
+        .hero-note i { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
+        .visual { position: relative; min-height: 390px; display: grid; place-items: center; }
+        .visual-glow { position: absolute; inset: 8% 4%; border-radius: 50%; background: radial-gradient(circle, rgba(185,154,91,.2), transparent 68%); filter: blur(18px); }
+        .ledger { position: relative; width: min(100%, 450px); padding: 24px; border: 1px solid rgba(232,220,192,.22); border-radius: 25px; background: linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.035)); box-shadow: 0 35px 90px rgba(0,0,0,.24); transform: rotate(-2deg); backdrop-filter: blur(8px); }
+        .ledger-top { display: flex; align-items: center; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,.12); }
+        .ledger-title { color: #fff; font-size: 12px; font-weight: 800; }
+        .ledger-label { color: #cdb985; font-size: 9px; }
+        .ledger-main { display: grid; grid-template-columns: 1fr 105px; align-items: end; gap: 15px; padding: 24px 0 18px; }
+        .ledger-kicker { color: #aebdca; font-size: 9px; }
+        .ledger-value { margin-top: 7px; color: #fff; font-size: 28px; font-weight: 800; letter-spacing: 1px; }
+        .ledger-sub { margin-top: 5px; color: #cdb985; font-size: 9px; }
+        .seal { width: 88px; height: 88px; display: grid; place-items: center; border: 1px solid rgba(205,185,133,.65); border-radius: 50%; color: #e2c994; background: rgba(185,154,91,.08); }
+        .seal svg { width: 49px; height: 49px; }
+        .ledger-lines { display: grid; gap: 10px; }
+        .ledger-line { height: 9px; border-radius: 20px; background: rgba(255,255,255,.1); }
+        .ledger-line:nth-child(1) { width: 100%; }
+        .ledger-line:nth-child(2) { width: 84%; }
+        .ledger-line:nth-child(3) { width: 92%; }
+        .ledger-bottom { display: flex; align-items: end; gap: 9px; height: 96px; margin-top: 24px; padding: 12px 14px 0; border-radius: 14px; background: rgba(5,19,32,.25); }
+        .ledger-bar { flex: 1; min-width: 8px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, #ddc58f, rgba(185,154,91,.18)); }
+        .ledger-bar:nth-child(1) { height: 35%; }.ledger-bar:nth-child(2) { height: 56%; }.ledger-bar:nth-child(3) { height: 45%; }.ledger-bar:nth-child(4) { height: 78%; }.ledger-bar:nth-child(5) { height: 62%; }.ledger-bar:nth-child(6) { height: 91%; }.ledger-bar:nth-child(7) { height: 73%; }
+        .floating-note { position: absolute; left: -8px; bottom: 25px; display: flex; align-items: center; gap: 10px; padding: 13px 16px; border: 1px solid rgba(20,45,70,.08); border-radius: 14px; color: var(--navy); background: #fff; box-shadow: 0 16px 40px rgba(0,0,0,.18); transform: rotate(2deg); }
+        .floating-note strong { display: block; font-size: 10px; }.floating-note small { display: block; margin-top: 4px; color: var(--muted); font-size: 8px; }
+        .floating-icon { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 10px; color: var(--gold); background: #f5f0e5; font-size: 16px; }
+        .trust-strip { position: relative; z-index: 1; margin-top: -1px; background: #fff; border-bottom: 1px solid var(--line); }
+        .trust-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+        .trust-item { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 90px; padding: 15px; border-left: 1px solid var(--line); }
+        .trust-item:last-child { border-left: 0; }
+        .trust-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 12px; color: var(--gold); background: #f6f2e9; font-size: 17px; }
+        .trust-item strong { display: block; color: var(--navy); font-size: 12px; }.trust-item small { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; }
+        .section { padding: 88px 0; }
+        .section-heading { max-width: 670px; margin: 0 auto 39px; text-align: center; }
+        .section-kicker { color: var(--gold); font-size: 10px; font-weight: 900; letter-spacing: 1px; }
+        .section-heading h2 { margin: 11px 0 12px; color: var(--navy); font-size: clamp(25px, 3vw, 35px); font-weight: 900; line-height: 1.6; }
+        .section-heading p { margin: 0; color: var(--muted); font-size: 12px; line-height: 2.2; }
+        .services { background: #f6f7f8; }
+        .service-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .service-card { min-height: 218px; padding: 25px; border: 1px solid #e8ebee; border-radius: 19px; background: #fff; box-shadow: 0 9px 28px rgba(20,45,70,.035); transition: transform .2s, border-color .2s, box-shadow .2s; }
+        .service-card:hover { transform: translateY(-5px); border-color: #d8c69f; box-shadow: 0 18px 36px rgba(20,45,70,.08); }
+        .service-icon { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 14px; color: var(--gold); background: #f6f2e9; }
+        .service-icon svg { width: 23px; height: 23px; }
+        .service-card h3 { margin: 18px 0 8px; color: var(--navy); font-size: 15px; font-weight: 800; }
+        .service-card p { margin: 0; color: var(--muted); font-size: 11px; line-height: 2.1; }
+        .about { background: #fff; }
+        .about-grid { display: grid; grid-template-columns: .9fr 1.1fr; align-items: center; gap: 70px; }
+        .about-art { position: relative; min-height: 330px; display: grid; place-items: center; border-radius: 25px; background: var(--navy); overflow: hidden; }
+        .about-art::before, .about-art::after { content: ""; position: absolute; border: 1px solid rgba(232,220,192,.2); border-radius: 50%; }
+        .about-art::before { width: 330px; height: 330px; }.about-art::after { width: 240px; height: 240px; }
+        .about-monogram { position: relative; z-index: 1; color: #e2c994; font-size: 100px; font-weight: 900; }
+        .about-copy .section-kicker { display: inline-block; }
+        .about-copy h2 { margin: 12px 0 16px; color: var(--navy); font-size: clamp(25px, 3vw, 34px); line-height: 1.65; font-weight: 900; }
+        .about-copy p { margin: 0; color: var(--muted); font-size: 12px; line-height: 2.35; }
+        .value-list { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin-top: 24px; }
+        .value-item { display: flex; align-items: center; gap: 9px; color: var(--navy); font-size: 11px; font-weight: 700; }
+        .value-item::before { content: ""; width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: var(--gold); }
+        .process { background: #f6f7f8; }
+        .process-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+        .process-card { position: relative; padding: 24px 20px; border: 1px solid #e7eaed; border-radius: 17px; background: #fff; }
+        .process-number { color: #d7c49a; font-size: 27px; font-weight: 900; }
+        .process-card h3 { margin: 11px 0 7px; color: var(--navy); font-size: 13px; font-weight: 800; }
+        .process-card p { margin: 0; color: var(--muted); font-size: 10px; line-height: 2; }
+        .audience { background: #fff; }
+        .audience-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .audience-item { padding: 20px 14px; border: 1px solid var(--line); border-radius: 15px; color: var(--navy); background: #fff; text-align: center; font-size: 11px; font-weight: 700; }
+        .cta-section { padding: 0 0 82px; background: #fff; }
+        .cta-panel { display: flex; align-items: center; justify-content: space-between; gap: 25px; padding: 34px 38px; border-radius: 22px; color: #fff; background: var(--navy); }
+        .cta-panel h2 { margin: 0 0 8px; font-size: 22px; font-weight: 900; }.cta-panel p { margin: 0; color: #c0ccd7; font-size: 11px; line-height: 2; }
+        .contact { padding: 72px 0; color: #d5dee6; background: var(--navy-deep); }
+        .contact-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 60px; align-items: center; }
+        .contact h2 { margin: 10px 0 12px; color: #fff; font-size: 27px; font-weight: 900; }
+        .contact p { max-width: 650px; margin: 0; color: #b5c2ce; font-size: 11px; line-height: 2.3; }
+        .contact-card { padding: 23px; border: 1px solid rgba(232,220,192,.22); border-radius: 17px; background: rgba(255,255,255,.04); }
+        .contact-card strong { display: block; color: #e2c994; font-size: 13px; }.contact-card span { display: block; margin-top: 8px; color: #b5c2ce; font-size: 10px; line-height: 2; }.contact-phone { display: inline-flex; align-items: center; gap: 9px; margin-top: 15px; color: #fff; font-size: 20px; font-weight: 800; letter-spacing: .5px; text-decoration: none; direction: ltr; }.contact-phone:hover { color: #e2c994; }.contact-phone-label { display: block; margin-top: 5px; color: #b5c2ce; font-size: 10px; }
+        .footer { padding: 22px 0; color: #9baab8; background: #091a2b; font-size: 9px; }
+        .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+        .footer strong { color: #e2c994; font-size: 12px; }
+        .footer a { color: #c5d0d9; text-decoration: none; }
+        @media (max-width: 980px) {
+            .nav { min-height: 76px; }.nav-links { gap: 14px; }.hero-grid { gap: 28px; }.visual { min-height: 340px; }
+            .about-grid { gap: 35px; }.process-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 760px) {
+            .container { width: min(100% - 32px, 560px); }
+            .nav { flex-wrap: wrap; padding: 13px 0; gap: 12px; }.nav-links { order: 3; width: 100%; justify-content: space-between; padding-top: 9px; border-top: 1px solid var(--line); font-size: 10px; }
+            .nav-actions { margin-right: auto; }.login-link { display: none; }.nav-actions .button { min-height: 39px; padding: 8px 12px; font-size: 10px; }
+            .hero { padding: 55px 0 60px; }.hero-grid { grid-template-columns: 1fr; gap: 26px; }.hero h1 { font-size: clamp(32px, 8vw, 43px); }
+            .hero-copy { font-size: 12px; }.visual { min-height: 315px; }.ledger { width: min(100%, 430px); }.floating-note { left: 0; bottom: 0; }
+            .trust-grid { grid-template-columns: 1fr; }.trust-item { justify-content: flex-start; min-height: 68px; border-left: 0; border-bottom: 1px solid var(--line); }.trust-item:last-child { border-bottom: 0; }
+            .section { padding: 65px 0; }.service-grid { grid-template-columns: 1fr 1fr; gap: 11px; }.service-card { min-height: 205px; padding: 18px; }.service-card h3 { font-size: 13px; }
+            .about-grid { grid-template-columns: 1fr; }.about-art { min-height: 240px; order: 2; }.about-monogram { font-size: 80px; }
+            .audience-grid { grid-template-columns: 1fr 1fr; }.contact-grid { grid-template-columns: 1fr; gap: 24px; }.cta-panel { align-items: flex-start; flex-direction: column; padding: 27px 23px; }
+        }
+        @media (max-width: 430px) {
+            .service-grid, .process-grid { grid-template-columns: 1fr; }.service-card { min-height: 0; }
+            .hero-note { gap: 10px 15px; }.ledger { padding: 18px; }.ledger-main { grid-template-columns: 1fr 75px; }.seal { width: 68px; height: 68px; }
+            .footer-inner { align-items: flex-start; flex-direction: column; gap: 9px; }.value-list { grid-template-columns: 1fr; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+        }
     </style>
 </head>
 <body>
-<div class="page">
-    <div class="container">
-        <nav class="nav">
-            <a class="brand" href="/"><div class="logo">ح</div><div><strong>حسابداری صنعتی</strong><span>مدیریت تولید و بهای تمام‌شده</span></div></a>
-            <div class="nav-link"><a href="#modules">امکانات</a><a href="#flow">فرآیند</a><a class="nav-login" href="/login">ورود به سیستم</a></div>
-        </nav>
-        <main>
-            <section class="hero">
-                <div class="hero-orb"></div>
-                <div class="hero-copy-wrap">
-                    <span class="eyebrow"><i></i> INDUSTRIAL ACCOUNTING PLATFORM</span>
-                    <h1>هزینه را از <em>ورود کالا</em> تا محصول نهایی دنبال کنید.</h1>
-                    <p class="hero-copy">حسابداری صنعتی برای کسب‌وکارهای تولیدی؛ خرید، انبار، مواد اولیه، کارگاه، دستمزد، سربار و بهای تمام‌شده در یک جریان یکپارچه و قابل ردیابی.</p>
-                    <div class="actions"><a class="btn primary" href="/login">ورود به حسابداری ←</a><a class="btn secondary" href="#modules">مشاهده امکانات</a></div>
-                    <div class="trust"><span>کنترل موجودی</span><span>ردیابی هزینه تولید</span><span>چند شرکت و کارگاه</span></div>
+<div class="site">
+    <header class="topbar">
+        <div class="container nav">
+            <a class="brand" href="/" aria-label="فرنام، صفحه اصلی">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 32 32" fill="none">
+                        <path d="M6 25V7h20M6 15h14M6 25h20" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>
+                        <path d="M20 7v18M15 15v10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".72"/>
+                    </svg>
+                </span>
+                <span><span class="brand-name">فرنام</span><span class="brand-caption">مشاوره حسابداری، مالی و مالیاتی</span></span>
+            </a>
+            <nav class="nav-links" aria-label="منوی اصلی">
+                <a href="#home">صفحه اصلی</a>
+                <a href="#services">خدمات</a>
+                <a href="#about">درباره فرنام</a>
+                <a href="#process">فرآیند همکاری</a>
+                <a href="#contact">تماس با ما</a>
+            </nav>
+            <div class="nav-actions">
+                <a class="login-link" href="/login">ورود کاربران</a>
+                <a class="button button-gold" href="#contact">درخواست مشاوره <span aria-hidden="true">←</span></a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero" id="home">
+            <div class="container hero-grid">
+                <div>
+                    <span class="eyebrow">همراه مطمئن تصمیم‌های مالی کسب‌وکار</span>
+                    <h1>شفافیت مالی، آغاز <span>تصمیم‌های مطمئن</span> است.</h1>
+                    <p class="hero-copy">در فرنام، حسابداری را فقط ثبت اعداد نمی‌دانیم؛ اطلاعات مالی باید به شناخت بهتر کسب‌وکار، کنترل هزینه‌ها و تصمیم‌گیری آگاهانه کمک کند. در مسیر حسابداری، امور مالی و مالیاتی همراه شما هستیم.</p>
+                    <div class="hero-actions">
+                        <a class="button button-gold" href="#contact">درخواست جلسه مشاوره <span aria-hidden="true">←</span></a>
+                        <a class="button button-outline" href="#services">آشنایی با خدمات</a>
+                    </div>
+                    <div class="hero-note">
+                        <span><i></i> نگاه تحلیلی و مدیریتی</span>
+                        <span><i></i> راهکار متناسب با کسب‌وکار</span>
+                        <span><i></i> شفافیت در ارائه خدمات</span>
+                    </div>
                 </div>
-                <div class="preview"><div class="glow"></div><div class="dashboard"><div class="dash-top"><div class="traffic"><i></i><i></i><i></i></div><span>پنل مدیریت · حسابداری صنعتی</span></div><div class="dash-body"><aside class="side"><i></i><i></i><i></i><i></i><i></i></aside><div class="screen"><div class="screen-head"><span class="screen-title">نمای کلی عملیات</span><span class="screen-date">دوره جاری</span></div><div class="stats"><div class="stat"><small>موجودی انبار</small><b>۲۴۸</b></div><div class="stat"><small>سفارش خرید</small><b>۳۶</b></div><div class="stat"><small>تولید جاری</small><b>۱۲</b></div></div><div class="chart"><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i></div><div class="rows"><i class="dash-row"></i><i class="dash-row"></i><i class="dash-row"></i></div></div></div></div></div>
-            </section>
-            <section class="section" id="modules">
-                <div class="section-head"><div><span class="section-kicker">CORE MODULES</span><h2>تمام زنجیره تولید، در یک سیستم</h2></div><p>از تأمین و دریافت مواد تا مصرف، تولید و محاسبه بهای تمام‌شده؛ هر مرحله جای خودش را دارد و اطلاعات قابل ردیابی می‌ماند.</p></div>
-                <div class="modules">
-                    <article class="module"><div class="module-icon">▦</div><h3>خرید و تأمین</h3><p>تأمین‌کنندگان، درخواست و سفارش خرید، اقلام سفارش و دریافت کالا در یک جریان منظم.</p><small>خرید · تأمین‌کننده · رسید کالا</small></article>
-                    <article class="module"><div class="module-icon">▤</div><h3>انبار و مواد</h3><p>کنترل موجودی، ورود و خروج، گردش مواد اولیه و ارزش‌گذاری موجودی با روش قابل تنظیم.</p><small>انبار · مواد اولیه · گردش کالا</small></article>
-                    <article class="module"><div class="module-icon">⚙</div><h3>تولید و کارگاه</h3><p>کارگاه، بخش‌ها، فعالیت‌ها، سفارش تولید و فرمول ساخت برای عملیات واقعی تولید.</p><small>کارگاه · فعالیت · تولید</small></article>
-                    <article class="module"><div class="module-icon">◈</div><h3>بهای تمام‌شده</h3><p>ترکیب مواد، دستمزد و سربار برای محاسبه بهای تمام‌شده محصول تولیدی.</p><small>مواد · دستمزد · سربار</small></article>
-                    <article class="module"><div class="module-icon">◌</div><h3>گزارش و تحلیل</h3><p>نمایش هزینه، موجودی و تولید برای بررسی عملکرد دوره و تصمیم‌گیری مدیریتی.</p><small>گزارش تولید · هزینه · موجودی</small></article>
-                    <article class="module"><div class="module-icon">⌘</div><h3>شرکت و دسترسی</h3><p>شرکت، دوره مالی، نقش‌ها و دسترسی کاربران در ساختاری مستقل و قابل کنترل.</p><small>شرکت · نقش · دسترسی</small></article>
+                <div class="visual" aria-hidden="true">
+                    <div class="visual-glow"></div>
+                    <div class="ledger">
+                        <div class="ledger-top"><span class="ledger-title">دیدی روشن‌تر از وضعیت مالی</span><span class="ledger-label">FARNAM / FINANCIAL ADVISORY</span></div>
+                        <div class="ledger-main">
+                            <div><div class="ledger-kicker">تحلیل و نظم مالی</div><div class="ledger-value">FARNAM</div><div class="ledger-sub">ACCOUNTING · FINANCE · TAX</div></div>
+                            <div class="seal"><svg viewBox="0 0 48 48" fill="none"><path d="M24 5v34M13 13h22M17 13l-7 13h14l-7-13ZM31 13l-7 13h14l-7-13ZM16 40h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                        </div>
+                        <div class="ledger-lines"><i class="ledger-line"></i><i class="ledger-line"></i><i class="ledger-line"></i></div>
+                        <div class="ledger-bottom"><i class="ledger-bar"></i><i class="ledger-bar"></i><i class="ledger-bar"></i><i class="ledger-bar"></i><i class="ledger-bar"></i><i class="ledger-bar"></i><i class="ledger-bar"></i></div>
+                    </div>
+                    <div class="floating-note"><span class="floating-icon">✓</span><span><strong>نظم و شفافیت مالی</strong><small>پایه‌ای برای تصمیم‌گیری بهتر</small></span></div>
                 </div>
-            </section>
-            <section class="section" id="flow">
-                <div class="section-head"><div><span class="section-kicker">PRODUCTION FLOW</span><h2>مسیر هزینه را قدم‌به‌قدم ببینید</h2></div></div>
-                <div class="flow-wrap"><div class="flow"><div class="flow-item"><strong>سفارش خرید</strong><span>تأمین</span></div><div class="arrow">←</div><div class="flow-item"><strong>ورود مواد</strong><span>انبار</span></div><div class="arrow">←</div><div class="flow-item"><strong>مصرف تولید</strong><span>کارگاه</span></div><div class="arrow">←</div><div class="flow-item"><strong>تولید محصول</strong><span>محصول نهایی</span></div><div class="arrow">←</div><div class="flow-item"><strong>بهای تمام‌شده</strong><span>تحلیل</span></div></div></div>
-                <div class="numbers"><div class="number"><b>۰۱</b><span>خرید و دریافت</span></div><div class="number"><b>۰۲</b><span>کنترل و مصرف مواد</span></div><div class="number"><b>۰۳</b><span>دستمزد و سربار</span></div><div class="number"><b>۰۴</b><span>محاسبه هزینه محصول</span></div></div>
-            </section>
-            <section class="cta"><div><h2>از خرید تا بهای تمام‌شده، همه‌چیز قابل ردیابی است.</h2><p>یک زیرساخت مستقل و آماده توسعه برای عملیات واقعی تولید.</p></div><a class="btn primary" href="/login">ورود به سیستم ←</a></section>
-        </main>
-        <footer class="footer"><span>حسابداری صنعتی · مدیریت تولید و بهای تمام‌شده</span><span>طراحی توسط سام کردستانی زاده</span></footer>
-    </div>
+            </div>
+        </section>
+
+        <section class="trust-strip" aria-label="ارزش‌های کاری فرنام">
+            <div class="container trust-grid">
+                <div class="trust-item"><span class="trust-icon">◎</span><span><strong>دقت و انضباط</strong><small>توجه به جزئیات و کیفیت اطلاعات</small></span></div>
+                <div class="trust-item"><span class="trust-icon">◇</span><span><strong>شفافیت و پاسخ‌گویی</strong><small>ارتباط روشن در مسیر همکاری</small></span></div>
+                <div class="trust-item"><span class="trust-icon">↗</span><span><strong>نگاه رو به رشد</strong><small>توجه به نیازهای واقعی کسب‌وکار</small></span></div>
+            </div>
+        </section>
+
+        <section class="section services" id="services">
+            <div class="container">
+                <div class="section-heading">
+                    <span class="section-kicker">FARNAM SERVICES</span>
+                    <h2>خدمات مالی، متناسب با نیاز کسب‌وکار شما</h2>
+                    <p>از ساماندهی اطلاعات حسابداری تا تحلیل مالی و مشاوره مالیاتی؛ خدمات فرنام بر شناخت مسئله و ارائه راهکار متناسب با شرایط هر مجموعه متمرکز است.</p>
+                </div>
+                <div class="service-grid">
+                    <article class="service-card">
+                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2m4 0h2M8 15h2m4 0h2M8 18h8"/></svg></span>
+                        <h3>خدمات حسابداری</h3><p>ساماندهی فرآیندهای حسابداری، ثبت و طبقه‌بندی اطلاعات و بهبود کیفیت گزارش‌های مالی.</p>
+                    </article>
+                    <article class="service-card">
+                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 20h18M5 17V9m5 8V4m5 13v-6m5 6V7"/></svg></span>
+                        <h3>مشاوره مالی</h3><p>تحلیل وضعیت مالی، بررسی هزینه‌ها و پشتیبانی اطلاعاتی برای تصمیم‌های مدیریتی.</p>
+                    </article>
+                    <article class="service-card">
+                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 4h16v16H4zM8 8h8M8 12h5M8 16h8"/></svg></span>
+                        <h3>مشاوره مالیاتی</h3><p>بررسی تکالیف و پرونده‌های مالیاتی، شناخت ریسک‌ها و همراهی در چارچوب قوانین و مقررات.</p>
+                    </article>
+                    <article class="service-card">
+                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-6h6v6M8 10h2m4 0h2"/></svg></span>
+                        <h3>حسابداری صنعتی و بهای تمام‌شده</h3><p>تحلیل مواد، دستمزد و سربار، هزینه‌یابی و شناخت عوامل مؤثر بر بهای تمام‌شده محصولات.</p>
+                    </article>
+                    <article class="service-card">
+                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19V5m0 14h17M8 15l3-4 3 2 5-7"/></svg></span>
+                        <h3>گزارشگری مدیریتی</h3><p>طراحی و تحلیل گزارش‌هایی که تصویر روشن‌تری از عملکرد و وضعیت مالی مجموعه ارائه می‌کنند.</p>
+                    </article>
+                    <article class="service-card">
+                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2M7 3l-2 3m12-3 2 3"/></svg></span>
+                        <h3>استقرار و بهبود سیستم مالی</h3><p>بررسی ساختارها و گردش کار مالی و پیشنهاد مسیرهای بهبود متناسب با اندازه و فعالیت شرکت.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section about" id="about">
+            <div class="container about-grid">
+                <div class="about-art" aria-hidden="true"><span class="about-monogram">ف</span></div>
+                <div class="about-copy">
+                    <span class="section-kicker">ABOUT FARNAM</span>
+                    <h2>فرنام؛ همراه شما برای مدیریت آگاهانه امور مالی</h2>
+                    <p>هر کسب‌وکار، شرایط و نیازهای مالی ویژه خود را دارد. رویکرد فرنام بر شناخت دقیق این نیازها، نظم‌بخشی به اطلاعات، تحلیل مسئله و ارائه راهکارهای کاربردی در حوزه حسابداری، مالی و مالیاتی استوار است. هدف، فراهم‌کردن دیدی روشن‌تر برای مدیران و کمک به تصمیم‌گیری مسئولانه‌تر است.</p>
+                    <div class="value-list">
+                        <span class="value-item">شناخت نیاز هر مجموعه</span>
+                        <span class="value-item">توجه به جزئیات مالی</span>
+                        <span class="value-item">راهکارهای قابل اجرا</span>
+                        <span class="value-item">ارتباط حرفه‌ای و شفاف</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section process" id="process">
+            <div class="container">
+                <div class="section-heading">
+                    <span class="section-kicker">HOW WE WORK</span>
+                    <h2>مسیر همکاری با فرنام</h2>
+                    <p>فرآیند همکاری با شناخت نیاز آغاز می‌شود و با ارائه راهکار متناسب با توافق و دامنه خدمات ادامه پیدا می‌کند.</p>
+                </div>
+                <div class="process-grid">
+                    <article class="process-card"><span class="process-number">۰۱</span><h3>گفت‌وگوی اولیه</h3><p>آشنایی با فعالیت مجموعه و شنیدن مسئله‌ها و انتظارات شما.</p></article>
+                    <article class="process-card"><span class="process-number">۰۲</span><h3>بررسی و شناخت</h3><p>بررسی وضعیت موجود و مشخص‌کردن اولویت‌ها و نیازهای تخصصی.</p></article>
+                    <article class="process-card"><span class="process-number">۰۳</span><h3>پیشنهاد راهکار</h3><p>تدوین پیشنهاد همکاری، محدوده خدمات و مسیر اجرایی متناسب.</p></article>
+                    <article class="process-card"><span class="process-number">۰۴</span><h3>همراهی تخصصی</h3><p>ارائه خدمات و پیگیری موضوعات در چارچوب توافق‌شده.</p></article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section audience">
+            <div class="container">
+                <div class="section-heading">
+                    <span class="section-kicker">WHO WE SUPPORT</span>
+                    <h2>در کنار کسب‌وکارهای گوناگون</h2>
+                    <p>نوع خدمات و دامنه همکاری بر اساس ساختار، اندازه و نیاز هر مجموعه تعیین می‌شود.</p>
+                </div>
+                <div class="audience-grid">
+                    <div class="audience-item">شرکت‌های تولیدی</div>
+                    <div class="audience-item">شرکت‌های بازرگانی</div>
+                    <div class="audience-item">کسب‌وکارهای خدماتی</div>
+                    <div class="audience-item">شرکت‌های در حال رشد</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta-section">
+            <div class="container">
+                <div class="cta-panel">
+                    <div><h2>برای تصمیم‌های مالی، با دیدی روشن‌تر پیش بروید.</h2><p>نیاز کسب‌وکار خود را مطرح کنید تا درباره مسیر مناسب همکاری گفت‌وگو کنیم.</p></div>
+                    <a class="button button-gold" href="#contact">شروع گفت‌وگو با فرنام <span aria-hidden="true">←</span></a>
+                </div>
+            </div>
+        </section>
+
+        <section class="contact" id="contact">
+            <div class="container contact-grid">
+                <div>
+                    <span class="section-kicker">CONTACT FARNAM</span>
+                    <h2>برای شروع یک گفت‌وگوی حرفه‌ای آماده‌ایم.</h2>
+                    <p>برای دریافت مشاوره در زمینه حسابداری، امور مالی و مالیاتی با فرنام تماس بگیرید. کارشناسان ما آماده شنیدن نیازهای کسب‌وکار شما و گفت‌وگو درباره مسیر مناسب همکاری هستند.</p>
+                </div>
+                <div class="contact-card">
+                    <strong>خدمات مشاوره حسابداری مالی و مالیاتی فرنام</strong>
+                    <span>حسابداری · مشاوره مالی · مشاوره مالیاتی · حسابداری صنعتی</span>
+                    <a class="contact-phone" href="tel:+989130162404" aria-label="تماس تلفنی با فرنام: ۰۹۱۳۰۱۶۲۴۰۴">۰۹۱۳۰۱۶۲۴۰۴</a>
+                    <span class="contact-phone-label">برای تماس مستقیم، شماره را لمس کنید.</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-inner">
+            <span><strong>فرنام</strong> · خدمات مشاوره حسابداری مالی و مالیاتی</span>
+            <span>تمامی حقوق این وب‌سایت محفوظ است.</span>
+            <a href="#home">بازگشت به بالا ↑</a>
+        </div>
+    </footer>
 </div>
 </body>
 </html>
