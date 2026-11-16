@@ -1,161 +1,201 @@
 @extends('layouts.dashboard-shell')
 
-@section('title', 'مدیریت اشتراک و سال‌های مالی')
+@section('title', 'مرکز مدیریت کسب‌وکار')
 
 @push('styles')
 <style>
-/* Dolibarr-inspired account overview: restrained blue, light workspace, compact panels. */
-body.subscription-dashboard{background:#f4f6f8;color:#253746;font-family:"Vazirmatn","Segoe UI",Tahoma,sans-serif}
+body.subscription-dashboard{background:#f3f6f9;color:#243746;font-family:"Vazirmatn","Segoe UI",Tahoma,sans-serif}
 body.subscription-dashboard .app{display:block;min-height:100vh}
-body.subscription-dashboard .main{min-height:100vh;background:#f4f6f8}
-body.subscription-dashboard .top{min-height:66px;background:#fff;border-bottom:1px solid #d9e0e6;padding:0 30px;box-shadow:0 1px 2px rgba(25,45,60,.04)}
+body.subscription-dashboard .main{min-height:100vh;background:#f3f6f9}
+body.subscription-dashboard .top{min-height:66px;background:#fff;border-bottom:1px solid #dce4ea;padding:0 30px;box-shadow:0 1px 2px rgba(25,45,60,.04)}
 body.subscription-dashboard .company{gap:10px}
 body.subscription-dashboard .company:before{content:"حساب کاربری";font-size:12px;font-weight:700;color:#34495e;margin-left:8px}
-body.subscription-dashboard .company select{background:#fff;color:#34495e;border:1px solid #cbd5de;border-radius:4px;padding:8px 11px;font-size:12px;max-width:260px}
+body.subscription-dashboard .company select{background:#fff;color:#34495e;border:1px solid #cbd5de;border-radius:6px;padding:8px 11px;font-size:12px;max-width:260px}
 body.subscription-dashboard .user strong{color:#34495e;font-size:12px}
 body.subscription-dashboard .user small{color:#778795;font-size:10px}
 body.subscription-dashboard .avatar{background:#e8eef3;color:#34546d}
-body.subscription-dashboard .logout{color:#28658c;border:1px solid #cbd8e2;border-radius:4px;padding:7px 12px;background:#fff}
-body.subscription-dashboard .content{max-width:1440px;margin:0 auto;padding:28px 30px 48px}
-.subscription-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:22px}
-.subscription-heading h1{font-size:23px;color:#253746;margin:0;font-weight:700}
-.subscription-heading p{font-size:12px;color:#738391;margin:7px 0 0;line-height:1.9}
-.subscription-kicker{font-size:10px;color:#2876a5;font-weight:700;letter-spacing:.3px;margin-bottom:6px}
-.subscription-panel{background:#fff;border:1px solid #dce3e8;border-radius:5px;padding:20px;margin-bottom:18px;box-shadow:0 1px 2px rgba(20,40,55,.035)}
-.subscription-panel h2{font-size:15px;color:#34495e;margin:0 0 5px}
-.subscription-muted{font-size:11px;color:#7a8995;line-height:1.9}
-.subscription-status{display:inline-flex;align-items:center;gap:6px;border-radius:3px;padding:5px 10px;font-size:11px;font-weight:700;border:1px solid}
-.subscription-status.active{background:#eaf5ed;color:#31734a;border-color:#c7e4ce}
-.subscription-status.expired{background:#fff1ef;color:#a34437;border-color:#f0d0ca}
-.subscription-status.pending{background:#fff7e8;color:#8b6424;border-color:#eadbb8}
-.subscription-status.neutral{background:#edf2f6;color:#526575;border-color:#d6e0e7}
-.subscription-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
-.subscription-metric{border:1px solid #e0e6eb;background:#fbfcfd;border-radius:4px;padding:13px 15px;min-width:0}
-.subscription-metric span{display:block;color:#7a8995;font-size:10px}
-.subscription-metric strong{display:block;color:#34495e;font-size:18px;margin-top:7px;overflow-wrap:anywhere}
-.subscription-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin-top:18px;border-top:1px solid #e7ecef}
-.subscription-detail{padding:13px 12px 4px 0;min-width:0}
-.subscription-detail span{display:block;color:#83919b;font-size:10px;margin-bottom:5px}
-.subscription-detail strong{display:block;color:#34495e;font-size:12px;overflow-wrap:anywhere}
-.subscription-table-wrap{overflow-x:auto;margin-top:16px}
-.subscription-table{width:100%;border-collapse:collapse;white-space:nowrap;text-align:right;font-size:11px}
-.subscription-table th{background:#f2f5f7;color:#60717e;font-weight:700;border-bottom:1px solid #dce3e8;padding:12px 13px}
-.subscription-table td{color:#34495e;border-bottom:1px solid #e8edf0;padding:13px}
-.subscription-table tbody tr:hover{background:#f8fafb}
-.subscription-pill{display:inline-block;padding:4px 8px;border-radius:3px;font-size:10px;background:#edf2f6;color:#526575}
-.subscription-pill.open{background:#eaf5ed;color:#31734a}
-.subscription-pill.closed{background:#edf0f3;color:#687784}
-.subscription-pill.past{background:#fff1ef;color:#a34437}
-.subscription-pill.current{background:#eaf3fb;color:#28658c;margin-right:5px}
-.subscription-empty{padding:28px 16px;text-align:center;border:1px dashed #cbd6de;border-radius:4px;color:#7b8994;font-size:12px;line-height:2;background:#fbfcfd}
-.subscription-note{font-size:10px;color:#87939c;line-height:1.9;margin:14px 0 0}
-@media(max-width:900px){.subscription-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.subscription-details{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:560px){body.subscription-dashboard .top{padding:10px 14px;align-items:flex-start;flex-wrap:wrap}.subscription-heading{display:block}.subscription-heading h1{font-size:20px}body.subscription-dashboard .content{padding:20px 13px 36px}.subscription-panel{padding:15px}.subscription-summary{gap:8px}.subscription-metric{padding:11px}.subscription-metric strong{font-size:16px}.subscription-details{grid-template-columns:1fr 1fr}.subscription-detail{padding:11px 4px 3px 0}}
+body.subscription-dashboard .logout{color:#28658c;border:1px solid #cbd8e2;border-radius:6px;padding:7px 12px;background:#fff}
+body.subscription-dashboard .content{max-width:1480px;margin:0 auto;padding:28px 30px 48px}
+.business-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:20px}
+.business-heading h1{font-size:23px;color:#253746;margin:0;font-weight:800}
+.business-heading p{font-size:12px;color:#738391;margin:7px 0 0;line-height:1.9}
+.business-kicker{font-size:10px;color:#2876a5;font-weight:800;letter-spacing:.3px;margin-bottom:6px}
+.business-owner-strip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 18px;padding:11px 14px;background:#fff;border:1px solid #dce4ea;border-radius:9px;color:#637482;font-size:11px}
+.business-owner-strip strong{color:#34495e}
+.business-owner-strip .owner-separator{width:1px;height:18px;background:#e0e6eb}
+.business-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,265px),1fr));gap:16px;align-items:stretch}
+.business-card{position:relative;display:flex;flex-direction:column;min-width:0;min-height:310px;aspect-ratio:1/1;background:#fff;border:1px solid #dce4ea;border-radius:10px;padding:19px;box-shadow:0 2px 7px rgba(30,55,75,.045);overflow:hidden}
+.business-card:before{content:"";position:absolute;inset:0 0 auto;height:4px;background:#8aa7bc}
+.business-card.subscription-card:before{background:#2876a5}
+.business-card.fiscal-card.selected:before{background:#2f8a61}
+.business-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px}
+.business-card-icon{width:38px;height:38px;display:grid;place-items:center;flex:0 0 auto;border-radius:9px;background:#edf4f8;color:#28658c;font-size:19px}
+.fiscal-card .business-card-icon{background:#edf6f0;color:#31734a}
+.business-card h2{font-size:15px;line-height:1.7;color:#34495e;margin:0;font-weight:800}
+.business-card-subtitle{font-size:10px;color:#87939c;line-height:1.8;margin-top:3px}
+.business-status{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;border-radius:5px;padding:5px 9px;font-size:10px;font-weight:800;border:1px solid}
+.business-status.active{background:#eaf5ed;color:#31734a;border-color:#c7e4ce}
+.business-status.expired{background:#fff1ef;color:#a34437;border-color:#f0d0ca}
+.business-status.pending{background:#fff7e8;color:#8b6424;border-color:#eadbb8}
+.business-status.neutral{background:#edf2f6;color:#526575;border-color:#d6e0e7}
+.business-card-data{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;margin:4px 0 16px}
+.business-data-item{min-width:0;padding-top:8px;border-top:1px solid #edf0f2}
+.business-data-item span{display:block;color:#87939c;font-size:9px;margin-bottom:4px}
+.business-data-item strong{display:block;color:#34495e;font-size:11px;overflow-wrap:anywhere;line-height:1.7}
+.business-card-footer{margin-top:auto;padding-top:12px}
+.business-action{display:flex;align-items:center;justify-content:center;width:100%;min-height:40px;padding:9px 12px;border:1px solid #28658c;border-radius:6px;background:#28658c;color:#fff;text-decoration:none;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer}
+.business-action:hover{background:#1e5478;border-color:#1e5478}
+.business-action.secondary{background:#fff;color:#28658c}
+.business-action.secondary:hover{background:#f2f7fa}
+.business-action.success{background:#31734a;border-color:#31734a;color:#fff}
+.business-action:disabled,.business-action.disabled{background:#edf0f3;border-color:#e0e5e9;color:#85919a;cursor:not-allowed}
+.business-card-note{font-size:9px;color:#8a969f;line-height:1.8;margin:8px 0 0}
+.business-card-note a{color:#28658c}
+.business-card-meta{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 12px}
+.business-pill{display:inline-flex;align-items:center;border-radius:4px;padding:4px 7px;background:#edf2f6;color:#526575;font-size:9px}
+.business-pill.open{background:#eaf5ed;color:#31734a}
+.business-pill.closed{background:#edf0f3;color:#687784}
+.business-pill.selected{background:#eaf3fb;color:#28658c}
+.business-empty{display:flex;align-items:center;justify-content:center;min-height:220px;border:1px dashed #cbd6de;border-radius:9px;background:#fbfcfd;color:#7b8994;font-size:12px;text-align:center;padding:20px;line-height:2}
+.business-section-title{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:26px 0 13px}
+.business-section-title h2{font-size:15px;color:#34495e;margin:0}
+.business-section-title p{font-size:10px;color:#87939c;margin:4px 0 0}
+.business-count{font-size:10px;color:#647583;background:#fff;border:1px solid #dce4ea;border-radius:5px;padding:6px 9px;white-space:nowrap}
+.business-footnote{font-size:10px;color:#87939c;line-height:1.9;margin:14px 0 0}
+.business-date{direction:ltr;unicode-bidi:plaintext;display:inline-block}
+@media(max-width:900px){body.subscription-dashboard .content{padding:22px 18px 38px}.business-card{min-height:290px}}
+@media(max-width:560px){body.subscription-dashboard .top{padding:10px 14px;align-items:flex-start;flex-wrap:wrap}.business-heading{display:block}.business-heading h1{font-size:20px}body.subscription-dashboard .content{padding:20px 13px 32px}.business-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.business-card{aspect-ratio:auto;min-height:285px;padding:13px}.business-card h2{font-size:13px}.business-card-data{gap:8px}.business-data-item strong{font-size:10px}.business-card-head{gap:7px}.business-card-icon{width:32px;height:32px;font-size:16px}.business-status{font-size:9px;padding:4px 6px}}
+@media(max-width:380px){.business-grid{grid-template-columns:1fr}.business-card{min-height:270px}}
 </style>
 @endpush
 
 @section('content')
 @php
     $today = today();
-    $subscriptionExpired = $subscription?->expires_at && $subscription->expires_at->lt(today());
+    $subscriptionExpired = $subscription?->expires_at && $subscription->expires_at->lt($today);
     $subscriptionLabel = !$subscription
         ? 'ثبت نشده'
         : ($subscriptionActive ? 'فعال' : ($subscriptionExpired ? 'منقضی شده' : 'غیرفعال / در انتظار تأیید'));
     $subscriptionClass = $subscriptionActive ? 'active' : ($subscriptionExpired ? 'expired' : ($subscription ? 'pending' : 'neutral'));
-    $pastFiscalYears = $fiscalYears->filter(fn ($year) => $year->ends_at && $year->ends_at->lt($today))->count();
-    $openFiscalYears = $fiscalYears->where('is_closed', false)->count();
-    $closedFiscalYears = $fiscalYears->where('is_closed', true)->count();
     $planName = data_get($subscription?->metadata, 'plan_name')
         ?? data_get($subscription?->metadata, 'plan.title')
         ?? null;
+    $renewalBaseUrl = config('services.web2022.url');
+    $renewalUrl = filled($renewalBaseUrl) ? rtrim($renewalBaseUrl, '/') . '/accounting-plan' : null;
 @endphp
 
-<div class="subscription-heading">
+<div class="business-heading">
     <div>
-        <div class="subscription-kicker">مرکز مدیریت کسب‌وکار</div>
-        <h1>اشتراک و سال‌های مالی</h1>
-        <p>اطلاعات مالک، وضعیت اعتبار اشتراک و سوابق سال‌های مالی شرکت انتخاب‌شده.</p>
+        <div class="business-kicker">مرکز مدیریت کسب‌وکار</div>
+        <h1>{{ $company?->name ?: 'مدیریت کسب‌وکار' }}</h1>
+        <p>اشتراک و سال مالی موردنظر را انتخاب کنید و وارد محیط کاری شوید.</p>
     </div>
-    @if($user->isAccountOwner())
-        <span class="subscription-status {{ $subscriptionClass }}">{{ $subscriptionLabel }}</span>
+    @if($company)
+        <span class="business-status {{ $subscriptionClass }}">{{ $subscriptionLabel }}</span>
     @endif
 </div>
 
 @if(!$company)
-    <div class="subscription-panel">
-        <h2>هنوز کسب‌وکار فعالی برای این حساب ثبت نشده است.</h2>
-        <p class="subscription-muted">پس از اتصال کسب‌وکار به حساب شما در Web2022 و Accounting، اطلاعات اشتراک و سال‌های مالی اینجا نمایش داده می‌شود.</p>
-    </div>
+    <div class="business-empty">هنوز کسب‌وکار فعالی برای این حساب ثبت نشده است.<br>پس از اتصال کسب‌وکار به حساب شما، اطلاعات آن اینجا نمایش داده می‌شود.</div>
 @else
     @if($user->isAccountOwner())
-    <section class="subscription-panel" aria-labelledby="subscription-title">
-        <h2 id="subscription-title">اطلاعات مالک و اشتراک</h2>
-        <div class="subscription-muted">سوابق زیر مربوط به عضویت فعال کاربر در همین شرکت است.</div>
-
-        @if($can['fiscal_years'])
-        <div class="subscription-summary">
-            <div class="subscription-metric"><span>تعداد سال‌های مالی</span><strong>{{ number_format($fiscalYears->count()) }}</strong></div>
-            <div class="subscription-metric"><span>سال‌های مالی باز</span><strong>{{ number_format($openFiscalYears) }}</strong></div>
-            <div class="subscription-metric"><span>سال‌های مالی بسته</span><strong>{{ number_format($closedFiscalYears) }}</strong></div>
-            <div class="subscription-metric"><span>سال‌های پایان‌یافته</span><strong>{{ number_format($pastFiscalYears) }}</strong></div>
+        <div class="business-owner-strip">
+            <span>مالک: <strong>{{ $user->name }}</strong></span>
+            @if($user->web2022_user_id)
+                <span class="owner-separator"></span>
+                <span>شناسه Web2022: <strong data-number-format="off">{{ $user->web2022_user_id }}</strong></span>
+            @endif
+            <span class="owner-separator"></span>
+            <span>کسب‌وکار: <strong>{{ $company->name }}</strong></span>
         </div>
-        @endif
 
-        <div class="subscription-details">
-            <div class="subscription-detail"><span>نام کاربر</span><strong>{{ $user->name }}</strong></div>
-            <div class="subscription-detail"><span>شناسه کاربر Web2022</span><strong data-number-format="off">{{ $user->web2022_user_id ?: 'ثبت نشده' }}</strong></div>
-            <div class="subscription-detail"><span>نام شرکت / کسب‌وکار</span><strong>{{ $company->name }}</strong></div>
-            <div class="subscription-detail"><span>وضعیت اشتراک</span><strong><span class="subscription-status {{ $subscriptionClass }}">{{ $subscriptionLabel }}</span></strong></div>
-            <div class="subscription-detail"><span>نام پلن</span><strong>{{ $planName ?: 'در اطلاعات فعلی ثبت نشده' }}</strong></div>
-            <div class="subscription-detail"><span>شناسه اشتراک خارجی</span><strong data-number-format="off">{{ $subscription?->external_subscription_id ?: 'ثبت نشده' }}</strong></div>
-            <div class="subscription-detail"><span>تاریخ شروع اعتبار</span><strong>@if($subscription?->starts_at)<time class="jalali-date" datetime="{{ $subscription->starts_at->format('Y-m-d') }}">{{ $subscription->starts_at->format('Y/m/d') }}</time>@else ثبت نشده @endif</strong></div>
-            <div class="subscription-detail"><span>تاریخ انقضای اشتراک</span><strong>@if($subscription?->expires_at)<time class="jalali-date" datetime="{{ $subscription->expires_at->format('Y-m-d') }}">{{ $subscription->expires_at->format('Y/m/d') }}</time>@else نامشخص @endif</strong></div>
-            <div class="subscription-detail"><span>آخرین اعتبارسنجی</span><strong>@if($subscription?->last_verified_at)<time class="jalali-date" datetime="{{ $subscription->last_verified_at->format('Y-m-d') }}">{{ $subscription->last_verified_at->format('Y/m/d') }}</time>@else ثبت نشده @endif</strong></div>
+        <div class="business-grid" aria-label="کارت‌های مدیریت کسب‌وکار">
+            <article class="business-card subscription-card">
+                <div class="business-card-head">
+                    <div>
+                        <div class="business-card-icon" aria-hidden="true">◈</div>
+                    </div>
+                    <span class="business-status {{ $subscriptionClass }}">{{ $subscriptionLabel }}</span>
+                </div>
+                <h2>اشتراک کسب‌وکار</h2>
+                <div class="business-card-subtitle">{{ $planName ?: 'پلن ثبت‌شده در Web2022' }}</div>
+                <div class="business-card-data">
+                    <div class="business-data-item"><span>شروع اعتبار</span><strong>@if($subscription?->starts_at)<time class="business-date jalali-date" datetime="{{ $subscription->starts_at->format('Y-m-d') }}">{{ $subscription->starts_at->format('Y/m/d') }}</time>@else ثبت نشده @endif</strong></div>
+                    <div class="business-data-item"><span>پایان اعتبار</span><strong>@if($subscription?->expires_at)<time class="business-date jalali-date" datetime="{{ $subscription->expires_at->format('Y-m-d') }}">{{ $subscription->expires_at->format('Y/m/d') }}</time>@else نامشخص @endif</strong></div>
+                    <div class="business-data-item"><span>شناسه اشتراک</span><strong data-number-format="off">{{ $subscription?->external_subscription_id ?: 'ثبت نشده' }}</strong></div>
+                    <div class="business-data-item"><span>آخرین اعتبارسنجی</span><strong>@if($subscription?->last_verified_at)<time class="business-date jalali-date" datetime="{{ $subscription->last_verified_at->format('Y-m-d') }}">{{ $subscription->last_verified_at->format('Y/m/d') }}</time>@else ثبت نشده @endif</strong></div>
+                </div>
+                <div class="business-card-footer">
+                    @if($renewalUrl)
+                        <a class="business-action" href="{{ $renewalUrl }}" target="_blank" rel="noopener noreferrer">تمدید اشتراک / انتخاب پلن</a>
+                    @else
+                        <button class="business-action disabled" type="button" disabled>لینک خرید Web2022 تنظیم نشده</button>
+                    @endif
+                    <p class="business-card-note">خرید و پرداخت اشتراک در وب‌سایت Web2022 انجام می‌شود.</p>
+                </div>
+            </article>
         </div>
-    </section>
     @else
-        <section class="subscription-panel"><h2>اطلاعات مالکیت اشتراک</h2><p class="subscription-muted">جزئیات مالکیت و اعتبار اشتراک فقط برای مالک اصلی حساب نمایش داده می‌شود.</p></section>
+        <div class="business-empty">اطلاعات مالکیت اشتراک فقط برای مالک اصلی حساب نمایش داده می‌شود.</div>
     @endif
 
     @if($can['fiscal_years'])
-    <section class="subscription-panel" aria-labelledby="fiscal-years-title">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div class="business-section-title">
             <div>
-                <h2 id="fiscal-years-title">سوابق سال‌های مالی</h2>
-                <div class="subscription-muted">نام، بازه زمانی و وضعیت هر سال مالی ثبت‌شده برای {{ $company->name }}.</div>
+                <h2>سال‌های مالی</h2>
+                <p>برای ورود، سال مالی موردنظر را انتخاب کنید.</p>
             </div>
-            <span class="subscription-status neutral">{{ number_format($fiscalYears->count()) }} دوره ثبت‌شده</span>
+            <span class="business-count">{{ number_format($fiscalYears->count()) }} سال مالی ثبت‌شده</span>
         </div>
 
         @if($fiscalYears->isNotEmpty())
-            <div class="subscription-table-wrap">
-                <table class="subscription-table">
-                    <thead><tr>
-                        <th>نام سال مالی</th><th>کد</th><th>تاریخ شروع</th><th>تاریخ پایان</th><th>وضعیت دوره</th><th>وضعیت زمانی</th>
-                    </tr></thead>
-                    <tbody>
-                    @foreach($fiscalYears as $year)
-                        @php
-                            $yearHasEnded = $year->ends_at && $year->ends_at->lt($today);
-                            $yearState = $year->is_closed ? 'بسته' : 'باز';
-                        @endphp
-                        <tr>
-                            <td><strong>{{ $year->name }}</strong>@if($fiscalYear && (int) $fiscalYear->id === (int) $year->id) <span class="subscription-pill current">انتخاب‌شده</span>@endif</td>
-                            <td data-number-format="off">{{ $year->code }}</td>
-                            <td>@if($year->starts_at)<time class="jalali-date" datetime="{{ $year->starts_at->format('Y-m-d') }}">{{ $year->starts_at->format('Y/m/d') }}</time>@else — @endif</td>
-                            <td>@if($year->ends_at)<time class="jalali-date" datetime="{{ $year->ends_at->format('Y-m-d') }}">{{ $year->ends_at->format('Y/m/d') }}</time>@else — @endif</td>
-                            <td><span class="subscription-pill {{ $year->is_closed ? 'closed' : 'open' }}">{{ $yearState }}</span></td>
-                            <td><span class="subscription-pill {{ $yearHasEnded ? 'past' : 'open' }}">{{ $yearHasEnded ? 'پایان‌یافته' : 'در بازه زمانی' }}</span></td>
-                        </tr>
-                    @endforeach
-                    </tbody>
-                </table>
+            <div class="business-grid" aria-label="کارت‌های سال مالی">
+                @foreach($fiscalYears as $year)
+                    @php
+                        $yearHasEnded = $year->ends_at && $year->ends_at->lt($today);
+                        $yearIsSelected = $fiscalYear && (int) $fiscalYear->id === (int) $year->id;
+                    @endphp
+                    <article class="business-card fiscal-card {{ $yearIsSelected ? 'selected' : '' }}">
+                        <div class="business-card-head">
+                            <div>
+                                <div class="business-card-icon" aria-hidden="true">▦</div>
+                            </div>
+                            @if($yearIsSelected)
+                                <span class="business-status active">سال فعال</span>
+                            @elseif($year->is_closed)
+                                <span class="business-status neutral">بسته</span>
+                            @else
+                                <span class="business-status pending">باز</span>
+                            @endif
+                        </div>
+                        <h2>{{ $year->name }}</h2>
+                        <div class="business-card-subtitle">کد دوره: <span data-number-format="off">{{ $year->code }}</span></div>
+                        <div class="business-card-data">
+                            <div class="business-data-item"><span>تاریخ شروع</span><strong>@if($year->starts_at)<time class="business-date jalali-date" datetime="{{ $year->starts_at->format('Y-m-d') }}">{{ $year->starts_at->format('Y/m/d') }}</time>@else — @endif</strong></div>
+                            <div class="business-data-item"><span>تاریخ پایان</span><strong>@if($year->ends_at)<time class="business-date jalali-date" datetime="{{ $year->ends_at->format('Y-m-d') }}">{{ $year->ends_at->format('Y/m/d') }}</time>@else — @endif</strong></div>
+                        </div>
+                        <div class="business-card-meta">
+                            <span class="business-pill {{ $year->is_closed ? 'closed' : 'open' }}">{{ $year->is_closed ? 'دوره بسته' : 'دوره باز' }}</span>
+                            <span class="business-pill {{ $yearHasEnded ? 'closed' : 'open' }}">{{ $yearHasEnded ? 'پایان‌یافته' : 'در بازه زمانی' }}</span>
+                            @if($yearIsSelected)<span class="business-pill selected">انتخاب‌شده</span>@endif
+                        </div>
+                        <div class="business-card-footer">
+                            @if(!$year->is_closed)
+                                <form method="POST" action="{{ route('fiscal-years.select', $year) }}">
+                                    @csrf
+                                    <button class="business-action {{ $yearIsSelected ? 'success' : '' }}" type="submit">ورود به سال مالی</button>
+                                </form>
+                            @else
+                                <button class="business-action disabled" type="button" disabled>این سال مالی بسته است</button>
+                            @endif
+                        </div>
+                    </article>
+                @endforeach
             </div>
         @else
-            <div class="subscription-empty">برای این شرکت هنوز سال مالی ثبت نشده است.</div>
+            <div class="business-empty">برای این کسب‌وکار هنوز سال مالی ثبت نشده است.</div>
         @endif
-        <p class="subscription-note">این اطلاعات فقط از سوابق موجود Accounting برای شرکت انتخاب‌شده خوانده می‌شود. نمایش این صفحه هیچ سال مالی جدیدی ایجاد یا تغییر نمی‌دهد و سوابق سایر شرکت‌ها را در بر نمی‌گیرد.</p>
-    </section>
+        <p class="business-footnote">کارت‌ها فقط سال‌های مالی ثبت‌شده برای همین شرکت را نشان می‌دهند. انتخاب یک سال، دوره فعال را تغییر می‌دهد و هیچ سال مالی جدیدی ایجاد یا ویرایش نمی‌کند.</p>
     @endif
 @endif
 
