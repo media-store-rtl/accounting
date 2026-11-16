@@ -6,6 +6,9 @@ use App\Http\Controllers\BackupController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FiscalYearController;
+use App\Http\Controllers\FarnamSiteContentController;
+use App\Http\Controllers\FarnamLeadController;
+use App\Http\Controllers\FarnamPublicContentController;
 use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\LaborCostController;
@@ -25,7 +28,16 @@ use App\Http\Controllers\WorkflowPagesController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return auth()->check() ? redirect()->route('dashboard') : view('accounting');
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+
+    $storedContent = \Illuminate\Support\Facades\Schema::hasTable('farnam_site_contents')
+        ? (\App\Models\FarnamSiteContent::query()->where('key', 'homepage')->first()?->content ?? [])
+        : [];
+    $content = array_merge(FarnamSiteContentController::defaultContent(), $storedContent);
+
+    return view('accounting', ['siteContent' => $content]);
 })->name('home');
 
 Route::middleware('guest')->group(function () {
@@ -36,6 +48,20 @@ Route::middleware('guest')->group(function () {
 
 Route::get('/sso/start', [AccountingSsoController::class, 'start'])->name('sso.start');
 Route::get('/sso/callback', [AccountingSsoController::class, 'callback'])->name('sso.callback');
+
+Route::get('/services/{slug}', [FarnamPublicContentController::class, 'service'])->where('slug', '[a-z0-9-]+')->name('farnam.services.show');
+Route::get('/articles', [FarnamPublicContentController::class, 'articles'])->name('farnam.articles.index');
+Route::get('/articles/{slug}', [FarnamPublicContentController::class, 'article'])->where('slug', '[a-z0-9-]+')->name('farnam.articles.show');
+Route::get('/case-studies', [FarnamPublicContentController::class, 'caseStudies'])->name('farnam.case-studies.index');
+
+Route::post('/farnam-leads', [FarnamLeadController::class, 'store'])->middleware('throttle:5,1')->name('farnam.leads.store');
+
+Route::middleware(['auth', 'farnam.site_admin'])->prefix('farnam-admin')->name('farnam.admin.')->group(function () {
+    Route::get('/', [FarnamSiteContentController::class, 'edit'])->name('edit');
+    Route::put('/', [FarnamSiteContentController::class, 'update'])->name('update');
+    Route::get('/leads', [FarnamLeadController::class, 'index'])->name('leads.index');
+    Route::patch('/leads/{lead}', [FarnamLeadController::class, 'update'])->whereNumber('lead')->name('leads.update');
+});
 
 Route::middleware('auth')->group(function () {
     Route::prefix('master')->name('master.')->group(function () {

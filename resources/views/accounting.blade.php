@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="خدمات مشاوره حسابداری، مالی و مالیاتی فرنام؛ همراه کسب‌وکارها برای شفافیت مالی، کنترل بهتر و تصمیم‌گیری آگاهانه.">
+    <meta name="description" content="{{ $siteContent['hero_copy'] }}">
     <meta name="theme-color" content="#142d46">
     <meta property="og:type" content="website">
     <meta property="og:locale" content="fa_IR">
@@ -144,6 +144,7 @@
         .contact p { max-width: 650px; margin: 0; color: #b5c2ce; font-size: 11px; line-height: 2.3; }
         .contact-card { padding: 23px; border: 1px solid rgba(232,220,192,.22); border-radius: 17px; background: rgba(255,255,255,.04); }
         .contact-card strong { display: block; color: #e2c994; font-size: 13px; }.contact-card span { display: block; margin-top: 8px; color: #b5c2ce; font-size: 10px; line-height: 2; }.contact-phone { display: inline-flex; align-items: center; gap: 9px; margin-top: 15px; color: #fff; font-size: 20px; font-weight: 800; letter-spacing: .5px; text-decoration: none; direction: ltr; }.contact-phone:hover { color: #e2c994; }.contact-phone-label { display: block; margin-top: 5px; color: #b5c2ce; font-size: 10px; }
+        @media (max-width: 760px) { #lead-form { grid-template-columns: 1fr !important; padding: 18px !important; } }
         .footer { padding: 22px 0; color: #9baab8; background: #091a2b; font-size: 9px; }
         .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
         .footer strong { color: #e2c994; font-size: 12px; }
@@ -175,6 +176,31 @@
     </style>
 </head>
 <body>
+@php
+$siteContent = array_merge([
+'hero_eyebrow' => 'همراه مطمئن تصمیم‌های مالی کسب‌وکار',
+'hero_title' => 'تصمیم‌های مالی بهتر، کسب‌وکار قدرتمندتر',
+'hero_copy' => 'فرنام در حسابداری، مدیریت مالی، بهای تمام‌شده و امور مالیاتی در کنار کسب‌وکار شماست.',
+'services_title' => 'خدمات مالی، متناسب با نیاز کسب‌وکار شما',
+'services_intro' => 'از ساماندهی اطلاعات حسابداری تا تحلیل مالی و مشاوره مالیاتی؛ خدمات فرنام بر شناخت مسئله و ارائه راهکار متناسب با شرایط هر مجموعه متمرکز است.',
+'about_title' => 'فرنام؛ همراه شما برای مدیریت آگاهانه امور مالی',
+'about_copy' => 'هر کسب‌وکار، شرایط و نیازهای مالی ویژه خود را دارد. رویکرد فرنام بر شناخت دقیق این نیازها، نظم‌بخشی به اطلاعات، تحلیل مسئله و ارائه راهکارهای کاربردی در حوزه حسابداری، مالی و مالیاتی استوار است. هدف، فراهم‌کردن دیدی روشن‌تر برای مدیران و کمک به تصمیم‌گیری مسئولانه‌تر است.',
+'contact_title' => 'برای شروع یک گفت‌وگوی حرفه‌ای آماده‌ایم.',
+'contact_copy' => 'برای دریافت مشاوره در زمینه حسابداری، امور مالی و مالیاتی با فرنام تماس بگیرید. کارشناسان ما آماده شنیدن نیازهای کسب‌وکار شما و گفت‌وگو درباره مسیر مناسب همکاری هستند.',
+'phone' => '09130162404',
+'services' => [
+['title' => 'خدمات حسابداری', 'description' => 'ساماندهی فرآیندهای حسابداری، ثبت و طبقه‌بندی اطلاعات و بهبود کیفیت گزارش‌های مالی.'],
+['title' => 'مشاوره مالی', 'description' => 'تحلیل وضعیت مالی، بررسی هزینه‌ها و پشتیبانی اطلاعاتی برای تصمیم‌های مدیریتی.'],
+['title' => 'مشاوره مالیاتی', 'description' => 'بررسی تکالیف و پرونده‌های مالیاتی، شناخت ریسک‌ها و همراهی در چارچوب قوانین و مقررات.'],
+['title' => 'حسابداری صنعتی و بهای تمام‌شده', 'description' => 'تحلیل مواد، دستمزد و سربار، هزینه‌یابی و شناخت عوامل مؤثر بر بهای تمام‌شده محصولات.'],
+['title' => 'گزارشگری مدیریتی', 'description' => 'طراحی و تحلیل گزارش‌هایی که تصویر روشن‌تری از عملکرد و وضعیت مالی مجموعه ارائه می‌کنند.'],
+['title' => 'استقرار و بهبود سیستم مالی', 'description' => 'بررسی ساختارها و گردش کار مالی و پیشنهاد مسیرهای بهبود متناسب با اندازه و فعالیت شرکت.'],
+],
+], $siteContent ?? []);
+@endphp
+@php($displayPhone = strtr($siteContent['phone'], ['0'=>'۰','1'=>'۱','2'=>'۲','3'=>'۳','4'=>'۴','5'=>'۵','6'=>'۶','7'=>'۷','8'=>'۸','9'=>'۹']))
+@php($leadSource = strtolower((string) request()->query('utm_source', request()->query('source', 'website'))))
+@php($leadSource = in_array($leadSource, ['website', 'google', 'instagram', 'linkedin', 'referral', 'direct', 'other'], true) ? $leadSource : 'other')
 <div class="site">
     <header class="topbar">
         <div class="container nav">
@@ -190,13 +216,17 @@
             <nav class="nav-links" aria-label="منوی اصلی">
                 <a href="#home">صفحه اصلی</a>
                 <a href="#services">خدمات</a>
+                <a href="#specialized-services">صفحات تخصصی</a>
+                <a href="/articles">مقالات</a>
+                <a href="/case-studies">نمونه‌کارها</a>
                 <a href="#about">درباره فرنام</a>
                 <a href="#process">فرآیند همکاری</a>
+                <a href="#request-consultation">درخواست مشاوره</a>
                 <a href="#contact">تماس با ما</a>
             </nav>
             <div class="nav-actions">
                 <a class="login-link" href="/login">ورود کاربران</a>
-                <a class="button button-gold" href="#contact">درخواست مشاوره <span aria-hidden="true">←</span></a>
+                <a class="button button-gold" href="#request-consultation">درخواست مشاوره <span aria-hidden="true">←</span></a>
             </div>
         </div>
     </header>
@@ -205,11 +235,11 @@
         <section class="hero" id="home">
             <div class="container hero-grid">
                 <div>
-                    <span class="eyebrow">همراه مطمئن تصمیم‌های مالی کسب‌وکار</span>
-                    <h1>شفافیت مالی، آغاز <span>تصمیم‌های مطمئن</span> است.</h1>
-                    <p class="hero-copy">در فرنام، حسابداری را فقط ثبت اعداد نمی‌دانیم؛ اطلاعات مالی باید به شناخت بهتر کسب‌وکار، کنترل هزینه‌ها و تصمیم‌گیری آگاهانه کمک کند. در مسیر حسابداری، امور مالی و مالیاتی همراه شما هستیم.</p>
+                    <span class="eyebrow">{{ $siteContent['hero_eyebrow'] }}</span>
+                    <h1>{{ $siteContent['hero_title'] }}</h1>
+                    <p class="hero-copy">{{ $siteContent['hero_copy'] }}</p>
                     <div class="hero-actions">
-                        <a class="button button-gold" href="#contact">درخواست جلسه مشاوره <span aria-hidden="true">←</span></a>
+                        <a class="button button-gold" href="#request-consultation">درخواست جلسه بررسی کسب‌وکار <span aria-hidden="true">←</span></a>
                         <a class="button button-outline" href="#services">آشنایی با خدمات</a>
                     </div>
                     <div class="hero-note">
@@ -246,34 +276,58 @@
             <div class="container">
                 <div class="section-heading">
                     <span class="section-kicker">FARNAM SERVICES</span>
-                    <h2>خدمات مالی، متناسب با نیاز کسب‌وکار شما</h2>
-                    <p>از ساماندهی اطلاعات حسابداری تا تحلیل مالی و مشاوره مالیاتی؛ خدمات فرنام بر شناخت مسئله و ارائه راهکار متناسب با شرایط هر مجموعه متمرکز است.</p>
+                    <h2>{{ $siteContent['services_title'] }}</h2>
+                    <p>{{ $siteContent['services_intro'] }}</p>
                 </div>
                 <div class="service-grid">
-                    <article class="service-card">
-                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2m4 0h2M8 15h2m4 0h2M8 18h8"/></svg></span>
-                        <h3>خدمات حسابداری</h3><p>ساماندهی فرآیندهای حسابداری، ثبت و طبقه‌بندی اطلاعات و بهبود کیفیت گزارش‌های مالی.</p>
-                    </article>
-                    <article class="service-card">
-                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 20h18M5 17V9m5 8V4m5 13v-6m5 6V7"/></svg></span>
-                        <h3>مشاوره مالی</h3><p>تحلیل وضعیت مالی، بررسی هزینه‌ها و پشتیبانی اطلاعاتی برای تصمیم‌های مدیریتی.</p>
-                    </article>
-                    <article class="service-card">
-                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 4h16v16H4zM8 8h8M8 12h5M8 16h8"/></svg></span>
-                        <h3>مشاوره مالیاتی</h3><p>بررسی تکالیف و پرونده‌های مالیاتی، شناخت ریسک‌ها و همراهی در چارچوب قوانین و مقررات.</p>
-                    </article>
-                    <article class="service-card">
-                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-6h6v6M8 10h2m4 0h2"/></svg></span>
-                        <h3>حسابداری صنعتی و بهای تمام‌شده</h3><p>تحلیل مواد، دستمزد و سربار، هزینه‌یابی و شناخت عوامل مؤثر بر بهای تمام‌شده محصولات.</p>
-                    </article>
-                    <article class="service-card">
-                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19V5m0 14h17M8 15l3-4 3 2 5-7"/></svg></span>
-                        <h3>گزارشگری مدیریتی</h3><p>طراحی و تحلیل گزارش‌هایی که تصویر روشن‌تری از عملکرد و وضعیت مالی مجموعه ارائه می‌کنند.</p>
-                    </article>
-                    <article class="service-card">
-                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2M7 3l-2 3m12-3 2 3"/></svg></span>
-                        <h3>استقرار و بهبود سیستم مالی</h3><p>بررسی ساختارها و گردش کار مالی و پیشنهاد مسیرهای بهبود متناسب با اندازه و فعالیت شرکت.</p>
-                    </article>
+                    @foreach ($siteContent['services'] as $service)
+                        <article class="service-card">
+                            <span class="service-icon" aria-hidden="true">✦</span>
+                            <h3>{{ $service['title'] }}</h3>
+                            <p>{{ $service['description'] }}</p>
+                        </article>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="specialized-services" style="background:#fff">
+            <div class="container">
+                <div class="section-heading">
+                    <span class="section-kicker">SPECIALIZED SERVICES</span>
+                    <h2>برای هر نیاز، صفحه و مسیر همکاری روشن</h2>
+                    <p>جزئیات هر خدمت، مسئله‌های رایج، دامنه بررسی و پرسش‌های متداول را جداگانه بخوانید.</p>
+                </div>
+                <div class="service-grid">
+                    <a class="service-card" style="text-decoration:none" href="{{ route('farnam.services.show', 'accounting-management') }}"><span class="service-icon">۱</span><h3>حسابداری و مدیریت مالی شرکت‌ها</h3><p>سامان‌دهی اطلاعات، گزارش‌های مالی و کنترل فرآیندها.</p><span>مشاهده جزئیات ←</span></a>
+                    <a class="service-card" style="text-decoration:none" href="{{ route('farnam.services.show', 'industrial-costing') }}"><span class="service-icon">۲</span><h3>حسابداری صنعتی و بهای تمام‌شده</h3><p>تحلیل مواد، دستمزد، سربار و هزینه تولید.</p><span>مشاهده جزئیات ←</span></a>
+                    <a class="service-card" style="text-decoration:none" href="{{ route('farnam.services.show', 'tax-services') }}"><span class="service-icon">۳</span><h3>خدمات مالیاتی</h3><p>بررسی تکالیف، مستندات و آمادگی رسیدگی.</p><span>مشاهده جزئیات ←</span></a>
+                    <a class="service-card" style="text-decoration:none" href="{{ route('farnam.services.show', 'financial-advisory') }}"><span class="service-icon">۴</span><h3>مشاوره مالی و مدیریتی</h3><p>تحلیل نقدینگی، هزینه‌ها و شاخص‌های عملکرد.</p><span>مشاهده جزئیات ←</span></a>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="insights" style="background:#f6f7f8">
+            <div class="container">
+                <div class="section-heading">
+                    <span class="section-kicker">FARNAM INSIGHTS</span>
+                    <h2>مقالات و راهنماهای کاربردی</h2>
+                    <p>مطالب آموزشی برای شناخت بهتر مسائل حسابداری، مدیریت مالی، بهای تمام‌شده و مالیات.</p>
+                </div>
+                <div class="service-grid">
+                    <article class="service-card"><h3>چرا سود حسابداری با موجودی نقد متفاوت است؟</h3><p>تفاوت سود تعهدی، جریان نقد و سرمایه در گردش.</p><a href="{{ route('farnam.articles.show', 'accounting-profit-vs-cash') }}">مطالعه مقاله ←</a></article>
+                    <article class="service-card"><h3>چگونه بهای تمام‌شده محصول را محاسبه کنیم؟</h3><p>مواد، دستمزد، سربار و انتخاب روش هزینه‌یابی.</p><a href="{{ route('farnam.articles.show', 'how-to-calculate-product-cost') }}">مطالعه مقاله ←</a></article>
+                    <article class="service-card"><h3>اشتباهات رایج در مدیریت نقدینگی</h3><p>برنامه دریافت و پرداخت و سناریوهای نقدینگی.</p><a href="{{ route('farnam.articles.show', 'cash-flow-mistakes') }}">مطالعه مقاله ←</a></article>
+                </div>
+                <p style="text-align:center;margin-top:24px"><a class="button button-outline" style="color:#142d46;border-color:#cbd3da" href="{{ route('farnam.articles.index') }}">مشاهده همه مقالات</a></p>
+            </div>
+        </section>
+
+        <section class="section" id="case-studies" style="background:#fff">
+            <div class="container">
+                <div class="cta-panel">
+                    <div><h2>نمونه‌کارهای واقعی، با رعایت محرمانگی</h2><p>فقط تجربه‌های مستند و دارای مجوز انتشار در این بخش قرار می‌گیرند؛ از درج نام یا نتیجه تأییدنشده خودداری می‌کنیم.</p></div>
+                    <a class="button button-gold" href="{{ route('farnam.case-studies.index') }}">مشاهده بخش نمونه‌کارها</a>
                 </div>
             </div>
         </section>
@@ -283,8 +337,8 @@
                 <div class="about-art" aria-hidden="true"><span class="about-monogram">ف</span></div>
                 <div class="about-copy">
                     <span class="section-kicker">ABOUT FARNAM</span>
-                    <h2>فرنام؛ همراه شما برای مدیریت آگاهانه امور مالی</h2>
-                    <p>هر کسب‌وکار، شرایط و نیازهای مالی ویژه خود را دارد. رویکرد فرنام بر شناخت دقیق این نیازها، نظم‌بخشی به اطلاعات، تحلیل مسئله و ارائه راهکارهای کاربردی در حوزه حسابداری، مالی و مالیاتی استوار است. هدف، فراهم‌کردن دیدی روشن‌تر برای مدیران و کمک به تصمیم‌گیری مسئولانه‌تر است.</p>
+                    <h2>{{ $siteContent['about_title'] }}</h2>
+                    <p>{{ $siteContent['about_copy'] }}</p>
                     <div class="value-list">
                         <span class="value-item">شناخت نیاز هر مجموعه</span>
                         <span class="value-item">توجه به جزئیات مالی</span>
@@ -331,8 +385,33 @@
             <div class="container">
                 <div class="cta-panel">
                     <div><h2>برای تصمیم‌های مالی، با دیدی روشن‌تر پیش بروید.</h2><p>نیاز کسب‌وکار خود را مطرح کنید تا درباره مسیر مناسب همکاری گفت‌وگو کنیم.</p></div>
-                    <a class="button button-gold" href="#contact">شروع گفت‌وگو با فرنام <span aria-hidden="true">←</span></a>
+                    <a class="button button-gold" href="#request-consultation">درخواست بررسی اولیه <span aria-hidden="true">←</span></a>
                 </div>
+            </div>
+        </section>
+
+        <section class="section" id="request-consultation" style="background:#f6f7f8">
+            <div class="container">
+                <div class="section-heading">
+                    <span class="section-kicker">START A CONVERSATION</span>
+                    <h2>درخواست بررسی اولیه کسب‌وکار</h2>
+                    <p>نیازتان را کوتاه بنویسید تا برای گفت‌وگوی اولیه و بررسی امکان همکاری با شما تماس بگیریم.</p>
+                </div>
+                @if (session('lead_status'))<div role="status" style="max-width:760px;margin:0 auto 18px;padding:14px 18px;border-radius:12px;background:#edf8f1;color:#24643d">{{ session('lead_status') }}</div>@endif
+                @if ($errors->any())<div role="alert" style="max-width:760px;margin:0 auto 18px;padding:14px 18px;border-radius:12px;background:#fff0f0;color:#933">لطفاً اطلاعات فرم را بررسی کنید و دوباره بفرستید.</div>@endif
+                <form method="POST" action="{{ route('farnam.leads.store') }}" id="lead-form" style="max-width:760px;margin:0 auto;padding:26px;background:#fff;border:1px solid #e6e9ed;border-radius:18px;display:grid;grid-template-columns:1fr 1fr;gap:15px">
+                    @csrf
+                    <input type="hidden" name="source" value="{{ $leadSource }}">
+                    <input type="hidden" name="source_detail" value="{{ request()->query('utm_campaign', request()->query('source_detail', 'homepage')) }}">
+                    <label style="font-size:12px;font-weight:700">نام و نام خانوادگی<input name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name" style="display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce2e8;border-radius:9px;font:inherit"></label>
+                    <label style="font-size:12px;font-weight:700">شماره تماس<input name="phone" value="{{ old('phone') }}" required maxlength="30" autocomplete="tel" inputmode="tel" style="display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce2e8;border-radius:9px;font:inherit"></label>
+                    <label style="font-size:12px;font-weight:700">نام شرکت یا کسب‌وکار<input name="business_name" value="{{ old('business_name') }}" required maxlength="180" style="display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce2e8;border-radius:9px;font:inherit"></label>
+                    <label style="font-size:12px;font-weight:700">نوع فعالیت<select name="business_type" required style="display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce2e8;border-radius:9px;font:inherit"><option value="">انتخاب کنید</option><option value="production" @selected(old('business_type') === 'production')>تولیدی و صنعتی</option><option value="commerce" @selected(old('business_type') === 'commerce')>بازرگانی</option><option value="services" @selected(old('business_type') === 'services')>خدماتی</option><option value="other" @selected(old('business_type') === 'other')>سایر</option></select></label>
+                    <label style="grid-column:1/-1;font-size:12px;font-weight:700">خدمت موردنیاز<select name="service_interest" required style="display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce2e8;border-radius:9px;font:inherit"><option value="">انتخاب کنید</option><option value="accounting" @selected(old('service_interest') === 'accounting')>خدمات حسابداری</option><option value="finance" @selected(old('service_interest') === 'finance')>مشاوره مالی و مدیریتی</option><option value="tax" @selected(old('service_interest') === 'tax')>خدمات مالیاتی</option><option value="industrial_costing" @selected(old('service_interest') === 'industrial_costing')>حسابداری صنعتی و بهای تمام‌شده</option><option value="management_reporting" @selected(old('service_interest') === 'management_reporting')>گزارشگری مدیریتی</option><option value="other" @selected(old('service_interest') === 'other')>سایر خدمات</option></select></label>
+                    <label style="grid-column:1/-1;font-size:12px;font-weight:700">توضیح کوتاه درباره نیاز شما<textarea name="message" required maxlength="1500" rows="4" style="display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce2e8;border-radius:9px;font:inherit;resize:vertical">{{ old('message') }}</textarea></label>
+                    <label style="grid-column:1/-1;display:flex;align-items:flex-start;gap:9px;font-size:11px;color:#718092;line-height:1.9"><input type="checkbox" name="consent" value="1" required style="margin-top:4px">با ثبت این فرم موافقم اطلاعات تماس من فقط برای پاسخ‌گویی به همین درخواست استفاده شود.</label>
+                    <button type="submit" class="button button-gold" style="grid-column:1/-1;width:100%">ثبت درخواست و هماهنگی تماس</button>
+                </form>
             </div>
         </section>
 
@@ -340,13 +419,13 @@
             <div class="container contact-grid">
                 <div>
                     <span class="section-kicker">CONTACT FARNAM</span>
-                    <h2>برای شروع یک گفت‌وگوی حرفه‌ای آماده‌ایم.</h2>
-                    <p>برای دریافت مشاوره در زمینه حسابداری، امور مالی و مالیاتی با فرنام تماس بگیرید. کارشناسان ما آماده شنیدن نیازهای کسب‌وکار شما و گفت‌وگو درباره مسیر مناسب همکاری هستند.</p>
+                    <h2>{{ $siteContent['contact_title'] }}</h2>
+                    <p>{{ $siteContent['contact_copy'] }}</p>
                 </div>
                 <div class="contact-card">
-                    <strong>خدمات مشاوره حسابداری مالی و مالیاتی فرنام</strong>
+                    <strong>مشاوره مالی، مالیاتی و حسابداری فرنام</strong>
                     <span>حسابداری · مشاوره مالی · مشاوره مالیاتی · حسابداری صنعتی</span>
-                    <a class="contact-phone" href="tel:+989130162404" aria-label="تماس تلفنی با فرنام: ۰۹۱۳۰۱۶۲۴۰۴">۰۹۱۳۰۱۶۲۴۰۴</a>
+                    <a class="contact-phone" href="tel:{{ str_starts_with(preg_replace('/[^0-9]/', '', $siteContent['phone']), '0') ? '+98' . substr(preg_replace('/[^0-9]/', '', $siteContent['phone']), 1) : preg_replace('/[^0-9+]/', '', $siteContent['phone']) }}" aria-label="تماس تلفنی با فرنام: {{ $displayPhone }}">{{ $displayPhone }}</a>
                     <span class="contact-phone-label">برای تماس مستقیم، شماره را لمس کنید.</span>
                 </div>
             </div>

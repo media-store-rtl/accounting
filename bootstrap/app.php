@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureAccountOwner;
+use App\Http\Middleware\EnsureFarnamSiteAdmin;
 use App\Http\Middleware\EnsureCompanyPermission;
 use App\Http\Middleware\AuditTrailMiddleware;
 use App\Http\Middleware\ConsumeApprovedShiftReportMaterials;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ->alias([
             'company.permission' => EnsureCompanyPermission::class,
             'account.owner' => EnsureAccountOwner::class,
+            'farnam.site_admin' => EnsureFarnamSiteAdmin::class,
         ]);
 
         // This middleware needs the matched route and authenticated web session.
