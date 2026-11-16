@@ -1708,5 +1708,5 @@
 - به‌دلیل تعارض شماره #156 با یک ثبت متفاوت در main، گزارش runbook این PR در این شاخه با شماره یکتای #173 ثبت شد تا سابقه موجود main بازنویسی نشود.
 - سند docs/dolibarr-first-tenant-staging-runbook.md بدون تغییر محتوایی حفظ شد؛ دامنه آن همچنان فقط راهنمای staging و آزمون tenantهای disposable است.
 - هیچ کد اجرایی، نصب Dolibarr، cPanel، DNS، دیتابیس واقعی، سرور، production، backup/restore واقعی یا deployment تغییر نکرد.
-- CI جدید باید روی merge commit بررسی شود؛ CI قبلی run #3854 روی head پیش از همگام‌سازی موفق بود و جایگزین آزمون head جدید نیست.
+- CI run #4118 روی merge commit 8980cdac13ecfaf6eb74fae7adff1e326077b34c موفق شد: ۱۲۰ تست و ۹۱۳ assertion. migration/route check در CI پروژه اجرا شد؛ هیچ نصب یا تغییر production انجام نشده است.
 - PR #260 همچنان باز و ادغام‌نشده است؛ merge فقط با تأیید صریح کاربر مجاز خواهد بود.
