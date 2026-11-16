@@ -125,7 +125,7 @@ class FarnamLeadManagementTest extends TestCase
 
         $this->assertDatabaseHas('farnam_leads', [
             'id' => $lead->id,
-            'status' => 'proposal',
+            'status' => 'negotiation',
             'internal_notes' => 'پیشنهاد همکاری ارسال شد.',
         ]);
 
