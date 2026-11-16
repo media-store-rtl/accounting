@@ -321,3 +321,13 @@ Dolibarr دارای نصب‌کننده وب است. هدف تجربه محصو�
 
 ### ۱۴.۴. انتشار و پذیرش
 اجرای migration روی محیط production، فعال‌سازی دسترسی مدیر و انتشار تغییرات روی سرور فقط پس از CI موفق، بازبینی PR و تأیید جداگانه merge/deploy انجام می‌شود. GitHub merge به‌تنهایی اثبات‌کننده migration یا انتشار production نیست.
+
+
+## ۱۵. کنترل و عیب‌یابی انتشار Laravel در cPanel
+
+- فایل ریشه `.cpanel.yml` فقط workflow فعلی Laravel Accounting را اجرا می‌کند؛ نصب یا انتشار Dolibarr نیست.
+- ادغام به `main` ممکن است با توجه به hook تنظیم‌شده در cPanel اجرای taskهای `.cpanel.yml` را آغاز کند. این رفتار، موفقیت deployment را تضمین نمی‌کند.
+- وضعیت نهایی فقط با بررسی رکورد همان deployment در UAPI و فایل log متناظر cPanel تأیید می‌شود؛ CI GitHub و merge commit جایگزین این شواهد نیستند.
+- هنگام مشاهده اجرای فعال یا نامشخص، اجرای Deploy موازی، kill کردن task، اجرای مجدد migration یا seeder و تغییر حدسی `.cpanel.yml` مجاز نیست. ابتدا باید آخرین task و فرمان ثبت‌شده در log شناسایی شود.
+- روش بازیابی log، مسیرهای استاندارد cPanel، محدودیت‌های دسترسی و مراحل عیب‌یابی در `docs/cpanel-deployment-stuck-diagnostics.md` ثبت شده است.
+- هر اصلاح در deployment script باید در شاخه و PR مستقل، با ثبت پیشرفت و آزمون مناسب انجام شود. migration و seeder باید از نظر idempotency و رفتار failure بررسی شوند؛ اجرای production تنها با مجوز و شواهد جداگانه گزارش می‌شود.
