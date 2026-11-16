@@ -44,7 +44,12 @@ Route::middleware('guest')->group(function () {
 Route::get('/sso/start', [AccountingSsoController::class, 'start'])->name('sso.start');
 Route::get('/sso/callback', [AccountingSsoController::class, 'callback'])->name('sso.callback');
 
-Route::middleware(['auth', 'account.owner'])->prefix('farnam-admin')->name('farnam.admin.')->group(function () {\n    Route::get('/', [FarnamSiteContentController::class, 'edit'])->name('edit');\n    Route::put('/', [FarnamSiteContentController::class, 'update'])->name('update');\n});\n\nRoute::middleware('auth')->group(function () {
+Route::middleware(['auth', 'account.owner'])->prefix('farnam-admin')->name('farnam.admin.')->group(function () {
+    Route::get('/', [FarnamSiteContentController::class, 'edit'])->name('edit');
+    Route::put('/', [FarnamSiteContentController::class, 'update'])->name('update');
+});
+
+Route::middleware('auth')->group(function () {
     Route::prefix('master')->name('master.')->group(function () {
         Route::get('/{module}', [MasterDataController::class,'index'])->name('index');
         Route::get('/{module}/create', [MasterDataController::class,'create'])->name('create');
