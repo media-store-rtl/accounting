@@ -8,7 +8,7 @@
 - تست: `tests/Feature/CorporateLandingPageTest.php` افزوده شد تا محتوای اصلی برند، خدمات، بخش‌های صفحه، فارسی/RTL، حفظ لینک ورود و حذف عنوان/دامنه قدیمی را بررسی کند. تست محلی، PHP lint، browser و build در این محیط اجرا نشده‌اند؛ نتیجه CI پس از ایجاد PR باید بررسی شود.
 - هیچ migration، schema، دیتابیس، ایمیل/فرم تماس backend، API، SSO، provisioning، Dolibarr runtime، cPanel، DNS، سرور، production یا deployment تغییر نکرده است.
 - فایل‌های تغییرکرده: `resources/views/accounting.blade.php`, `tests/Feature/CorporateLandingPageTest.php`, و همین فایل.
-- شاخه: `feat/farnam-corporate-website-20261116`. PR پس از ثبت تغییرات ایجاد و CI آن بررسی خواهد شد؛ merge فقط با تأیید صریح کاربر مجاز است.
+- شاخه: `feat/farnam-corporate-website-20261116`؛ PR [#268](https://github.com/media-store-rtl/accounting/pull/268) باز و ادغام‌نشده است. بلافاصله پس از ایجاد PR هنوز run/status مربوط به head آن در GitHub گزارش نشده بود؛ CI باید دوباره بررسی شود. merge فقط با تأیید صریح کاربر مجاز است.
 
 ---
 
