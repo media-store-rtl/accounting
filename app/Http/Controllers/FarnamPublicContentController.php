@@ -1,8 +1,8 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use Illuminate\\View\\View;
+use Illuminate\View\View;
 
 class FarnamPublicContentController extends Controller
 {
