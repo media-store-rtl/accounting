@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ $service['title'] }} | فرنام</title><meta name="description" content="{{ $service['summary'] }}">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f6f7f8;color:#203247;font-family:Vazirmatn,Tahoma,sans-serif;line-height:2}a{color:inherit}.wrap{width:min(980px,calc(100% - 32px));margin:auto}.top{background:#142d46;color:#fff;padding:56px 0}.top h1{font-size:clamp(27px,5vw,42px);line-height:1.6;margin:10px 0}.top p{color:#d1dbe4;max-width:760px}.kicker{color:#d6bd86;font-size:12px;font-weight:800}.btn{display:inline-block;background:#b99a5b;color:#fff;padding:10px 20px;border-radius:10px;text-decoration:none;font-weight:800}.panel{background:#fff;border:1px solid #e5e9ed;border-radius:16px;padding:24px;margin:20px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.panel h2{color:#142d46;font-size:20px;margin-top:0}.panel li{margin:7px 0}.faq{border-top:1px solid #edf0f2;padding:12px 0}.faq strong{display:block;color:#142d46}.footer{padding:30px 0;color:#718092;font-size:12px}@media(max-width:650px){.grid{grid-template-columns:1fr}.top{padding:38px 0}}
+</style></head><body>
+<header class="top"><div class="wrap"><a href="/" style="color:#e4d2a7;text-decoration:none">فرنام / صفحه اصلی</a><div class="kicker">خدمات تخصصی فرنام</div><h1>{{ $service['title'] }}</h1><p>{{ $service['summary'] }}</p><a class="btn" href="{{ route('home', ['source' => 'website', 'source_detail' => 'service-' . $slug]) }}#request-consultation">درخواست جلسه بررسی کسب‌وکار</a></div></header>
+<main class="wrap">
+<section class="panel"><h2>مسئله‌ای که بررسی می‌کنیم</h2><p>{{ $service['problem'] }}</p></section>
+<div class="grid"><section class="panel"><h2>دامنه خدمات</h2><ul>@foreach($service['services'] as $item)<li>{{ $item }}</li>@endforeach</ul></section>
+<section class="panel"><h2>نتیجه مورد انتظار</h2><ul>@foreach($service['outcomes'] as $item)<li>{{ $item }}</li>@endforeach</ul><p style="color:#718092;font-size:12px">خروجی نهایی پس از شناخت وضعیت و توافق بر دامنه همکاری مشخص می‌شود.</p></section></div>
+<section class="panel"><h2>پرسش‌های متداول</h2>@foreach($service['faqs'] as $faq)<div class="faq"><strong>{{ $faq['q'] }}</strong><span>{{ $faq['a'] }}</span></div>@endforeach</section>
+<section class="panel" style="text-align:center"><h2>برای بررسی نیاز کسب‌وکار خود گفت‌وگو کنیم</h2><p>فرم درخواست را تکمیل کنید تا برای هماهنگی با شما تماس بگیریم.</p><a class="btn" href="{{ route('home', ['source' => 'website', 'source_detail' => 'service-' . $slug]) }}#request-consultation">ثبت درخواست همکاری</a></section>
+</main><footer class="footer"><div class="wrap">فرنام · مشاوره حسابداری، مالی و مالیاتی</div></footer></body></html>
