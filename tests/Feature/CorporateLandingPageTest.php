@@ -12,7 +12,7 @@ class CorporateLandingPageTest extends TestCase
 
         $response->assertOk()
             ->assertSee('خدمات مشاوره حسابداری مالی و مالیاتی فرنام')
-            ->assertSee('شفافیت مالی، آغاز')
+            ->assertSee('تصمیم‌های مالی بهتر، کسب‌وکار قدرتمندتر')
             ->assertSee('مشاوره مالیاتی')
             ->assertSee('حسابداری صنعتی و بهای تمام‌شده')
             ->assertSee('فرآیند همکاری')
@@ -23,6 +23,9 @@ class CorporateLandingPageTest extends TestCase
             ->assertSee('href="/login"', false)
             ->assertSee('۰۹۱۳۰۱۶۲۴۰۴')
             ->assertSee('href="tel:+989130162404"', false)
+            ->assertSee('id="specialized-services"', false)
+            ->assertSee('مقالات و راهنماهای کاربردی')
+            ->assertSee('نمونه‌کارهای واقعی، با رعایت محرمانگی')
             ->assertDontSee('حسابداری صنعتی برای کسب‌وکارهای تولیدی')
             ->assertDontSee('https://mymedimo.ir/');
     }
