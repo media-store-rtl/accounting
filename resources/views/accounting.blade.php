@@ -199,6 +199,8 @@ $siteContent = array_merge([
 ], $siteContent ?? []);
 @endphp
 @php($displayPhone = strtr($siteContent['phone'], ['0'=>'۰','1'=>'۱','2'=>'۲','3'=>'۳','4'=>'۴','5'=>'۵','6'=>'۶','7'=>'۷','8'=>'۸','9'=>'۹']))
+@php($leadSource = strtolower((string) request()->query('utm_source', request()->query('source', 'website'))))
+@php($leadSource = in_array($leadSource, ['website', 'google', 'instagram', 'linkedin', 'referral', 'direct', 'other'], true) ? $leadSource : 'other')
 <div class="site">
     <header class="topbar">
         <div class="container nav">
@@ -399,7 +401,7 @@ $siteContent = array_merge([
                 @if ($errors->any())<div role="alert" style="max-width:760px;margin:0 auto 18px;padding:14px 18px;border-radius:12px;background:#fff0f0;color:#933">لطفاً اطلاعات فرم را بررسی کنید و دوباره بفرستید.</div>@endif
                 <form method="POST" action="{{ route('farnam.leads.store') }}" id="lead-form" style="max-width:760px;margin:0 auto;padding:26px;background:#fff;border:1px solid #e6e9ed;border-radius:18px;display:grid;grid-template-columns:1fr 1fr;gap:15px">
                     @csrf
-                    <input type="hidden" name="source" value="{{ request()->query('utm_source', request()->query('source', 'website')) }}">
+                    <input type="hidden" name="source" value="{{ $leadSource }}">
                     <input type="hidden" name="source_detail" value="{{ request()->query('utm_campaign', request()->query('source_detail', 'homepage')) }}">
                     <label style="font-size:12px;font-weight:700">نام و نام خانوادگی<input name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name" style="display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce2e8;border-radius:9px;font:inherit"></label>
                     <label style="font-size:12px;font-weight:700">شماره تماس<input name="phone" value="{{ old('phone') }}" required maxlength="30" autocomplete="tel" inputmode="tel" style="display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce2e8;border-radius:9px;font:inherit"></label>
