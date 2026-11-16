@@ -179,8 +179,8 @@
 @php
 $siteContent = array_merge([
 'hero_eyebrow' => 'همراه مطمئن تصمیم‌های مالی کسب‌وکار',
-'hero_title' => 'شفافیت مالی، آغاز تصمیم‌های مطمئن است.',
-'hero_copy' => 'در فرنام، حسابداری را فقط ثبت اعداد نمی‌دانیم؛ اطلاعات مالی باید به شناخت بهتر کسب‌وکار، کنترل هزینه‌ها و تصمیم‌گیری آگاهانه کمک کند. در مسیر حسابداری، امور مالی و مالیاتی همراه شما هستیم.',
+'hero_title' => 'تصمیم‌های مالی بهتر، کسب‌وکار قدرتمندتر',
+'hero_copy' => 'فرنام در حسابداری، مدیریت مالی، بهای تمام‌شده و امور مالیاتی در کنار کسب‌وکار شماست.',
 'services_title' => 'خدمات مالی، متناسب با نیاز کسب‌وکار شما',
 'services_intro' => 'از ساماندهی اطلاعات حسابداری تا تحلیل مالی و مشاوره مالیاتی؛ خدمات فرنام بر شناخت مسئله و ارائه راهکار متناسب با شرایط هر مجموعه متمرکز است.',
 'about_title' => 'فرنام؛ همراه شما برای مدیریت آگاهانه امور مالی',
@@ -214,6 +214,9 @@ $siteContent = array_merge([
             <nav class="nav-links" aria-label="منوی اصلی">
                 <a href="#home">صفحه اصلی</a>
                 <a href="#services">خدمات</a>
+                <a href="#specialized-services">صفحات تخصصی</a>
+                <a href="/articles">مقالات</a>
+                <a href="/case-studies">نمونه‌کارها</a>
                 <a href="#about">درباره فرنام</a>
                 <a href="#process">فرآیند همکاری</a>
                 <a href="#request-consultation">درخواست مشاوره</a>
@@ -234,7 +237,7 @@ $siteContent = array_merge([
                     <h1>{{ $siteContent['hero_title'] }}</h1>
                     <p class="hero-copy">{{ $siteContent['hero_copy'] }}</p>
                     <div class="hero-actions">
-                        <a class="button button-gold" href="#request-consultation">درخواست جلسه مشاوره <span aria-hidden="true">←</span></a>
+                        <a class="button button-gold" href="#request-consultation">درخواست جلسه بررسی کسب‌وکار <span aria-hidden="true">←</span></a>
                         <a class="button button-outline" href="#services">آشنایی با خدمات</a>
                     </div>
                     <div class="hero-note">
@@ -282,6 +285,47 @@ $siteContent = array_merge([
                             <p>{{ $service['description'] }}</p>
                         </article>
                     @endforeach
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="specialized-services" style="background:#fff">
+            <div class="container">
+                <div class="section-heading">
+                    <span class="section-kicker">SPECIALIZED SERVICES</span>
+                    <h2>برای هر نیاز، صفحه و مسیر همکاری روشن</h2>
+                    <p>جزئیات هر خدمت، مسئله‌های رایج، دامنه بررسی و پرسش‌های متداول را جداگانه بخوانید.</p>
+                </div>
+                <div class="service-grid">
+                    <a class="service-card" style="text-decoration:none" href="{{ route('farnam.services.show', 'accounting-management') }}"><span class="service-icon">۱</span><h3>حسابداری و مدیریت مالی شرکت‌ها</h3><p>سامان‌دهی اطلاعات، گزارش‌های مالی و کنترل فرآیندها.</p><span>مشاهده جزئیات ←</span></a>
+                    <a class="service-card" style="text-decoration:none" href="{{ route('farnam.services.show', 'industrial-costing') }}"><span class="service-icon">۲</span><h3>حسابداری صنعتی و بهای تمام‌شده</h3><p>تحلیل مواد، دستمزد، سربار و هزینه تولید.</p><span>مشاهده جزئیات ←</span></a>
+                    <a class="service-card" style="text-decoration:none" href="{{ route('farnam.services.show', 'tax-services') }}"><span class="service-icon">۳</span><h3>خدمات مالیاتی</h3><p>بررسی تکالیف، مستندات و آمادگی رسیدگی.</p><span>مشاهده جزئیات ←</span></a>
+                    <a class="service-card" style="text-decoration:none" href="{{ route('farnam.services.show', 'financial-advisory') }}"><span class="service-icon">۴</span><h3>مشاوره مالی و مدیریتی</h3><p>تحلیل نقدینگی، هزینه‌ها و شاخص‌های عملکرد.</p><span>مشاهده جزئیات ←</span></a>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="insights" style="background:#f6f7f8">
+            <div class="container">
+                <div class="section-heading">
+                    <span class="section-kicker">FARNAM INSIGHTS</span>
+                    <h2>مقالات و راهنماهای کاربردی</h2>
+                    <p>مطالب آموزشی برای شناخت بهتر مسائل حسابداری، مدیریت مالی، بهای تمام‌شده و مالیات.</p>
+                </div>
+                <div class="service-grid">
+                    <article class="service-card"><h3>چرا سود حسابداری با موجودی نقد متفاوت است؟</h3><p>تفاوت سود تعهدی، جریان نقد و سرمایه در گردش.</p><a href="{{ route('farnam.articles.show', 'accounting-profit-vs-cash') }}">مطالعه مقاله ←</a></article>
+                    <article class="service-card"><h3>چگونه بهای تمام‌شده محصول را محاسبه کنیم؟</h3><p>مواد، دستمزد، سربار و انتخاب روش هزینه‌یابی.</p><a href="{{ route('farnam.articles.show', 'how-to-calculate-product-cost') }}">مطالعه مقاله ←</a></article>
+                    <article class="service-card"><h3>اشتباهات رایج در مدیریت نقدینگی</h3><p>برنامه دریافت و پرداخت و سناریوهای نقدینگی.</p><a href="{{ route('farnam.articles.show', 'cash-flow-mistakes') }}">مطالعه مقاله ←</a></article>
+                </div>
+                <p style="text-align:center;margin-top:24px"><a class="button button-outline" style="color:#142d46;border-color:#cbd3da" href="{{ route('farnam.articles.index') }}">مشاهده همه مقالات</a></p>
+            </div>
+        </section>
+
+        <section class="section" id="case-studies" style="background:#fff">
+            <div class="container">
+                <div class="cta-panel">
+                    <div><h2>نمونه‌کارهای واقعی، با رعایت محرمانگی</h2><p>فقط تجربه‌های مستند و دارای مجوز انتشار در این بخش قرار می‌گیرند؛ از درج نام یا نتیجه تأییدنشده خودداری می‌کنیم.</p></div>
+                    <a class="button button-gold" href="{{ route('farnam.case-studies.index') }}">مشاهده بخش نمونه‌کارها</a>
                 </div>
             </div>
         </section>
