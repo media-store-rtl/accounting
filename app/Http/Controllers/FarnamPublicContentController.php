@@ -21,7 +21,7 @@ class FarnamPublicContentController extends Controller
 
     public function article(string $slug): View
     {
-        $articles = self::articles();
+        $articles = self::articleContent();
         abort_unless(isset($articles[$slug]), 404);
 
         return view('farnam-public.articles.show', ['article' => $articles[$slug], 'slug' => $slug]);
@@ -70,7 +70,7 @@ class FarnamPublicContentController extends Controller
         ];
     }
 
-    private static function articles(): array
+    private static function articleContent(): array
     {
         return [
             'accounting-profit-vs-cash' => [
