@@ -5,7 +5,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\FiscalYearController;\nuse App\Http\Controllers\FarnamSiteContentController;
+use App\Http\Controllers\FiscalYearController;
+use App\Http\Controllers\FarnamSiteContentController;
 use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\LaborCostController;
@@ -25,7 +26,13 @@ use App\Http\Controllers\WorkflowPagesController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return auth()->check() ? redirect()->route('dashboard') : view('accounting');
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+
+    $content = \App\Models\FarnamSiteContent::query()->where('key', 'homepage')->value('content') ?? [];
+
+    return view('accounting', ['siteContent' => $content]);
 })->name('home');
 
 Route::middleware('guest')->group(function () {
