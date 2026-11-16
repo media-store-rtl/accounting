@@ -110,7 +110,7 @@ class FarnamContentManagementTest extends TestCase
             ->assertSee('عنوان جدید صفحه اصلی')
             ->assertSee('خدمت تازه')
             ->assertSee('شرح خدمت دوم')
-            ->assertSee('09130000000')
+            ->assertSee('۰۹۱۳۰۰۰۰۰۰۰')
             ->assertDontSee('ساماندهی فرآیندهای حسابداری');
     }
 }
