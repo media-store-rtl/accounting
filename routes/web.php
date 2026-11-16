@@ -30,7 +30,7 @@ Route::get('/', function () {
         return redirect()->route('dashboard');
     }
 
-    $content = \App\Models\FarnamSiteContent::query()->where('key', 'homepage')->value('content') ?? [];
+    $content = \App\Models\FarnamSiteContent::query()->where('key', 'homepage')->first()?->content ?? [];
 
     return view('accounting', ['siteContent' => $content]);
 })->name('home');
