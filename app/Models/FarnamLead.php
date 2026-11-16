@@ -8,7 +8,7 @@ class FarnamLead extends Model
 {
     protected $fillable = [
         'name', 'phone', 'business_name', 'business_type', 'service_interest',
-        'message', 'status', 'source', 'consent_at', 'internal_notes',
+        'message', 'status', 'source', 'source_detail', 'consent_at', 'internal_notes',
     ];
 
     protected function casts(): array
