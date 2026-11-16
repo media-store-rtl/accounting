@@ -11,11 +11,11 @@
 <nav class="links"><a href="{{ route('farnam.admin.edit') }}">مدیریت محتوا</a><a href="{{ route('home') }}" target="_blank" rel="noopener">مشاهده سایت</a></nav>
 @if (session('status'))<div class="notice">{{ session('status') }}</div>@endif
 </section>
-<section class="panel"><table><thead><tr><th>تاریخ</th><th>نام و تماس</th><th>کسب‌وکار</th><th>نیاز</th><th>توضیح</th><th>پیگیری</th></tr></thead><tbody>
+<section class="panel"><table><thead><tr><th>نام و تماس</th><th>کسب‌وکار</th><th>نیاز</th><th>توضیح</th><th>پیگیری</th></tr></thead><tbody>
 @forelse ($leads as $lead)
-<tr><td>{{ $lead->created_at?->format('Y/m/d H:i') }}</td><td>{{ $lead->name }}<br><a href="tel:{{ preg_replace('/[^0-9+]/', '', $lead->phone) }}">{{ $lead->phone }}</a></td><td>{{ $lead->business_name ?: '—' }}<br><span class="muted">{{ $lead->business_type }}</span></td><td>{{ $lead->service_interest }}</td><td>{{ $lead->message ?: '—' }}</td><td><form method="POST" action="{{ route('farnam.admin.leads.update', $lead) }}">@csrf @method('PATCH')
+<tr><td>{{ $lead->name }}<br><a href="tel:{{ preg_replace('/[^0-9+]/', '', $lead->phone) }}">{{ $lead->phone }}</a></td><td>{{ $lead->business_name ?: '—' }}<br><span class="muted">{{ $lead->business_type }}</span></td><td>{{ $lead->service_interest }}</td><td>{{ $lead->message ?: '—' }}</td><td><form method="POST" action="{{ route('farnam.admin.leads.update', $lead) }}">@csrf @method('PATCH')
 <select name="status">@foreach ($statuses as $status)<option value="{{ $status }}" @selected($lead->status === $status)>{{ ['new'=>'جدید','contacted'=>'تماس گرفته شد','meeting'=>'جلسه تنظیم شد','proposal'=>'پیشنهاد ارسال شد','won'=>'قرارداد بسته شد','lost'=>'مختومه'][ $status ] }}</option>@endforeach</select>
 <textarea name="internal_notes" placeholder="یادداشت داخلی">{{ $lead->internal_notes }}</textarea><button class="save" type="submit">ذخیره پیگیری</button></form></td></tr>
-@empty<tr><td colspan="6">هنوز درخواستی ثبت نشده است.</td></tr>@endforelse
+@empty<tr><td colspan="5">هنوز درخواستی ثبت نشده است.</td></tr>@endforelse
 </tbody></table><div class="pagination">{{ $leads->links() }}</div></section>
 </main></body></html>
