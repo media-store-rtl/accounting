@@ -215,11 +215,12 @@ $siteContent = array_merge([
                 <a href="#services">خدمات</a>
                 <a href="#about">درباره فرنام</a>
                 <a href="#process">فرآیند همکاری</a>
+                <a href="#request-consultation">درخواست مشاوره</a>
                 <a href="#contact">تماس با ما</a>
             </nav>
             <div class="nav-actions">
                 <a class="login-link" href="/login">ورود کاربران</a>
-                <a class="button button-gold" href="#contact">درخواست مشاوره <span aria-hidden="true">←</span></a>
+                <a class="button button-gold" href="#request-consultation">درخواست مشاوره <span aria-hidden="true">←</span></a>
             </div>
         </div>
     </header>
@@ -232,7 +233,7 @@ $siteContent = array_merge([
                     <h1>{{ $siteContent['hero_title'] }}</h1>
                     <p class="hero-copy">{{ $siteContent['hero_copy'] }}</p>
                     <div class="hero-actions">
-                        <a class="button button-gold" href="#contact">درخواست جلسه مشاوره <span aria-hidden="true">←</span></a>
+                        <a class="button button-gold" href="#request-consultation">درخواست جلسه مشاوره <span aria-hidden="true">←</span></a>
                         <a class="button button-outline" href="#services">آشنایی با خدمات</a>
                     </div>
                     <div class="hero-note">
@@ -337,8 +338,31 @@ $siteContent = array_merge([
             <div class="container">
                 <div class="cta-panel">
                     <div><h2>برای تصمیم‌های مالی، با دیدی روشن‌تر پیش بروید.</h2><p>نیاز کسب‌وکار خود را مطرح کنید تا درباره مسیر مناسب همکاری گفت‌وگو کنیم.</p></div>
-                    <a class="button button-gold" href="#contact">شروع گفت‌وگو با فرنام <span aria-hidden="true">←</span></a>
+                    <a class="button button-gold" href="#request-consultation">درخواست بررسی اولیه <span aria-hidden="true">←</span></a>
                 </div>
+            </div>
+        </section>
+
+        <section class="section" id="request-consultation" style="background:#f6f7f8">
+            <div class="container">
+                <div class="section-heading">
+                    <span class="section-kicker">START A CONVERSATION</span>
+                    <h2>درخواست بررسی اولیه کسب‌وکار</h2>
+                    <p>نیازتان را کوتاه بنویسید تا برای گفت‌وگوی اولیه و بررسی امکان همکاری با شما تماس بگیریم.</p>
+                </div>
+                @if (session('lead_status'))<div role="status" style="max-width:760px;margin:0 auto 18px;padding:14px 18px;border-radius:12px;background:#edf8f1;color:#24643d">{{ session('lead_status') }}</div>@endif
+                @if ($errors->any())<div role="alert" style="max-width:760px;margin:0 auto 18px;padding:14px 18px;border-radius:12px;background:#fff0f0;color:#933">لطفاً اطلاعات فرم را بررسی کنید و دوباره بفرستید.</div>@endif
+                <form method="POST" action="{{ route('farnam.leads.store') }}" style="max-width:760px;margin:0 auto;padding:26px;background:#fff;border:1px solid #e6e9ed;border-radius:18px;display:grid;grid-template-columns:1fr 1fr;gap:15px">
+                    @csrf
+                    <label style="font-size:12px;font-weight:700">نام و نام خانوادگی<input name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name" style="display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce2e8;border-radius:9px;font:inherit"></label>
+                    <label style="font-size:12px;font-weight:700">شماره تماس<input name="phone" value="{{ old('phone') }}" required maxlength="30" autocomplete="tel" inputmode="tel" style="display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce2e8;border-radius:9px;font:inherit"></label>
+                    <label style="font-size:12px;font-weight:700">نام شرکت یا کسب‌وکار<input name="business_name" value="{{ old('business_name') }}" maxlength="180" style="display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce2e8;border-radius:9px;font:inherit"></label>
+                    <label style="font-size:12px;font-weight:700">نوع فعالیت<select name="business_type" required style="display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce2e8;border-radius:9px;font:inherit"><option value="">انتخاب کنید</option><option value="production" @selected(old('business_type') === 'production')>تولیدی و صنعتی</option><option value="commerce" @selected(old('business_type') === 'commerce')>بازرگانی</option><option value="services" @selected(old('business_type') === 'services')>خدماتی</option><option value="other" @selected(old('business_type') === 'other')>سایر</option></select></label>
+                    <label style="grid-column:1/-1;font-size:12px;font-weight:700">خدمت موردنیاز<select name="service_interest" required style="display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce2e8;border-radius:9px;font:inherit"><option value="">انتخاب کنید</option><option value="accounting" @selected(old('service_interest') === 'accounting')>خدمات حسابداری</option><option value="finance" @selected(old('service_interest') === 'finance')>مشاوره مالی و مدیریتی</option><option value="tax" @selected(old('service_interest') === 'tax')>خدمات مالیاتی</option><option value="industrial_costing" @selected(old('service_interest') === 'industrial_costing')>حسابداری صنعتی و بهای تمام‌شده</option><option value="management_reporting" @selected(old('service_interest') === 'management_reporting')>گزارشگری مدیریتی</option><option value="other" @selected(old('service_interest') === 'other')>سایر خدمات</option></select></label>
+                    <label style="grid-column:1/-1;font-size:12px;font-weight:700">توضیح کوتاه درباره نیاز شما<textarea name="message" maxlength="1500" rows="4" style="display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce2e8;border-radius:9px;font:inherit;resize:vertical">{{ old('message') }}</textarea></label>
+                    <label style="grid-column:1/-1;display:flex;align-items:flex-start;gap:9px;font-size:11px;color:#718092;line-height:1.9"><input type="checkbox" name="consent" value="1" required style="margin-top:4px">با ثبت این فرم موافقم اطلاعات تماس من فقط برای پاسخ‌گویی به همین درخواست استفاده شود.</label>
+                    <button type="submit" class="button button-gold" style="grid-column:1/-1;width:100%">ثبت درخواست و هماهنگی تماس</button>
+                </form>
             </div>
         </section>
 
