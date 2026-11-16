@@ -15,10 +15,10 @@ class FarnamSiteContentController extends Controller
     {
         $content = FarnamSiteContent::query()->firstOrCreate(
             ['key' => self::KEY],
-            ['content' => $this->defaults()]
+            ['content' => self::defaultContent()]
         );
 
-        return view('farnam-admin.edit', ['content' => array_merge($this->defaults(), $content->content ?? [])]);
+        return view('farnam-admin.edit', ['content' => array_merge(self::defaultContent(), $content->content ?? [])]);
     }
 
     public function update(Request $request): RedirectResponse
@@ -47,7 +47,7 @@ class FarnamSiteContentController extends Controller
         return redirect()->route('farnam.admin.edit')->with('status', 'تغییرات وب‌سایت فرنام ذخیره شد.');
     }
 
-    private function defaults(): array
+    public static function defaultContent(): array
     {
         return [
             'hero_eyebrow' => 'همراه مطمئن تصمیم‌های مالی کسب‌وکار',
