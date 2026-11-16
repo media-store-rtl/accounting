@@ -41,3 +41,7 @@ No production installation, tenant provisioning, database migration, removal of 
 
 
 The Provisioning architecture is documented as a design only. No Provisioning runtime, API, Registry database, tenant creation, subscription enforcement, SSO, cPanel change, DNS change or production rollout has been implemented by this repository documentation.
+
+## Farnam content management
+
+The Farnam homepage has an owner-only content editor at /farnam-admin. The authenticated primary account owner can edit the hero copy, services list (add/remove), about text, contact copy and phone number. Content is persisted in the Laravel database and rendered on the public guest homepage. Access is protected by the existing auth and account.owner middleware. This first CMS phase does not include media uploads, visual page-builder/reordering, multi-admin roles, lead inbox or production deployment; those require separate implementation and verification.
