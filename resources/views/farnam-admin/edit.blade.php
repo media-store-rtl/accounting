@@ -24,7 +24,7 @@
     <header class="head">
         <h1>مدیریت محتوای وب‌سایت فرنام</h1>
         <p>متن‌های صفحه اصلی و فهرست خدمات را ویرایش کنید. تغییرات پس از ذخیره در وب‌سایت عمومی نمایش داده می‌شوند.</p>
-        <div class="actions"><a href="{{ route('farnam.admin.leads.index') }}">پیگیری درخواست‌های مشتریان</a><a href="{{ route('home') }}" target="_blank" rel="noopener">مشاهده وب‌سایت ↗</a><a href="{{ route('dashboard') }}">بازگشت به داشبورد</a></div>
+        <div class="actions"><a href="{{ route('farnam.admin.leads.index') }}">پیگیری درخواست‌های مشتریان</a><a href="{{ route('farnam.admin.leads.index') }}">پیگیری درخواست‌های مشتریان</a><a href="{{ route('home') }}" target="_blank" rel="noopener">مشاهده وب‌سایت ↗</a><a href="{{ route('dashboard') }}">بازگشت به داشبورد</a></div>
     </header>
 
     @if (session('status'))<div class="notice">{{ session('status') }}</div>@endif
