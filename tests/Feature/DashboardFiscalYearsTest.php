@@ -16,7 +16,7 @@ class DashboardFiscalYearsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_dashboard_lists_only_fiscal_years_for_the_users_selected_company(): void
+    public function test_dashboard_renders_business_subscription_and_fiscal_year_action_cards(): void
     {
         $account = Account::create(['name' => 'حساب آزمایشی', 'code' => 'DASHBOARD-FY-ACCOUNT']);
         $company = Company::create([
@@ -41,7 +41,6 @@ class DashboardFiscalYearsTest extends TestCase
             'web2022_user_id' => 98765,
             'is_active' => true,
         ]);
-
         $account->update(['owner_user_id' => $user->id]);
 
         $permission = Permission::create([
@@ -77,7 +76,6 @@ class DashboardFiscalYearsTest extends TestCase
             'last_verified_at' => '2026-11-13 10:00:00',
             'metadata' => ['plan_name' => 'پلن حرفه‌ای'],
         ]);
-
         FiscalYear::create([
             'company_id' => $otherCompany->id,
             'name' => 'سال مالی شرکت دیگر',
@@ -87,22 +85,26 @@ class DashboardFiscalYearsTest extends TestCase
             'is_closed' => false,
         ]);
 
+        config(['services.web2022.url' => 'https://web2022.example.test']);
+
         $response = $this->actingAs($user)
             ->withSession(['company_id' => $company->id])
             ->get('/dashboard');
 
         $response->assertOk()
-            ->assertSee('سوابق سال‌های مالی')
-            ->assertSee('اطلاعات مالک و اشتراک')
+            ->assertSee('کارت‌های مدیریت کسب‌وکار')
+            ->assertSee('کارت‌های سال مالی')
             ->assertSee('پلن حرفه‌ای')
             ->assertSee('WEB-SUB-98765')
-            ->assertSee('2027/03/20')
-            ->assertSee('سال‌های مالی')
-            ->assertSee('subscription-dashboard')
+            ->assertSee('تمدید اشتراک / انتخاب پلن')
+            ->assertSee('href="https://web2022.example.test/accounting-plan"', false)
+            ->assertSee('ورود به سال مالی')
+            ->assertSee(route('fiscal-years.select', $visibleYear), false)
             ->assertSee('شرکت مجاز')
             ->assertSee('98765', false)
             ->assertSee($visibleYear->name)
-            ->assertDontSee('سال مالی شرکت دیگر');
+            ->assertDontSee('سال مالی شرکت دیگر')
+            ->assertDontSee('<table', false);
     }
 
     public function test_dashboard_does_not_select_a_company_with_inactive_membership(): void
