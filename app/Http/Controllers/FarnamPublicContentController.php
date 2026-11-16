@@ -16,7 +16,7 @@ class FarnamPublicContentController extends Controller
 
     public function articles(): View
     {
-        return view('farnam-public.articles.index', ['articles' => self::articles()]);
+        return view('farnam-public.articles.index', ['articles' => self::articleContent()]);
     }
 
     public function article(string $slug): View
