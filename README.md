@@ -1,45 +1,32 @@
-# Dolibarr Accounting
+# Accounting
 
-Dolibarr is the target primary product for this online accounting/ERP service. Customer registration, sign-in, user administration, roles, permissions, accounting operations and customer business data are intended to live directly in Dolibarr.
+مخزن `media-store-rtl/accounting` شامل برنامه Laravel پروژه Accounting و قابلیت‌های فعلی آن است.
 
-## Repository contents
-- `dolibarr/upstream/`: official Dolibarr source, pinned as a Git submodule.
-- `dolibarr/custom-modules/`: locally maintained Dolibarr modules.
-- `dolibarr/patches/`: documented patches that cannot be implemented through supported extension points.
-- `PROJECT_DEFINITION.md`: current product and architecture definition.
-- `PROJECT_PROGRESS.md`: chronological project history and verified work status.
-- `docs/farnam-corporate-website.md`: brand identity, homepage structure, service pages, articles, lead attribution, CMS and maintenance notes for the Farnam corporate website.
-- `docs/dolibarr-cpanel-deployment-preparation.md`: proposed cPanel tenant layout, deployment constraints, and future installation/acceptance checklist.
-- `docs/provisioning-service-architecture.md`: approved ownership boundaries and high-level Provisioning architecture within Accounting.
-- `docs/accounting-provisioning-module-design.md`: proposed internal module boundaries, API/event contracts, tenant lifecycle, security and implementation gates.
-- `docs/web2022-accounting-integration-contract.md`: detailed proposed contract for Web2022 subscription events, Accounting Inbox processing, idempotency, security, status and reconciliation.
-- `docs/farnam-customer-acquisition-plan.md`: low-budget, contract-focused acquisition plan, follow-up process and operating KPIs.
+## ساختار پروژه
 
-The existing Accounting project is retained. Provisioning is an additional capability implemented within Accounting itself; it is not a replacement project, a separate service, or a reason to retire Accounting. The current Laravel application remains part of the project. Dolibarr is the direct accounting/ERP workspace for each provisioned business, while the coexistence and future division of responsibilities between existing Accounting capabilities and Dolibarr remain subject to explicit, feature-by-feature decisions. This documentation does not authorize removal or retirement of existing Accounting code, data, database, files, or functionality.
+- `app/`: کد برنامه Laravel شامل کنترلرها، مدل‌ها، سرویس‌ها و سیاست‌های دسترسی.
+- `database/`: migrationها، seedها و کارخانه‌های داده.
+- `resources/`: رابط کاربری، viewها و assetهای برنامه.
+- `routes/`: مسیرهای برنامه.
+- `tests/`: آزمون‌های خودکار.
+- `docs/`: مستندات محصول، عملیات و قابلیت‌های موجود.
+- `PROJECT_DEFINITION.md`: تعریف فعلی محصول و مرزهای نگهداری.
+- `PROJECT_PROGRESS.md`: تاریخچه تغییرات و وضعیت کارهای تأییدشده.
 
-## Farnam corporate website
+## وب‌سایت شرکتی فرنام
 
-The public guest homepage introduces **Farnam Accounting, Financial and Tax Advisory Services** in Persian and RTL. It uses a premium navy-and-gold visual identity and presents accounting, financial, tax, industrial-costing, management-reporting and financial-system advisory services. The current contact number is **09130162404**, with a direct `tel:+989130162404` link.
+بخش عمومی وب‌سایت فرنام و قابلیت‌های مدیریت محتوا و سرنخ‌های مشتری در همین برنامه Laravel قرار دارند. این بخش در کنار قابلیت‌های فعلی Accounting نگهداری می‌شود و جایگزین آن‌ها نیست.
 
-The public homepage is a corporate/marketing surface only. It does not replace the Dolibarr ERP direction, the existing Accounting application, the authenticated dashboard, or the Web2022/Accounting Provisioning ownership boundaries. Guests see the corporate homepage at the root route; authenticated users retain the existing dashboard redirect. See [the Farnam website brief](docs/farnam-corporate-website.md) and [customer acquisition plan](docs/farnam-customer-acquisition-plan.md) for service pages, editorial rules, lead attribution and the 30-day sales process. The homepage includes a consultation request form and an owner-only lead follow-up panel; the panel is fail-closed unless `FARNAM_SITE_ADMIN_USER_ID` is configured. These changes require deployment and production verification before they can be considered live.
+## دریافت کد
 
-## Get the source
 ```bash
-git clone --recurse-submodules --shallow-submodules https://github.com/media-store-rtl/accounting.git
+git clone https://github.com/media-store-rtl/accounting.git
+cd accounting
+composer install
 ```
-For an existing clone:
-```bash
-git submodule update --init --depth 1 dolibarr/upstream
-```
-Dolibarr's application document root is `dolibarr/upstream/htdocs`.
 
-## Multi-customer direction
-A customer may own multiple independent businesses. Each business has its own commercial subscription and one independent Dolibarr tenant, including a separate database, configuration, documents, sessions and runtime context. Web2022 is the customer-facing UI for creating/managing businesses and owns checkout, payment and commercial subscription state; the existing Accounting project owns canonical customer/business/tenant IDs and tenant lifecycle through its Provisioning capability. Dolibarr owns operational users, roles, permissions and accounting data for each tenant. A controlled, version-pinned release should be deployed into separate tenant application trees unless a shared physical code tree with isolated per-tenant configuration is proven safe under the actual runtime. Dedicated business subdomains are recommended for evaluation, not yet a finalized DNS decision.
+این مخزن دیگر Dolibarr، کد upstream آن، Git Submodule یا workflow اختصاصی انتشار Dolibarr را در بر نمی‌گیرد. برای clone کردن مخزن نیازی به `--recurse-submodules` یا اجرای `git submodule update` نیست.
 
-## Deployment
-The current cPanel deployment file, `.cpanel.yml`, still contains Laravel deployment, Composer/npm build, Laravel migration, and seeder commands. It is not a Dolibarr deployment workflow and must not be treated as one or triggered for Dolibarr installation. Review the cPanel preparation plan before any separately approved installation work.
+## استقرار
 
-No production installation, tenant provisioning, database migration, removal of existing Accounting functionality, Laravel deletion or deployment is performed by this documentation.
-
-
-The Provisioning architecture is documented as a design only. No Provisioning runtime, API, Registry database, tenant creation, subscription enforcement, SSO, cPanel change, DNS change or production rollout has been implemented by this repository documentation.
+تنظیمات فعلی استقرار Laravel در `.cpanel.yml` مستقل از Dolibarr است. هرگونه merge به شاخه اصلی ممکن است با Auto Deployment موجود در cPanel مرتبط باشد؛ بنابراین پیش از merge باید اثر استقرار و وضعیت CI بررسی شود. این مستندات ادعای اجرای deployment یا تغییر production ندارند.
