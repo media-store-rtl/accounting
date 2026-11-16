@@ -1698,3 +1698,18 @@
 - هیچ route/controller/model، migration، DB، job/worker، API، payment، SSO، tenant، read-only enforcement، cPanel، DNS، سرور، production یا Laravel legacy حذف/تغییر نشده است. تست خودکار و lint مستندات اجرا نشده‌اند؛ این تغییر صرفاً مستنداتی است. Browser/runtime، قرارداد دوطرفه Web2022، provisioning، backup/restore و tenant isolation اجرا یا تأیید نشده‌اند.
 - پیش از تغییر: `AGENTS.md`، README، تعریف محصول، progress، اسناد معماری، جریان Web2022، کدهای مرتبط و وضعیت زنده GitHub/PR/CI بررسی شدند. PR #263 باز و merge نشده بود؛ PR #262 نیز باز و merge نشده است. CI head قبلی PR #263 با SHA `cace7d81e72ceba25a593bf5c588bbb82e52c2e7` در run #3903 با نتیجه success پایان یافته بود؛ این نتیجه CI برای commitهای جدید این مرحله نیست.
 - شاخه کاری: `docs/provisioning-business-registry-architecture`؛ تغییرات به همان PR باز #263 اضافه می‌شوند تا از PR موازی با تغییرات هم‌پوشان جلوگیری شود. PR #263 همچنان stacked بر پایه PR #262 است؛ PR #262 باید جداگانه با تأیید صریح کاربر تعیین تکلیف شود. هیچ merge یا deployment انجام نشده است؛ CI head جدید باید جداگانه بررسی شود.
+
+# 167. فاز نخست پنل مدیریت محتوای وب‌سایت فرنام — 2026-11-16
+
+- درخواست/تأیید: کاربر پیشنهاد CMS داخلی Laravel برای مدیریت وب‌سایت فرنام را تأیید کرد. دامنه این فاز به‌صورت امن به ویرایش متن‌های اصلی، خدمات، معرفی و اطلاعات تماس محدود شد؛ بدون WordPress و بدون پروژه مستقل.
+- وضعیت پیش از کار: main روی ce0b83f258841dd010f4ab12aa79692b7dad93d8 پس از ادغام PR #268 قرار داشت. AGENTS.md، تعریف محصول، README، progress، صفحه عمومی، routeها، مدل User و middleware مالک حساب بررسی شدند.
+- شاخه مستقل feat/farnam-content-management-20261116 از همان main ساخته شد.
+- جدول farnam_site_contents و مدل FarnamSiteContent برای نگهداری payload محتوای صفحه ایجاد شدند.
+- کنترلر FarnamSiteContentController شامل فرم ویرایش، اعتبارسنجی ورودی و ذخیره ساختاریافته متن‌ها، شماره تماس و فهرست خدمات است.
+- مسیرهای /farnam-admin (GET/PUT) فقط پشت middlewareهای auth و account.owner ثبت شدند. مسیر عمومی / محتوای ذخیره‌شده را از طریق مدل Eloquent (با cast آرایه‌ای) به Blade می‌دهد؛ در نبود داده، متن پیش‌فرض حفظ می‌شود.
+- فرم مدیریت فارسی و RTL امکان ویرایش متن hero، خدمات، درباره فرنام، تماس و شماره تلفن و افزودن/حذف تا ۱۲ خدمت را فراهم می‌کند. Blade صفحه عمومی متن‌ها و کارت‌های خدمات را از داده قابل ویرایش می‌خواند.
+- تست Feature برای دسترسی مالک، منع دسترسی عضو غیرمالک، ذخیره محتوا و نمایش محتوای جدید در صفحه عمومی افزوده شد.
+- اسناد README.md، PROJECT_DEFINITION.md و docs/farnam-corporate-website.md درباره دامنه و محدودیت‌های CMS به‌روز شدند.
+- فایل‌ها: migration، مدل، کنترلر، نمای مدیریت، نمای صفحه عمومی، routes/web.php، تست Feature و سه سند پروژه.
+- تست محلی، PHP lint، browser و migration در این محیط اجرا نشده‌اند. نتیجه CI باید روی head نهایی PR بررسی شود. هیچ migration روی cPanel/production، upload رسانه، deploy، DNS یا تنظیم سرور انجام نشده است.
+- PR هنوز ساخته نشده است؛ پس از بازبینی نهایی تغییرات و CI، PR برای بررسی باز می‌شود. merge یا deployment بدون تأیید صریح جداگانه انجام نمی‌شود.
