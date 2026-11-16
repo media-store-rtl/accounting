@@ -175,6 +175,28 @@
     </style>
 </head>
 <body>
+@php
+$siteContent = array_merge([
+'hero_eyebrow' => 'همراه مطمئن تصمیم‌های مالی کسب‌وکار',
+'hero_title' => 'شفافیت مالی، آغاز تصمیم‌های مطمئن است.',
+'hero_copy' => 'در فرنام، حسابداری را فقط ثبت اعداد نمی‌دانیم؛ اطلاعات مالی باید به شناخت بهتر کسب‌وکار، کنترل هزینه‌ها و تصمیم‌گیری آگاهانه کمک کند. در مسیر حسابداری، امور مالی و مالیاتی همراه شما هستیم.',
+'services_title' => 'خدمات مالی، متناسب با نیاز کسب‌وکار شما',
+'services_intro' => 'از ساماندهی اطلاعات حسابداری تا تحلیل مالی و مشاوره مالیاتی؛ خدمات فرنام بر شناخت مسئله و ارائه راهکار متناسب با شرایط هر مجموعه متمرکز است.',
+'about_title' => 'فرنام؛ همراه شما برای مدیریت آگاهانه امور مالی',
+'about_copy' => 'هر کسب‌وکار، شرایط و نیازهای مالی ویژه خود را دارد. رویکرد فرنام بر شناخت دقیق این نیازها، نظم‌بخشی به اطلاعات، تحلیل مسئله و ارائه راهکارهای کاربردی در حوزه حسابداری، مالی و مالیاتی استوار است. هدف، فراهم‌کردن دیدی روشن‌تر برای مدیران و کمک به تصمیم‌گیری مسئولانه‌تر است.',
+'contact_title' => 'برای شروع یک گفت‌وگوی حرفه‌ای آماده‌ایم.',
+'contact_copy' => 'برای دریافت مشاوره در زمینه حسابداری، امور مالی و مالیاتی با فرنام تماس بگیرید. کارشناسان ما آماده شنیدن نیازهای کسب‌وکار شما و گفت‌وگو درباره مسیر مناسب همکاری هستند.',
+'phone' => '09130162404',
+'services' => [
+['title' => 'خدمات حسابداری', 'description' => 'ساماندهی فرآیندهای حسابداری، ثبت و طبقه‌بندی اطلاعات و بهبود کیفیت گزارش‌های مالی.'],
+['title' => 'مشاوره مالی', 'description' => 'تحلیل وضعیت مالی، بررسی هزینه‌ها و پشتیبانی اطلاعاتی برای تصمیم‌های مدیریتی.'],
+['title' => 'مشاوره مالیاتی', 'description' => 'بررسی تکالیف و پرونده‌های مالیاتی، شناخت ریسک‌ها و همراهی در چارچوب قوانین و مقررات.'],
+['title' => 'حسابداری صنعتی و بهای تمام‌شده', 'description' => 'تحلیل مواد، دستمزد و سربار، هزینه‌یابی و شناخت عوامل مؤثر بر بهای تمام‌شده محصولات.'],
+['title' => 'گزارشگری مدیریتی', 'description' => 'طراحی و تحلیل گزارش‌هایی که تصویر روشن‌تری از عملکرد و وضعیت مالی مجموعه ارائه می‌کنند.'],
+['title' => 'استقرار و بهبود سیستم مالی', 'description' => 'بررسی ساختارها و گردش کار مالی و پیشنهاد مسیرهای بهبود متناسب با اندازه و فعالیت شرکت.'],
+],
+], $siteContent ?? []);
+@endphp
 <div class="site">
     <header class="topbar">
         <div class="container nav">
@@ -205,9 +227,9 @@
         <section class="hero" id="home">
             <div class="container hero-grid">
                 <div>
-                    <span class="eyebrow">همراه مطمئن تصمیم‌های مالی کسب‌وکار</span>
-                    <h1>شفافیت مالی، آغاز <span>تصمیم‌های مطمئن</span> است.</h1>
-                    <p class="hero-copy">در فرنام، حسابداری را فقط ثبت اعداد نمی‌دانیم؛ اطلاعات مالی باید به شناخت بهتر کسب‌وکار، کنترل هزینه‌ها و تصمیم‌گیری آگاهانه کمک کند. در مسیر حسابداری، امور مالی و مالیاتی همراه شما هستیم.</p>
+                    <span class="eyebrow">{{ $siteContent['hero_eyebrow'] }}</span>
+                    <h1>{{ $siteContent['hero_title'] }}</h1>
+                    <p class="hero-copy">{{ $siteContent['hero_copy'] }}</p>
                     <div class="hero-actions">
                         <a class="button button-gold" href="#contact">درخواست جلسه مشاوره <span aria-hidden="true">←</span></a>
                         <a class="button button-outline" href="#services">آشنایی با خدمات</a>
@@ -246,34 +268,17 @@
             <div class="container">
                 <div class="section-heading">
                     <span class="section-kicker">FARNAM SERVICES</span>
-                    <h2>خدمات مالی، متناسب با نیاز کسب‌وکار شما</h2>
-                    <p>از ساماندهی اطلاعات حسابداری تا تحلیل مالی و مشاوره مالیاتی؛ خدمات فرنام بر شناخت مسئله و ارائه راهکار متناسب با شرایط هر مجموعه متمرکز است.</p>
+                    <h2>{{ $siteContent['services_title'] }}</h2>
+                    <p>{{ $siteContent['services_intro'] }}</p>
                 </div>
                 <div class="service-grid">
-                    <article class="service-card">
-                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2m4 0h2M8 15h2m4 0h2M8 18h8"/></svg></span>
-                        <h3>خدمات حسابداری</h3><p>ساماندهی فرآیندهای حسابداری، ثبت و طبقه‌بندی اطلاعات و بهبود کیفیت گزارش‌های مالی.</p>
-                    </article>
-                    <article class="service-card">
-                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 20h18M5 17V9m5 8V4m5 13v-6m5 6V7"/></svg></span>
-                        <h3>مشاوره مالی</h3><p>تحلیل وضعیت مالی، بررسی هزینه‌ها و پشتیبانی اطلاعاتی برای تصمیم‌های مدیریتی.</p>
-                    </article>
-                    <article class="service-card">
-                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 4h16v16H4zM8 8h8M8 12h5M8 16h8"/></svg></span>
-                        <h3>مشاوره مالیاتی</h3><p>بررسی تکالیف و پرونده‌های مالیاتی، شناخت ریسک‌ها و همراهی در چارچوب قوانین و مقررات.</p>
-                    </article>
-                    <article class="service-card">
-                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-6h6v6M8 10h2m4 0h2"/></svg></span>
-                        <h3>حسابداری صنعتی و بهای تمام‌شده</h3><p>تحلیل مواد، دستمزد و سربار، هزینه‌یابی و شناخت عوامل مؤثر بر بهای تمام‌شده محصولات.</p>
-                    </article>
-                    <article class="service-card">
-                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19V5m0 14h17M8 15l3-4 3 2 5-7"/></svg></span>
-                        <h3>گزارشگری مدیریتی</h3><p>طراحی و تحلیل گزارش‌هایی که تصویر روشن‌تری از عملکرد و وضعیت مالی مجموعه ارائه می‌کنند.</p>
-                    </article>
-                    <article class="service-card">
-                        <span class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2M7 3l-2 3m12-3 2 3"/></svg></span>
-                        <h3>استقرار و بهبود سیستم مالی</h3><p>بررسی ساختارها و گردش کار مالی و پیشنهاد مسیرهای بهبود متناسب با اندازه و فعالیت شرکت.</p>
-                    </article>
+                    @foreach ($siteContent['services'] as $service)
+                        <article class="service-card">
+                            <span class="service-icon" aria-hidden="true">✦</span>
+                            <h3>{{ $service['title'] }}</h3>
+                            <p>{{ $service['description'] }}</p>
+                        </article>
+                    @endforeach
                 </div>
             </div>
         </section>
@@ -283,8 +288,8 @@
                 <div class="about-art" aria-hidden="true"><span class="about-monogram">ف</span></div>
                 <div class="about-copy">
                     <span class="section-kicker">ABOUT FARNAM</span>
-                    <h2>فرنام؛ همراه شما برای مدیریت آگاهانه امور مالی</h2>
-                    <p>هر کسب‌وکار، شرایط و نیازهای مالی ویژه خود را دارد. رویکرد فرنام بر شناخت دقیق این نیازها، نظم‌بخشی به اطلاعات، تحلیل مسئله و ارائه راهکارهای کاربردی در حوزه حسابداری، مالی و مالیاتی استوار است. هدف، فراهم‌کردن دیدی روشن‌تر برای مدیران و کمک به تصمیم‌گیری مسئولانه‌تر است.</p>
+                    <h2>{{ $siteContent['about_title'] }}</h2>
+                    <p>{{ $siteContent['about_copy'] }}</p>
                     <div class="value-list">
                         <span class="value-item">شناخت نیاز هر مجموعه</span>
                         <span class="value-item">توجه به جزئیات مالی</span>
@@ -340,13 +345,13 @@
             <div class="container contact-grid">
                 <div>
                     <span class="section-kicker">CONTACT FARNAM</span>
-                    <h2>برای شروع یک گفت‌وگوی حرفه‌ای آماده‌ایم.</h2>
-                    <p>برای دریافت مشاوره در زمینه حسابداری، امور مالی و مالیاتی با فرنام تماس بگیرید. کارشناسان ما آماده شنیدن نیازهای کسب‌وکار شما و گفت‌وگو درباره مسیر مناسب همکاری هستند.</p>
+                    <h2>{{ $siteContent['contact_title'] }}</h2>
+                    <p>{{ $siteContent['contact_copy'] }}</p>
                 </div>
                 <div class="contact-card">
                     <strong>خدمات مشاوره حسابداری مالی و مالیاتی فرنام</strong>
                     <span>حسابداری · مشاوره مالی · مشاوره مالیاتی · حسابداری صنعتی</span>
-                    <a class="contact-phone" href="tel:+989130162404" aria-label="تماس تلفنی با فرنام: ۰۹۱۳۰۱۶۲۴۰۴">۰۹۱۳۰۱۶۲۴۰۴</a>
+                    <a class="contact-phone" href="tel:{{ preg_replace('/[^0-9+]/', '', $siteContent['phone']) }}">{{ $siteContent['phone'] }}</a>
                     <span class="contact-phone-label">برای تماس مستقیم، شماره را لمس کنید.</span>
                 </div>
             </div>
