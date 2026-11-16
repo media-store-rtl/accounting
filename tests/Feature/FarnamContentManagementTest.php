@@ -55,6 +55,26 @@ class FarnamContentManagementTest extends TestCase
         $this->actingAs($member)->get('/farnam-admin')->assertForbidden();
     }
 
+
+    public function test_another_account_owner_cannot_access_farnam_site_admin(): void
+    {
+        $siteOwner = $this->owner();
+        config(['services.farnam.site_admin_user_id' => $siteOwner->id]);
+
+        $otherAccount = Account::create(['name' => 'حساب مشتری دیگر', 'code' => 'FARNAM-CMS-OTHER']);
+        $otherOwner = User::create([
+            'account_id' => $otherAccount->id,
+            'name' => 'مالک مشتری دیگر',
+            'username' => 'farnam-cms-other-owner',
+            'email' => 'farnam-cms-other-owner@example.test',
+            'password' => 'password123',
+            'is_active' => true,
+        ]);
+        $otherAccount->update(['owner_user_id' => $otherOwner->id]);
+
+        $this->actingAs($otherOwner)->get('/farnam-admin')->assertForbidden();
+    }
+
     public function test_owner_can_update_homepage_copy_and_services_and_public_page_uses_them(): void
     {
         $owner = $this->owner();
