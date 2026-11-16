@@ -1709,4 +1709,23 @@
 - سند docs/dolibarr-first-tenant-staging-runbook.md بدون تغییر محتوایی حفظ شد؛ دامنه آن همچنان فقط راهنمای staging و آزمون tenantهای disposable است.
 - هیچ کد اجرایی، نصب Dolibarr، cPanel، DNS، دیتابیس واقعی، سرور، production، backup/restore واقعی یا deployment تغییر نکرد.
 - CI run #4118 روی merge commit 8980cdac13ecfaf6eb74fae7adff1e326077b34c موفق شد: ۱۲۰ تست و ۹۱۳ assertion. migration/route check در CI پروژه اجرا شد؛ هیچ نصب یا تغییر production انجام نشده است.
-- PR #260 همچنان باز و ادغام‌نشده است؛ merge فقط با تأیید صریح کاربر مجاز خواهد بود.
+- این گزارش در زمان ثبت اولیه، پیش از ادغام PR #260 نوشته شده بود. PR #260 بعداً در 2026-11-16 با merge commit `783b6d95207b614937a80960f99e09f56963c301` ادغام شد؛ وضعیت زنده GitHub مرجع نهایی است.
+
+
+---
+
+# 174. ادغام PRهای تأییدشده و ثبت عیب‌یابی Deploy متوقف‌شده cPanel — 2026-11-16
+
+- درخواست کاربر: ادغام PRهای باز #260، #265، #267 و #269؛ به‌روزرسانی فایل‌های پروژه؛ بررسی پیام cPanel که اجرای «Nov 16, 2026 2:58:39 PM» را در وضعیت in progress نشان می‌دهد.
+- هر چهار PR پس از بررسی وضعیت و CI ادغام شدند:
+  - #260 راهنمای staging tenant دالیبار؛ merge commit `783b6d95207b614937a80960f99e09f56963c301`.
+  - #265 قرارداد یکپارچه‌سازی Web2022 و Accounting؛ merge commit `4687a31083d70a39bca3222fb760b99382dfbddc`.
+  - #267 بازطراحی داشبورد کارت‌های مربعی؛ merge commit `92bc19aeb6a747c52d78dd2897e7e6530de0d711`.
+  - #269 CMS فرنام، فرم جذب و CRM؛ merge commit نهایی main `4fad74d1bacda36713f234f1df34d605f33c452c`.
+- CI تأییدشده: #260 اجرای نهایی 120 تست و 913 assertion؛ #269 اجرای نهایی 131 تست و 968 assertion. CIهای #265 و #267 نیز روی headهای نهایی با نتیجه success تأیید شدند. این نتایج CI هستند، نه آزمون مرورگر یا production.
+- بررسی cPanel: ابزار اتصال مستقیم به حساب cPanel/Terminal/UAPI یا فایل‌سیستم میزبان در دسترس نیست؛ در نتیجه log اجرای 2:58:39 PM خوانده نشده و علت قطعی توقف مشخص نیست.
+- فایل `.cpanel.yml` بدون تغییر باقی ماند. فرمان‌های محتمل برای بررسی از روی تعریف موجود شامل Composer، npm install (در نبود package-lock.json)، Vite build، artisan optimize:clear، migrate و seeder هستند؛ هیچ‌کدام به‌عنوان علت قطعی اعلام نشده‌اند.
+- سند جدید `docs/cpanel-deployment-stuck-diagnostics.md` ایجاد شد: روش UAPI `VersionControlDeployment retrieve`، مسیر log اختصاصی deployment، مسیر user_task_runner، مرحله‌یابی آخرین فرمان، اقدامات ممنوع تا تعیین تکلیف و اطلاعات لازم برای ادامه تشخیص.
+- `README.md` به سند عیب‌یابی ارجاع می‌دهد؛ `PROJECT_DEFINITION.md` مرز میان GitHub merge/CI و اثبات deployment را ثبت می‌کند؛ این progress log وضعیت ادغام و Deploy نامشخص را ثبت می‌کند. گزارش قدیمی #173 نیز به‌روزرسانی شد تا وضعیت PR #260 را به‌اشتباه باز نشان ندهد.
+- شاخه کاری: `docs/cpanel-deployment-stuck-diagnostics-20261116`. هیچ تغییر مستقیمی روی main انجام نشد. PR مستندات پس از تکمیل تغییرات ایجاد خواهد شد.
+- هیچ task فعال cPanel لغو یا دوباره اجرا نشد؛ هیچ process یا queue حذف نشد؛ migration/Seeder دستی اجرا نشد؛ هیچ production، DB، DNS، server یا .env تغییری نکرد. Deploy موفق تلقی نمی‌شود تا log همان اجرا و سپس وضعیت live تأیید شوند.
