@@ -1712,4 +1712,4 @@
 - اسناد README.md، PROJECT_DEFINITION.md و docs/farnam-corporate-website.md درباره دامنه و محدودیت‌های CMS به‌روز شدند.
 - فایل‌ها: migration، مدل، کنترلر، نمای مدیریت، نمای صفحه عمومی، routes/web.php، تست Feature و سه سند پروژه.
 - تست محلی، PHP lint، browser و migration در این محیط اجرا نشده‌اند. نتیجه CI باید روی head نهایی PR بررسی شود. هیچ migration روی cPanel/production، upload رسانه، deploy، DNS یا تنظیم سرور انجام نشده است.
-- PR هنوز ساخته نشده است؛ پس از بازبینی نهایی تغییرات و CI، PR برای بررسی باز می‌شود. merge یا deployment بدون تأیید صریح جداگانه انجام نمی‌شود.
+- PR شماره #269 با عنوان feat: add owner-only Farnam website content management ساخته و باز شد: https://github.com/media-store-rtl/accounting/pull/269. اجرای CI شماره 4019 روی SHA قبلی `d71ce75dd3e2539e90dc820546d4b6e78bbc1c1c` هنگام ثبت این یادداشت در حال اجرا بود؛ چون این یادداشت commit تازه ایجاد می‌کند، CI باید روی head جدید PR نیز بررسی شود. PR ادغام نشده و هیچ deployment انجام نشده است؛ merge فقط با تأیید صریح کاربر مجاز است.
