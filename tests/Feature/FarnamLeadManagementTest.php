@@ -76,6 +76,7 @@ class FarnamLeadManagementTest extends TestCase
         ]);
 
         $owner = $this->owner();
+        config(['services.farnam.site_admin_user_id' => $owner->id]);
         $this->actingAs($owner)->get('/farnam-admin/leads')
             ->assertOk()
             ->assertSee('مشتری آزمایشی');
