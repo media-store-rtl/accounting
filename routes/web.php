@@ -50,7 +50,7 @@ Route::get('/sso/callback', [AccountingSsoController::class, 'callback'])->name(
 
 Route::post('/farnam-leads', [FarnamLeadController::class, 'store'])->middleware('throttle:5,1')->name('farnam.leads.store');
 
-Route::middleware(['auth', 'account.owner'])->prefix('farnam-admin')->name('farnam.admin.')->group(function () {
+Route::middleware(['auth', 'farnam.site_admin'])->prefix('farnam-admin')->name('farnam.admin.')->group(function () {
     Route::get('/', [FarnamSiteContentController::class, 'edit'])->name('edit');
     Route::put('/', [FarnamSiteContentController::class, 'update'])->name('update');
     Route::get('/leads', [FarnamLeadController::class, 'index'])->name('leads.index');
