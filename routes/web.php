@@ -48,6 +48,11 @@ Route::middleware('guest')->group(function () {
 Route::get('/sso/start', [AccountingSsoController::class, 'start'])->name('sso.start');
 Route::get('/sso/callback', [AccountingSsoController::class, 'callback'])->name('sso.callback');
 
+Route::get('/services/{slug}', [FarnamPublicContentController::class, 'service'])->where('slug', '[a-z0-9-]+')->name('farnam.services.show');
+Route::get('/articles', [FarnamPublicContentController::class, 'articles'])->name('farnam.articles.index');
+Route::get('/articles/{slug}', [FarnamPublicContentController::class, 'article'])->where('slug', '[a-z0-9-]+')->name('farnam.articles.show');
+Route::get('/case-studies', [FarnamPublicContentController::class, 'caseStudies'])->name('farnam.case-studies.index');
+
 Route::post('/farnam-leads', [FarnamLeadController::class, 'store'])->middleware('throttle:5,1')->name('farnam.leads.store');
 
 Route::middleware(['auth', 'farnam.site_admin'])->prefix('farnam-admin')->name('farnam.admin.')->group(function () {
