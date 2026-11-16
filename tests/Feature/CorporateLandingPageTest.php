@@ -21,6 +21,8 @@ class CorporateLandingPageTest extends TestCase
             ->assertSee('id="contact"', false)
             ->assertSee('lang="fa" dir="rtl"', false)
             ->assertSee('href="/login"', false)
+            ->assertSee('۰۹۱۳۰۱۶۲۴۰۴')
+            ->assertSee('href="tel:+989130162404"', false)
             ->assertDontSee('حسابداری صنعتی برای کسب‌وکارهای تولیدی')
             ->assertDontSee('https://mymedimo.ir/');
     }
