@@ -198,7 +198,7 @@ $siteContent = array_merge([
 ],
 ], $siteContent ?? []);
 @endphp
-@php($displayPhone = strtr($siteContent['phone'], '0123456789', '۰۱۲۳۴۵۶۷۸۹'))
+@php($displayPhone = strtr($siteContent['phone'], ['0'=>'۰','1'=>'۱','2'=>'۲','3'=>'۳','4'=>'۴','5'=>'۵','6'=>'۶','7'=>'۷','8'=>'۸','9'=>'۹']))
 <div class="site">
     <header class="topbar">
         <div class="container nav">
