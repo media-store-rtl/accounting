@@ -7,6 +7,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FiscalYearController;
 use App\Http\Controllers\FarnamSiteContentController;
+use App\Http\Controllers\FarnamLeadController;
 use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\LaborCostController;
@@ -47,9 +48,13 @@ Route::middleware('guest')->group(function () {
 Route::get('/sso/start', [AccountingSsoController::class, 'start'])->name('sso.start');
 Route::get('/sso/callback', [AccountingSsoController::class, 'callback'])->name('sso.callback');
 
+Route::post('/farnam-leads', [FarnamLeadController::class, 'store'])->middleware('throttle:5,1')->name('farnam.leads.store');
+
 Route::middleware(['auth', 'account.owner'])->prefix('farnam-admin')->name('farnam.admin.')->group(function () {
     Route::get('/', [FarnamSiteContentController::class, 'edit'])->name('edit');
     Route::put('/', [FarnamSiteContentController::class, 'update'])->name('update');
+    Route::get('/leads', [FarnamLeadController::class, 'index'])->name('leads.index');
+    Route::patch('/leads/{lead}', [FarnamLeadController::class, 'update'])->whereNumber('lead')->name('leads.update');
 });
 
 Route::middleware('auth')->group(function () {
