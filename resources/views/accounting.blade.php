@@ -144,6 +144,7 @@
         .contact p { max-width: 650px; margin: 0; color: #b5c2ce; font-size: 11px; line-height: 2.3; }
         .contact-card { padding: 23px; border: 1px solid rgba(232,220,192,.22); border-radius: 17px; background: rgba(255,255,255,.04); }
         .contact-card strong { display: block; color: #e2c994; font-size: 13px; }.contact-card span { display: block; margin-top: 8px; color: #b5c2ce; font-size: 10px; line-height: 2; }.contact-phone { display: inline-flex; align-items: center; gap: 9px; margin-top: 15px; color: #fff; font-size: 20px; font-weight: 800; letter-spacing: .5px; text-decoration: none; direction: ltr; }.contact-phone:hover { color: #e2c994; }.contact-phone-label { display: block; margin-top: 5px; color: #b5c2ce; font-size: 10px; }
+        @media (max-width: 760px) { #lead-form { grid-template-columns: 1fr !important; padding: 18px !important; } }
         .footer { padding: 22px 0; color: #9baab8; background: #091a2b; font-size: 9px; }
         .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
         .footer strong { color: #e2c994; font-size: 12px; }
@@ -352,7 +353,7 @@ $siteContent = array_merge([
                 </div>
                 @if (session('lead_status'))<div role="status" style="max-width:760px;margin:0 auto 18px;padding:14px 18px;border-radius:12px;background:#edf8f1;color:#24643d">{{ session('lead_status') }}</div>@endif
                 @if ($errors->any())<div role="alert" style="max-width:760px;margin:0 auto 18px;padding:14px 18px;border-radius:12px;background:#fff0f0;color:#933">لطفاً اطلاعات فرم را بررسی کنید و دوباره بفرستید.</div>@endif
-                <form method="POST" action="{{ route('farnam.leads.store') }}" style="max-width:760px;margin:0 auto;padding:26px;background:#fff;border:1px solid #e6e9ed;border-radius:18px;display:grid;grid-template-columns:1fr 1fr;gap:15px">
+                <form method="POST" action="{{ route('farnam.leads.store') }}" id="lead-form" style="max-width:760px;margin:0 auto;padding:26px;background:#fff;border:1px solid #e6e9ed;border-radius:18px;display:grid;grid-template-columns:1fr 1fr;gap:15px">
                     @csrf
                     <label style="font-size:12px;font-weight:700">نام و نام خانوادگی<input name="name" value="{{ old('name') }}" required maxlength="120" autocomplete="name" style="display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce2e8;border-radius:9px;font:inherit"></label>
                     <label style="font-size:12px;font-weight:700">شماره تماس<input name="phone" value="{{ old('phone') }}" required maxlength="30" autocomplete="tel" inputmode="tel" style="display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce2e8;border-radius:9px;font:inherit"></label>
