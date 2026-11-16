@@ -143,7 +143,7 @@
         .contact h2 { margin: 10px 0 12px; color: #fff; font-size: 27px; font-weight: 900; }
         .contact p { max-width: 650px; margin: 0; color: #b5c2ce; font-size: 11px; line-height: 2.3; }
         .contact-card { padding: 23px; border: 1px solid rgba(232,220,192,.22); border-radius: 17px; background: rgba(255,255,255,.04); }
-        .contact-card strong { display: block; color: #e2c994; font-size: 13px; }.contact-card span { display: block; margin-top: 8px; color: #b5c2ce; font-size: 10px; line-height: 2; }
+        .contact-card strong { display: block; color: #e2c994; font-size: 13px; }.contact-card span { display: block; margin-top: 8px; color: #b5c2ce; font-size: 10px; line-height: 2; }.contact-phone { display: inline-flex; align-items: center; gap: 9px; margin-top: 15px; color: #fff; font-size: 20px; font-weight: 800; letter-spacing: .5px; text-decoration: none; direction: ltr; }.contact-phone:hover { color: #e2c994; }.contact-phone-label { display: block; margin-top: 5px; color: #b5c2ce; font-size: 10px; }
         .footer { padding: 22px 0; color: #9baab8; background: #091a2b; font-size: 9px; }
         .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
         .footer strong { color: #e2c994; font-size: 12px; }
@@ -341,9 +341,14 @@
                 <div>
                     <span class="section-kicker">CONTACT FARNAM</span>
                     <h2>برای شروع یک گفت‌وگوی حرفه‌ای آماده‌ایم.</h2>
-                    <p>اگر به خدمات حسابداری، مشاوره مالی یا مالیاتی نیاز دارید، موضوع و نیاز مجموعه خود را برای فرنام مشخص کنید. اطلاعات تماس رسمی و راه‌های ارتباطی در این بخش پس از دریافت از مجموعه درج خواهد شد.</p>
+                    <p>برای دریافت مشاوره در زمینه حسابداری، امور مالی و مالیاتی با فرنام تماس بگیرید. کارشناسان ما آماده شنیدن نیازهای کسب‌وکار شما و گفت‌وگو درباره مسیر مناسب همکاری هستند.</p>
                 </div>
-                <div class="contact-card"><strong>خدمات مشاوره حسابداری مالی و مالیاتی فرنام</strong><span>حسابداری · مشاوره مالی · مشاوره مالیاتی · حسابداری صنعتی</span></div>
+                <div class="contact-card">
+                    <strong>خدمات مشاوره حسابداری مالی و مالیاتی فرنام</strong>
+                    <span>حسابداری · مشاوره مالی · مشاوره مالیاتی · حسابداری صنعتی</span>
+                    <a class="contact-phone" href="tel:+989130162404" aria-label="تماس تلفنی با فرنام: ۰۹۱۳۰۱۶۲۴۰۴">۰۹۱۳۰۱۶۲۴۰۴</a>
+                    <span class="contact-phone-label">برای تماس مستقیم، شماره را لمس کنید.</span>
+                </div>
             </div>
         </section>
     </main>
