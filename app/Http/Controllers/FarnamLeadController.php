@@ -9,29 +9,34 @@ use Illuminate\View\View;
 
 class FarnamLeadController extends Controller
 {
-    private const STATUSES = ['new', 'contacted', 'meeting', 'proposal', 'won', 'lost'];
+    private const STATUSES = ['new', 'contacted', 'meeting', 'proposal', 'negotiation', 'follow_up', 'won', 'lost'];
+
+    private const SOURCES = ['website', 'google', 'instagram', 'linkedin', 'referral', 'direct', 'other'];
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'phone' => ['required', 'string', 'max:30', 'regex:/^[0-9۰-۹+()\-\s]+$/u'],
-            'business_name' => ['nullable', 'string', 'max:180'],
+            'business_name' => ['required', 'string', 'max:180'],
             'business_type' => ['required', 'in:production,commerce,services,other'],
             'service_interest' => ['required', 'in:accounting,finance,tax,industrial_costing,management_reporting,other'],
-            'message' => ['nullable', 'string', 'max:1500'],
+            'message' => ['required', 'string', 'max:1500'],
+            'source' => ['nullable', 'in:' . implode(',', self::SOURCES)],
+            'source_detail' => ['nullable', 'string', 'max:120'],
             'consent' => ['accepted'],
         ]);
 
         FarnamLead::query()->create([
             'name' => $validated['name'],
             'phone' => $validated['phone'],
-            'business_name' => $validated['business_name'] ?? null,
+            'business_name' => $validated['business_name'],
             'business_type' => $validated['business_type'],
             'service_interest' => $validated['service_interest'],
-            'message' => $validated['message'] ?? null,
+            'message' => $validated['message'],
             'status' => 'new',
-            'source' => 'website',
+            'source' => $validated['source'] ?? 'website',
+            'source_detail' => $validated['source_detail'] ?? null,
             'consent_at' => now(),
         ]);
 
