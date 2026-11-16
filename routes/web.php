@@ -5,7 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\FiscalYearController;
+use App\Http\Controllers\FiscalYearController;\nuse App\Http\Controllers\FarnamSiteContentController;
 use App\Http\Controllers\ExcelImportController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\LaborCostController;
@@ -37,7 +37,7 @@ Route::middleware('guest')->group(function () {
 Route::get('/sso/start', [AccountingSsoController::class, 'start'])->name('sso.start');
 Route::get('/sso/callback', [AccountingSsoController::class, 'callback'])->name('sso.callback');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'account.owner'])->prefix('farnam-admin')->name('farnam.admin.')->group(function () {\n    Route::get('/', [FarnamSiteContentController::class, 'edit'])->name('edit');\n    Route::put('/', [FarnamSiteContentController::class, 'update'])->name('update');\n});\n\nRoute::middleware('auth')->group(function () {
     Route::prefix('master')->name('master.')->group(function () {
         Route::get('/{module}', [MasterDataController::class,'index'])->name('index');
         Route::get('/{module}/create', [MasterDataController::class,'create'])->name('create');
