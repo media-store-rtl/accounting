@@ -1698,3 +1698,15 @@
 - هیچ route/controller/model، migration، DB، job/worker، API، payment، SSO، tenant، read-only enforcement، cPanel، DNS، سرور، production یا Laravel legacy حذف/تغییر نشده است. تست خودکار و lint مستندات اجرا نشده‌اند؛ این تغییر صرفاً مستنداتی است. Browser/runtime، قرارداد دوطرفه Web2022، provisioning، backup/restore و tenant isolation اجرا یا تأیید نشده‌اند.
 - پیش از تغییر: `AGENTS.md`، README، تعریف محصول، progress، اسناد معماری، جریان Web2022، کدهای مرتبط و وضعیت زنده GitHub/PR/CI بررسی شدند. PR #263 باز و merge نشده بود؛ PR #262 نیز باز و merge نشده است. CI head قبلی PR #263 با SHA `cace7d81e72ceba25a593bf5c588bbb82e52c2e7` در run #3903 با نتیجه success پایان یافته بود؛ این نتیجه CI برای commitهای جدید این مرحله نیست.
 - شاخه کاری: `docs/provisioning-business-registry-architecture`؛ تغییرات به همان PR باز #263 اضافه می‌شوند تا از PR موازی با تغییرات هم‌پوشان جلوگیری شود. PR #263 همچنان stacked بر پایه PR #262 است؛ PR #262 باید جداگانه با تأیید صریح کاربر تعیین تکلیف شود. هیچ merge یا deployment انجام نشده است؛ CI head جدید باید جداگانه بررسی شود.
+
+
+---
+
+# 173. همگام‌سازی runbook اولین tenant آزمایشی با main — 2026-11-16
+
+- برای رفع واگرایی PR #260، شاخه مستندات با main فعلی ادغام شد؛ تاریخچه هر دو شاخه به‌صورت والدهای merge commit حفظ شده است و force-push انجام نشد.
+- به‌دلیل تعارض شماره #156 با یک ثبت متفاوت در main، گزارش runbook این PR در این شاخه با شماره یکتای #173 ثبت شد تا سابقه موجود main بازنویسی نشود.
+- سند docs/dolibarr-first-tenant-staging-runbook.md بدون تغییر محتوایی حفظ شد؛ دامنه آن همچنان فقط راهنمای staging و آزمون tenantهای disposable است.
+- هیچ کد اجرایی، نصب Dolibarr، cPanel، DNS، دیتابیس واقعی، سرور، production، backup/restore واقعی یا deployment تغییر نکرد.
+- CI جدید باید روی merge commit بررسی شود؛ CI قبلی run #3854 روی head پیش از همگام‌سازی موفق بود و جایگزین آزمون head جدید نیست.
+- PR #260 همچنان باز و ادغام‌نشده است؛ merge فقط با تأیید صریح کاربر مجاز خواهد بود.
