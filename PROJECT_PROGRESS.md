@@ -1,3 +1,14 @@
+# 167. حذف Dolibarr از مخزن Accounting — 2026-11-16
+
+- درخواست تأییدشده کاربر: حذف Dolibarr به‌عنوان زیرشاخه/وابستگی مخزن GitHub با حفظ پروژه Laravel Accounting و سایر قابلیت‌های آن.
+- تغییرات این شاخه: حذف کامل درخت `dolibarr/` شامل gitlink زیرماژول upstream؛ حذف `.gitmodules` و workflow انتشار Dolibarr؛ حذف اسناد اختصاصی Dolibarr و Provisioning/Web2022 که صرفاً برای اتصال به Dolibarr تعریف شده بودند.
+- اسناد مرجع `README.md` و `PROJECT_DEFINITION.md` بازنویسی شدند تا وضعیت جدید را روشن کنند: مخزن، برنامه Laravel Accounting است؛ حذف Dolibarr از GitHub به معنی حذف قابلیت‌های Laravel، پاک‌سازی دیتابیس یا تغییر سرور نیست.
+- هیچ فایل Laravel، route، model، controller، migration حسابداری، جدول، داده، تنظیمات cPanel یا فایل سرور در این تغییر حذف/ویرایش نشده است.
+- تست محلی اجرا نشده است؛ این محیط clone/runtime اجرای PHPUnit یا build ندارد. CI برای PR پس از ایجاد بررسی می‌شود. مرورگر، production، migration و deployment اجرا/بررسی نشده‌اند.
+- شاخه: `chore/remove-dolibarr-submodule-20261116`. این تغییر هنوز ادغام نشده است. پیش از merge باید توجه شود که Auto Deployment در cPanel ممکن است با تغییر main فعال شود؛ merge فقط با تأیید صریح کاربر مجاز است.
+
+---
+
 # 166. هم‌راستاسازی اسناد پروژه با وب‌سایت شرکتی فرنام — 2026-11-16
 
 - درخواست: علاوه بر صفحه وب، فایل‌های مرجع پروژه نیز با هویت و دامنه وب‌سایت شرکتی فرنام به‌روز شوند.
