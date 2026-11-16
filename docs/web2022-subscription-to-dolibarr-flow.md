@@ -74,6 +74,10 @@
 
 این جدول مرز مسئولیت معماری تأییدشده است؛ قرارداد فنی و تغییر عملیاتی هنوز تصویب/پیاده‌سازی نشده‌اند.
 
+## قرارداد تفصیلی یکپارچه‌سازی
+
+قرارداد پیشنهادی eventها، شناسه‌ها، Outbox/Inbox، پاسخ‌های HTTP، idempotency، امنیت، retry و reconciliation در [قرارداد یکپارچه‌سازی Web2022 و Accounting/Provisioning](web2022-accounting-integration-contract.md) آمده است. آن سند نیز طراحی مستنداتی است؛ endpoint یا رفتار runtime را ایجاد یا تصویب نهایی نمی‌کند.
+
 ## ارجاع طراحی داخلی
 
 مرزبندی داخلی پروژه Accounting، API پیشنهادی Web2022، event contract، idempotency، چرخه عمر tenant و مراحل پیاده‌سازی در [طراحی داخلی ماژول Provisioning در Accounting](accounting-provisioning-module-design.md) تشریح شده است. آن سند نیز طرح مستنداتی است و به معنی پیاده‌سازی endpoint یا worker نیست.
