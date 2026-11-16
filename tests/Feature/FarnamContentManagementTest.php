@@ -79,6 +79,8 @@ class FarnamContentManagementTest extends TestCase
 
         $this->assertSame('عنوان جدید صفحه اصلی', FarnamSiteContent::query()->firstOrFail()->content['hero_title']);
 
+        auth()->logout();
+
         $this->get('/')
             ->assertOk()
             ->assertSee('عنوان جدید صفحه اصلی')
